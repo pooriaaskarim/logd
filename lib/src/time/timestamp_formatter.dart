@@ -33,8 +33,8 @@ const _abbreviatedMonthNames = [
 
 /// A class for formatting timestamps with customizable patterns and timezone
 /// support.
-class TimestampFormatter {
-  const TimestampFormatter({this.formatter, this.timeZone});
+class Timestamp {
+  const Timestamp({this.formatter, this.timeZone});
 
   /// The format string defining the timestamp pattern.
   ///

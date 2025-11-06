@@ -25,7 +25,7 @@ class Logger {
     ignorePackages: ['logger', 'flutter'],
   );
 
-  static TimestampFormatter timestampFormatter = TimestampFormatter(
+  static Timestamp? timestamp = Timestamp(
     formatter: 'yyyy/MMMM/dd\nhhhh:mm:ss.SSSS\nZZZ',
     timeZone: TimeZone.named('NY', '-05:00'),
   );
@@ -69,8 +69,9 @@ class Logger {
 
   static List<String> _buildLogHeader(final LogLevel level) {
     final levelInfo = '[${level.name.toUpperCase()}]';
-    final timestamp = timestampFormatter.getTimestamp() ?? '';
-    final header = '$levelInfo${timestamp.isNotEmpty ? '\n$timestamp' : ''}';
+    final timestampInfo = timestamp?.getTimestamp() ?? '';
+    final header =
+        '$levelInfo${timestampInfo.isNotEmpty ? '\n$timestampInfo' : ''}';
     const prefix = '____';
     const prefixLen = prefix.length;
     final wrapWidth = BoxPrinter.lineLength - prefixLen;
