@@ -1,63 +1,155 @@
 import 'package:flutter/foundation.dart';
-
-import '../printer/box.printer.dart';
+import '../printer/box_printer.dart';
+import '../printer/printer.dart';
 import '../stack_trace_parser/stack_trace_parser.dart';
-import '../time/timestamp_formatter.dart';
-
+import '../time/timestamp.dart';
 part 'log_buffer.dart';
+part 'log_level.dart';
+part 'log_entry.dart';
 
-enum LogLevel { trace, debug, info, warning, error }
-
+/// The main logger class — now instance-based with full control.
+///
+/// Create one per module:
+/// ```dart
+/// final auth = Logger.module('Auth', minLevel: LogLevel.warning);
+/// final db = Logger.module('DB', printers: [JsonPrinter()]);
+/// ```
 class Logger {
-  Logger._();
-  static bool enabled = kDebugMode;
-  static LogLevel minLevel = LogLevel.debug;
-  static bool includeFileLineInHeader = false;
-  static Map<LogLevel, int> stackMethodCount = {
-    LogLevel.trace: 0,
-    LogLevel.debug: 0,
-    LogLevel.info: 0,
-    LogLevel.warning: 2,
-    LogLevel.error: 8,
-  };
+  /// Creates a fully configured logger instance.
+  Logger({
+    this.name = 'Logger',
+    this.enabled = kDebugMode,
+    final LogLevel? minLevel,
+    this.includeFileLineInHeader = false,
+    final Map<LogLevel, int>? stackMethodCount,
+    final Timestamp? timestampFormatter,
+    final StackTraceParser? stackParser,
+    final List<Printer> printers = const [],
+  })  : minLevel = minLevel ?? LogLevel.debug,
+        stackMethodCount = stackMethodCount ??
+            {
+              LogLevel.trace: 0,
+              LogLevel.debug: 0,
+              LogLevel.info: 0,
+              LogLevel.warning: 2,
+              LogLevel.error: 8,
+            },
+        timestampFormatter = timestampFormatter ??
+            Timestamp(
+              formatter: 'yyyy.MMM.dd\nZZ HH:mm:ss.SSSS',
+              timeZone: TimeZone('NY', '-05:00'),
+            ),
+        stackParser = stackParser ??
+            const StackTraceParser(ignorePackages: ['logd', 'flutter']) {
+    _printers.addAll(printers);
+    if (_printers.isEmpty) {
+      _printers.add(BoxPrinter());
+    }
+  }
 
-  static StackTraceParser parser = const StackTraceParser(
-    ignorePackages: ['logger', 'flutter'],
-  );
+  /// Factory for module-specific loggers.
+  factory Logger.module(
+    final String moduleName, {
+    final bool? enabled,
+    final LogLevel? minLevel,
+    final List<Printer> printers = const [],
+  }) =>
+      Logger(
+        name: moduleName,
+        enabled: enabled ?? kDebugMode,
+        minLevel: minLevel,
+        printers: printers.isNotEmpty ? printers : [BoxPrinter()],
+      );
+  // ── Instance Configuration ─────────────────────────────────────
+  final String name;
+  final bool enabled;
+  final LogLevel minLevel;
+  final bool includeFileLineInHeader;
+  final Map<LogLevel, int> stackMethodCount;
+  final Timestamp timestampFormatter;
+  final StackTraceParser stackParser;
 
-  static Timestamp? timestamp = Timestamp(
-    formatter: 'yyyy/MMMM/dd\nhhhh:mm:ss.SSSS\nZZZ',
-    timeZone: TimeZone.named('NY', '-05:00'),
-  );
+  final List<Printer> _printers = [];
 
-  static void t(final LogBuffer? buffer) => _log(buffer, level: LogLevel.trace);
-  static void d(final LogBuffer? buffer) => _log(buffer, level: LogLevel.debug);
-  static void i(final LogBuffer? buffer) => _log(buffer, level: LogLevel.info);
-  static void w(final LogBuffer? buffer) =>
-      _log(buffer, level: LogLevel.warning);
-  static void e(final LogBuffer? buffer) => _log(buffer, level: LogLevel.error);
+  // ── Static Global (100% backward compatible) ───────────────────
+  static final Logger global = Logger();
+  static Logger get log => global;
 
-  static void _log(final LogBuffer? buffer, {required final LogLevel level}) {
-    if (!enabled || level.index < minLevel.index || buffer == null) {
+  // ── Buffers (zero-cost when disabled) ─────────────────────────
+  LogBuffer? get t => enabled ? LogBuffer._(this, LogLevel.trace) : null;
+  LogBuffer? get d => enabled ? LogBuffer._(this, LogLevel.debug) : null;
+  LogBuffer? get i => enabled ? LogBuffer._(this, LogLevel.info) : null;
+  LogBuffer? get w => enabled ? LogBuffer._(this, LogLevel.warning) : null;
+  LogBuffer? get e => enabled ? LogBuffer._(this, LogLevel.error) : null;
+
+  // ── Direct logging ────────────────────────────────────────────
+  void trace(
+    final Object? message, [
+    final Object? error,
+    final StackTrace? stack,
+  ]) =>
+      _log(LogLevel.trace, message, error, stack);
+  void debug(
+    final Object? message, [
+    final Object? error,
+    final StackTrace? stack,
+  ]) =>
+      _log(LogLevel.debug, message, error, stack);
+  void info(
+    final Object? message, [
+    final Object? error,
+    final StackTrace? stack,
+  ]) =>
+      _log(LogLevel.info, message, error, stack);
+  void warning(
+    final Object? message, [
+    final Object? error,
+    final StackTrace? stack,
+  ]) =>
+      _log(LogLevel.warning, message, error, stack);
+  void error(
+    final Object? message, [
+    final Object? error,
+    final StackTrace? stack,
+  ]) =>
+      _log(LogLevel.error, message, error, stack);
+
+  // ── Core logging ──────────────────────────────────────────────
+  void _log(
+    final LogLevel level,
+    final Object? message,
+    final Object? error,
+    final StackTrace? stackTrace,
+  ) {
+    if (!enabled || level.index < minLevel.index) {
       return;
     }
-    final caller =
-        parser.extractCaller(stackTrace: StackTrace.current, skipFrames: 2);
+
+    final caller = stackParser.extractCaller(
+      stackTrace: stackTrace ?? StackTrace.current,
+      skipFrames: 2,
+    );
     if (caller == null) {
       return;
     }
-    final origin = _buildOrigin(caller);
-    final innerWidth = BoxPrinter.lineLength - 4;
-    final lines = <String>[
-      ..._buildLogHeader(level),
-      ..._buildHeader(origin, innerWidth),
-      ..._buildMessage(buffer.toString(), innerWidth),
-      ..._buildStackTrace(level, innerWidth),
-    ];
-    BoxPrinter.printBox(lines, level);
+
+    final entry = LogEntry(
+      logger: name,
+      level: level,
+      message: message?.toString() ?? 'null',
+      timestamp: timestampFormatter.getTimestamp() ?? '',
+      origin: _buildOrigin(caller),
+      stackFrames: _extractStackFrames(level, stackTrace ?? StackTrace.current),
+      error: error,
+      stackTrace: stackTrace,
+    );
+
+    for (final printer in _printers) {
+      printer.log(entry);
+    }
   }
 
-  static String _buildOrigin(final CallbackInfo info) {
+  String _buildOrigin(final CallbackInfo info) {
     var origin = info.className.isNotEmpty
         ? '${info.className}.${info.methodName}'
         : info.methodName;
@@ -67,92 +159,32 @@ class Logger {
     return origin;
   }
 
-  static List<String> _buildLogHeader(final LogLevel level) {
-    final levelInfo = '[${level.name.toUpperCase()}]';
-    final timestampInfo = timestamp?.getTimestamp() ?? '';
-    final header =
-        '$levelInfo${timestampInfo.isNotEmpty ? '\n$timestampInfo' : ''}';
-    const prefix = '____';
-    const prefixLen = prefix.length;
-    final wrapWidth = BoxPrinter.lineLength - prefixLen;
-    final raw =
-        header.split('\n').where((final l) => l.trim().isNotEmpty).toList();
-    final out = <String>[];
-    for (final line in raw) {
-      final wrapped = BoxPrinter.wrapLine(line, wrapWidth);
-      for (int i = 0; i < wrapped.length; i++) {
-        out.add(prefix + wrapped[i].padRight(wrapWidth, '_').padLeft(16, '_'));
-      }
-    }
-    return out;
-  }
-
-  static List<String> _buildHeader(final String origin, final int innerWidth) {
-    const prefix = '--';
-    const indent = prefix.length;
-    final wrapped = BoxPrinter.wrapLine(origin, innerWidth);
-    return wrapped.asMap().entries.map((final e) {
-      final p = e.key == 0 ? prefix : ' ' * indent;
-      return p + e.value;
-    }).toList();
-  }
-
-  static List<String> _buildMessage(
-    final String content,
-    final int innerWidth,
+  List<CallbackInfo>? _extractStackFrames(
+    final LogLevel level,
+    final StackTrace stack,
   ) {
-    final raw =
-        content.split('\n').where((final l) => l.trim().isNotEmpty).toList();
-    const prefix = '----|';
-    const prefixLen = prefix.length;
-    final wrapWidth = innerWidth - prefixLen + 1;
-    final out = <String>[];
-    for (final line in raw) {
-      final wrapped = BoxPrinter.wrapLine(line, wrapWidth);
-      for (int i = 0; i < wrapped.length; i++) {
-        final p = i == 0 ? prefix : ' ' * prefixLen;
-        out.add(p + wrapped[i]);
-      }
-    }
-    return out;
-  }
-
-  static List<String> _buildStackTrace(
-      final LogLevel level, final int innerWidth) {
     final count = stackMethodCount[level] ?? 0;
     if (count == 0) {
-      return [];
+      return null;
     }
-    final lines = <String>[];
-    const prefix = '----|';
-    const prefixLen = prefix.length;
-    final wrapWidth = innerWidth - prefixLen + 1;
-    lines.addAll(
-      BoxPrinter.wrapLine('Stack Trace:', wrapWidth)
-          .map((final l) => prefix + l),
-    );
-    final stackLines = StackTrace.current.toString().split('\n');
-    int idx = stackLines.indexWhere((final l) => l.contains('Logger._log')) + 1;
-    int added = 0;
+
+    final lines = stack.toString().split('\n');
+    int idx = lines.indexWhere((final l) => l.contains('Logger._log')) + 1;
+    final frames = <CallbackInfo>[];
     const parser = StackTraceParser();
-    while (idx < stackLines.length && added < count) {
-      final frame = stackLines[idx++].trim();
+    int added = 0;
+
+    while (idx < lines.length && added < count) {
+      final frame = lines[idx++].trim();
       if (frame.isEmpty) {
         continue;
       }
       final info = parser.parseFrame(frame);
-      if (info == null) {
-        continue;
+      if (info != null) {
+        frames.add(info);
+        added++;
       }
-      final line =
-          '   at ${info.fullMethod} (${info.filePath}:${info.lineNumber})';
-      final wrapped = BoxPrinter.wrapLine(line, wrapWidth);
-      for (int i = 0; i < wrapped.length; i++) {
-        final p = i == 0 ? prefix : ' ' * prefixLen;
-        lines.add(p + wrapped[i]);
-      }
-      added++;
     }
-    return lines;
+    return frames.isEmpty ? null : frames;
   }
 }

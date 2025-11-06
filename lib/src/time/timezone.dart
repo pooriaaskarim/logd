@@ -1,40 +1,39 @@
-part of 'timestamp_formatter.dart';
+part of 'timestamp.dart';
 
 /// Configuration for time zone, including name and offset.
 class TimeZone {
   /// Predefined local time zone.
-  factory TimeZone.local() => TimeZone._(getSystemTimeZoneName(), null);
+  factory TimeZone.local() => TimeZone(getSystemTimeZoneName(), null);
 
   /// Predefined UTC time zone.
-  factory TimeZone.utc() => TimeZone._('UTC', '+00:00');
-
-  /// Creates a named time zone with offset.
-  factory TimeZone.named(
-    final String name,
-    final String offsetLiteral,
-  ) =>
-      TimeZone._(name, offsetLiteral);
+  factory TimeZone.utc() => TimeZone('UTC', '+00:00');
 
   /// Private constructor for TimeZone.
-  TimeZone._(this.name, this.offsetLiteral)
-      : _offset = offsetLiteral != null ? _TimeZoneOffset(offsetLiteral) : null;
+  const TimeZone._(this.name, this._offset);
 
-  /// The name of the time zone (e.g., 'UTC', 'Asia/Kolkata'). If null, the system time zone name is used.
-  final String? name;
-
-  /// TimeZone Offset
+  /// TimeZone with [name] and offset from [offsetLiteral]
   ///
-  /// A string in the **±hh:mm** format.
+  /// [offsetLiteral] is string in the **±hh:mm** format.
+  ///
   /// e.g.:
   ///      00:00 (UTC)
   ///     -05:00 (New York)
   ///     +04:00 (Oman)
-  final String? offsetLiteral;
+  factory TimeZone(final String? name, final String? offsetLiteral) =>
+      TimeZone._(
+        name,
+        offsetLiteral == null
+            ? null
+            : TimeZoneOffset.fromLiteral(offsetLiteral),
+      );
+
+  /// The name of the time zone (e.g., 'UTC', 'Asia/Kolkata'). If null, the system time zone name is used.
+  final String? name;
 
   /// TimeZoneOffset
-  final _TimeZoneOffset? _offset;
+  final TimeZoneOffset? _offset;
 
-  /// The offset from UTC.
+  /// Offset from UTC
   Duration? get offset => _offset?.offset;
 
   /// Cached system time zone name to avoid repeated expensive calls.
@@ -93,37 +92,38 @@ class TimeZone {
   }
 }
 
-class _TimeZoneOffset {
-  _TimeZoneOffset(this.offsetLiteral) {
-    assert(
-      _regex.hasMatch(offsetLiteral),
-      'Invalid Offset Literal: $offsetLiteral',
-    );
+final _regex = RegExp(
+  '^(?:(?:[+-](?:1[0-4]|0[1-9]):[0-5][0-9])|00:00)\$',
+  caseSensitive: false,
+  multiLine: false,
+  unicode: true,
+);
 
-    final sign = offsetLiteral.startsWith('-') ? -1 : 1;
-    final part = offsetLiteral.split(':');
-    offset = Duration(
-      hours: int.parse(part[0]),
-      minutes: sign * int.parse(part[1]),
-    );
-  }
-
-  final _regex = RegExp(
-    '^(?:(?:[+-](?:1[0-4]|0[1-9]):[0-5][0-9])|00:00)\$',
-    caseSensitive: false,
-    multiLine: false,
-    unicode: true,
-  );
+class TimeZoneOffset {
+  const TimeZoneOffset._(this.offset);
 
   /// TimeZone Offset
   ///
   /// A string in the **±hh:mm** format.
+  ///
   /// e.g.:
   ///      00:00 (UTC)
   ///     -05:00 (New York)
   ///     +04:00 (Oman)
-  final String offsetLiteral;
+  factory TimeZoneOffset.fromLiteral(final String literal) {
+    assert(
+      _regex.hasMatch(literal),
+      'Invalid Offset Literal: $literal',
+    );
+    final sign = literal.startsWith('-') ? -1 : 1;
+    final part = literal.split(':');
+    final offset = Duration(
+      hours: int.parse(part[0]),
+      minutes: sign * int.parse(part[1]),
+    );
+    return TimeZoneOffset._(offset);
+  }
 
   /// Offset duration from UTC.
-  late final Duration offset;
+  final Duration offset;
 }
