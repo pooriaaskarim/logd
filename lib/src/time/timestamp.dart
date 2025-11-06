@@ -95,7 +95,8 @@ class Timestamp {
 
     final milliseconds = _currentDateTime.millisecond;
     final String hourInTwelveHourFormat =
-        '${_currentDateTime.hour % 12 == 0 ? 12 : _currentDateTime.hour % 12}${_currentDateTime.hour < 12 ? 'AM' : 'PM'}';
+        '${_currentDateTime.hour % 12 == 0 ? 12 : _currentDateTime.hour % 12}'
+        '${_currentDateTime.hour < 12 ? 'AM' : 'PM'}';
 
     final resolvedTimeZone = timeZone ?? TimeZone.local();
     final timeZoneOffset =
