@@ -2,6 +2,7 @@ name: logd
 description: A logger daemon for Dart and Flutter.
 version: 0.0.1
 repository: https://github.com/pooriaaskarim/logd
+homepage: https://pub.dev/packages/logd
 topics: [ log, logger,  modular, daemon, demon, ]
 license: BSD-3-Clause
 environment:
