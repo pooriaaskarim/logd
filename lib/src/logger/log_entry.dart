@@ -1,47 +1,49 @@
 part of 'logger.dart';
 
-/// Structured representation of a log event passed to printers.
+/// Structured representation of a log event passed to handlers.
 ///
-/// This is the **single source of truth** for all log data. Printers receive
-/// this object and decide how to format and where to send it.
+/// Single source of truth for all log data. Handlers receive
+/// this object and decide how to format and where to output.
 class LogEntry {
   const LogEntry({
-    required this.logger,
+    required this.loggerName,
     required this.origin,
     required this.level,
     required this.message,
     required this.timestamp,
+    required this.hierarchyDepth,
     this.stackFrames,
     this.error,
     this.stackTrace,
   });
 
-  /// The logger name
-  final String logger;
+  /// Name of the logger that created this entry.
+  final String loggerName;
 
-  /// Caller origin
-  ///
-  /// Resolves to ClassName.MethodName form.
+  /// Caller origin string (e.g., 'Class.method').
   final String origin;
 
-  /// The severity level of the log.
+  /// Log severity level.
   final LogLevel level;
 
-  /// The log message. May contain newlines.
+  /// Log message content.
   final String message;
 
-  /// Formatted timestamp (from [Timestamp]).
+  /// Formatted timestamp.
   final String timestamp;
 
-  /// Parsed stack frames (only for warning/error if configured).
+  /// Hierarchy depth (0 for global).
+  final int hierarchyDepth;
+
+  /// Parsed stack frames if included.
   final List<CallbackInfo>? stackFrames;
 
-  /// Optional error object (e.g., Exception).
+  /// Associated error object.
   final Object? error;
 
-  /// Full stack trace (if provided).
+  /// Full stack trace.
   final StackTrace? stackTrace;
 
   @override
-  String toString() => '[$level] $origin: $message';
+  String toString() => '[$level] (depth $hierarchyDepth) $origin: $message';
 }

@@ -1,12 +1,16 @@
-part of 'timestamp.dart';
+part of 'time.dart';
 
 /// Configuration for time zone, including name and offset.
 class TimeZone {
   /// Predefined local time zone.
-  factory TimeZone.local() => TimeZone(getSystemTimeZoneName(), null);
+  factory TimeZone.local() {
+    final systemTimeZoneName = getSystemTimeZoneName();
+    return TimeZone._(systemTimeZoneName, null);
+  }
 
   /// Predefined UTC time zone.
-  factory TimeZone.utc() => TimeZone('UTC', '+00:00');
+  factory TimeZone.utc() =>
+      const TimeZone._('UTC', TimeZoneOffset._(Duration.zero));
 
   /// Private constructor for TimeZone.
   const TimeZone._(this.name, this._offset);
@@ -27,16 +31,21 @@ class TimeZone {
             : TimeZoneOffset.fromLiteral(offsetLiteral),
       );
 
-  /// The name of the time zone (e.g., 'UTC', 'Asia/Kolkata'). If null, the system time zone name is used.
+  /// The name of the time zone (e.g., 'UTC', 'Asia/Kolkata').
+  ///
+  /// This field is used in timestamp formatting for tokens like 'ZZ' or 'ZZZ'.
   final String? name;
 
-  /// TimeZoneOffset
+  /// Internal: offset object; not directly accessible.
   final TimeZoneOffset? _offset;
 
-  /// Offset from UTC
+  /// The offset from UTC as a Duration.
+  ///
+  /// Calculated from the offset literal or system timezone.
+  /// + Example: Duration(hours: -5) for New York.
   Duration? get offset => _offset?.offset;
 
-  /// Cached system time zone name to avoid repeated expensive calls.
+  /// Internal: Cached system time zone name to avoid repeated expensive calls.
   static String? _systemTimeZoneName;
 
   /// Retrieves the system time zone name, caching it for performance.

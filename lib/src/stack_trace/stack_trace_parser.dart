@@ -1,17 +1,30 @@
-part 'callback_info.dart';
+part of 'stack_trace.dart';
 
 typedef FrameFilter = bool Function(String frame);
 
+/// Parser for extracting useful information from stack traces.
 class StackTraceParser {
   const StackTraceParser({
     this.ignorePackages = const [],
     this.customFilter,
   });
 
+  /// List of package prefixes to ignore during parsing
+  /// (e.g., 'logd' to skip internals).
   final List<String> ignorePackages;
+
+  /// Optional custom filter function to decide if a frame should be ignored.
   final FrameFilter? customFilter;
 
-  /// Extracts the first relevant caller frame.
+  /// Extracts the first relevant caller frame from the stack trace.
+  ///
+  /// Skips internal frames and ignores specified packages.
+  ///
+  /// Parameters:
+  /// - [stackTrace]: The full stack trace to parse.
+  /// - [skipFrames]: Number of initial frames to skip (default 0).
+  ///
+  /// Returns: CallbackInfo if found, null otherwise.
   CallbackInfo? extractCaller({
     required final StackTrace stackTrace,
     final int skipFrames = 0,
