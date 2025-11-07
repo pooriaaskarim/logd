@@ -1,6 +1,4 @@
-import 'dart:io' as io;
-
-part 'timezone.dart';
+part of 'time.dart';
 
 const _monthNames = [
   'January',
@@ -44,29 +42,32 @@ class Timestamp {
   /// needs, such as logging, reporting, or display purposes.
   /// Tokens are **case-sensitive** and must match exactly (e.g., 'yyyy' for
   /// full year, 'MM' for padded month).
-  /// Non-token characters (e.g., '/', ':', ' ') are treated as literals and included in the output.
+  /// Non-token characters (e.g., '/', ':', ' ', '\n') are treated as literals
+  /// and included in the output.
   ///
   /// Supported tokens:
   /// - Date:
-  ///        'yyyy' (2025), 'yy' (25),\n
-  ///        'MMMM' (November),'MMM' (Nov), 'MM' (11), 'M' (11),
-  ///        'dd' (05), 'd' (5)
+  ///   + 'yyyy' (2025), 'yy' (25),\n
+  ///   + 'MMMM' (November),'MMM' (Nov), 'MM' (11), 'M' (11),
+  ///   + 'dd' (05), 'd' (5)
   /// - Time:
-  ///        'HH' (14), 'H' (14),
-  ///        'hhhh' (02AM), 'hhh' (2AM),'hh' (02), 'h' (2),
-  ///        'mm' (52), 'm' (52),
-  ///        'ss' (01), 's' (1)
+  ///   + 'HH' (14), 'H' (14),
+  ///   + 'hhhh' (02AM), 'hhh' (2AM),'hh' (02), 'h' (2),
+  ///     + 'a' AM/PM
+  ///   + 'mm' (52), 'm' (52),
+  ///   + 'ss' (01), 's' (1)
   /// - Milliseconds:
-  ///        'SSSS' (1367), 'SSS' (136), 'SS' (13), 'S' (1)
+  ///   + 'SSSS' (1367), 'SSS' (136), 'SS' (13), 'S' (1)
   /// - Timezone:
-  ///        'Z'   (+03:30),
-  ///        'ZZ'  (Asia/Tehran),
-  ///        'ZZZ' (Asia/Tehran+03:30)
+  ///   + 'Z'   (+03:30),
+  ///   + 'ZZ'  (Asia/Tehran),
+  ///   + 'ZZZ' (Asia/Tehran+03:30)
   ///
   /// How to use:
-  /// - Set via constructor: TimestampFormatter(formatter: 'yyyy/MM/dd HH:mm:ss ZZZ')
-  /// - Example: 'yyyy-MM-dd HH:mm:ss Z' → '2025-11-05 12:52:01 +03:30'
-  /// - Example: 'hh:mm a ZZZ' (note: 'a' for AM/PM would require additional implementation if needed)
+  /// - Set via constructor: TimestampFormatter(formatter:
+  /// 'yyyy/MM/dd HH:mm:ss ZZZ')
+  ///   - Example: 'yyyy-MM-dd HH:mm:ss Z' → '2025-11-05 12:52:01 +03:30'
+  ///   - Example: 'hh:mm a ZZZ' → '11:13 PM'
   /// - If null or empty, no timestamp is generated.
   /// - Invalid tokens throw FormatException for safety.
   final String? formatter;
@@ -94,9 +95,10 @@ class Timestamp {
     }
 
     final milliseconds = _currentDateTime.millisecond;
+    final ampm = _currentDateTime.hour < 12 ? 'AM' : 'PM';
     final String hourInTwelveHourFormat =
         '${_currentDateTime.hour % 12 == 0 ? 12 : _currentDateTime.hour % 12}'
-        '${_currentDateTime.hour < 12 ? 'AM' : 'PM'}';
+        '$ampm';
 
     final resolvedTimeZone = timeZone ?? TimeZone.local();
     final timeZoneOffset =
@@ -121,6 +123,7 @@ class Timestamp {
       'hhh': hourInTwelveHourFormat.padLeft(3, '0'),
       'hh': hourInTwelveHourFormat.padLeft(2, '0'),
       'h': hourInTwelveHourFormat,
+      'a': ampm,
       'mm': _currentDateTime.minute.toString().padLeft(2, '0'),
       'm': _currentDateTime.minute.toString(),
       'ss': _currentDateTime.second.toString().padLeft(2, '0'),
@@ -133,7 +136,7 @@ class Timestamp {
           '$offsetSign${timeZoneOffsetHours.toString().padLeft(2, '0')}:${timeZoneOffsetMinutes.toString().padLeft(2, '0')}',
       'ZZ': timeZoneName,
       'ZZZ':
-          '${timeZoneName}$offsetSign${timeZoneOffsetHours.toString().padLeft(2, '0')}:${timeZoneOffsetMinutes.toString().padLeft(2, '0')}',
+          '$timeZoneName$offsetSign${timeZoneOffsetHours.toString().padLeft(2, '0')}:${timeZoneOffsetMinutes.toString().padLeft(2, '0')}',
     };
 
     final stringBuffer = StringBuffer();

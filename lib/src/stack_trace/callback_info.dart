@@ -1,5 +1,6 @@
-part of 'stack_trace_parser.dart';
+part of 'stack_trace.dart';
 
+/// Data class holding parsed information from a stack frame.
 class CallbackInfo {
   const CallbackInfo({
     required this.className,
@@ -9,10 +10,19 @@ class CallbackInfo {
     required this.fullMethod,
   });
 
+  /// The class name from the stack frame (empty if none).
   final String className;
+
+  /// The method name from the stack frame.
   final String methodName;
+
+  /// The file path where the call occurred.
   final String filePath;
+
+  /// The line number in the file.
   final int lineNumber;
+
+  /// The full method string from the stack (e.g., 'Class.method').
   final String fullMethod;
 
   @override
