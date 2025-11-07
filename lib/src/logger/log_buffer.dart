@@ -1,10 +1,14 @@
 part of 'logger.dart';
 
-/// Efficient buffer for building multi-line logs.
+/// Efficient buffer for building multi-line log messages before syncing.
 class LogBuffer extends StringBuffer {
-  LogBuffer._(this.logger, this.level);
-  final Logger logger;
-  final LogLevel level;
+  LogBuffer._(this._logger, this.logLevel);
+
+  /// Internal: The logger to sync to.
+  final Logger _logger;
+
+  /// The level for this buffer's log.
+  final LogLevel logLevel;
 
   @override
   void writeAll(final Iterable objects, [final String separator = '']) {
@@ -16,7 +20,7 @@ class LogBuffer extends StringBuffer {
   /// Sends the buffer to all printers and clears it.
   void sync() {
     if (isNotEmpty) {
-      logger._log(level, toString(), null, StackTrace.current);
+      _logger._log(logLevel, toString(), null, StackTrace.current);
       clear();
     }
   }
