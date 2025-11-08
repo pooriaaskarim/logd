@@ -20,7 +20,7 @@ class FileSink implements LogSink {
       file.writeAsStringSync('${lines.join('\n')}\n', mode: io.FileMode.append);
     } catch (e) {
       // Swallow error to avoid app crash; perhaps log to console.
-      debugPrint('FileSink error: $e');
+      print('FileSink error: $e');
     }
   }
 }

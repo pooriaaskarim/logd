@@ -7,7 +7,7 @@ class BoxFormatter implements LogFormatter {
     this.useColors,
     this.lineLength,
     this.borderStyle = BorderStyle.rounded,
-  });
+  }) : assert(lineLength == null || lineLength > 0, 'Line length must be > 0.');
 
   /// Whether to use ANSI colors for output (auto-detected if null).
   final bool? useColors;

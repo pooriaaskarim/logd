@@ -2,6 +2,8 @@ part of '../handler.dart';
 
 /// Formatter that outputs log entries as compact JSON.
 class JsonFormatter implements LogFormatter {
+  const JsonFormatter();
+
   @override
   List<String> format(final LogEntry entry) {
     final map = {
@@ -19,6 +21,8 @@ class JsonFormatter implements LogFormatter {
 
 /// Formatter that outputs log entries as pretty-printed JSON (multi-line).
 class JsonPrettyFormatter implements LogFormatter {
+  const JsonPrettyFormatter();
+
   @override
   List<String> format(final LogEntry entry) {
     final map = {

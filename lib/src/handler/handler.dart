@@ -2,7 +2,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io' as io;
-import 'package:flutter/foundation.dart';
+
 import '../logger/logger.dart';
 import '../stack_trace/stack_trace.dart';
 

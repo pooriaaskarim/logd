@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 
 import '../handler/handler.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/time.dart';
+import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
+    as flutter_stubs;
 
 part 'log_buffer.dart';
 part 'log_entry.dart';
@@ -143,7 +144,8 @@ class Logger {
   final bool? _enabled;
 
   /// Whether logging is enabled for this logger.
-  bool get enabled => _enabled ?? _parent?.enabled ?? kDebugMode;
+  bool get enabled =>
+      _enabled ?? _parent?.enabled ?? !bool.fromEnvironment('dart.vm.product');
   final LogLevel? _logLevel;
 
   /// The minimum level to log (events below this are dropped).
@@ -448,13 +450,7 @@ class Logger {
   }
 
   static void attachToFlutterErrors() {
-    FlutterError.onError = (final details) {
-      get().error(
-        'Flutter error',
-        error: details.exception,
-        stackTrace: details.stack,
-      );
-    };
+    flutter_stubs.attachToFlutterErrors();
   }
 
   static void attachToUncaughtErrors() {
