@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1: Dynamic Logger Tree Hierarchy Inheritance
+- ### Dynamic Inheritance
+  - Logger tree is now dynamically propagated, rooting at 'global' logger
+  - freezeInheritance() is introduced to bake configs into a logger (and it's descendant branch, if any).
+  - global getter ditched in favor of uniformity: access global logger using get() or get('global').
+
 ## 0.1.0: Dot-separated Logger Tree Hierarchy + Handlers
 - ### New Api
   - Logger has new Api surface.
