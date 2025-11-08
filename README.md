@@ -105,4 +105,5 @@ For more examples, see the example/ directory.
 Contributions are welcome! Please read CONTRIBUTING.md for details.
 
 ## License
-MIT License. See LICENSE for more information.
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for
+details.
