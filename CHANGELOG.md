@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.1.2: Minor API Changes
+
 ## 0.1.1: Dynamic Logger Tree Hierarchy Inheritance
 - ### Dynamic Inheritance
   - Logger tree is now dynamically propagated, rooting at 'global' logger

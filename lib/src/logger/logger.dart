@@ -94,10 +94,10 @@ class Logger {
   /// Parameters:
   /// - [name]: The logger name to configure.
   /// - [enabled]: Whether logging is enabled.
-  /// - [minimumLevel]: Minimum log level to process.
+  /// - [logLevel]: Minimum log level to process.
   /// - [includeFileLineInHeader]: Include file/line in origin.
   /// - [stackMethodCount]: Stack frames per level.
-  /// - [timestampFormatter]: Timestamp config.
+  /// - [timestamp]: Timestamp config.
   /// - [stackTraceParser]: Stack parser config.
   /// - [handlers]: List of handlers.
   ///
@@ -109,10 +109,10 @@ class Logger {
   static void configure(
     final String name, {
     final bool? enabled,
-    final LogLevel? minimumLevel,
+    final LogLevel? logLevel,
     final bool? includeFileLineInHeader,
     final Map<LogLevel, int>? stackMethodCount,
-    final Timestamp? timestampFormatter,
+    final Timestamp? timestamp,
     final StackTraceParser? stackTraceParser,
     final List<Handler>? handlers,
   }) {
@@ -121,11 +121,11 @@ class Logger {
     _registry[normalized] = Logger._(
       name: normalized,
       enabled: enabled ?? logger._enabled,
-      logLevel: minimumLevel ?? logger._logLevel,
+      logLevel: logLevel ?? logger._logLevel,
       includeFileLineInHeader:
           includeFileLineInHeader ?? logger._includeFileLineInHeader,
       stackMethodCount: stackMethodCount ?? logger._stackMethodCount,
-      timestamp: timestampFormatter ?? logger._timestamp,
+      timestamp: timestamp ?? logger._timestamp,
       stackTraceParser: stackTraceParser ?? logger._stackTraceParser,
       handlers: handlers ?? logger._handlers,
     );

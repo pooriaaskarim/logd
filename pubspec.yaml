@@ -1,9 +1,14 @@
 name: logd
-description: A logger daemon for Dart and Flutter.
-version: 0.1.1
+description: A flexible Dart logging library for Flutter and standalone apps, featuring hierarchical loggers, customizable handlers, formatters, sinks, filters, stack trace integration, and timezone-aware timestamps for efficient debugging and monitoring.
+version: 0.1.2
 repository: https://github.com/pooriaaskarim/logd
 homepage: https://pub.dev/packages/logd
-topics: [ log, logger,  modular, daemon, demon, ]
+topics:
+  - logging
+  - dart-logger
+  - flutter-logging
+  - hierarchical-logging
+  - debug-tools
 license: BSD-3-Clause
 environment:
   sdk: '>=3.0.0 <4.0.0'
