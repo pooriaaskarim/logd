@@ -73,7 +73,8 @@ final child = Logger.get('app.ui');
 Logger.configure('app', minimumLevel: LogLevel.warning);
 // 'app.ui' now uses warning level unless overridden
 ```
-### Advanced: Freezing Inheritance
+## Advanced:
+### Freezing Inheritance
 Snapshot configs to children for isolation or optimization:
 ```dart
 parent.freezeInheritance();
