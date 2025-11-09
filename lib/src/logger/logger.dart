@@ -1,11 +1,8 @@
-import 'dart:async';
-
 import '../handler/handler.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/time.dart';
 import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
     as flutter_stubs;
-
 part 'log_buffer.dart';
 part 'log_entry.dart';
 part 'log_level.dart';
@@ -17,16 +14,13 @@ const _defaultStackMethodCount = {
   LogLevel.warning: 2,
   LogLevel.error: 8,
 };
-
 final _defaultTimestamp = Timestamp(
   formatter: 'yyyy.MMM.dd\nZZ HH:mm:ss.SSSS',
   timeZone: TimeZone('NY', '-05:00'),
 );
-
 const _defaultStackTraceParser = StackTraceParser(
   ignorePackages: ['logd', 'flutter'],
 );
-
 final _defaultHandlers = <Handler>[
   Handler(
     formatter: BoxFormatter(),
@@ -34,66 +28,113 @@ final _defaultHandlers = <Handler>[
   ),
 ];
 
+/// Internal configuration for a [Logger], holding optional fields that
+/// can inherit from parent.
+class _LoggerConfig {
+  /// Optional: Whether logging is enabled. Inherits from parent if null.
+  bool? enabled;
+
+  /// Optional: Minimum log level to process. Inherits from parent if null.
+  LogLevel? logLevel;
+
+  /// Optional: Include file/line in origin. Inherits from parent if null.
+  bool? includeFileLineInHeader;
+
+  /// Optional: Stack frames per level. Inherits from parent if null.
+  Map<LogLevel, int>? stackMethodCount;
+
+  /// Optional: Timestamp config. Inherits from parent if null.
+  Timestamp? timestamp;
+
+  /// Optional: Stack parser config. Inherits from parent if null.
+  StackTraceParser? stackTraceParser;
+
+  /// Optional: List of handlers. Inherits from parent if null.
+  List<Handler>? handlers;
+
+  /// Cache version tracker.
+  int _version = 0;
+
+  /// Cache fields (valid when _cacheVersion == _version).
+  int _cacheVersion = -1;
+  bool? _cachedEnabled;
+  LogLevel? _cachedLogLevel;
+  bool? _cachedIncludeFileLineInHeader;
+  Map<LogLevel, int>? _cachedStackMethodCount;
+  Timestamp? _cachedTimestamp;
+  StackTraceParser? _cachedStackTraceParser;
+  List<Handler>? _cachedHandlers;
+
+  /// Internal: Clears cached resolved values.
+  void _clearCache() {
+    _cachedEnabled = null;
+    _cachedLogLevel = null;
+    _cachedIncludeFileLineInHeader = null;
+    _cachedStackMethodCount = null;
+    _cachedTimestamp = null;
+    _cachedStackTraceParser = null;
+    _cachedHandlers = null;
+    _cacheVersion = -1;
+  }
+}
+
 /// Main logd interface.
 ///
 /// Use this class for logging operations. It provides methods to retrieve
 /// loggers with hierarchical support, global fallback logger, and configuration
 /// options.
+///
+/// This class acts as a proxy to the logger's configuration, resolving values
+/// dynamically from the [Logger] tree hierarchy on each access for up-to-date
+/// settings.
 class Logger {
-  const Logger._({
-    required this.name,
-    final bool? enabled,
-    final LogLevel? logLevel,
-    final bool? includeFileLineInHeader,
-    final Map<LogLevel, int>? stackMethodCount,
-    final Timestamp? timestamp,
-    final StackTraceParser? stackTraceParser,
-    final List<Handler>? handlers,
-  })  : _enabled = enabled,
-        _logLevel = logLevel,
-        _includeFileLineInHeader = includeFileLineInHeader,
-        _stackMethodCount = stackMethodCount,
-        _timestamp = timestamp,
-        _stackTraceParser = stackTraceParser,
-        _handlers = handlers;
+  const Logger._(this.name);
 
-  /// Internal registry of all available loggers.
-  static final Map<String, Logger> _registry = {};
+  /// Logger's unique name
+  ///
+  /// Names are Dot-separated, case-insensitive, normalized to lowercase.
+  ///
+  /// Prefer underscore between multi-word names:
+  ///   + '**my_app**.ui'
+  final String name;
+
+  /// Internal: Registry of all available logger configs.
+  static final Map<String, _LoggerConfig> _registry = {};
 
   /// Retrieves or creates a logger by name, with hierarchical inheritance.
   ///
   /// Intentions: Provides access to named loggers. If not existing, creates one
   /// inheriting from its parent (or global). Names are dot-separated for
-  /// hierarchy (e.g., 'app.ui.button' inherits from 'app.ui').
+  /// hierarchy (e.g., 'app.ui.button' inherits from 'app.ui'). Names are
+  /// case-insensitive and normalized to lowercase; prefer lowercase with
+  /// underscores if multi-word (e.g., '**my_app**.ui').
   ///
   /// Parameters:
   /// - [name]: Optional logger name (defaults to global if null/empty/'global').
   ///
   /// How to use:
-  /// - Basic: Logger.get('my.logger').info('Message');
-  /// - Global: Logger.get() or Logger.global
+  /// - Basic: Logger.get('app').info('Message');
+  /// - Global: Logger.get(), Logger.get(''), Logger.get('global')
   ///
   /// Returns: The logger instance.
   ///
   /// Example: final uiLogger = Logger.get('app.ui');
   static Logger get([final String? name]) {
     final normalized = _normalizeName(name);
-    return _registry.putIfAbsent(
-      normalized,
-      () => Logger._(
-        name: normalized,
-      ),
-    );
+    _registry.putIfAbsent(normalized, () => _LoggerConfig());
+    return Logger._(normalized);
   }
 
-  /// Configures a logger's properties, creating a new immutable instance.
+  /// Configures a logger's properties, updating the config in-place.
   ///
   /// Intentions: Sets or updates logger configs. Unspecified parameters retain
-  /// previous/existing values. Affects only this logger; use propagate() to
-  /// apply to descendants if needed.
+  /// previous/existing values. Affects logger and it's logger tree descendants
+  /// where not explicitly set; use freezeInheritance() on any point on [Logger]
+  /// tree to freeze current branch/leaf state.
+  /// **Note**: Names are case-insensitive and normalized to lowercase.
   ///
   /// Parameters:
-  /// - [name]: The logger name to configure.
+  /// - [name]: The logger name to configure (case-insensitive).
   /// - [enabled]: Whether logging is enabled.
   /// - [logLevel]: Minimum log level to process.
   /// - [includeFileLineInHeader]: Include file/line in origin.
@@ -103,10 +144,12 @@ class Logger {
   /// - [handlers]: List of handlers.
   ///
   /// How to use:
-  /// - Logger.configure('app', minimumLevel: LogLevel.info);
-  /// - Changes are immediate and dynamic for children via inheritance.
+  /// - Logger.configure('app', logLevel: LogLevel.info);
+  /// - Changes are immediate and dynamically inherited down Logger tree
+  /// hierarchy where not explicitly set.
   ///
-  /// Example: Logger.configure('global', enabled: false); // Disable all logging
+  /// Example: Logger.configure('global', enabled: false); // Disables all
+  /// Loggers, except enabled explicitly.
   static void configure(
     final String name, {
     final bool? enabled,
@@ -118,75 +161,171 @@ class Logger {
     final List<Handler>? handlers,
   }) {
     final normalized = _normalizeName(name);
-    final logger = get(normalized);
-    _registry[normalized] = Logger._(
-      name: normalized,
-      enabled: enabled ?? logger._enabled,
-      logLevel: logLevel ?? logger._logLevel,
-      includeFileLineInHeader:
-          includeFileLineInHeader ?? logger._includeFileLineInHeader,
-      stackMethodCount: stackMethodCount ?? logger._stackMethodCount,
-      timestamp: timestamp ?? logger._timestamp,
-      stackTraceParser: stackTraceParser ?? logger._stackTraceParser,
-      handlers: handlers ?? logger._handlers,
-    );
+    final config = _registry.putIfAbsent(normalized, () => _LoggerConfig());
+
+    bool changed = false;
+    if (enabled != null && enabled != config.enabled) {
+      config.enabled = enabled;
+      changed = true;
+    }
+    if (logLevel != null && logLevel != config.logLevel) {
+      config.logLevel = logLevel;
+      changed = true;
+    }
+    if (includeFileLineInHeader != null &&
+        includeFileLineInHeader != config.includeFileLineInHeader) {
+      config.includeFileLineInHeader = includeFileLineInHeader;
+      changed = true;
+    }
+    if (stackMethodCount != null &&
+        stackMethodCount != config.stackMethodCount) {
+      config.stackMethodCount = stackMethodCount;
+      changed = true;
+    }
+    if (timestamp != null && timestamp != config.timestamp) {
+      config.timestamp = timestamp;
+      changed = true;
+    }
+    if (stackTraceParser != null &&
+        stackTraceParser != config.stackTraceParser) {
+      config.stackTraceParser = stackTraceParser;
+      changed = true;
+    }
+    if (handlers != null && handlers != config.handlers) {
+      config.handlers = handlers;
+      changed = true;
+    }
+
+    if (changed) {
+      config._version++;
+      config._clearCache();
+      _invalidateDescendants(normalized);
+    }
   }
 
-  /// Logger's unique name.
-  final String name;
-
-  /// Parent logger for hierarchy (dynamically fetched).
-  Logger? get _parent {
-    final parentName = _getParentName(name);
-    return parentName != null ? get(parentName) : null;
+  /// Internal: Invalidates descendant configs by bumping their versions
+  /// and clearing caches.
+  static void _invalidateDescendants(final String parentName) {
+    for (final key in _registry.keys.toList()) {
+      if (key != parentName && _isDescendant(key, parentName)) {
+        final childConfig = _registry[key]!;
+        childConfig._version++;
+        childConfig._clearCache();
+      }
+    }
   }
 
-  final bool? _enabled;
+  /// Internal: Checks if a name is a descendant of parent.
+  static bool _isDescendant(final String child, final String parent) {
+    if (parent == 'global') {
+      return child != 'global';
+    }
+    return child.startsWith('$parent.');
+  }
+
+  /// Internal: Resolves a config value from this logger, parent hierarchy,
+  /// or default, with per-field caching.
+  T _resolve<T>(
+    final T? Function(_LoggerConfig) getter,
+    final T defaultValue,
+    final T? Function(_LoggerConfig) cacheGetter,
+    final void Function(_LoggerConfig, T) cacheSetter,
+  ) {
+    final currentConfig = _registry[name]!;
+    if (currentConfig._cacheVersion == currentConfig._version) {
+      final cached = cacheGetter(currentConfig);
+      if (cached != null) {
+        return cached;
+      }
+    }
+
+    // Resolve by walking hierarchy
+    var currentName = name;
+    T? result;
+    while (true) {
+      final config = _registry[currentName];
+      final value = config != null ? getter(config) : null;
+      if (value != null) {
+        result = value;
+        break;
+      }
+      final parentName = _getParentName(currentName);
+      if (parentName == null) {
+        result = defaultValue;
+        break;
+      }
+      currentName = parentName;
+    }
+
+    // Cache the result
+    cacheSetter(currentConfig, result as T);
+    currentConfig._cacheVersion = currentConfig._version;
+
+    return result;
+  }
 
   /// Whether logging is enabled for this logger.
-  bool get enabled =>
-      _enabled ?? _parent?.enabled ?? !bool.fromEnvironment('dart.vm.product');
-  final LogLevel? _logLevel;
+  bool get enabled => _resolve(
+        (final c) => c.enabled,
+        !const bool.fromEnvironment('dart.vm.product'),
+        (final c) => c._cachedEnabled,
+        (final c, final v) => c._cachedEnabled = v,
+      );
 
   /// The minimum level to log (events below this are dropped).
-  LogLevel get logLevel => _logLevel ?? _parent?.logLevel ?? LogLevel.debug;
-  final bool? _includeFileLineInHeader;
+  LogLevel get logLevel => _resolve(
+        (final c) => c.logLevel,
+        LogLevel.debug,
+        (final c) => c._cachedLogLevel,
+        (final c, final v) => c._cachedLogLevel = v,
+      );
 
   /// Whether to include file path and line number in the origin string.
-  bool get includeFileLineInHeader =>
-      _includeFileLineInHeader ?? _parent?.includeFileLineInHeader ?? false;
-  final Map<LogLevel, int>? _stackMethodCount;
+  bool get includeFileLineInHeader => _resolve(
+        (final c) => c.includeFileLineInHeader,
+        false,
+        (final c) => c._cachedIncludeFileLineInHeader,
+        (final c, final v) => c._cachedIncludeFileLineInHeader = v,
+      );
 
   /// Map of how many stack frames to include per log level.
-  Map<LogLevel, int> get stackMethodCount =>
-      _stackMethodCount ??
-      _parent?.stackMethodCount ??
-      _defaultStackMethodCount;
-  final Timestamp? _timestamp;
+  Map<LogLevel, int> get stackMethodCount => _resolve(
+        (final c) => c.stackMethodCount,
+        _defaultStackMethodCount,
+        (final c) => c._cachedStackMethodCount,
+        (final c, final v) => c._cachedStackMethodCount = Map.unmodifiable(v),
+      );
 
   /// The timestamp formatter configuration.
-  Timestamp? get timestamp =>
-      _timestamp ?? _parent?.timestamp ?? _defaultTimestamp;
-  final StackTraceParser? _stackTraceParser;
+  Timestamp get timestamp => _resolve(
+        (final c) => c.timestamp,
+        _defaultTimestamp,
+        (final c) => c._cachedTimestamp,
+        (final c, final v) => c._cachedTimestamp = v,
+      );
 
   /// The stack trace parser configuration.
-  StackTraceParser get stackTraceParser =>
-      _stackTraceParser ??
-      _parent?.stackTraceParser ??
-      _defaultStackTraceParser;
-  final List<Handler>? _handlers;
+  StackTraceParser get stackTraceParser => _resolve(
+        (final c) => c.stackTraceParser,
+        _defaultStackTraceParser,
+        (final c) => c._cachedStackTraceParser,
+        (final c, final v) => c._cachedStackTraceParser = v,
+      );
 
   /// List of handlers to process log entries.
-  List<Handler> get handlers =>
-      _handlers ?? _parent?.handlers ?? _defaultHandlers;
+  List<Handler> get handlers => _resolve(
+        (final c) => c.handlers,
+        _defaultHandlers,
+        (final c) => c._cachedHandlers,
+        (final c, final v) => c._cachedHandlers = List.unmodifiable(v),
+      );
 
   /// Freezes the current inherited configurations into descendant loggers.
   ///
-  /// Intentions: "Bakes" this logger's effective (resolved) configs into
-  /// children where not explicitly set, creating new child instances. Useful
-  /// for performance (reduces getter chaining depth) or to snapshot state so
-  /// future parent changes don't propagate dynamically. Since inheritance is
-  /// runtime-resolved, this is optional for optimization or isolation.
+  /// Intentions: "Bakes" this logger's effective configs down the Logger tree
+  /// hierarchy where children are not explicitly set.
+  /// Useful for performance (reduces resolution depth) or to snapshot state so
+  /// future parent changes don't propagate dynamically.
   ///
   /// How to use:
   /// - Call on a logger to apply to all descendants recursively via registry.
@@ -196,20 +335,18 @@ class Logger {
   /// Example: parentLogger.freezeInheritance(); // Snapshots to subtree
   void freezeInheritance() {
     for (final key in _registry.keys.toList()) {
-      if (key != name && key.startsWith('$name.')) {
-        final child = _registry[key]!;
-        _registry[key] = Logger._(
-          name: child.name,
-          enabled: child._enabled ?? enabled,
-          logLevel: child._logLevel ?? logLevel,
-          includeFileLineInHeader:
-              child._includeFileLineInHeader ?? includeFileLineInHeader,
-          stackMethodCount:
-              child._stackMethodCount ?? Map.from(stackMethodCount),
-          timestamp: child._timestamp ?? timestamp,
-          stackTraceParser: child._stackTraceParser ?? stackTraceParser,
-          handlers: child._handlers ?? List.from(handlers),
-        );
+      if (key != name && _isDescendant(key, name)) {
+        final childConfig = _registry[key]!
+          ..enabled ??= enabled
+          ..logLevel ??= logLevel
+          ..includeFileLineInHeader ??= includeFileLineInHeader
+          ..stackMethodCount ??= Map.from(stackMethodCount)
+          ..timestamp ??= timestamp
+          ..stackTraceParser ??= stackTraceParser
+          ..handlers ??= List.from(handlers);
+        // Since we set fields, bump version and clear cache
+        childConfig._version++;
+        childConfig._clearCache();
       }
     }
   }
@@ -355,7 +492,6 @@ class Logger {
     if (!enabled || level.index < logLevel.index) {
       return;
     }
-
     final caller = stackTraceParser.extractCaller(
       stackTrace: stackTrace ?? StackTrace.current,
       skipFrames: 1,
@@ -363,21 +499,17 @@ class Logger {
     if (caller == null) {
       return;
     }
-
     final entry = LogEntry(
       loggerName: name,
       level: level,
       message: message?.toString() ?? '',
-      timestamp: timestamp?.getTimestamp() ?? '',
+      timestamp: timestamp.getTimestamp() ?? '',
       origin: _buildOrigin(caller),
-      hierarchyDepth: (name.isEmpty || name.toLowerCase() == 'global')
-          ? 0
-          : name.split('.').length,
+      hierarchyDepth: name == 'global' ? 0 : name.split('.').length,
       stackFrames: _extractStackFrames(level, stackTrace ?? StackTrace.current),
       error: error,
       stackTrace: stackTrace,
     );
-
     for (final handler in handlers) {
       handler.log(entry);
     }
@@ -433,31 +565,25 @@ class Logger {
     return frames.isEmpty ? null : frames;
   }
 
-  /// Helper for retrieving parent name.
+  /// Internal: Helper for retrieving parent name.
   static String? _getParentName(final String name) {
     final parts = name.split('.');
     if (parts.length <= 1) {
-      return name == 'Global' ? null : 'Global';
+      return name == 'global' ? null : 'global';
     }
     return parts.sublist(0, parts.length - 1).join('.');
   }
 
+  /// Internal: Normalizes logger name to lowercase for case-insensitivity.
+  ///
+  /// Resolves null, empty strings and any form of 'global' to 'global'.
   static String _normalizeName([final String? name]) {
-    if (name == null || name.isEmpty || name.toLowerCase() == 'global') {
-      return 'Global';
-    }
-    return name;
+    final lower = name?.toLowerCase() ?? 'global';
+    return lower.isEmpty ? 'global' : lower;
   }
 
+  /// Attach to Flutter errors.
   static void attachToFlutterErrors() {
     flutter_stubs.attachToFlutterErrors();
-  }
-
-  static void attachToUncaughtErrors() {
-    runZonedGuarded(() {
-      // App code
-    }, (final error, final stack) {
-      get().error('Uncaught error', error: error, stackTrace: stack);
-    });
   }
 }
