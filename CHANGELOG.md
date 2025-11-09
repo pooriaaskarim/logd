@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.3: Pure Dart Support / Instantaneous Cached Configurations
+- ### Pure Dart Optimizations
+  - logd in now Dart ready. Decoupled from Flutter dependencies in favor of Dart standalone support.
+- ### Instantaneous Cached Configurations
+  - **Introduced `_LoggerConfig`:** Configuration is now stored in a separate internal `_LoggerConfig` class, decoupling it from the `Logger` instance itself. This allows `Logger` to act as a lightweight proxy.
+  - **Improved Dynamic Hierarchy Propagation:** Configuration changes now dynamically propagate down the logger tree. 
+  - **Cached Configuration:** Resolved configuration values are now cached to improve performance by avoiding repeated hierarchy lookups. Caches are automatically cleared when parent configurations change.
+  - **Simplified `configure()`:** The `configure()` method now updates the configuration in-place rather than creating a new `Logger` instance.
+  - **Normalized Logger Names:** Logger names are now consistently normalized to lowercase to ensure case-insensitivity. The root logger is consistently referred to as 'global'.
+  - **Refactored `freezeInheritance()`:** The `freezeInheritance()` method has been updated to work with the new `_LoggerConfig` model, "baking" the current resolved configuration into descendant loggers.
+  - **Removed `attachToUncaughtErrors()`:** The method was removed from the `Logger` class.
+- ### TimeZone Improvements
+  - The `Timestamp` constructor's `formatter` parameter is now required.
+  - A new factory constructor, `Timestamp.none()`, is introduced to create a `Timestamp` with an empty formatter.
+  - `TimeZone.local()` now correctly includes the system's current time zone offset.
+- ### Improved FileSink (Still Under Development)
+  - Automatically create parent directories for the log file path.
+  - Add more robust error handling:
+  - Rethrow exceptions in debug mode for easier debugging.
+- ### Comprehensive example demonstrating all `logd` features
+
 ## 0.1.2: Minor API Changes
 
 ## 0.1.1: Dynamic Logger Tree Hierarchy Inheritance
