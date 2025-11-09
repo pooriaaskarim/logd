@@ -5,7 +5,8 @@ class TimeZone {
   /// Predefined local time zone.
   factory TimeZone.local() {
     final systemTimeZoneName = getSystemTimeZoneName();
-    return TimeZone._(systemTimeZoneName, null);
+    final offset = DateTime.now().timeZoneOffset;
+    return TimeZone._(systemTimeZoneName, TimeZoneOffset._(offset));
   }
 
   /// Predefined UTC time zone.
