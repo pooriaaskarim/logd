@@ -10,12 +10,13 @@ making it ideal for debugging, monitoring, and production logging in complex pro
 
 ## Features
 
-- **Hierarchical Logger Tree**: Dot-separated naming for inheritance (e.g., 'app.ui' inherits from 'app'), case-insensitive and normalized to lowercase. Prefer lowercase with underscores for multi-word names (e.g., 'app_ui').
+- **Hierarchical Logger Tree**: Dot-separated case-insensitive naming for inheritance (e.g., 'app.ui' inherits from 'app').
 - **Pure Dart Support**: Fully compatible with standalone Dart environments.
-- **Dynamic Inheritance with Caching**: Configurations propagate dynamically down the hierarchy; resolved values are cached for performance, with automatic invalidation on changes.
-- **Customizable Output**: Boxed, JSON, or custom formatters; console, file, network sinks; level, regex filters.
+- **Dynamic Inheritance with Caching**: Dynamic configurations; configurations dynamically propagate down the hierarchy tree; cached configurations for performance.
+- **Customizable Layouts**: Boxed, JSON, or custom formatters.
+- **Customizable Outputs**: Console, File, and Network Sinks; Size/Time based File Rotation; Level and Regex Filters.
 - **Stack Trace Integration**: Automatic caller extraction, configurable frame counts per level, ignoring packages like 'flutter'.
-- **Timestamp Flexibility**: Custom patterns with timezone support (e.g., 'yyyy-MM-dd HH:mm:ss ZZZ').
+- **Timestamp/Timezone Support**: Custom patterns with timezone support (e.g., 'yyyy-MM-dd HH:mm:ss ZZZ').
 - **Multi-line Buffers**: Atomic logging for complex messages.
 - **Flutter Integration**: Attach to FlutterError and uncaught exceptions.
 - **Immutable and Efficient**: Loggers act as lightweight proxies to configurations; lazy inheritance and caching for optimal performance.

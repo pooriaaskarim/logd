@@ -14,7 +14,6 @@
   -   `MultiSink` now outputs to all its sinks concurrently using `Future.wait`.
   -   Added `//ignore: one_member_abstracts` to `LogFilter` and `LogFormatter` to clean up analyzer warnings.
 
-
 ## 0.1.3: Pure Dart Support / Instantaneous Cached Configurations
 - ### Pure Dart Optimizations
   - logd in now Dart ready. Decoupled from Flutter dependencies in favor of Dart standalone support.
