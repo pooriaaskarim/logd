@@ -30,9 +30,10 @@ abstract class FileRotation {
 /// ```dart
 /// FileSink(
 ///   'logs/app.log',
-///   rotationPolicy: SizeRotation(
+///   fileRotation: SizeRotation(
 ///     maxSize: '10 MB',
-///     backupCount: 5, compress: true,
+///     backupCount: 5,
+///     compress: true,
 ///   ),
 /// );
 /// ```
@@ -161,7 +162,7 @@ class SizeRotation extends FileRotation {
 /// ```dart
 /// FileSink(
 ///   'logs/app.log',
-///   rotationPolicy: TimeRotation(
+///   fileRotation: TimeRotation(
 ///     interval: Duration(days: 1),
 ///     nameFormatter: Timestamp(formatter: 'yyyy-MM-dd'),
 ///     backupCount: 7,

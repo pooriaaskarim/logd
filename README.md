@@ -114,6 +114,33 @@ final handler = Handler(
 );
 Logger.configure('global', handlers: [handler]);
 ```
+### FileRotation for FileSink
+#### Time Based
+ ```dart
+ FileSink(
+   'logs/app.log',
+   fileRotation: TimeRotation(
+     interval: Duration(days: 1),
+     nameFormatter: Timestamp(formatter: 'yyyy-MM-dd'),
+     backupCount: 7,
+     compress: true,
+   ),
+ );
+// Rotated files: app-2025-11-11.log.gz, etc.
+// (current logs always to 'app.log').
+```
+#### Size Based
+```dart
+FileSink(
+  'logs/app.log',
+  fileRotation: SizeRotation(
+    maxSize: '10 MB',
+    backupCount: 5,
+    compress: true,
+  ),
+);
+// Rotated files: app.1.log.gz, app.2.log.gz, etc. (index 1 is newest).
+```
 ### Custom Timestamp
 ```dart
 final ts = Timestamp(formatter: 'yyyy-MM-dd HH:mm:ss Z', timeZone: TimeZone.utc());
