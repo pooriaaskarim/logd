@@ -1,6 +1,7 @@
 part of '../handler.dart';
 
 /// Abstract base for formatting a [LogEntry] into lines of text.
+//ignore: one_member_abstracts
 abstract class LogFormatter {
   const LogFormatter();
 

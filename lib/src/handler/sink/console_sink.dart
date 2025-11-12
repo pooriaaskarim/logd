@@ -10,7 +10,7 @@ class ConsoleSink implements LogSink {
   final bool enabled;
 
   @override
-  void output(final List<String> lines, final LogLevel level) {
+  Future<void> output(final List<String> lines, final LogLevel level) async {
     for (final line in lines) {
       print(line);
     }

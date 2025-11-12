@@ -4,7 +4,7 @@ part of '../handler.dart';
 ///
 /// Handles where lines are outputted (console, file, network).
 //todo: Async needed.
-abstract interface class LogSink {
+abstract class LogSink {
   const LogSink({
     this.enabled = true,
   });
@@ -13,7 +13,7 @@ abstract interface class LogSink {
   final bool enabled;
 
   /// Output the lines to the destination.
-  void output(
+  Future<void> output(
     final List<String> lines,
     final LogLevel level,
   );

@@ -1,6 +1,7 @@
 part of '../handler.dart';
 
 /// Abstract base for filtering log entries before processing.
+//ignore: one_member_abstracts
 abstract class LogFilter {
   const LogFilter();
 

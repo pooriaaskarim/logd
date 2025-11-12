@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.4: Async Logging / File Rotation
+- ### Asynchronous Logging Pipeline
+  -   The entire logging pipeline, from `logger.log()` to `handler.log()` and `sink.output()`, is now `async`.
+  -   This prevents I/O operations (like file or network writes) from blocking the main thread.
+  -   Error handling has been added to logging calls to catch and print exceptions that occur during the logging process itself.
+- ### Advanced File Sink with Rotation
+  -   Introduced `FileRotation` abstract class to enable log file rotation policies.
+  -   Added `SizeRotation`: Rotates log files when they exceed a specified size (e.g., '10 MB').
+  -   Added `TimeRotation`: Rotates logs based on a time interval.
+  -   Both rotation policies support keeping a configured number of backup files and optional `gzip` compression for rotated logs.
+- ### Minor Refinements
+  -   `MultiSink` now outputs to all its sinks concurrently using `Future.wait`.
+  -   Added `//ignore: one_member_abstracts` to `LogFilter` and `LogFormatter` to clean up analyzer warnings.
+
+
 ## 0.1.3: Pure Dart Support / Instantaneous Cached Configurations
 - ### Pure Dart Optimizations
   - logd in now Dart ready. Decoupled from Flutter dependencies in favor of Dart standalone support.

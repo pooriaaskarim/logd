@@ -415,7 +415,8 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.trace, message, error, stackTrace);
+      _log(LogLevel.trace, message, error, stackTrace)
+        ..catchError((final e) => print('Logging error: $e'));
 
   /// Logs a debug-level message.
   ///
@@ -429,7 +430,8 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.debug, message, error, stackTrace);
+      _log(LogLevel.debug, message, error, stackTrace)
+        ..catchError((final e) => print('Logging error: $e'));
 
   /// Logs an info-level message.
   ///
@@ -443,7 +445,8 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.info, message, error, stackTrace);
+      _log(LogLevel.info, message, error, stackTrace)
+        ..catchError((final e) => print('Logging error: $e'));
 
   /// Logs a warning-level message.
   ///
@@ -457,7 +460,8 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.warning, message, error, stackTrace);
+      _log(LogLevel.warning, message, error, stackTrace)
+        ..catchError((final e) => print('Logging error: $e'));
 
   /// Logs an error-level message.
   ///
@@ -471,7 +475,8 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.error, message, error, stackTrace);
+      _log(LogLevel.error, message, error, stackTrace)
+        ..catchError((final e) => print('Logging error: $e'));
 
   /// Internal: Processes a log event, creating and dispatching a LogEntry.
   ///
@@ -483,12 +488,12 @@ class Logger {
   /// - [message]: The message object.
   /// - [error]: Optional error.
   /// - [stackTrace]: Optional or current stack trace.
-  void _log(
+  Future<void> _log(
     final LogLevel level,
     final Object? message,
     final Object? error,
     final StackTrace? stackTrace,
-  ) {
+  ) async {
     if (!enabled || level.index < logLevel.index) {
       return;
     }
@@ -511,7 +516,7 @@ class Logger {
       stackTrace: stackTrace,
     );
     for (final handler in handlers) {
-      handler.log(entry);
+      await handler.log(entry);
     }
   }
 

@@ -1,6 +1,6 @@
 name: logd
-description: A modular high performance logging daemon for Dart and Flutter. Logger Tree Hierarchy with instantaneous synced cached configurations. Highly Customizable with Log Formatters, Filters, Sinks.
-version: 0.1.3
+description: A modular logging daemon for Dart and Flutter. Highly Customizable with Log Formatters, Filters, Sinks. Logger Tree Hierarchy with instantaneous configurations.
+version: 0.1.4
 repository: https://github.com/pooriaaskarim/logd
 homepage: https://pub.dev/packages/logd
 topics:

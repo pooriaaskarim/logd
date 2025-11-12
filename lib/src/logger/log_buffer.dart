@@ -20,7 +20,9 @@ class LogBuffer extends StringBuffer {
   /// Sends the buffer to all printers and clears it.
   void sync() {
     if (isNotEmpty) {
-      _logger._log(logLevel, toString(), null, StackTrace.current);
+      _logger
+          ._log(logLevel, toString(), null, StackTrace.current)
+          .catchError((final e) => print('Logging error: $e'));
       clear();
     }
   }

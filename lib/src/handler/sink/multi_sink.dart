@@ -20,11 +20,9 @@ class MultiSink implements LogSink {
   final List<LogSink> sinks;
 
   @override
-  void output(final List<String> lines, final LogLevel level) {
+  Future<void> output(final List<String> lines, final LogLevel level) async {
     if (lines.isNotEmpty) {
-      for (final sink in sinks) {
-        sink.output(lines, level);
-      }
+      await Future.wait(sinks.map((final sink) => sink.output(lines, level)));
     }
   }
 }

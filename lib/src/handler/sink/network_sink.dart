@@ -1,18 +1,21 @@
 part of '../handler.dart';
-
-// /// Placeholder for network sink (e.g., HTTP POST to remote server).
-// class NetworkSink implements LogSink {
-//   const NetworkSink({
-//     this.enabled = true,
-//   });
 //
-//   /// Whether this sink is enabled (if false, output is skipped).
+// /// Sends logs to a network endpoint via HTTP POST.
+// class NetworkSink implements LogSink {
+//   const NetworkSink({required this.url, this.enabled = true});
+//
+//   /// The URL to POST logs to.
+//   final String url;
+//
 //   @override
 //   final bool enabled;
 //
 //   @override
-//   void output(final List<String> lines, final LogLevel level) {
-//     // TODO: Implement network sending, e.g., using http package.
-//     debugPrint('NetworkSink: Sending ${lines.length} lines (not implemented)');
+//   Future<void> output(final List<String> lines, final LogLevel level) async {
+//     try {
+//       await http.post(Uri.parse(url), body: lines.join('\n'));
+//     } catch (e) {
+//       print('NetworkSink error: $e');
+//     }
 //   }
 // }

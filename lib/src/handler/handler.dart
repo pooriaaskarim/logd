@@ -1,10 +1,12 @@
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io' as io;
 
 import '../logger/logger.dart';
 import '../stack_trace/stack_trace.dart';
+import '../time/time.dart';
 
 part 'filter/filter.dart';
 part 'filter/level_filter.dart';
@@ -36,13 +38,13 @@ class Handler {
   final List<LogFilter> filters;
 
   /// Process the entry: filter, format, output.
-  void log(final LogEntry entry) {
+  Future<void> log(final LogEntry entry) async {
     if (filters.any((final filter) => !filter.shouldLog(entry))) {
       return;
     }
     final lines = formatter.format(entry);
     if (lines.isNotEmpty) {
-      sink.output(lines, entry.level);
+      await sink.output(lines, entry.level);
     }
   }
 }
