@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.4: Async Logging / File Rotation
+## 0.1.5: Async Logging / File Rotation
 - ### Asynchronous Logging Pipeline
   -   The entire logging pipeline, from `logger.log()` to `handler.log()` and `sink.output()`, is now `async`.
   -   This prevents I/O operations (like file or network writes) from blocking the main thread.
