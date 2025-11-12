@@ -30,17 +30,20 @@ abstract class FileRotation {
 /// ```dart
 /// FileSink(
 ///   'logs/app.log',
-///   rotationPolicy: SizeRotation(maxSize: '10 MB', backupCount: 5, compress: true),
+///   rotationPolicy: SizeRotation(
+///     maxSize: '10 MB',
+///     backupCount: 5, compress: true,
+///   ),
 /// );
 /// ```
 /// Rotated files: app.1.log.gz, app.2.log.gz, etc. (index 1 is newest).
 class SizeRotation extends FileRotation {
   factory SizeRotation({
-    final String maxSizeLiteral = '512 KB',
+    final String maxSize = '512 KB',
     final bool compress = false,
     final int backupCount = 5,
   }) {
-    final bytes = SizeRotation.parseMaxSizeLiteral(maxSizeLiteral);
+    final bytes = SizeRotation.parseMaxSizeLiteral(maxSize);
     return SizeRotation._(
       maxBytes: bytes,
       compress: compress,
