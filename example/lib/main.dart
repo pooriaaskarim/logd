@@ -182,6 +182,7 @@ void _runDemo() {
   throw Exception('Simulated uncaught error (caught by attachment)');
 
   // Demo complete (won't reach if uncaught).
+  // ignore: dead_code
   print('\nDemo complete. Check app.log and app_multi.log for file outputs.');
 }
 

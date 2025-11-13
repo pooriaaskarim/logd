@@ -5,7 +5,7 @@ class TimeZone {
   /// Predefined local time zone.
   factory TimeZone.local() {
     final systemTimeZoneName = getSystemTimeZoneName();
-    final offset = DateTime.now().timeZoneOffset;
+    final offset = Time._timeProvider().timeZoneOffset;
     return TimeZone._(systemTimeZoneName, TimeZoneOffset._(offset));
   }
 
@@ -24,27 +24,28 @@ class TimeZone {
   ///      00:00 (UTC)
   ///     -05:00 (New York)
   ///     +04:00 (Oman)
-  factory TimeZone(final String? name, final String? offsetLiteral) =>
+  factory TimeZone([
+    final String name = 'UTC',
+    final String offsetLiteral = '00:00',
+  ]) =>
       TimeZone._(
         name,
-        offsetLiteral == null
-            ? null
-            : TimeZoneOffset.fromLiteral(offsetLiteral),
+        TimeZoneOffset.fromLiteral(offsetLiteral),
       );
 
   /// The name of the time zone (e.g., 'UTC', 'Asia/Kolkata').
   ///
   /// This field is used in timestamp formatting for tokens like 'ZZ' or 'ZZZ'.
-  final String? name;
+  final String name;
 
   /// Internal: offset object; not directly accessible.
-  final TimeZoneOffset? _offset;
+  final TimeZoneOffset _offset;
 
   /// The offset from UTC as a Duration.
   ///
   /// Calculated from the offset literal or system timezone.
   /// + Example: Duration(hours: -5) for New York.
-  Duration? get offset => _offset?.offset;
+  Duration get offset => _offset.offset;
 
   /// Internal: Cached system time zone name to avoid repeated expensive calls.
   static String? _systemTimeZoneName;
@@ -53,6 +54,11 @@ class TimeZone {
   static String getSystemTimeZoneName() {
     _systemTimeZoneName ??= _fetchSystemTimeZoneName();
     return _systemTimeZoneName!;
+  }
+
+  @visibleForTesting
+  static void clearSystemTimeZoneCache() {
+    _systemTimeZoneName = null;
   }
 
   static String _fetchSystemTimeZoneName() {

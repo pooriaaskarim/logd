@@ -12,7 +12,7 @@ const _monthNames = [
   'September',
   'October',
   'November',
-  'December'
+  'December',
 ];
 const _abbreviatedMonthNames = [
   'Jan',
@@ -26,16 +26,14 @@ const _abbreviatedMonthNames = [
   'Sep',
   'Oct',
   'Nov',
-  'Dec'
+  'Dec',
 ];
 
 /// A class for formatting timestamps with customizable patterns and timezone
 /// support.
 class Timestamp {
   const Timestamp({required String this.formatter, this.timeZone});
-  factory Timestamp.none() {
-    return Timestamp(formatter: '');
-  }
+  factory Timestamp.none() => const Timestamp(formatter: '');
 
   /// The format string defining the timestamp pattern.
   ///
@@ -88,8 +86,15 @@ class Timestamp {
   /// - Affects timezone tokens like 'Z', 'ZZ', 'ZZZ'.
   final TimeZone? timeZone;
 
-  DateTime get _currentDateTime =>
-      DateTime.now().toUtc().add(timeZone?.offset ?? Duration.zero);
+  DateTime get _currentDateTime {
+    if (timeZone == null) {
+      return Time._timeProvider();
+    } else {
+      return Time._timeProvider()
+          .toUtc()
+          .add(timeZone?.offset ?? Duration.zero);
+    }
+  }
 
   String? getTimestamp() {
     final formatString = formatter;
@@ -100,13 +105,11 @@ class Timestamp {
     final milliseconds = _currentDateTime.millisecond;
     final ampm = _currentDateTime.hour < 12 ? 'AM' : 'PM';
     final String hourInTwelveHourFormat =
-        '${_currentDateTime.hour % 12 == 0 ? 12 : _currentDateTime.hour % 12}'
-        '$ampm';
+        '${_currentDateTime.hour % 12 == 0 ? 12 : _currentDateTime.hour % 12}';
 
     final resolvedTimeZone = timeZone ?? TimeZone.local();
-    final timeZoneOffset =
-        resolvedTimeZone.offset ?? _currentDateTime.timeZoneOffset;
-    final timeZoneName = resolvedTimeZone.name ?? '';
+    final timeZoneOffset = resolvedTimeZone.offset;
+    final timeZoneName = resolvedTimeZone.name;
     final timeZoneOffsetHours = timeZoneOffset.inHours.abs();
     final timeZoneOffsetMinutes = timeZoneOffset.inMinutes.abs() % 60;
     final offsetSign = timeZoneOffset.isNegative ? '-' : '+';
@@ -122,8 +125,8 @@ class Timestamp {
       'd': _currentDateTime.day.toString(),
       'HH': _currentDateTime.hour.toString().padLeft(2, '0'),
       'H': _currentDateTime.hour.toString(),
-      'hhhh': hourInTwelveHourFormat.padLeft(4, '0'),
-      'hhh': hourInTwelveHourFormat.padLeft(3, '0'),
+      'hhhh': '$hourInTwelveHourFormat$ampm'.padLeft(4, '0'),
+      'hhh': '$hourInTwelveHourFormat$ampm'.padLeft(3, '0'),
       'hh': hourInTwelveHourFormat.padLeft(2, '0'),
       'h': hourInTwelveHourFormat,
       'a': ampm,
@@ -167,7 +170,8 @@ class Timestamp {
           stringBuffer.write(tokenReplacements[tokenString]);
         } else {
           throw FormatException(
-              'Unrecognized token "$tokenString" in timestamp format: "$formatString"');
+            'Unrecognized token "$tokenString" in timestamp format: "$formatString"',
+          );
         }
       } else {
         stringBuffer.write(currentCharacter);
