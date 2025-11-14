@@ -102,10 +102,9 @@ packages:
   logd:
     dependency: "direct main"
     description:
-      name: logd
-      sha256: "1daa79cd99f8c5e762569f78694dcfc89489b3284b0a95cf9b6685f9e0c34d79"
-      url: "https://pub.dev"
-    source: hosted
+      path: ".."
+      relative: true
+    source: path
     version: "0.1.5"
   matcher:
     dependency: transitive

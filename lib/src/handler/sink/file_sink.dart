@@ -66,7 +66,8 @@ class SizeRotation extends FileRotation {
     final match = RegExp(r'^(\d+(\.\d+)?)(TB|GB|MB|KB|B)?$').firstMatch(s);
     if (match == null) {
       throw FormatException(
-          'Invalid size: $s (e.g., "10 MB", "512 KB", "1 TB")');
+        'Invalid size: $s (e.g., "10 MB", "512 KB", "1 TB")',
+      );
     }
     final num = double.parse(match.group(1)!);
     final unit = match.group(3) ?? 'B';
@@ -200,7 +201,7 @@ class TimeRotation extends FileRotation {
     final String newData,
   ) async {
     await _initLastRotation(currentFile);
-    final now = DateTime.now();
+    final now = Time.timeProvider();
     return now.difference(lastRotation!) >= interval;
   }
 
@@ -222,7 +223,7 @@ class TimeRotation extends FileRotation {
         await io.File(rotatedPath).delete();
       }
     }
-    lastRotation = DateTime.now();
+    lastRotation = Time.timeProvider();
     if (backupCount > 0) {
       // Cleanup: Find rotated files, sort by date in name, delete oldest
       final dir = file.parent;
@@ -261,7 +262,7 @@ class TimeRotation extends FileRotation {
     if (await currentFile.exists()) {
       lastRotation = await currentFile.lastModified();
     } else {
-      lastRotation = DateTime.now();
+      lastRotation = Time.timeProvider();
     }
   }
 }
@@ -302,11 +303,15 @@ class FileSink implements LogSink {
         await fileRotation!.rotate(basePath);
       }
       await file.writeAsString(newData, mode: io.FileMode.append);
-    } catch (e) {
+    } catch (e, s) {
       if (!const bool.fromEnvironment('dart.vm.product')) {
         rethrow;
       }
-      print('FileSink error (path: $basePath): $e');
+      Logger.get().error(
+        'FileSink error (path: $basePath)',
+        error: e,
+        stackTrace: s,
+      );
     }
   }
 }

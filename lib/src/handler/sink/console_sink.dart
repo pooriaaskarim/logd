@@ -12,8 +12,10 @@ class ConsoleSink implements LogSink {
   @override
   Future<void> output(final List<String> lines, final LogLevel level) async {
     for (final line in lines) {
+      //ignore: avoid_print
       print(line);
     }
+    //ignore: avoid_print
     print('');
   }
 }

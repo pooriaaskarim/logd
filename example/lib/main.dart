@@ -60,9 +60,8 @@ void _runDemo() {
       LogLevel.warning: 3, // 3 frames for warnings
       LogLevel.error: 5, // 5 frames for errors
     },
-    timestamp: Timestamp(
-      formatter: 'yyyy-MM-dd HH:mm:ss Z', // Custom format with offset
-      timeZone: TimeZone.utc(), // Use UTC
+    timestamp: Timestamp.millisecondsSinceEpoch(
+      timeZone: Timezone.utc(), // Use UTC
     ),
     stackTraceParser: const StackTraceParser(
       ignorePackages: ['logd', 'dart:async'], // Ignore internal packages
@@ -89,9 +88,8 @@ void _runDemo() {
   Logger.configure(
     'app',
     logLevel: LogLevel.warning, // Stricter than global
-    timestamp: Timestamp(
-      formatter: 'MMM dd h:mm a ZZZ', // Custom for 'app' tree
-      timeZone: TimeZone.local(), // System local timezone
+    timestamp: Timestamp.iso8601(
+      timeZone: Timezone.local(), // System local timezone
     ),
   );
 
@@ -126,13 +124,13 @@ void _runDemo() {
   infoBuffer?.writeln('- Part 1: Data loaded');
   infoBuffer?.writeln('- Part 2: Processing started');
   infoBuffer?.writeln('- Part 3: Complete');
-  infoBuffer?.sync(); // Logs all at once or does nothing if null
+  infoBuffer?.sink(); // Logs all at once or does nothing if null
 
   final errorBuffer = apiLogger.errorBuffer;
   errorBuffer?.writeln('Multi-line error details:');
   errorBuffer?.writeln('- Error code: 500');
   errorBuffer?.writeln('- Reason: Server timeout');
-  errorBuffer?.sync();
+  errorBuffer?.sink();
 
   // 7. Custom Handlers: Formatters, Sinks, Filters.
   print('\n--- Custom Handlers ---');

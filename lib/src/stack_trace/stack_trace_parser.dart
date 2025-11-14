@@ -79,7 +79,7 @@ class StackTraceParser {
         dotIndex != -1 ? fullMethod.substring(dotIndex + 1) : fullMethod;
 
     return CallbackInfo(
-      className: className.replaceFirst(RegExp(r'^_'), ''),
+      className: className.replaceFirst(RegExp('^_'), ''),
       methodName: methodName,
       filePath: filePath,
       lineNumber: lineNumber,
