@@ -4,15 +4,15 @@ import 'dart:io' as io;
 ///
 /// Uses platform-specific methods (e.g., getprop for Android).
 /// Throws Exception on fail; caller handles default/logging.
-String fetchNativeTimeZoneName() {
+String fetchNativeTimezoneName() {
   final platform = io.Platform.operatingSystem.toLowerCase();
   switch (platform) {
     case 'android':
       final processResult =
           io.Process.runSync('getprop', ['persist.sys.timezone']);
-      final timeZoneString = processResult.stdout.toString().trim();
-      if (timeZoneString.isNotEmpty) {
-        return timeZoneString;
+      final timezoneString = processResult.stdout.toString().trim();
+      if (timezoneString.isNotEmpty) {
+        return timezoneString;
       }
       throw Exception('Android timezone fetch failed');
     case 'ios':
@@ -25,9 +25,9 @@ String fetchNativeTimeZoneName() {
       }
       throw Exception('iOS/macOS timezone fetch failed');
     case 'linux':
-      final timeZoneFile = io.File('/etc/timezone');
-      if (timeZoneFile.existsSync()) {
-        return timeZoneFile.readAsStringSync().trim();
+      final timezoneFile = io.File('/etc/timezone');
+      if (timezoneFile.existsSync()) {
+        return timezoneFile.readAsStringSync().trim();
       }
       final localtimeLink = io.Link('/etc/localtime');
       if (localtimeLink.existsSync()) {
@@ -47,9 +47,9 @@ String fetchNativeTimeZoneName() {
         'timedatectl',
         ['show', '--value', '--property=Timezone'],
       );
-      final timeZoneString = processResult.stdout.toString().trim();
-      if (timeZoneString.isNotEmpty) {
-        return timeZoneString;
+      final timezoneString = processResult.stdout.toString().trim();
+      if (timezoneString.isNotEmpty) {
+        return timezoneString;
       }
       throw Exception('Linux timezone fetch failed');
     case 'windows':
@@ -57,9 +57,9 @@ String fetchNativeTimeZoneName() {
         'powershell',
         ['-Command', '[System.TimeZoneInfo]::Local.Id'],
       );
-      final timeZoneString = processResult.stdout.toString().trim();
-      if (timeZoneString.isNotEmpty) {
-        return timeZoneString;
+      final timezoneString = processResult.stdout.toString().trim();
+      if (timezoneString.isNotEmpty) {
+        return timezoneString;
       }
       throw Exception('Windows timezone fetch failed');
     default:

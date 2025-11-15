@@ -61,7 +61,7 @@ void _runDemo() {
       LogLevel.error: 5, // 5 frames for errors
     },
     timestamp: Timestamp.millisecondsSinceEpoch(
-      timeZone: Timezone.utc(), // Use UTC
+      timezone: Timezone.utc(), // Use UTC
     ),
     stackTraceParser: const StackTraceParser(
       ignorePackages: ['logd', 'dart:async'], // Ignore internal packages
@@ -89,7 +89,7 @@ void _runDemo() {
     'app',
     logLevel: LogLevel.warning, // Stricter than global
     timestamp: Timestamp.iso8601(
-      timeZone: Timezone.local(), // System local timezone
+      timezone: Timezone.local(), // System local timezone
     ),
   );
 

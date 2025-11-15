@@ -27,14 +27,14 @@ class Time {
   /// Platform-specific logic in time_native.dart
   /// (non-web) or time_web.dart (web).
   /// Throws from fetchers caught here: logs warning, returns null.
-  /// Override via setTimeZoneNameFetcher for custom
+  /// Override via setTimezoneNameFetcher for custom
   /// (e.g., tests/unsupported platforms).
-  static String? Function() get systemTimezoneNameFetcher => () {
+  static String? Function() get timezoneNameFetcher => () {
         try {
-          return _systemTimezoneNameFetcher();
+          return _timezoneNameFetcher();
         } on Exception catch (e, s) {
           Logger.get().warning(
-            'Could not retrieve TimeZone from platform',
+            'Could not retrieve Timezone from platform',
             error: e,
             stackTrace: s,
           );
@@ -43,22 +43,21 @@ class Time {
       };
 
   /// Internal: fetches timezone name.
-  static String? Function() _systemTimezoneNameFetcher =
-      _systemTimeZoneNameFetcher;
+  static String? Function() _timezoneNameFetcher = _systemTimezoneNameFetcher;
 
   @visibleForTesting
-  static set systemTimezoneNameFetcher(final String? Function() fetcher) {
-    _systemTimezoneNameFetcher = fetcher;
+  static set timezoneNameFetcher(final String? Function() fetcher) {
+    _timezoneNameFetcher = fetcher;
   }
 
   @visibleForTesting
-  static void resetTimeZoneNameFetcher() {
-    _systemTimezoneNameFetcher = _systemTimeZoneNameFetcher;
+  static void resetTimezoneNameFetcher() {
+    _timezoneNameFetcher = _timezoneNameFetcher;
   }
 
-  static String _systemTimeZoneNameFetcher() =>
-      platform_tz.fetchNativeTimeZoneName();
+  static String _systemTimezoneNameFetcher() =>
+      platform_tz.fetchNativeTimezoneName();
 
   /// Static cache for parsed formatters (key: formatter string, value: segments).
-  static final Map<String, List<_FormatSegment>> formatterCache = {};
+  static final Map<String, List<_FormatSegment>> _formatterCache = {};
 }

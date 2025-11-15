@@ -2,7 +2,8 @@
 ## 0.1.6: Native TimeZone Engine with DST
 - ### Timestamp Improved Performance and Functionality
   - Cached token, eliminated re-parsing redundant formatters.
-  - Introduce new format tokens: 'F...' for microseconds (high accuracy benchmarking) and 'E...' for weekdays.
+  - Literal Support: the formatter supports single quote escaped literals (e.g., 'on', 'Time', 'T') to include non-token words in output.
+  - Introduce new format tokens: 'F...' for microseconds (high accuracy benchmarking), 'E...' for weekdays, 'a' vs 'A' for lowercase and uppercase AM/PM, and 'z' for timezone literal.
   - 'SSSS' format token was removed because 4-digit milliseconds made no sense.
   - Introduced common factory constructors for 'Iso8691', 'RFC3339', 'RFC2822', and 'millisecondsSinceEpoch'.
   - Default Timestamp now uses Local Timezone.

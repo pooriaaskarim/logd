@@ -68,7 +68,7 @@ class DSTZoneRule {
 }
 
 /// Common fixed offsets (name to literal).
-final Map<String, String> commonTimeZones = {
+final Map<String, String> commonTimezones = {
   // UTC (00:00)
   'UTC': '00:00',
   // Europe & Africa
@@ -296,7 +296,7 @@ final Map<String, DSTZoneRule> commonDSTRules = {
   // Add more common as needed.
 };
 
-final _timeZoneOffsetRegex = RegExp(
+final _timezoneOffsetRegex = RegExp(
   '^(?:(?:[+-](?:1[0-4]|0[1-9]):[0-5][0-9])|[+-]?00:00)\$',
   caseSensitive: false,
   multiLine: false,
@@ -306,7 +306,7 @@ final _timeZoneOffsetRegex = RegExp(
 class TimezoneOffset {
   const TimezoneOffset._(this.offset);
 
-  /// TimeZone Offset
+  /// timezone Offset
   ///
   /// A string in the **±hh:mm** format.
   ///
@@ -316,7 +316,7 @@ class TimezoneOffset {
   /// +04:00 (Oman)
   factory TimezoneOffset.fromLiteral(final String literal) {
     assert(
-      _timeZoneOffsetRegex.hasMatch(literal),
+      _timezoneOffsetRegex.hasMatch(literal),
       'Invalid Offset Literal: $literal\n'
       'must be ±HH:MM where HH=01-14, MM=00-59,\n'
       'or (±)00:00 for UTC.',
@@ -351,13 +351,13 @@ class Timezone {
   /// Tries to resolve to a DST-aware timezone base on the platform.
   /// if failed, falls back to fixed time zone with current system time zone.
   factory Timezone.local() {
-    final systemTimeZoneName = getSystemTimeZoneName();
-    if (commonTimeZones.containsKey(systemTimeZoneName)) {
-      return Timezone.named(systemTimeZoneName);
+    final systemTimezoneName = getSystemTimezoneName();
+    if (commonTimezones.containsKey(systemTimezoneName)) {
+      return Timezone.named(systemTimezoneName);
     }
     final offset = Time.timeProvider().timeZoneOffset;
     return Timezone._(
-      name: systemTimeZoneName,
+      name: systemTimezoneName,
       rule: DSTZoneRule(standardOffset: offset),
     );
   }
@@ -381,12 +381,13 @@ class Timezone {
         ),
       );
 
-  /// Named (DST-aware) [Timezone] for common time zones, falls back to fixed if no rule.
+  /// Named (DST-aware) [Timezone] for common time zones,
+  /// falls back to fixed if no rule.
   factory Timezone.named(final String name) {
     final rule = commonDSTRules[name] ??
         DSTZoneRule(
           standardOffset:
-              TimezoneOffset.fromLiteral(commonTimeZones[name] ?? '00:00')
+              TimezoneOffset.fromLiteral(commonTimezones[name] ?? '00:00')
                   .offset,
         );
     return Timezone._(name: name, rule: rule);
@@ -434,36 +435,65 @@ class Timezone {
   /// DST rule (always non-null; start/end null for fixed).
   final DSTZoneRule _rule;
 
+  DateTime get now {
+    final utcNow = Time.timeProvider().toUtc();
+    final offset = computeOffset(utcNow);
+    return utcNow.add(offset);
+  }
+
   /// Computes offset from UTC for a given date-time (dynamic for DST).
-  Duration computeOffset(final DateTime dt) {
+  Duration computeOffset(final DateTime utcDt) {
     if (_rule.start == null) {
       return _rule.standardOffset;
     }
 
-    final start = _computeTransition(dt.year, _rule.start!);
-    final end = _computeTransition(dt.year, _rule.end!);
+    // Iterative computation to handle DST correctly
+    var offset = _rule.standardOffset;
+    var localDt = utcDt.add(offset);
+
+    var start = _computeTransition(localDt.year, _rule.start!);
+    var end = _computeTransition(localDt.year, _rule.end!);
 
     final isNorthern = _rule.start!.month < _rule.end!.month;
-    final isDST = isNorthern
-        ? dt.isAfter(start) && dt.isBefore(end)
-        : dt.isAfter(start) ||
-            dt.isBefore(end); // Handles year wrap for Southern.
+    var isDST = isNorthern
+        ? localDt.isAfter(start) && localDt.isBefore(end)
+        : localDt.isAfter(start) || localDt.isBefore(end);
 
-    return isDST ? _rule.standardOffset + _rule.dstDelta : _rule.standardOffset;
-  }
+    if (isDST) {
+      offset += _rule.dstDelta;
+      localDt = utcDt.add(offset);
 
-  /// Timezone offset.
-  Duration get offset => computeOffset(Time.timeProvider());
+      // Recompute with adjusted year if crossed boundary
+      start = _computeTransition(localDt.year, _rule.start!);
+      end = _computeTransition(localDt.year, _rule.end!);
 
-  /// Timezone offset literal.
-  String get offsetLiteral {
-    final timezoneOffset = offset;
-    final timezoneOffsetHours = timezoneOffset.inHours.abs();
-    final timezoneOffsetMinutes = timezoneOffset.inMinutes.abs() % 60;
-    final timezoneOffsetSign = timezoneOffset.isNegative ? '-' : '+';
-    return '$timezoneOffsetSign'
-        '${timezoneOffsetHours.toString().padLeft(2, '0')}:'
-        '${timezoneOffsetMinutes.toString().padLeft(2, '0')}';
+      isDST = isNorthern
+          ? localDt.isAfter(start) && localDt.isBefore(end)
+          : localDt.isAfter(start) || localDt.isBefore(end);
+
+      if (!isDST) {
+        // Ambiguity (e.g., fall-back overlap): Default to standard
+        offset = _rule.standardOffset;
+      }
+    } else {
+      // Check for spring-forward gap: Assume DST and recheck
+      final dstOffset = _rule.standardOffset + _rule.dstDelta;
+      final localDtDst = utcDt.add(dstOffset);
+
+      start = _computeTransition(localDtDst.year, _rule.start!);
+      end = _computeTransition(localDtDst.year, _rule.end!);
+
+      final isDSTAssumed = isNorthern
+          ? localDtDst.isAfter(start) && localDtDst.isBefore(end)
+          : localDtDst.isAfter(start) || localDtDst.isBefore(end);
+
+      if (isDSTAssumed) {
+        // In the gap: Use DST offset
+        offset = dstOffset;
+      }
+    }
+
+    return offset;
   }
 
   /// Computes transition DateTime for year and rule.
@@ -485,14 +515,20 @@ class Timezone {
       }
       if (count < r.instance) {
         throw ArgumentError(
-          'No ${r.instance}th weekday ${r.weekday} in month ${r.month}, year $year',
+          'No ${r.instance}th weekday ${r.weekday} in month ${r.month},'
+          ' year $year',
         );
       }
     } else if (r.instance == -1) {
-      // Last weekday.
-      var current = DateTime(year, r.month + 1, 0); // Last day of month.
+      // Last weekday
+      var current = DateTime(year, r.month + 1, 0); // Last day of month
       while (current.weekday != r.weekday && current.month == r.month) {
         current = current.subtract(const Duration(days: 1));
+      }
+      if (current.month != r.month) {
+        throw ArgumentError(
+          'No last weekday ${r.weekday} in month ${r.month}, year $year',
+        );
       }
       day = current.day;
     }
@@ -500,15 +536,52 @@ class Timezone {
     return DateTime(year, r.month, day).add(r.at.toDuration());
   }
 
+  /// Timezone offset.
+  Duration get offset => computeOffset(Time.timeProvider());
+
+  /// Timezone offset literal.
+  String get offsetLiteral {
+    final timezoneOffset = offset;
+    final timezoneOffsetHours = timezoneOffset.inHours.abs();
+    final timezoneOffsetMinutes = timezoneOffset.inMinutes.abs() % 60;
+    final timezoneOffsetSign = timezoneOffset.isNegative ? '-' : '+';
+    return '$timezoneOffsetSign'
+        '${timezoneOffsetHours.toString().padLeft(2, '0')}:'
+        '${timezoneOffsetMinutes.toString().padLeft(2, '0')}';
+  }
+
+  /// Standard offset literal
+  String standardOffsetLiteral({
+    final bool isIso8601 = false,
+    final bool isRFC2822 = false,
+  }) {
+    assert(
+      !isIso8601 || !isRFC2822,
+      'Stick to one standard when retrieving timezone offset literal.',
+    );
+
+    final timezoneOffset = offset;
+    if ((isIso8601 || isRFC2822) && timezoneOffset.inMinutes == 0) {
+      return 'Z';
+    }
+    final timezoneOffsetHours = timezoneOffset.inHours.abs();
+    final timezoneOffsetMinutes = timezoneOffset.inMinutes.abs() % 60;
+    final timezoneOffsetSign = timezoneOffset.isNegative ? '-' : '+';
+    return '$timezoneOffsetSign'
+        '${timezoneOffsetHours.toString().padLeft(2, '0')}'
+        '${!isRFC2822 ? ':' : ''}'
+        '${timezoneOffsetMinutes.toString().padLeft(2, '0')}';
+  }
+
   /// Cached system time zone name.
-  static String? _systemTimeZoneName;
+  static String? _systemTimezoneName;
 
   /// Retrieves the system time zone name, caching it.
-  static String getSystemTimeZoneName() => _systemTimeZoneName ??=
-      Time.systemTimezoneNameFetcher() ?? Time.timeProvider().timeZoneName;
+  static String getSystemTimezoneName() => _systemTimezoneName ??=
+      Time.timezoneNameFetcher() ?? Time.timeProvider().timeZoneName;
 
   @visibleForTesting
-  static void clearSystemTimeZoneCache() {
-    _systemTimeZoneName = null;
+  static void clearSystemTimezoneCache() {
+    _systemTimezoneName = null;
   }
 }

@@ -16,7 +16,7 @@ const _defaultStackMethodCount = {
 };
 final _defaultTimestamp = Timestamp(
   formatter: 'yyyy.MMM.dd\nZZ HH:mm:ss.SSS',
-  timeZone: Timezone.local(),
+  timezone: Timezone.local(),
 );
 
 const _defaultStackTraceParser = StackTraceParser(

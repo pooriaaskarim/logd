@@ -9,9 +9,9 @@ import 'dart:js_interop_unsafe';
 /// Throws Exception on failure (e.g., API unavailable); caller handles default/logging.
 ///
 /// How to use:
-/// - Called internally by Time.timeZoneNameFetcher() on web.
-/// - Example: String tz = fetchWebTimeZoneName(); // 'Europe/London'
-String fetchWebTimeZoneName() {
+/// - Called internally by Time.timezoneNameFetcher() on web.
+/// - Example: String tz = fetchWebTimezoneName(); // 'Europe/London'
+String fetchWebTimezoneName() {
   try {
     final intl = jsi.globalContext.getProperty<jsi.JSObject?>('Intl'.toJS);
     if (intl == null) {
@@ -32,9 +32,9 @@ String fetchWebTimeZoneName() {
     if (options == null) {
       throw Exception('resolvedOptions failed');
     }
-    // Access timeZone property
-    final timeZone = options.getProperty<jsi.JSString?>('timeZone'.toJS);
-    final result = timeZone?.toDart;
+    // Access timezone property
+    final timezone = options.getProperty<jsi.JSString?>('timeZone'.toJS);
+    final result = timezone?.toDart;
     if (result == null || result.isEmpty) {
       throw Exception('timeZone property empty');
     }
