@@ -10,16 +10,17 @@ class Time {
   const Time._();
 
   /// Returns current date and time.
-  static DateTime Function() timeProvider = DateTime.now;
+  static DateTime Function() get timeProvider => _timeProvider;
 
+  static DateTime Function() _timeProvider = DateTime.now;
   @visibleForTesting
   static void setTimeProvider(final DateTime Function() provider) {
-    timeProvider = provider;
+    _timeProvider = provider;
   }
 
   @visibleForTesting
   static void resetTimeProvide() {
-    timeProvider = DateTime.now;
+    _timeProvider = DateTime.now;
   }
 
   /// Tries to fetch system timezone name.
