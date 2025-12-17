@@ -1,6 +1,6 @@
 part of 'time.dart';
 
-const _monthNames = [
+const monthNames = [
   'January',
   'February',
   'March',
@@ -15,7 +15,7 @@ const _monthNames = [
   'December',
 ];
 
-const _abbreviatedMonthNames = [
+const abbreviatedMonthNames = [
   'Jan',
   'Feb',
   'Mar',
@@ -30,7 +30,7 @@ const _abbreviatedMonthNames = [
   'Dec',
 ];
 
-const _abbreviatedWeekdayNames = [
+const abbreviatedWeekdayNames = [
   'Mon',
   'Tue',
   'Wed',
@@ -39,7 +39,8 @@ const _abbreviatedWeekdayNames = [
   'Sat',
   'Sun',
 ];
-const _weekdayNames = [
+
+const weekdayNames = [
   'Monday',
   'Tuesday',
   'Wednesday',
@@ -50,10 +51,10 @@ const _weekdayNames = [
 ];
 
 /// ISO 8601 [Timestamp] (identical to RFC 3339).
-const _iso8601Formatter = "yyyy-MM-dd'T'HH:mm:ss.SSS''z";
+const _iso8601Formatter = "yyyy-MM-dd'T'HH:mm:ss.SSS'z_iso8601'";
 
 /// RFC 2822 / HTTP Date format
-const _rfc2822Formatter = 'EEE, dd MMM yyyy HH:mm:ss z';
+const _rfc2822Formatter = "EEE, dd MMM yyyy HH:mm:ss 'z_rfc2822O'";
 
 /// Timestamp in milliseconds since epoch.
 const _epochFormatter = 'EPOCH';
@@ -123,12 +124,13 @@ class Timestamp {
   ///   + 'A' (AM/PM), 'a' (am/pm)
   ///   + 'mm' (52), 'm' (52),
   ///   + 'ss' (01), 's' (1)
-  /// - Milliseconds:
-  ///   + 'SSS' (136), 'SS' (13), 'S' (1)
-  /// - Microseconds:
-  ///   + 'FFFFF' (000136), 'FFFF' (001), 'FFF' (013), 'FF' (136), 'F' (136)
+  /// - Sub-seconds
+  ///   Assuming 123456 microseconds:
+  ///   - Milliseconds:
+  ///     + 'SSS' (123), 'SS' (12), 'S' (1)
+  ///   - Microseconds:
+  ///    + 'FFF' (456), 'FF' (45), 'F' (4)
   /// - Timezone:
-  ///   + 'z'   Standard Offset: ISO8601 or RFC2822 formatted timezone literal,
   ///   + 'Z'   (+03:30),
   ///   + 'ZZ'  (Asia/Tehran),
   ///   + 'ZZZ' (Asia/Tehran+03:30)
@@ -153,26 +155,34 @@ class Timestamp {
   /// - Invalid tokens throw FormatException for safety.
   final String formatter;
 
-  /// The time zone configuration to use for the timestamp.
+  /// [Timezone] configuration to use for the timestamp.
   ///
-  /// Intentions: Allows overriding the system's default time zone for
+  /// Allows overriding the system's default time zone for
   /// consistent logging across different environments or for specific regional
   /// requirements. If not set, falls back to local system time zone.
-  ///
-  /// How to use:
-  /// - Use predefined: Timezone.local (default), Timezone.utc
-  /// - Custom: Timezone(name: 'PST', offsetLiteral: '-08:00', // DST)
-  /// - Set via constructor: Timestamp(timezone: Timezone.utc)
-  /// - Affects timezone tokens like 'Z', 'ZZ', 'ZZZ'.
   final Timezone? timezone;
+
+  /// Maximum size of the [_formatterCache].
+  static const int _maxCacheSize = 50;
+
+  /// Static cache for parsed formatters
+  /// (key: formatter string, value: segments).
+  static final Map<String, List<_FormatSegment>> _formatterCache = {};
 
   /// Retrieves cached parsed formatter (if any) or caches and returns it.
   List<_FormatSegment> _getParsedFormatter() {
     if (formatter.isEmpty) {
       return const [];
     }
-    return Time._formatterCache
-        .putIfAbsent(formatter, () => _parseFormatter(formatter));
+    if (!_formatterCache.containsKey(formatter)) {
+      if (_formatterCache.length >= _maxCacheSize) {
+        final firstKey = _formatterCache.keys.first;
+        _formatterCache.remove(firstKey);
+      }
+      _formatterCache[formatter] = _parseFormatter(formatter);
+    }
+
+    return _formatterCache[formatter]!;
   }
 
   /// Dictionary of defined format tokens
@@ -182,19 +192,21 @@ class Timestamp {
     final String hourInTwelveHourFormat =
         '${now.hour % 12 == 0 ? 12 : now.hour % 12}';
     final resolvedTimezone = timezone ?? Timezone.local();
+    final millisecondsStr = now.millisecond.toString().padLeft(3, '0');
+    final microsecondsStr = now.microsecond.toString().padLeft(3, '0');
 
     return <String, String>{
       // Date related tokens.
       'yyyy': now.year.toString().padLeft(4, '0'),
       'yy': (now.year % 100).toString().padLeft(2, '0'),
-      'MMMM': _monthNames[now.month - 1],
-      'MMM': _abbreviatedMonthNames[now.month - 1],
+      'MMMM': monthNames[now.month - 1],
+      'MMM': abbreviatedMonthNames[now.month - 1],
       'MM': now.month.toString().padLeft(2, '0'),
       'M': now.month.toString(),
       'dd': now.day.toString().padLeft(2, '0'),
       'd': now.day.toString(),
-      'EEEE': _weekdayNames[now.weekday - 1],
-      'EEE': _abbreviatedWeekdayNames[now.weekday - 1],
+      'EEEE': weekdayNames[now.weekday - 1],
+      'EEE': abbreviatedWeekdayNames[now.weekday - 1],
       'EE': now.weekday.toString().padLeft(2, '0'),
       'E': now.weekday.toString(),
       // Time related tokens.
@@ -210,20 +222,16 @@ class Timestamp {
       'm': now.minute.toString(),
       'ss': now.second.toString().padLeft(2, '0'),
       's': now.second.toString(),
-      'SSS': now.millisecond.toString().padLeft(3, '0'),
-      'SS': (now.millisecond ~/ 10).toString().padLeft(2, '0'),
-      'S': (now.millisecond ~/ 100).toString(),
-      'FFFFFF': now.microsecond.toString().padLeft(6, '0'),
-      'FFFFF': now.microsecond.toString().padLeft(5, '0'),
-      'FFFF': now.microsecond.toString().padLeft(4, '0'),
-      'FFF': now.microsecond.toString().padLeft(3, '0'),
-      'FF': now.microsecond.toString().padLeft(2, '0'),
-      'F': now.microsecond.toString(),
+      // Sub-seconds related tokens.
+      'SSS': millisecondsStr,
+      'SS': millisecondsStr.substring(0, 2),
+      'S': millisecondsStr.substring(0, 1),
+      'FFF': microsecondsStr,
+      'FF': microsecondsStr.substring(0, 2),
+      'F': microsecondsStr.substring(0, 1),
       // Timezone related tokens.
-      'z': resolvedTimezone.standardOffsetLiteral(
-        isIso8601: formatter == _iso8601Formatter,
-        isRFC2822: formatter == _rfc2822Formatter,
-      ),
+      'z_iso8601': resolvedTimezone.iso8601OffsetLiteral,
+      'z_rfc2822O': resolvedTimezone.rfc2822OffsetLiteral,
       'Z': resolvedTimezone.offsetLiteral,
       'ZZ': resolvedTimezone.name,
       'ZZZ': resolvedTimezone.name + resolvedTimezone.offsetLiteral,
@@ -290,7 +298,11 @@ class Timestamp {
         if (_knownTokens.contains(potentialToken)) {
           segments.add(_FormatSegment(potentialToken, isToken: true));
         } else {
-          segments.add(_FormatSegment(potentialToken));
+          throw FormatException(
+            'Unrecognized sequence of letters "$potentialToken" in timestamp'
+            ' format: "$format".'
+            ' Non-token words must be escaped with single quotes.',
+          );
         }
       } else {
         // Buffer literals (non-letters, non-quotes)

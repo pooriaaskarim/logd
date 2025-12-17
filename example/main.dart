@@ -4,10 +4,15 @@ import 'dart:io';
 import 'package:logd/logd.dart';
 
 void main() {
-  // Welcome message for the demo.
-  print('Welcome to the logd package demo!');
   print(
-    'This example showcases key features: configuration, hierarchical logging, custom timestamps, stack traces, buffers, handlers, and freezing inheritance.',
+    'This example showcases key features:'
+    ' configuration,'
+    ' hierarchical logging,'
+    ' custom timestamps,'
+    ' stack traces,'
+    ' buffers,'
+    ' handlers,'
+    ' and freezing inheritance.',
   );
   print(
     'Logs will appear in the console, and some will be written to files (app.log, app_multi.log).',

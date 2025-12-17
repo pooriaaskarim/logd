@@ -50,8 +50,8 @@ class DSTZoneRule {
     this.start,
     this.end,
   }) : assert(
-          start == null && end == null || start != null && end != null,
-          'Provide both start and end for DST, or neither for fixed',
+          (start == null) == (end == null),
+          'Both start and end must be provided for DST, or neither for fixed.',
         );
 
   /// Standard (non-DST) offset from UTC.
@@ -297,7 +297,7 @@ final Map<String, DSTZoneRule> commonDSTRules = {
 };
 
 final _timezoneOffsetRegex = RegExp(
-  '^(?:(?:[+-](?:1[0-4]|0[1-9]):[0-5][0-9])|[+-]?00:00)\$',
+  '^(?:[+-](?:0[0-9]|1[0-4]):(?:00|15|30|45)|[+-]?00:00)\$',
   caseSensitive: false,
   multiLine: false,
   unicode: true,
@@ -351,14 +351,36 @@ class Timezone {
   /// Tries to resolve to a DST-aware timezone base on the platform.
   /// if failed, falls back to fixed time zone with current system time zone.
   factory Timezone.local() {
-    final systemTimezoneName = getSystemTimezoneName();
-    if (commonTimezones.containsKey(systemTimezoneName)) {
+    String formatOffset(final Duration offset) {
+      final hours = offset.inHours.abs();
+      final minutes = offset.inMinutes.abs() % 60;
+      final sign = offset.isNegative ? '-' : '+';
+      return '$sign${hours.toString().padLeft(2, '0')}:'
+          '${minutes.toString().padLeft(2, '0')}';
+    }
+
+    final systemTime = Time.timeProvider();
+    final systemTimezoneName =
+        Time.timezoneNameFetcher() ?? systemTime.timeZoneName;
+
+    if (commonDSTRules.containsKey(systemTimezoneName)) {
       return Timezone.named(systemTimezoneName);
     }
-    final offset = Time.timeProvider().timeZoneOffset;
+
+    final systemTimezoneOffset = systemTime.timeZoneOffset;
+
+    //ignore: avoid_print
+    print(
+      'Timezone "$systemTimezoneName" not found in DST rules. '
+      'Using fixed offset ${formatOffset(systemTimezoneOffset)}. '
+      'DST transitions will not be handled automatically. '
+      'Consider using Timezone.named() with a supported timezone or '
+      'Timezone() factory to define custom DST rules.',
+    );
+
     return Timezone._(
       name: systemTimezoneName,
-      rule: DSTZoneRule(standardOffset: offset),
+      rule: DSTZoneRule(standardOffset: systemTimezoneOffset),
     );
   }
 
@@ -368,63 +390,111 @@ class Timezone {
         rule: DSTZoneRule(standardOffset: Duration.zero),
       );
 
-  /// Fixed time zone from name and offset literal.
-  @Deprecated('Use Timezone.custom() instead.')
-  factory Timezone([
-    final String name = 'UTC',
-    final String offsetLiteral = '00:00',
-  ]) =>
-      Timezone._(
-        name: name,
-        rule: DSTZoneRule(
-          standardOffset: TimezoneOffset.fromLiteral(offsetLiteral).offset,
-        ),
-      );
-
-  /// Named (DST-aware) [Timezone] for common time zones,
-  /// falls back to fixed if no rule.
-  factory Timezone.named(final String name) {
-    final rule = commonDSTRules[name] ??
-        DSTZoneRule(
-          standardOffset:
-              TimezoneOffset.fromLiteral(commonTimezones[name] ?? '00:00')
-                  .offset,
-        );
-    return Timezone._(name: name, rule: rule);
-  }
-
-  factory Timezone.custom({
-    final String name = 'UTC',
-    final String offsetLiteral = '00:00',
-    final String? dstOffsetLiteral,
-    final DSTTransitionRule? start,
-    final DSTTransitionRule? end,
+  /// Factory for custom [Timezone].
+  ///
+  /// + [name] is the name of the time zone (e.g., 'UTC', 'Asia/Kolkata').
+  /// + [offset] offset from "UTC+00:00". (e.g., '00:00' '+05:30').
+  /// + [dstOffsetDelta] DST offset from [offset] (null for no DST).
+  /// (e.g., '+01:00').
+  /// + [dstStart] DST start rule (null for no DST).
+  /// + [dstEnd] DST end rule (null for no DST).
+  factory Timezone({
+    required final String name,
+    required final String offset,
+    final String? dstOffsetDelta,
+    final DSTTransitionRule? dstStart,
+    final DSTTransitionRule? dstEnd,
   }) {
     assert(
-      (dstOffsetLiteral == null && start == null && end == null) ||
-          (dstOffsetLiteral != null && start != null && end != null),
-      'Set dstOffsetLiteral, start, and end for DST Timezones.',
+      (dstOffsetDelta == null && dstStart == null && dstEnd == null) ||
+          (dstOffsetDelta != null && dstStart != null && dstEnd != null),
+      'Set dstOffsetDelta, dstStart, and dstEnd for DST Timezones.',
     );
-    final standardOffset = TimezoneOffset.fromLiteral(offsetLiteral).offset;
-    if (dstOffsetLiteral == null) {
+    final offsetDuration = TimezoneOffset.fromLiteral(offset).offset;
+    if (dstOffsetDelta == null) {
       return Timezone._(
         name: name,
-        rule: DSTZoneRule(standardOffset: standardOffset),
+        rule: DSTZoneRule(standardOffset: offsetDuration),
       );
     } else {
-      final dstOffset = TimezoneOffset.fromLiteral(dstOffsetLiteral).offset;
-      final dstDelta = dstOffset - standardOffset;
+      final dstOffsetDuration =
+          TimezoneOffset.fromLiteral(dstOffsetDelta).offset;
 
       return Timezone._(
         name: name,
         rule: DSTZoneRule(
-          standardOffset: standardOffset,
-          dstDelta: dstDelta,
-          start: start,
-          end: end,
+          standardOffset: offsetDuration,
+          dstDelta: dstOffsetDuration,
+          start: dstStart,
+          end: dstEnd,
         ),
       );
     }
+  }
+
+  /// Named (DST-aware) [Timezone] for common time zones.
+  ///
+  ///   ## UTC (00:00)
+  ///   + 'UTC'                  - 00:00
+  ///   ## Europe & Africa
+  ///   + 'Europe/London'        - +00:00
+  ///   + 'Africa/Accra'         - +00:00
+  ///   + 'Europe/Paris'         - +01:00
+  ///   + 'Europe/Berlin'        - +01:00
+  ///   + 'Africa/Cairo'         - +02:00
+  ///   + 'Europe/Kiev'          - +02:00
+  ///   + 'Europe/Moscow'        - +03:00
+  ///   + 'Africa/Johannesburg'  - +02:00
+  ///   ## Asia
+  ///   + 'Asia/Riyadh'          - +03:00
+  ///   + 'Asia/Tehran'          - +03:30
+  ///   + 'Asia/Dubai'           - +04:00
+  ///   + 'Asia/Kabul'           - +04:30
+  ///   + 'Asia/Kolkata'         - +05:30
+  ///   + 'Asia/Kathmandu'       - +05:45
+  ///   + 'Asia/Dhaka'           - +06:00
+  ///   + 'Asia/Bangkok'         - +07:00
+  ///   + 'Asia/Singapore'       - +08:00
+  ///   + 'Asia/Seoul'           - +09:00
+  ///   + 'Asia/Tokyo'           - +09:00
+  ///   ## Australia & Pacific
+  ///   + 'Australia/Eucla'      - +08:45
+  ///   + 'Australia/Adelaide'   - +09:30
+  ///   + 'Australia/Sydney'     - +10:00
+  ///   + 'Pacific/Auckland'     - +12:00
+  ///   + 'Pacific/Fiji'         - +12:00
+  ///   + 'Pacific/Chatham'      - +12:45
+  ///   ## America
+  ///   + 'America/St_Johns'     - -03:30
+  ///   + 'America/Sao_Paulo'    - -03:00
+  ///   + 'America/New_York'     - -05:00
+  ///   + 'America/Chicago'      - -06:00
+  ///   + 'America/Mexico_City'  - -06:00
+  ///   + 'America/Denver'       - -07:00
+  ///   + 'America/Los_Angeles'  - -08:00
+  ///   + 'America/Anchorage'    - -09:00
+  ///   + 'Pacific/Marquesas'    - -09:30
+  ///   + 'Pacific/Honolulu'     - -10:00
+  ///   // Other Pacific/GMT
+  ///   + 'Pacific/Midway'       - -11:00
+  ///   + 'Etc/GMT+12'           - -12:00
+  factory Timezone.named(final String name) {
+    if (commonDSTRules.containsKey(name)) {
+      final rule = commonDSTRules[name] ??
+          DSTZoneRule(
+            standardOffset:
+                TimezoneOffset.fromLiteral(commonTimezones[name] ?? '00:00')
+                    .offset,
+          );
+      return Timezone._(name: name, rule: rule);
+    }
+    throw ArgumentError.value(
+      name,
+      'name',
+      'Unknown timezone name. Supported timezones include: '
+          '${commonDSTRules.keys.take(5).join(", ")}, ... '
+          'See commonDSTRules and commonTimezones for full list.',
+    );
   }
 
   /// The name of the time zone (e.g., 'UTC', 'Asia/Kolkata').
@@ -435,153 +505,232 @@ class Timezone {
   /// DST rule (always non-null; start/end null for fixed).
   final DSTZoneRule _rule;
 
+  /// Returns the current time in this timezone.
   DateTime get now {
     final utcNow = Time.timeProvider().toUtc();
-    final offset = computeOffset(utcNow);
-    return utcNow.add(offset);
+    final currentOffset = _computeOffset(utcNow);
+
+    final localInstant = utcNow.add(currentOffset);
+
+    return localInstant;
   }
 
-  /// Computes offset from UTC for a given date-time (dynamic for DST).
-  Duration computeOffset(final DateTime utcDt) {
-    if (_rule.start == null) {
-      return _rule.standardOffset;
-    }
+  /// Timezone offset.
+  Duration get offset => _computeOffset(Time.timeProvider().toUtc());
 
-    // Iterative computation to handle DST correctly
-    var offset = _rule.standardOffset;
-    var localDt = utcDt.add(offset);
-
-    var start = _computeTransition(localDt.year, _rule.start!);
-    var end = _computeTransition(localDt.year, _rule.end!);
-
-    final isNorthern = _rule.start!.month < _rule.end!.month;
-    var isDST = isNorthern
-        ? localDt.isAfter(start) && localDt.isBefore(end)
-        : localDt.isAfter(start) || localDt.isBefore(end);
-
-    if (isDST) {
-      offset += _rule.dstDelta;
-      localDt = utcDt.add(offset);
-
-      // Recompute with adjusted year if crossed boundary
-      start = _computeTransition(localDt.year, _rule.start!);
-      end = _computeTransition(localDt.year, _rule.end!);
-
-      isDST = isNorthern
-          ? localDt.isAfter(start) && localDt.isBefore(end)
-          : localDt.isAfter(start) || localDt.isBefore(end);
-
-      if (!isDST) {
-        // Ambiguity (e.g., fall-back overlap): Default to standard
-        offset = _rule.standardOffset;
-      }
-    } else {
-      // Check for spring-forward gap: Assume DST and recheck
-      final dstOffset = _rule.standardOffset + _rule.dstDelta;
-      final localDtDst = utcDt.add(dstOffset);
-
-      start = _computeTransition(localDtDst.year, _rule.start!);
-      end = _computeTransition(localDtDst.year, _rule.end!);
-
-      final isDSTAssumed = isNorthern
-          ? localDtDst.isAfter(start) && localDtDst.isBefore(end)
-          : localDtDst.isAfter(start) || localDtDst.isBefore(end);
-
-      if (isDSTAssumed) {
-        // In the gap: Use DST offset
-        offset = dstOffset;
-      }
-    }
-
-    return offset;
+  int _daysInMonth(final int year, final int month) {
+    final nextMonth = DateTime.utc(year, month + 1, 0);
+    return nextMonth.day;
   }
 
-  /// Computes transition DateTime for year and rule.
-  DateTime _computeTransition(final int year, final DSTTransitionRule r) {
+  int _getWeekday(final int year, final int month, final int day) {
+    int m = month;
+    int y = year;
+
+    // Zeller's congruence treats Jan/Feb as months 13/14 of previous year
+    if (m == 1 || m == 2) {
+      m += 12;
+      y--;
+    }
+
+    final int century = y ~/ 100;
+    final int yearOfCentury = y % 100;
+
+    // Zeller's formula
+    final int zellerH = (day +
+            (13 * (m + 1) ~/ 5) +
+            yearOfCentury +
+            (yearOfCentury ~/ 4) +
+            (century ~/ 4) +
+            (5 * century)) %
+        7;
+
+    // Zeller's h: 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri
+    // Dart weekday: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
+    // Mapping: (h + 5) % 7 + 1
+    //   h=0 (Sat) → 5+1=6 ✓
+    //   h=1 (Sun) → 6+1=7 ✓
+    //   h=2 (Mon) → 0+1=1 ✓
+    return ((zellerH + 5) % 7) + 1;
+  }
+
+  /// Computes transition DateTime (as UTC instant) for year and rule, using
+  /// the pre-transition local offset.
+  DateTime _computeTransition(
+    final int year,
+    final DSTTransitionRule r,
+    final Duration offsetFromUTC,
+  ) {
     int day = 1;
     if (r.instance > 0) {
-      // Nth weekday.
-      var current = DateTime(year, r.month, 1);
       int count = 0;
-      while (current.month == r.month) {
-        if (current.weekday == r.weekday) {
+      final int maxDay = _daysInMonth(year, r.month);
+      for (int d = 1; d <= maxDay; d++) {
+        if (_getWeekday(year, r.month, d) == r.weekday) {
           count++;
           if (count == r.instance) {
-            day = current.day;
+            day = d;
             break;
           }
         }
-        current = current.add(const Duration(days: 1));
       }
       if (count < r.instance) {
         throw ArgumentError(
           'No ${r.instance}th weekday ${r.weekday} in month ${r.month},'
-          ' year $year',
+          ' year $year.',
         );
       }
     } else if (r.instance == -1) {
-      // Last weekday
-      var current = DateTime(year, r.month + 1, 0); // Last day of month
-      while (current.weekday != r.weekday && current.month == r.month) {
-        current = current.subtract(const Duration(days: 1));
+      final int maxDay = _daysInMonth(year, r.month);
+      for (int d = maxDay; d >= 1; d--) {
+        if (_getWeekday(year, r.month, d) == r.weekday) {
+          day = d;
+          break;
+        }
       }
-      if (current.month != r.month) {
+      if (day == 1) {
         throw ArgumentError(
           'No last weekday ${r.weekday} in month ${r.month}, year $year',
         );
       }
-      day = current.day;
     }
 
-    return DateTime(year, r.month, day).add(r.at.toDuration());
+    final localTransitionTime = DateTime.utc(
+      year,
+      r.month,
+      day,
+      r.at.hour,
+      r.at.minute,
+    );
+
+    return localTransitionTime.subtract(offsetFromUTC);
   }
 
-  /// Timezone offset.
-  Duration get offset => computeOffset(Time.timeProvider());
+  /// Computes offset from UTC for a given [DateTime].
+  ///
+  /// Returns [Duration] representing how far ahead/behind UTC this timezone is
+  /// at the specified instant, accounting for DST if applicable.
+  ///
+  /// **DST Transition Handling:**
+  /// - Northern Hemisphere (start < end month): DST is [start, end)
+  /// within same year
+  /// - Southern Hemisphere (start > end month): DST wraps year boundary
+  ///   - Uses previous year's start and current year's end for dates before
+  ///   end month
+  ///   - Uses current year's start and next year's end for dates after
+  ///   start month
+  ///
+  /// **Boundary Semantics:**
+  /// - Start transition instant: First moment of DST (inclusive)
+  /// - End transition instant: First moment of standard time (exclusive of DST)
+  Duration _computeOffset(final DateTime utcDt) {
+    if (_rule.start == null || _rule.end == null) {
+      return _rule.standardOffset;
+    }
 
+    final year = utcDt.year;
+    final isSouthernHemisphere = _rule.start!.month > _rule.end!.month;
+
+    if (isSouthernHemisphere) {
+      // Southern Hemisphere: DST spans year boundary
+      // Check two possible DST periods:
+      // 1. Previous year's start → Current year's end
+      // 2. Current year's start → Next year's end
+
+      final start1 = _computeTransition(
+        year - 1,
+        _rule.start!,
+        _rule.standardOffset,
+      );
+      final end1 = _computeTransition(
+        year,
+        _rule.end!,
+        _rule.standardOffset + _rule.dstDelta,
+      );
+
+      if ((utcDt.isAtSameMomentAs(start1) || utcDt.isAfter(start1)) &&
+          utcDt.isBefore(end1)) {
+        return _rule.standardOffset + _rule.dstDelta;
+      }
+
+      // Period 2
+      final start2 = _computeTransition(
+        year,
+        _rule.start!,
+        _rule.standardOffset,
+      );
+      final end2 = _computeTransition(
+        year + 1,
+        _rule.end!,
+        _rule.standardOffset + _rule.dstDelta,
+      );
+
+      if ((utcDt.isAtSameMomentAs(start2) || utcDt.isAfter(start2)) &&
+          utcDt.isBefore(end2)) {
+        return _rule.standardOffset + _rule.dstDelta;
+      }
+
+      return _rule.standardOffset;
+    } else {
+      // Northern Hemisphere: DST within same year
+      final startTransitionUtc = _computeTransition(
+        year,
+        _rule.start!,
+        _rule.standardOffset,
+      );
+      final endTransitionUtc = _computeTransition(
+        year,
+        _rule.end!,
+        _rule.standardOffset + _rule.dstDelta,
+      );
+      final isDST = (utcDt.isAtSameMomentAs(startTransitionUtc) ||
+              utcDt.isAfter(startTransitionUtc)) &&
+          utcDt.isBefore(endTransitionUtc);
+      final result =
+          isDST ? _rule.standardOffset + _rule.dstDelta : _rule.standardOffset;
+      return result;
+    }
+  }
+}
+
+extension OffsetLiteralExt on Timezone {
   /// Timezone offset literal.
   String get offsetLiteral {
-    final timezoneOffset = offset;
-    final timezoneOffsetHours = timezoneOffset.inHours.abs();
-    final timezoneOffsetMinutes = timezoneOffset.inMinutes.abs() % 60;
-    final timezoneOffsetSign = timezoneOffset.isNegative ? '-' : '+';
+    final current = offset;
+    final timezoneOffsetHours = current.inHours.abs();
+    final timezoneOffsetMinutes = current.inMinutes.abs() % 60;
+    final timezoneOffsetSign = current.isNegative ? '-' : '+';
     return '$timezoneOffsetSign'
         '${timezoneOffsetHours.toString().padLeft(2, '0')}:'
         '${timezoneOffsetMinutes.toString().padLeft(2, '0')}';
   }
 
-  /// Standard offset literal
-  String standardOffsetLiteral({
-    final bool isIso8601 = false,
-    final bool isRFC2822 = false,
-  }) {
-    assert(
-      !isIso8601 || !isRFC2822,
-      'Stick to one standard when retrieving timezone offset literal.',
-    );
-
-    final timezoneOffset = offset;
-    if ((isIso8601 || isRFC2822) && timezoneOffset.inMinutes == 0) {
+  /// ISO8601 offset literal
+  String get iso8601OffsetLiteral {
+    final currentOffset = offset;
+    if (currentOffset.inMinutes == 0) {
       return 'Z';
     }
-    final timezoneOffsetHours = timezoneOffset.inHours.abs();
-    final timezoneOffsetMinutes = timezoneOffset.inMinutes.abs() % 60;
-    final timezoneOffsetSign = timezoneOffset.isNegative ? '-' : '+';
+    final timezoneOffsetHours = currentOffset.inHours.abs();
+    final timezoneOffsetMinutes = currentOffset.inMinutes.abs() % 60;
+    final timezoneOffsetSign = currentOffset.isNegative ? '-' : '+';
     return '$timezoneOffsetSign'
         '${timezoneOffsetHours.toString().padLeft(2, '0')}'
-        '${!isRFC2822 ? ':' : ''}'
+        ':'
         '${timezoneOffsetMinutes.toString().padLeft(2, '0')}';
   }
 
-  /// Cached system time zone name.
-  static String? _systemTimezoneName;
-
-  /// Retrieves the system time zone name, caching it.
-  static String getSystemTimezoneName() => _systemTimezoneName ??=
-      Time.timezoneNameFetcher() ?? Time.timeProvider().timeZoneName;
-
-  @visibleForTesting
-  static void clearSystemTimezoneCache() {
-    _systemTimezoneName = null;
+  /// RFC2822 offset literal
+  String get rfc2822OffsetLiteral {
+    final currentOffset = offset;
+    if (currentOffset.inMinutes == 0) {
+      return 'Z';
+    }
+    final timezoneOffsetHours = currentOffset.inHours.abs();
+    final timezoneOffsetMinutes = currentOffset.inMinutes.abs() % 60;
+    final timezoneOffsetSign = currentOffset.isNegative ? '-' : '+';
+    return '$timezoneOffsetSign'
+        '${timezoneOffsetHours.toString().padLeft(2, '0')}'
+        '${timezoneOffsetMinutes.toString().padLeft(2, '0')}';
   }
 }

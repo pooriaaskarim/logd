@@ -64,6 +64,7 @@ String fetchNativeTimezoneName() {
       throw Exception('Windows timezone fetch failed');
     default:
       throw UnsupportedError(
-          'Platform $platform not supported for timezone fetch');
+        'Platform $platform not supported for timezone fetch',
+      );
   }
 }

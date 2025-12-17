@@ -1,23 +1,25 @@
 # Changelog
-## 0.1.6: Native TimeZone Engine with DST
-- ### Timestamp Improved Performance and Functionality
-  - Cached token, eliminated re-parsing redundant formatters.
-  - Literal Support: the formatter supports single quote escaped literals (e.g., 'on', 'Time', 'T') to include non-token words in output.
-  - Introduce new format tokens: 'F...' for microseconds (high accuracy benchmarking), 'E...' for weekdays, 'a' vs 'A' for lowercase and uppercase AM/PM, and 'z' for timezone literal.
-  - 'SSSS' format token was removed because 4-digit milliseconds made no sense.
-  - Introduced common factory constructors for 'Iso8691', 'RFC3339', 'RFC2822', and 'millisecondsSinceEpoch'.
-  - Default Timestamp now uses Local Timezone.
-- ### Timezone Improved Functionalities
-  - Renamed **TimeZone** to **Timezone** with uniform naming in mind. **(Backward Incompatible)**
-  - Added support for *Daylight Saving Time**: DST available for Timezones; Local timezone tries to resolve to DST-aware timezone if available.
-  - **Timezone.custom()** factory introduced for creating user-defined timezones with optional *Daylight Saving Time* configuration.
-  - **Deprecated** Timezone() factory in favor of **Timezone.custom()**.
-- ### Enhanced Platform Support for Timezone Detection (Web Support Added)
-
-- ### Other Changes:
-  - Renamed `LogBuffer.sync()` to `LogBuffer.sink()` for clarity.
-  - Improved error handling in `LogBuffer` and `FileSink` to use the logger instance instead of `print()`.
-  - Added linter ignores for necessary `print()` calls in logging error handlers and `ConsoleSink`.
+## 0.2.0: Time Engine Overhaul & Mockable Time Provider
+- ### Timestamp & Timezone Overhaul (Performance, DST, API)
+  - **Performance:** Implemented a cached token system, eliminating the need to re-parse redundant formatters on every call.
+  - **Mockable Time Provider:** Introduced a mockable time provider (`Time.timeProvider`) for robust testing of time-sensitive logic. The `Time` class is now encapsulated with controlled access via `setTimeProvider()` and `resetTimeProvider()`.
+  - **DST Support:** Added full support for Daylight Saving Time (DST). The local timezone will resolve to a DST-aware timezone if available on the platform.
+  - **`timezone` Renaming (Backward Incompatible):** The `timeZone` parameter was renamed to `timezone` for consistency. The `TimeZone` class was also renamed to `Timezone`.
+  - **DST Calculation Fix:** Improved the DST offset calculation logic to better handle transitions.
+  - **Platform Support:** Enhanced platform-aware timezone detection, now including web support.
+- ### Advanced `Timestamp` Formatter
+  - **Literal Support**: The formatter now supports single-quoted literals (e.g., `'on'`, `'at'`) to include static text in the output.
+  - **New Format Tokens**:
+    - `'F...'`: For microseconds (for high-accuracy benchmarking).
+    - `'E...'`: For weekdays (e.g., 'Monday').
+    - `'a'`: For lowercase "am/pm".
+    - `'z'`: For a standard-compliant timezone offset string (e.g., `Z` or `+0330`).
+  - **Token Changes:** Removed the 'SSSS' token as it was redundant.
+  - **Factory Constructors**: Introduced common factory constructors like `Timestamp.iso8601()`, `rfc3339()`, `rfc2822()`, and `millisecondsSinceEpoch()`.
+- ### Other Changes & Refinements
+  - **API Clarity:** Renamed `LogBuffer.sync()` to `LogBuffer.sink()`.
+  - **Improved Error Handling:** `LogBuffer` and `FileSink` now use the logger instance for error reporting instead of `print()`.
+  - **Code Refinements:** Internal function and variable names related to timezones have been unified for better readability.
 
 ## 0.1.5: Async Logging / File Rotation
 - ### Asynchronous Logging Pipeline

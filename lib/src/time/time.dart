@@ -5,19 +5,23 @@ import 'time_native.dart' if (dart.library.html) 'time_web.dart' as platform_tz;
 part 'timestamp.dart';
 part 'timezone.dart';
 
-/// A placeholder class for time-related functionality.
+/// A placeholder class for time-related functionalities.
 class Time {
   const Time._();
 
   /// Returns current date and time.
   static DateTime Function() get timeProvider => _timeProvider;
 
+  /// Internal: internal field to control [timeProvider] behaviour for testing.
   static DateTime Function() _timeProvider = DateTime.now;
+
+  /// Internal: set [timeProvider] behaviour for testing.
   @visibleForTesting
   static void setTimeProvider(final DateTime Function() provider) {
     _timeProvider = provider;
   }
 
+  /// Internal: reset [timeProvider] to default behaviour.
   @visibleForTesting
   static void resetTimeProvide() {
     _timeProvider = DateTime.now;
@@ -43,22 +47,22 @@ class Time {
         }
       };
 
-  /// Internal: fetches timezone name.
+  /// Internal: internal field to control [timezoneNameFetcher] behavior.
   static String? Function() _timezoneNameFetcher = _systemTimezoneNameFetcher;
 
+  /// Internal: set [timezoneNameFetcher] behaviour for testing.
   @visibleForTesting
-  static set timezoneNameFetcher(final String? Function() fetcher) {
+  static void setTimezoneNameFetcher(final String? Function() fetcher) {
     _timezoneNameFetcher = fetcher;
   }
 
+  /// Internal: reset [timezoneNameFetcher] behaviour to default.
   @visibleForTesting
   static void resetTimezoneNameFetcher() {
-    _timezoneNameFetcher = _timezoneNameFetcher;
+    _timezoneNameFetcher = _systemTimezoneNameFetcher;
   }
 
+  /// Internal: default [timezoneNameFetcher] behaviour.
   static String _systemTimezoneNameFetcher() =>
       platform_tz.fetchNativeTimezoneName();
-
-  /// Static cache for parsed formatters (key: formatter string, value: segments).
-  static final Map<String, List<_FormatSegment>> _formatterCache = {};
 }
