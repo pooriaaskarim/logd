@@ -51,10 +51,10 @@ const weekdayNames = [
 ];
 
 /// ISO 8601 [Timestamp] (identical to RFC 3339).
-const _iso8601Formatter = "yyyy-MM-dd'T'HH:mm:ss.SSS'z_iso8601'";
+const _iso8601Formatter = "yyyy-MM-dd'T'HH:mm:ss.SSS''z_iso8601";
 
 /// RFC 2822 / HTTP Date format
-const _rfc2822Formatter = "EEE, dd MMM yyyy HH:mm:ss 'z_rfc2822O'";
+const _rfc2822Formatter = "EEE, dd MMM yyyy HH:mm:ss z_rfc2822";
 
 /// Timestamp in milliseconds since epoch.
 const _epochFormatter = 'EPOCH';
@@ -231,7 +231,7 @@ class Timestamp {
       'F': microsecondsStr.substring(0, 1),
       // Timezone related tokens.
       'z_iso8601': resolvedTimezone.iso8601OffsetLiteral,
-      'z_rfc2822O': resolvedTimezone.rfc2822OffsetLiteral,
+      'z_rfc2822': resolvedTimezone.rfc2822OffsetLiteral,
       'Z': resolvedTimezone.offsetLiteral,
       'ZZ': resolvedTimezone.name,
       'ZZZ': resolvedTimezone.name + resolvedTimezone.offsetLiteral,
@@ -287,7 +287,10 @@ class Timestamp {
         while (index < formatRunes.length) {
           final nextCharacterCode = formatRunes[index];
           if ((nextCharacterCode >= 65 && nextCharacterCode <= 90) ||
-              (nextCharacterCode >= 97 && nextCharacterCode <= 122)) {
+              (nextCharacterCode >= 97 && nextCharacterCode <= 122) ||
+              nextCharacterCode == 95 || // Underscore
+              (nextCharacterCode >= 48 && nextCharacterCode <= 57)) {
+            // Digits 0-9
             tokenBuffer.write(String.fromCharCode(nextCharacterCode));
             index++;
           } else {

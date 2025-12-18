@@ -23,7 +23,7 @@ class Time {
 
   /// Internal: reset [timeProvider] to default behaviour.
   @visibleForTesting
-  static void resetTimeProvide() {
+  static void resetTimeProvider() {
     _timeProvider = DateTime.now;
   }
 

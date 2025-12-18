@@ -1,6 +1,6 @@
 part of 'time.dart';
 
-/// Local time for transitions (hour:minute).
+/// Local wall time for transitions (hour:minute).
 class LocalTime {
   const LocalTime(this.hour, this.minute)
       : assert(hour >= 0 && hour <= 23, 'Hour must be 0-23'),
@@ -12,7 +12,7 @@ class LocalTime {
   Duration toDuration() => Duration(hours: hour, minutes: minute);
 }
 
-/// Rule for DST transition (month, weekday, instance, local time).
+/// Rule for DST transition.
 class DSTTransitionRule {
   const DSTTransitionRule({
     required this.month,
@@ -38,7 +38,7 @@ class DSTTransitionRule {
   /// Week instance (1-5, -1 for last).
   final int instance;
 
-  /// Local time of transition.
+  /// Local wall time of transition.
   final LocalTime at;
 }
 
@@ -188,13 +188,13 @@ final Map<String, DSTZoneRule> commonDSTRules = {
       month: 3,
       weekday: DateTime.sunday,
       instance: -1,
-      at: LocalTime(1, 0),
-    ), // UTC.
+      at: LocalTime(2, 0),
+    ),
     end: const DSTTransitionRule(
       month: 10,
       weekday: DateTime.sunday,
       instance: -1,
-      at: LocalTime(1, 0),
+      at: LocalTime(3, 0),
     ),
   ),
   'Europe/London': DSTZoneRule(
@@ -209,7 +209,7 @@ final Map<String, DSTZoneRule> commonDSTRules = {
       month: 10,
       weekday: DateTime.sunday,
       instance: -1,
-      at: LocalTime(1, 0),
+      at: LocalTime(2, 0),
     ),
   ),
   'Europe/Berlin': DSTZoneRule(
@@ -218,13 +218,13 @@ final Map<String, DSTZoneRule> commonDSTRules = {
       month: 3,
       weekday: DateTime.sunday,
       instance: -1,
-      at: LocalTime(1, 0),
+      at: LocalTime(2, 0),
     ),
     end: const DSTTransitionRule(
       month: 10,
       weekday: DateTime.sunday,
       instance: -1,
-      at: LocalTime(1, 0),
+      at: LocalTime(3, 0),
     ),
   ),
 
@@ -523,36 +523,38 @@ class Timezone {
     return nextMonth.day;
   }
 
-  int _getWeekday(final int year, final int month, final int day) {
-    int m = month;
-    int y = year;
-
-    // Zeller's congruence treats Jan/Feb as months 13/14 of previous year
-    if (m == 1 || m == 2) {
-      m += 12;
-      y--;
-    }
-
-    final int century = y ~/ 100;
-    final int yearOfCentury = y % 100;
-
-    // Zeller's formula
-    final int zellerH = (day +
-            (13 * (m + 1) ~/ 5) +
-            yearOfCentury +
-            (yearOfCentury ~/ 4) +
-            (century ~/ 4) +
-            (5 * century)) %
-        7;
-
-    // Zeller's h: 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri
-    // Dart weekday: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
-    // Mapping: (h + 5) % 7 + 1
-    //   h=0 (Sat) → 5+1=6 ✓
-    //   h=1 (Sun) → 6+1=7 ✓
-    //   h=2 (Mon) → 0+1=1 ✓
-    return ((zellerH + 5) % 7) + 1;
-  }
+  int _getWeekday(final int year, final int month, final int day) =>
+      DateTime.utc(year, month, day).weekday;
+  // int _getWeekday(final int year, final int month, final int day) {
+  //   int m = month;
+  //   int y = year;
+  //
+  //   // Zeller's congruence treats Jan/Feb as months 13/14 of previous year
+  //   if (m == 1 || m == 2) {
+  //     m += 12;
+  //     y--;
+  //   }
+  //
+  //   final int century = y ~/ 100;
+  //   final int yearOfCentury = y % 100;
+  //
+  //   // Zeller's formula
+  //   final int zellerH = (day +
+  //           (13 * (m + 1) ~/ 5) +
+  //           yearOfCentury +
+  //           (yearOfCentury ~/ 4) +
+  //           (century ~/ 4) +
+  //           (5 * century)) %
+  //       7;
+  //
+  //   // Zeller's h: 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri
+  //   // Dart weekday: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
+  //   // Mapping: (h + 5) % 7 + 1
+  //   //   h=0 (Sat) → 5+1=6 ✓
+  //   //   h=1 (Sun) → 6+1=7 ✓
+  //   //   h=2 (Mon) → 0+1=1 ✓
+  //   return ((zellerH + 5) % 7) + 1;
+  // }
 
   /// Computes transition DateTime (as UTC instant) for year and rule, using
   /// the pre-transition local offset.
