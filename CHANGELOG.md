@@ -1,4 +1,35 @@
 # Changelog
+## 0.2.1: Comprehensive Time Component Testing & Fixes
+- ### Comprehensive Unit Testing
+  - **`Time` & `Timezone` Tests:** Added `time_test.dart` and `timezone_test.dart` to verify mockable providers and extensive DST calculations across various rules and hemispheres.
+  - **`Timestamp` Formatter Tests:** Added `timestamp_test.dart` to validate formatters, literal parsing, edge cases, and timezone handling.
+- ### Bug Fixes & Refinements
+  - **Timestamp Formatting:** Corrected `iso8601` and `rfc2822` formatters by removing extra single quotes to fix timezone literal rendering. The formatter token parser was also updated to correctly handle tokens containing underscores and digits.
+  - **DST Rules:** Updated internal DST transition rules for several European timezones (`Europe/Paris`, `Europe/London`, `Europe/Berlin`) to use the correct local transition times.
+  - **Time Class:** Renamed `Time.resetTimeProvide()` to `Time.resetTimeProvider()` for consistency.
+  - **Code Simplification:** Replaced a manual Zeller’s congruence implementation for calculating the day of the week with a simpler call to `DateTime.utc().weekday`.
+
+## 0.2.0: Time Engine Overhaul & Mockable Time Provider
+- ### Timestamp & Timezone Overhaul (Performance, DST, API)
+  - **Performance:** Implemented a cached token system, eliminating the need to re-parse redundant formatters on every call.
+  - **Mockable Time Provider:** Introduced a mockable time provider (`Time.timeProvider`) for robust testing of time-sensitive logic. The `Time` class is now encapsulated with controlled access via `setTimeProvider()` and `resetTimeProvider()`.
+  - **DST Support:** Added full support for Daylight Saving Time (DST). The local timezone will resolve to a DST-aware timezone if available on the platform.
+  - **`timezone` Renaming (Backward Incompatible):** The `timeZone` parameter was renamed to `timezone` for consistency. The `TimeZone` class was also renamed to `Timezone`.
+  - **DST Calculation Fix:** Improved the DST offset calculation logic to better handle transitions.
+  - **Platform Support:** Enhanced platform-aware timezone detection, now including web support.
+- ### Advanced `Timestamp` Formatter
+  - **Literal Support**: The formatter now supports single-quoted literals (e.g., `'on'`, `'at'`) to include static text in the output.
+  - **New Format Tokens**:
+    - `'F...'`: For microseconds (for high-accuracy benchmarking).
+    - `'E...'`: For weekdays (e.g., 'Monday').
+    - `'a'`: For lowercase "am/pm".
+    - `'z'`: For a standard-compliant timezone offset string (e.g., `Z` or `+0330`).
+  - **Token Changes:** Removed the 'SSSS' token as it was redundant.
+  - **Factory Constructors**: Introduced common factory constructors like `Timestamp.iso8601()`, `rfc3339()`, `rfc2822()`, and `millisecondsSinceEpoch()`.
+- ### Other Changes & Refinements
+  - **API Clarity:** Renamed `LogBuffer.sync()` to `LogBuffer.sink()`.
+  - **Improved Error Handling:** `LogBuffer` and `FileSink` now use the logger instance for error reporting instead of `print()`.
+  - **Code Refinements:** Internal function and variable names related to timezones have been unified for better readability.
 
 ## 0.1.5: Async Logging / File Rotation
 - ### Asynchronous Logging Pipeline

@@ -4,10 +4,15 @@ import 'dart:io';
 import 'package:logd/logd.dart';
 
 void main() {
-  // Welcome message for the demo.
-  print('Welcome to the logd package demo!');
   print(
-    'This example showcases key features: configuration, hierarchical logging, custom timestamps, stack traces, buffers, handlers, and freezing inheritance.',
+    'This example showcases key features:'
+    ' configuration,'
+    ' hierarchical logging,'
+    ' custom timestamps,'
+    ' stack traces,'
+    ' buffers,'
+    ' handlers,'
+    ' and freezing inheritance.',
   );
   print(
     'Logs will appear in the console, and some will be written to files (app.log, app_multi.log).',
@@ -60,9 +65,8 @@ void _runDemo() {
       LogLevel.warning: 3, // 3 frames for warnings
       LogLevel.error: 5, // 5 frames for errors
     },
-    timestamp: Timestamp(
-      formatter: 'yyyy-MM-dd HH:mm:ss Z', // Custom format with offset
-      timeZone: TimeZone.utc(), // Use UTC
+    timestamp: Timestamp.millisecondsSinceEpoch(
+      timezone: Timezone.utc(), // Use UTC
     ),
     stackTraceParser: const StackTraceParser(
       ignorePackages: ['logd', 'dart:async'], // Ignore internal packages
@@ -89,9 +93,8 @@ void _runDemo() {
   Logger.configure(
     'app',
     logLevel: LogLevel.warning, // Stricter than global
-    timestamp: Timestamp(
-      formatter: 'MMM dd h:mm a ZZZ', // Custom for 'app' tree
-      timeZone: TimeZone.local(), // System local timezone
+    timestamp: Timestamp.iso8601(
+      timezone: Timezone.local(), // System local timezone
     ),
   );
 
@@ -126,13 +129,13 @@ void _runDemo() {
   infoBuffer?.writeln('- Part 1: Data loaded');
   infoBuffer?.writeln('- Part 2: Processing started');
   infoBuffer?.writeln('- Part 3: Complete');
-  infoBuffer?.sync(); // Logs all at once or does nothing if null
+  infoBuffer?.sink(); // Logs all at once or does nothing if null
 
   final errorBuffer = apiLogger.errorBuffer;
   errorBuffer?.writeln('Multi-line error details:');
   errorBuffer?.writeln('- Error code: 500');
   errorBuffer?.writeln('- Reason: Server timeout');
-  errorBuffer?.sync();
+  errorBuffer?.sink();
 
   // 7. Custom Handlers: Formatters, Sinks, Filters.
   print('\n--- Custom Handlers ---');
@@ -182,6 +185,7 @@ void _runDemo() {
   throw Exception('Simulated uncaught error (caught by attachment)');
 
   // Demo complete (won't reach if uncaught).
+  // ignore: dead_code
   print('\nDemo complete. Check app.log and app_multi.log for file outputs.');
 }
 

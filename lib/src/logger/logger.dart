@@ -15,9 +15,10 @@ const _defaultStackMethodCount = {
   LogLevel.error: 8,
 };
 final _defaultTimestamp = Timestamp(
-  formatter: 'yyyy.MMM.dd\nZZ HH:mm:ss.SSSS',
-  timeZone: TimeZone('NY', '-05:00'),
+  formatter: 'yyyy.MMM.dd\nZZ HH:mm:ss.SSS',
+  timezone: Timezone.local(),
 );
+
 const _defaultStackTraceParser = StackTraceParser(
   ignorePackages: ['logd', 'flutter'],
 );
@@ -415,8 +416,10 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.trace, message, error, stackTrace)
-        ..catchError((final e) => print('Logging error: $e'));
+      _log(LogLevel.trace, message, error, stackTrace).catchError((final e) {
+        // ignore: avoid_print
+        print('Logging error: $e');
+      });
 
   /// Logs a debug-level message.
   ///
@@ -430,8 +433,10 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.debug, message, error, stackTrace)
-        ..catchError((final e) => print('Logging error: $e'));
+      _log(LogLevel.debug, message, error, stackTrace).catchError((final e) {
+        // ignore: avoid_print
+        print('Logging error: $e');
+      });
 
   /// Logs an info-level message.
   ///
@@ -445,8 +450,10 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.info, message, error, stackTrace)
-        ..catchError((final e) => print('Logging error: $e'));
+      _log(LogLevel.info, message, error, stackTrace).catchError((final e) {
+        // ignore: avoid_print
+        print('Logging error: $e');
+      });
 
   /// Logs a warning-level message.
   ///
@@ -460,8 +467,10 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.warning, message, error, stackTrace)
-        ..catchError((final e) => print('Logging error: $e'));
+      _log(LogLevel.warning, message, error, stackTrace).catchError((final e) {
+        // ignore: avoid_print
+        print('Logging error: $e');
+      });
 
   /// Logs an error-level message.
   ///
@@ -475,8 +484,10 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.error, message, error, stackTrace)
-        ..catchError((final e) => print('Logging error: $e'));
+      _log(LogLevel.error, message, error, stackTrace).catchError((final e) {
+        // ignore: avoid_print
+        print('Logging error: $e');
+      });
 
   /// Internal: Processes a log event, creating and dispatching a LogEntry.
   ///

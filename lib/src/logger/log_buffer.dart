@@ -17,12 +17,16 @@ class LogBuffer extends StringBuffer {
     }
   }
 
-  /// Sends the buffer to all printers and clears it.
-  void sync() {
+  /// Sinks the buffer and clears it.
+  void sink() {
     if (isNotEmpty) {
-      _logger
-          ._log(logLevel, toString(), null, StackTrace.current)
-          .catchError((final e) => print('Logging error: $e'));
+      _logger._log(logLevel, toString(), null, StackTrace.current).catchError(
+            (final e) => _logger.error(
+              'Error while logging.',
+              error: e,
+              stackTrace: StackTrace.current,
+            ),
+          );
       clear();
     }
   }
