@@ -1,4 +1,14 @@
 # Changelog
+## 0.2.1: Comprehensive Time Component Testing & Fixes
+- ### Comprehensive Unit Testing
+  - **`Time` & `Timezone` Tests:** Added `time_test.dart` and `timezone_test.dart` to verify mockable providers and extensive DST calculations across various rules and hemispheres.
+  - **`Timestamp` Formatter Tests:** Added `timestamp_test.dart` to validate formatters, literal parsing, edge cases, and timezone handling.
+- ### Bug Fixes & Refinements
+  - **Timestamp Formatting:** Corrected `iso8601` and `rfc2822` formatters by removing extra single quotes to fix timezone literal rendering. The formatter token parser was also updated to correctly handle tokens containing underscores and digits.
+  - **DST Rules:** Updated internal DST transition rules for several European timezones (`Europe/Paris`, `Europe/London`, `Europe/Berlin`) to use the correct local transition times.
+  - **Time Class:** Renamed `Time.resetTimeProvide()` to `Time.resetTimeProvider()` for consistency.
+  - **Code Simplification:** Replaced a manual Zeller’s congruence implementation for calculating the day of the week with a simpler call to `DateTime.utc().weekday`.
+
 ## 0.2.0: Time Engine Overhaul & Mockable Time Provider
 - ### Timestamp & Timezone Overhaul (Performance, DST, API)
   - **Performance:** Implemented a cached token system, eliminating the need to re-parse redundant formatters on every call.
