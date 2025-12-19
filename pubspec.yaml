@@ -5,10 +5,10 @@ repository: https://github.com/pooriaaskarim/logd
 homepage: https://pub.dev/packages/logd
 topics:
   - logger
-  - modular-logging
-  - flutter-logger
-  - hierarchical-logging
-  - debug-tools
+  - logging
+  - log
+  - modular
+  - debugging
 license: BSD-3-Clause
 environment:
   sdk: '>=3.0.0 <4.0.0'
