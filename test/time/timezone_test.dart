@@ -90,7 +90,8 @@ void main() {
 
     test('offset and now handle northern hemisphere DST', () {
       final tz = Timezone.named('America/New_York'); // -05:00 std, +1 DST
-      // Before DST start (March 10 is after 2nd Sun in Mar? Adjust date for test)
+      // Before DST start
+      // (March 10 is after 2nd Sun in Mar? Adjust date for test)
       Time.setTimeProvider(
         () => DateTime.utc(2025, 3, 9, 6, 59),
       ); // Before transition
@@ -165,7 +166,8 @@ void main() {
       ); // MM >59
     });
 
-    // Indirect coverage for privates: _daysInMonth, _getWeekday, _computeTransition
+    // Indirect coverage for privates:
+    // _daysInMonth, _getWeekday, _computeTransition
     test('internal date calculations via DST transitions', () {
       final tz = Timezone.named('Europe/Paris'); // Last Sun Mar/Oct, 1:00 UTC
       // March has 31 days, last Sun in Mar 2025 is 30th

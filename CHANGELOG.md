@@ -1,4 +1,16 @@
 # Changelog
+## 0.2.2: Enhanced FileSink Rotation & Custom Formatters
+- ### Custom Filename Formatters for Rotated Logs
+  - `SizeRotation` and `TimeRotation` now accept an optional `filenameFormatter` function.
+  - This allows developers to define custom naming schemes for rotated log files, providing more control over backup organization.
+- ### Robust File Rotation & Cleanup Logic
+  - The backup cleanup logic has been refactored to be more reliable. It now sorts backup files by their last modified timestamp to determine which to delete, instead of parsing potentially fragile filenames.
+  - `SizeRotation` now correctly renames the current log file to the first backup (e.g., `.1`) before compression.
+- ### Improved Argument Validation & Reliability
+  - `FileSink` now validates the `basePath` to ensure it is not empty or a directory.
+  - `FileRotation` and `TimeRotation` constructors now throw an `ArgumentError` for invalid arguments (e.g., negative `backupCount`), replacing previous `assert` checks.
+  - `FileSink.write()` now writes to the file with `flush: true` to ensure data is immediately persisted.
+
 ## 0.2.1: Comprehensive Time Component Testing & Fixes
 - ### Comprehensive Unit Testing
   - **`Time` & `Timezone` Tests:** Added `time_test.dart` and `timezone_test.dart` to verify mockable providers and extensive DST calculations across various rules and hemispheres.
