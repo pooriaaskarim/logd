@@ -23,7 +23,7 @@ abstract class FileRotation {
   final int backupCount;
 
   /// Check if rotation is needed before appending new data.
-  Future<bool> needsRotation(final io.File currentFile, final String newData);
+  Future<bool> needsRotation(final File currentFile, final String newData);
 
   /// Perform the rotation: rename/compress current file, cleanup excess backups.
   Future<void> rotate(final String basePath);
@@ -99,7 +99,7 @@ class SizeRotation extends FileRotation {
 
   @override
   Future<bool> needsRotation(
-    final io.File currentFile,
+    final File currentFile,
     final String newData,
   ) async {
     final currentLength =
@@ -110,7 +110,7 @@ class SizeRotation extends FileRotation {
 
   @override
   Future<void> rotate(final String basePath) async {
-    final file = io.File(basePath);
+    final file = Context.fileSystem.file(basePath);
     if (!await file.exists()) {
       return;
     }
@@ -138,7 +138,7 @@ class SizeRotation extends FileRotation {
       for (int i = backupCount - 1; i >= 1; i--) {
         final oldPath = formatter(baseWithoutExt, ext, i) + extension;
         final newPath = formatter(baseWithoutExt, ext, i + 1) + extension;
-        final oldFile = io.File(oldPath);
+        final oldFile = Context.fileSystem.file(oldPath);
         if (await oldFile.exists()) {
           await oldFile.rename(newPath);
         }
@@ -147,17 +147,17 @@ class SizeRotation extends FileRotation {
       final backupPath = formatter(baseWithoutExt, ext, 1);
       await file.rename(backupPath);
       if (compress) {
-        final bytes = await io.File(backupPath).readAsBytes();
+        final bytes = await Context.fileSystem.file(backupPath).readAsBytes();
         final gzBytes = io.GZipCodec().encode(bytes);
-        await io.File('$backupPath.gz').writeAsBytes(gzBytes);
-        await io.File(backupPath).delete();
+        await Context.fileSystem.file('$backupPath.gz').writeAsBytes(gzBytes);
+        await Context.fileSystem.file(backupPath).delete();
       }
       // Cleanup excess
-      final backupFiles = <io.File>[];
+      final backupFiles = <File>[];
       final dir = file.parent;
       final entities = await dir.list().toList();
       for (final e in entities) {
-        if (e is io.File && e.path.endsWith(extension)) {
+        if (e is File && e.path.endsWith(extension)) {
           backupFiles.add(e);
         }
       }
@@ -245,17 +245,17 @@ class TimeRotation extends FileRotation {
 
   @override
   Future<bool> needsRotation(
-    final io.File currentFile,
+    final File currentFile,
     final String newData,
   ) async {
     await initLastRotation(currentFile);
-    final now = Time.timeProvider();
+    final now = Context.clock.now;
     return now.difference(lastRotation!) >= interval;
   }
 
   @override
   Future<void> rotate(final String basePath) async {
-    final file = io.File(basePath);
+    final file = Context.fileSystem.file(basePath);
     if (!await file.exists()) {
       return;
     }
@@ -280,12 +280,12 @@ class TimeRotation extends FileRotation {
     final rotatedPath = formatter(baseWithoutExt, ext, rotationTime);
     await file.rename(rotatedPath);
     if (compress) {
-      final bytes = await io.File(rotatedPath).readAsBytes();
+      final bytes = await Context.fileSystem.file(rotatedPath).readAsBytes();
       final gzBytes = io.GZipCodec().encode(bytes);
-      await io.File('$rotatedPath.gz').writeAsBytes(gzBytes);
-      await io.File(rotatedPath).delete();
+      await Context.fileSystem.file('$rotatedPath.gz').writeAsBytes(gzBytes);
+      await Context.fileSystem.file(rotatedPath).delete();
     }
-    lastRotation = Time.timeProvider();
+    lastRotation = Context.clock.now;
     if (backupCount > 0) {
       // Cleanup: Find rotated files, sort by mod time, delete oldest
       final dir = file.parent;
@@ -294,11 +294,11 @@ class TimeRotation extends FileRotation {
       final logFiles = entities
           .where(
             (final e) =>
-                e is io.File &&
+                e is File &&
                 e.path.startsWith('$baseWithoutExt-') &&
                 e.path.endsWith(extension),
           )
-          .cast<io.File>()
+          .cast<File>()
           .toList()
         ..sort(
           (final a, final b) =>
@@ -310,14 +310,14 @@ class TimeRotation extends FileRotation {
     }
   }
 
-  Future<void> initLastRotation(final io.File currentFile) async {
+  Future<void> initLastRotation(final File currentFile) async {
     if (lastRotation != null) {
       return;
     }
     if (await currentFile.exists()) {
       lastRotation = await currentFile.lastModified();
     } else {
-      lastRotation = Time.timeProvider();
+      lastRotation = Context.clock.now;
     }
   }
 }
@@ -343,7 +343,7 @@ class FileSink implements LogSink {
   /// Path to the current log file (e.g., 'logs/app.log').
   ///
   /// Rotated files will be named based on [FileRotation].
-  /// (e.g., app-2025-11-11.`log or app.1.log).
+  /// (e.g., app-2025-11-11.log or app.1.log).
   ///
   /// [basePath] should contain a valid filename. Paths not containing a valid
   /// filename ( e.g. 'path/to/some/dir/' ) will throw [ArgumentError].
@@ -378,7 +378,7 @@ class FileSink implements LogSink {
     if (lines.isEmpty) {
       return;
     }
-    final file = io.File(basePath);
+    final file = Context.fileSystem.file(basePath);
     try {
       final parentDir = file.parent;
       if (!await parentDir.exists()) {

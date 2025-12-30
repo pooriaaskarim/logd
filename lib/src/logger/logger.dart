@@ -1,6 +1,7 @@
 import '../handler/handler.dart';
 import '../stack_trace/stack_trace.dart';
-import '../time/time.dart';
+import '../time/timestamp.dart';
+import '../time/timezone.dart';
 import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
     as flutter_stubs;
 part 'log_buffer.dart';

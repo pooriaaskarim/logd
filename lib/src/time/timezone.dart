@@ -1,4 +1,4 @@
-part of 'time.dart';
+import '../core/context.dart';
 
 /// Local wall time for transitions (hour:minute).
 class LocalTime {
@@ -121,7 +121,7 @@ final Map<String, String> commonTimezones = {
 /// libraries, in favor of performance and maintainability.
 /// [Timezone.custom()] is introduced for edge case scenarios if a
 /// undefined Timezone is needed.
-final Map<String, DSTZoneRule> commonDSTRules = {
+final Map<String, DSTZoneRule> _commonDSTRules = {
   // No DST (fixed).
   'UTC':
       DSTZoneRule(standardOffset: TimezoneOffset.fromLiteral('00:00').offset),
@@ -359,11 +359,11 @@ class Timezone {
           '${minutes.toString().padLeft(2, '0')}';
     }
 
-    final systemTime = Time.timeProvider();
+    final systemTime = Context.clock.now;
     final systemTimezoneName =
-        Time.timezoneNameFetcher() ?? systemTime.timeZoneName;
+        Context.clock.timezoneName ?? systemTime.timeZoneName;
 
-    if (commonDSTRules.containsKey(systemTimezoneName)) {
+    if (_commonDSTRules.containsKey(systemTimezoneName)) {
       return Timezone.named(systemTimezoneName);
     }
 
@@ -479,8 +479,8 @@ class Timezone {
   ///   + 'Pacific/Midway'       - -11:00
   ///   + 'Etc/GMT+12'           - -12:00
   factory Timezone.named(final String name) {
-    if (commonDSTRules.containsKey(name)) {
-      final rule = commonDSTRules[name] ??
+    if (_commonDSTRules.containsKey(name)) {
+      final rule = _commonDSTRules[name] ??
           DSTZoneRule(
             standardOffset:
                 TimezoneOffset.fromLiteral(commonTimezones[name] ?? '00:00')
@@ -492,7 +492,7 @@ class Timezone {
       name,
       'name',
       'Unknown timezone name. Supported timezones include: '
-          '${commonDSTRules.keys.take(5).join(", ")}, ... '
+          '${_commonDSTRules.keys.take(5).join(", ")}, ... '
           'See commonDSTRules and commonTimezones for full list.',
     );
   }
@@ -507,7 +507,7 @@ class Timezone {
 
   /// Returns the current time in this timezone.
   DateTime get now {
-    final utcNow = Time.timeProvider().toUtc();
+    final utcNow = Context.clock.now.toUtc();
     final currentOffset = _computeOffset(utcNow);
 
     final localInstant = utcNow.add(currentOffset);
@@ -516,7 +516,7 @@ class Timezone {
   }
 
   /// Timezone offset.
-  Duration get offset => _computeOffset(Time.timeProvider().toUtc());
+  Duration get offset => _computeOffset(Context.clock.now.toUtc());
 
   int _daysInMonth(final int year, final int month) {
     final nextMonth = DateTime.utc(year, month + 1, 0);

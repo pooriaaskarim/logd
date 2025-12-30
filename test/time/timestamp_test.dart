@@ -1,5 +1,19 @@
-import 'package:logd/src/time/time.dart';
+import 'package:logd/logd.dart';
+import 'package:logd/src/core/clock/clock.dart';
+import 'package:logd/src/core/context.dart';
 import 'package:test/test.dart';
+
+class MockClock implements Clock {
+  const MockClock(this._now, [this._timezoneName]);
+  final DateTime _now;
+  final String? _timezoneName;
+
+  @override
+  DateTime get now => _now;
+
+  @override
+  String? get timezoneName => _timezoneName;
+}
 
 void main() {
   group('Timestamp', () {
@@ -9,14 +23,14 @@ void main() {
     setUp(() {
       // Fixed time: Dec 18, 2025, 12:34:56.789123 (UTC)
       fixedTime = DateTime.utc(2025, 12, 18, 12, 34, 56, 789, 123);
-      Time.setTimeProvider(() => fixedTime);
+      Context.setClock(MockClock(fixedTime));
 
       // Fixed timezone: Asia/Tehran (+03:30, no DST in test rules)
       fixedTimezone = Timezone.named('Asia/Tehran');
     });
 
     tearDown(() {
-      Time.resetTimeProvider();
+      Context.reset();
     });
 
     test('getTimestamp returns null for empty formatter', () {
@@ -93,8 +107,6 @@ void main() {
           startsWith('2025'),
         ); // Triggers parsing and caching
       }
-      // No direct access to cache, but ensure it runs without issues
-      // (indirect coverage)
     });
 
     test('uses local timezone if not provided', () {
