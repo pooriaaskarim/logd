@@ -1,5 +1,19 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:logd/src/time/time.dart';
+import 'package:logd/src/core/clock/clock.dart';
+import 'package:logd/src/core/context.dart';
+import 'package:logd/src/time/timezone.dart';
+import 'package:test/test.dart';
+
+class MockClock implements Clock {
+  const MockClock(this._now, [this._timezoneName]);
+  final DateTime _now;
+  final String? _timezoneName;
+
+  @override
+  DateTime get now => _now;
+
+  @override
+  String? get timezoneName => _timezoneName;
+}
 
 void main() {
   group('Timezone', () {
@@ -8,11 +22,11 @@ void main() {
     setUp(() {
       // Fixed UTC time for deterministic tests
       fixedUtcTime = DateTime.utc(2025, 3, 10, 12, 0);
-      Time.setTimeProvider(() => fixedUtcTime);
+      Context.setClock(MockClock(fixedUtcTime));
     });
 
     tearDown(() {
-      Time.resetTimeProvider();
+      Context.reset();
     });
 
     test('utc() returns UTC with zero offset', () {
@@ -70,19 +84,19 @@ void main() {
           offset: '00:00',
           dstOffsetDelta: '+01:00',
         ),
-        throwsAssertionError,
+        throwsA(isA<AssertionError>()),
       );
     });
 
     test('local() resolves to known DST if available, else fixed with warning',
         () {
       // Mock known name
-      Time.setTimezoneNameFetcher(() => 'America/New_York');
+      Context.setClock(MockClock(fixedUtcTime, 'America/New_York'));
       final tzKnown = Timezone.local();
       expect(tzKnown.name, equals('America/New_York'));
 
       // Mock unknown (triggers print warning, uses fixed)
-      Time.setTimezoneNameFetcher(() => 'Unknown');
+      Context.setClock(MockClock(fixedUtcTime, 'Unknown'));
       final tzFallback = Timezone.local();
       expect(tzFallback.name, equals('Unknown'));
       expect(tzFallback.offset, isNotNull); // System offset
@@ -92,17 +106,17 @@ void main() {
       final tz = Timezone.named('America/New_York'); // -05:00 std, +1 DST
       // Before DST start
       // (March 10 is after 2nd Sun in Mar? Adjust date for test)
-      Time.setTimeProvider(
-        () => DateTime.utc(2025, 3, 9, 6, 59),
+      Context.setClock(
+        MockClock(DateTime.utc(2025, 3, 9, 6, 59)),
       ); // Before transition
       expect(tz.offset.inHours, equals(-5));
 
       // During DST
-      Time.setTimeProvider(() => DateTime.utc(2025, 6, 1));
+      Context.setClock(MockClock(DateTime.utc(2025, 6, 1)));
       expect(tz.offset.inHours, equals(-4)); // -05:00 +1
 
       // After DST end
-      Time.setTimeProvider(() => DateTime.utc(2025, 11, 2, 6, 0)); // After end
+      Context.setClock(MockClock(DateTime.utc(2025, 11, 2, 6, 0))); // After end
       expect(tz.offset.inHours, equals(-5));
     });
 
@@ -110,11 +124,11 @@ void main() {
       final tz =
           Timezone.named('Australia/Sydney'); // +10:00 std, +1 DST (Oct-Apr)
       // During DST (Jan)
-      Time.setTimeProvider(() => DateTime.utc(2025, 1, 1));
+      Context.setClock(MockClock(DateTime.utc(2025, 1, 1)));
       expect(tz.offset.inHours, equals(11));
 
       // Before DST start (Sep, non-DST)
-      Time.setTimeProvider(() => DateTime.utc(2025, 9, 1));
+      Context.setClock(MockClock(DateTime.utc(2025, 9, 1)));
       expect(tz.offset.inHours, equals(10));
     });
 
@@ -123,12 +137,12 @@ void main() {
       // Exact start transition (2nd Sun Mar, 2:00 local -> 3:00)
       final startUtc =
           DateTime.utc(2025, 3, 9, 7, 0); // 2:00 EST -> 3:00 EDT (UTC 7:00)
-      Time.setTimeProvider(() => startUtc);
+      Context.setClock(MockClock(startUtc));
       expect(tz.offset.inHours, equals(-4)); // Inclusive start: DST
 
       // Exact end transition (1st Sun Nov, 2:00 local back to 1:00)
       final endUtc = DateTime.utc(2025, 11, 3, 6, 0); // Adjust for exact
-      Time.setTimeProvider(() => endUtc);
+      Context.setClock(MockClock(endUtc));
       expect(tz.offset.inHours, equals(-5)); // Exclusive end: standard
     });
 
@@ -158,11 +172,11 @@ void main() {
     test('TimezoneOffset.fromLiteral asserts on invalid', () {
       expect(
         () => TimezoneOffset.fromLiteral('+15:00'),
-        throwsAssertionError,
+        throwsA(isA<AssertionError>()),
       ); // HH >14
       expect(
         () => TimezoneOffset.fromLiteral('+03:61'),
-        throwsAssertionError,
+        throwsA(isA<AssertionError>()),
       ); // MM >59
     });
 
@@ -171,13 +185,21 @@ void main() {
     test('internal date calculations via DST transitions', () {
       final tz = Timezone.named('Europe/Paris'); // Last Sun Mar/Oct, 1:00 UTC
       // March has 31 days, last Sun in Mar 2025 is 30th
-      Time.setTimeProvider(
-        () => DateTime.utc(2025, 3, 30, 0, 59),
+      Context.setClock(
+        MockClock(DateTime.utc(2025, 3, 30, 0, 59)),
       ); // Before start
       expect(tz.offset.inHours, equals(1));
 
-      Time.setTimeProvider(
-        () => DateTime.utc(2025, 3, 30, 1, 0),
+      Context.setClock(
+        MockClock(
+          DateTime.utc(
+            2025,
+            3,
+            30,
+            1,
+            0,
+          ),
+        ),
       ); // At start (UTC 1:00 -> 3:00 local)
       expect(tz.offset.inHours, equals(2));
     });
@@ -188,10 +210,10 @@ void main() {
       final tz = Timezone.named('Europe/Paris');
       // Last Sun Mar 2025: 30th
       // Transition at UTC 01:00 (local 02:00 CET to 03:00 CEST)
-      Time.setTimeProvider(() => DateTime.utc(2025, 3, 30, 0, 59)); // Before
+      Context.setClock(MockClock(DateTime.utc(2025, 3, 30, 0, 59))); // Before
       expect(tz.offset.inHours, equals(1)); // Standard CET +01:00
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 3, 30, 1, 0)); // At start
+      Context.setClock(MockClock(DateTime.utc(2025, 3, 30, 1, 0))); // At start
       expect(tz.offset.inHours, equals(2)); // DST CEST +02:00
     });
 
@@ -199,43 +221,45 @@ void main() {
       final tz = Timezone.named('Europe/Paris');
       // Last Sun Oct 2025: 26th
       // Transition at UTC 01:00 (local 03:00 CEST back to 02:00 CET)
-      Time.setTimeProvider(
-        () => DateTime.utc(2025, 10, 26, 0, 59),
+      Context.setClock(
+        MockClock(
+          DateTime.utc(2025, 10, 26, 0, 59),
+        ),
       ); // Before end (during DST)
       expect(tz.offset.inHours, equals(2));
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 10, 26, 1, 0)); // At end
+      Context.setClock(MockClock(DateTime.utc(2025, 10, 26, 1, 0))); // At end
       expect(tz.offset.inHours, equals(1)); // Back to standard
     });
 
     test('Europe/London northern hemisphere - before/after start', () {
       final tz = Timezone.named('Europe/London');
       // Transition at UTC 01:00 (local 01:00 GMT to 02:00 BST)
-      Time.setTimeProvider(() => DateTime.utc(2025, 3, 30, 0, 59));
+      Context.setClock(MockClock(DateTime.utc(2025, 3, 30, 0, 59)));
       expect(tz.offset.inHours, equals(0)); // Standard GMT +00:00
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 3, 30, 1, 0));
+      Context.setClock(MockClock(DateTime.utc(2025, 3, 30, 1, 0)));
       expect(tz.offset.inHours, equals(1)); // DST BST +01:00
     });
 
     test('Europe/London - before/after end', () {
       final tz = Timezone.named('Europe/London');
       // Transition at UTC 01:00 (local 02:00 BST back to 01:00 GMT)
-      Time.setTimeProvider(() => DateTime.utc(2025, 10, 26, 0, 59));
+      Context.setClock(MockClock(DateTime.utc(2025, 10, 26, 0, 59)));
       expect(tz.offset.inHours, equals(1));
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 10, 26, 1, 0));
+      Context.setClock(MockClock(DateTime.utc(2025, 10, 26, 1, 0)));
       expect(tz.offset.inHours, equals(0));
     });
 
     test('Australia/Sydney southern hemisphere - during/non-DST periods', () {
       final tz = Timezone.named('Australia/Sydney');
       // Jan 1 2025: During DST (Oct 2024 - Apr 2025), +11:00
-      Time.setTimeProvider(() => DateTime.utc(2025, 1, 1));
+      Context.setClock(MockClock(DateTime.utc(2025, 1, 1)));
       expect(tz.offset.inHours, equals(11));
 
       // Jun 1 2025: Non-DST (after Apr end, before Oct start), +10:00
-      Time.setTimeProvider(() => DateTime.utc(2025, 6, 1));
+      Context.setClock(MockClock(DateTime.utc(2025, 6, 1)));
       expect(tz.offset.inHours, equals(10));
     });
 
@@ -244,10 +268,10 @@ void main() {
       // First Sun Oct 2025: 5th
       // Transition at local 02:00 AEST (+10:00)
       // to 03:00 AEDT (+11:00) = UTC 2025-10-04 16:00
-      Time.setTimeProvider(() => DateTime.utc(2025, 10, 4, 15, 59));
+      Context.setClock(MockClock(DateTime.utc(2025, 10, 4, 15, 59)));
       expect(tz.offset.inHours, equals(10));
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 10, 4, 16, 0));
+      Context.setClock(MockClock(DateTime.utc(2025, 10, 4, 16, 0)));
       expect(tz.offset.inHours, equals(11));
     });
 
@@ -256,10 +280,10 @@ void main() {
       // First Sun Apr 2025: 6th
       // Transition at local 03:00 AEDT (+11:00) back
       // to 02:00 AEST (+10:00) = UTC 2025-04-05 16:00
-      Time.setTimeProvider(() => DateTime.utc(2025, 4, 5, 15, 59));
+      Context.setClock(MockClock(DateTime.utc(2025, 4, 5, 15, 59)));
       expect(tz.offset.inHours, equals(11));
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 4, 5, 16, 0));
+      Context.setClock(MockClock(DateTime.utc(2025, 4, 5, 16, 0)));
       expect(tz.offset.inHours, equals(10));
     });
 
@@ -268,10 +292,10 @@ void main() {
       // Last Fri Mar 2025: 28th
       // Transition at local 02:00 IST (+02:00)
       // to 03:00 IDT (+03:00) = UTC 2025-03-28 00:00
-      Time.setTimeProvider(() => DateTime.utc(2025, 3, 27, 23, 59));
+      Context.setClock(MockClock(DateTime.utc(2025, 3, 27, 23, 59)));
       expect(tz.offset.inHours, equals(2));
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 3, 28, 0, 0));
+      Context.setClock(MockClock(DateTime.utc(2025, 3, 28, 0, 0)));
       expect(tz.offset.inHours, equals(3));
     });
 
@@ -300,10 +324,10 @@ void main() {
 
       // 2024 leap: Feb 29 days, last Sun Feb 25
       // Transition at UTC 02:00 (since +00:00, subtract 0)
-      Time.setTimeProvider(() => DateTime.utc(2024, 2, 25, 1, 59));
+      Context.setClock(MockClock(DateTime.utc(2024, 2, 25, 1, 59)));
       expect(tz.offset.inHours, equals(0));
 
-      Time.setTimeProvider(() => DateTime.utc(2024, 2, 25, 2, 0));
+      Context.setClock(MockClock(DateTime.utc(2024, 2, 25, 2, 0)));
       expect(tz.offset.inHours, equals(1));
     });
 
@@ -331,10 +355,10 @@ void main() {
       );
 
       // 2025 non-leap: Feb 28 days, last Sun Feb 23
-      Time.setTimeProvider(() => DateTime.utc(2025, 2, 23, 1, 59));
+      Context.setClock(MockClock(DateTime.utc(2025, 2, 23, 1, 59)));
       expect(tz.offset.inHours, equals(0));
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 2, 23, 2, 0));
+      Context.setClock(MockClock(DateTime.utc(2025, 2, 23, 2, 0)));
       expect(tz.offset.inHours, equals(1));
     });
 
@@ -357,18 +381,16 @@ void main() {
           at: LocalTime(0, 0),
         ),
       );
-      Time.setTimeProvider(() => DateTime.utc(2025, 1, 1));
+      Context.setClock(MockClock(DateTime.utc(2025, 1, 1)));
       expect(() => tz.offset, throwsArgumentError); // In _computeTransition
     });
 
     test('fixed timezone no DST', () {
       final tz = Timezone.named('Asia/Tehran');
-      Time.setTimeProvider(
-        () => DateTime.utc(2025, 3, 30, 0, 0),
-      ); // Arbitrary
+      Context.setClock(MockClock(DateTime.utc(2025, 3, 30, 0, 0))); // Arbitrary
       expect(tz.offset.inMinutes, equals(210)); // +03:30 fixed
 
-      Time.setTimeProvider(() => DateTime.utc(2025, 10, 26, 0, 0));
+      Context.setClock(MockClock(DateTime.utc(2025, 10, 26, 0, 0)));
       expect(tz.offset.inMinutes, equals(210)); // No change
     });
   });

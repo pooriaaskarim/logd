@@ -1,4 +1,11 @@
 # Changelog
+## 0.2.3: Decoupled System Dependencies for Enhanced Testability
+- ### Internal Service Locator for System Dependencies
+  - Introduced an internal `Context` class to act as a service locator for system-level dependencies like `Clock` and `FileSystem`.
+  - This decouples the library from concrete implementations (e.g., `DateTime.now()`, `dart:io`), making it possible to inject mock implementations during testing.
+  - Added `@visibleForTesting` annotations to allow injecting custom `Clock` and `FileSystem` instances in test environments.
+  - This change significantly improves the testability and reliability of time-sensitive and file-system-dependent components.
+
 ## 0.2.2: Enhanced FileSink Rotation & Custom Formatters
 - ### Custom Filename Formatters for Rotated Logs
   - `SizeRotation` and `TimeRotation` now accept an optional `filenameFormatter` function.

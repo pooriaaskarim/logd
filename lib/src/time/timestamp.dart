@@ -1,6 +1,6 @@
-part of 'time.dart';
+import 'timezone.dart';
 
-const monthNames = [
+const _monthNames = [
   'January',
   'February',
   'March',
@@ -15,7 +15,7 @@ const monthNames = [
   'December',
 ];
 
-const abbreviatedMonthNames = [
+const _abbreviatedMonthNames = [
   'Jan',
   'Feb',
   'Mar',
@@ -30,7 +30,7 @@ const abbreviatedMonthNames = [
   'Dec',
 ];
 
-const abbreviatedWeekdayNames = [
+const _abbreviatedWeekdayNames = [
   'Mon',
   'Tue',
   'Wed',
@@ -40,7 +40,7 @@ const abbreviatedWeekdayNames = [
   'Sun',
 ];
 
-const weekdayNames = [
+const _weekdayNames = [
   'Monday',
   'Tuesday',
   'Wednesday',
@@ -199,14 +199,14 @@ class Timestamp {
       // Date related tokens.
       'yyyy': now.year.toString().padLeft(4, '0'),
       'yy': (now.year % 100).toString().padLeft(2, '0'),
-      'MMMM': monthNames[now.month - 1],
-      'MMM': abbreviatedMonthNames[now.month - 1],
+      'MMMM': _monthNames[now.month - 1],
+      'MMM': _abbreviatedMonthNames[now.month - 1],
       'MM': now.month.toString().padLeft(2, '0'),
       'M': now.month.toString(),
       'dd': now.day.toString().padLeft(2, '0'),
       'd': now.day.toString(),
-      'EEEE': weekdayNames[now.weekday - 1],
-      'EEE': abbreviatedWeekdayNames[now.weekday - 1],
+      'EEEE': _weekdayNames[now.weekday - 1],
+      'EEE': _abbreviatedWeekdayNames[now.weekday - 1],
       'EE': now.weekday.toString().padLeft(2, '0'),
       'E': now.weekday.toString(),
       // Time related tokens.

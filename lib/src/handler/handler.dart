@@ -4,21 +4,23 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' as io;
 
+import '../core/context.dart';
+import '../core/io/file_system.dart';
 import '../logger/logger.dart';
 import '../stack_trace/stack_trace.dart';
-import '../time/time.dart';
+import '../time/timestamp.dart';
 
 part 'filter/filter.dart';
 part 'filter/level_filter.dart';
 part 'filter/regex_filter.dart';
-part 'formatter/formatter.dart';
 part 'formatter/box_formatter.dart';
+part 'formatter/formatter.dart';
 part 'formatter/json_formatter.dart';
-part 'sink/sink.dart';
+part 'sink/console_sink.dart';
+part 'sink/file_sink.dart';
 part 'sink/multi_sink.dart';
 part 'sink/network_sink.dart';
-part 'sink/file_sink.dart';
-part 'sink/console_sink.dart';
+part 'sink/sink.dart';
 
 /// Composes a [LogFormatter] and [LogSink] with optional filters.
 class Handler {
