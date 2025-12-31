@@ -63,7 +63,7 @@ class StackTraceParser {
 
   CallbackInfo? parseFrame(final String frame) {
     // #0 Class.method (package:path/file.dart:25:7)
-    final reg = RegExp(r'#\d+\s+([^\s]+)\s+\((.+):(\d+):\d+\)');
+    final reg = RegExp(r'#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)');
     final match = reg.firstMatch(frame);
     if (match == null) {
       return null;
