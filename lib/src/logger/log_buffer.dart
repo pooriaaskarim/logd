@@ -21,8 +21,9 @@ class LogBuffer extends StringBuffer {
   void sink() {
     if (isNotEmpty) {
       _logger._log(logLevel, toString(), null, StackTrace.current).catchError(
-            (final e) => _logger.error(
-              'Error while logging.',
+            (final e) => InternalLogger.log(
+              LogLevel.error,
+              'Error while logging from buffer.',
               error: e,
               stackTrace: StackTrace.current,
             ),

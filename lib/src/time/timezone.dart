@@ -1,4 +1,5 @@
 import '../core/context.dart';
+import '../logger/logger.dart';
 
 /// Local wall time for transitions (hour:minute).
 class LocalTime {
@@ -369,8 +370,8 @@ class Timezone {
 
     final systemTimezoneOffset = systemTime.timeZoneOffset;
 
-    //ignore: avoid_print
-    print(
+    InternalLogger.log(
+      LogLevel.warning,
       'Timezone "$systemTimezoneName" not found in DST rules. '
       'Using fixed offset ${formatOffset(systemTimezoneOffset)}. '
       'DST transitions will not be handled automatically. '

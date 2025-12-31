@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../handler/handler.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
@@ -7,6 +9,7 @@ import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
 part 'log_buffer.dart';
 part 'log_entry.dart';
 part 'log_level.dart';
+part 'internal_logger.dart';
 
 const _defaultStackMethodCount = {
   LogLevel.trace: 0,
@@ -418,8 +421,7 @@ class Logger {
     final StackTrace? stackTrace,
   }) =>
       _log(LogLevel.trace, message, error, stackTrace).catchError((final e) {
-        // ignore: avoid_print
-        print('Logging error: $e');
+        InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
   /// Logs a debug-level message.
@@ -435,8 +437,7 @@ class Logger {
     final StackTrace? stackTrace,
   }) =>
       _log(LogLevel.debug, message, error, stackTrace).catchError((final e) {
-        // ignore: avoid_print
-        print('Logging error: $e');
+        InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
   /// Logs an info-level message.
@@ -452,8 +453,7 @@ class Logger {
     final StackTrace? stackTrace,
   }) =>
       _log(LogLevel.info, message, error, stackTrace).catchError((final e) {
-        // ignore: avoid_print
-        print('Logging error: $e');
+        InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
   /// Logs a warning-level message.
@@ -469,8 +469,7 @@ class Logger {
     final StackTrace? stackTrace,
   }) =>
       _log(LogLevel.warning, message, error, stackTrace).catchError((final e) {
-        // ignore: avoid_print
-        print('Logging error: $e');
+        InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
   /// Logs an error-level message.
@@ -486,8 +485,7 @@ class Logger {
     final StackTrace? stackTrace,
   }) =>
       _log(LogLevel.error, message, error, stackTrace).catchError((final e) {
-        // ignore: avoid_print
-        print('Logging error: $e');
+        InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
   /// Internal: Processes a log event, creating and dispatching a LogEntry.
@@ -528,7 +526,16 @@ class Logger {
       stackTrace: stackTrace,
     );
     for (final handler in handlers) {
-      await handler.log(entry);
+      try {
+        await handler.log(entry);
+      } catch (e, s) {
+        InternalLogger.log(
+          LogLevel.error,
+          'Handler failure: ${handler.runtimeType}',
+          error: e,
+          stackTrace: s,
+        );
+      }
     }
   }
 

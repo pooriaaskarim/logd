@@ -21,8 +21,20 @@ class MultiSink implements LogSink {
 
   @override
   Future<void> output(final List<String> lines, final LogLevel level) async {
-    if (lines.isNotEmpty) {
-      await Future.wait(sinks.map((final sink) => sink.output(lines, level)));
+    if (lines.isEmpty) {
+      return;
+    }
+    for (final sink in sinks) {
+      try {
+        await sink.output(lines, level);
+      } catch (e, s) {
+        InternalLogger.log(
+          LogLevel.error,
+          'MultiSink child failure: ${sink.runtimeType}',
+          error: e,
+          stackTrace: s,
+        );
+      }
     }
   }
 }

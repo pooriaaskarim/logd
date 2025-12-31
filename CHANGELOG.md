@@ -1,4 +1,18 @@
 # Changelog
+
+## 0.3.0: Robust Fallback Logging & Handler Resilience
+- ### Fallback Logger for Circularity Prevention
+  - Introduced `InternalLogger`, a safe, direct-to-console logging mechanism for library-internal errors.
+  - This prevents circular logging loops where a failure in a sink (like `FileSink`) could trigger another error log, leading to infinite recursion.
+  - Integrated `InternalLogger` into `Logger`, `FileSink`, `MultiSink`, `LogBuffer`, and `Timezone`.
+- ### Improved Handler Resilience
+  - `Logger` now catches errors from individual handlers. If one handler fails, it reports the error via `InternalLogger` and continues to process other handlers.
+  - `MultiSink` now iterates through its sinks and handles individual sink failures independently, ensuring a single failing sink doesn't stop the entire output pipeline.
+- ### Bug Fixes & API Refinements
+  - **StackTraceParser:** Fixed a regex bug that prevented parsing frames with spaces in method names, such as `<anonymous closure>`.
+  - **API Visibility:** Unhidden `LogEntry` in the public API, as it is required for users to implement custom `LogFormatter` instances.
+  - **InternalLogger Visibility:** Marked `InternalLogger` as `@internal` to keep it out of the public surface while still available for internal use.
+
 ## 0.2.3: Decoupled System Dependencies for Enhanced Testability
 - ### Internal Service Locator for System Dependencies
   - Introduced an internal `Context` class to act as a service locator for system-level dependencies like `Clock` and `FileSystem`.
