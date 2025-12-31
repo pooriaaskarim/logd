@@ -1,5 +1,6 @@
 import 'clock_native.dart' if (dart.library.html) 'clock_web.dart'
     as platform_tz;
+import '../../logger/logger.dart';
 
 /// Abstract interface for time-related operations.
 ///
@@ -27,7 +28,13 @@ class SystemClock extends Clock {
   String? get timezoneName {
     try {
       return platform_tz.fetchNativeTimezoneName();
-    } on Exception {
+    } on Exception catch (e, s) {
+      InternalLogger.log(
+        LogLevel.error,
+        'Platform timezone fetch failed',
+        error: e,
+        stackTrace: s,
+      );
       // Return null on failure as per interface contract.
       return null;
     }

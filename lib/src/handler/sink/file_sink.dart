@@ -398,7 +398,8 @@ class FileSink implements LogSink {
       if (!const bool.fromEnvironment('dart.vm.product')) {
         rethrow;
       }
-      Logger.get().error(
+      InternalLogger.log(
+        LogLevel.error,
         'FileSink error (path: $basePath)',
         error: e,
         stackTrace: s,

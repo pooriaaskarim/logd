@@ -14,8 +14,13 @@ part of '../handler.dart';
 //   Future<void> output(final List<String> lines, final LogLevel level) async {
 //     try {
 //       await http.post(Uri.parse(url), body: lines.join('\n'));
-//     } catch (e) {
-//       print('NetworkSink error: $e');
+//     } catch (e, s) {
+//       InternalLogger.log(
+//         LogLevel.error,
+//         'NetworkSink error',
+//         error: e,
+//         stackTrace: s,
+//       );
 //     }
 //   }
 // }
