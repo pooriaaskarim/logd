@@ -5,6 +5,7 @@ This directory contains detailed documentation regarding the design, architectur
 ## Logger Core
 The core module handles logger instantiation, the inheritance hierarchy, and configuration resolution.
 
+- [**Overview**](logger/README.md): Module responsibilities and API overview
 - [**Philosophy**](logger/philosophy.md): Explains the design principles (Inheritance, Sparse Configuration, Lazy Resolution).
 - [**Architecture**](logger/architecture.md): Technical overview of the internal registry, caching mechanisms, and data structures.
 - [**Roadmap**](logger/roadmap.md): Active tracking of features, technical debt, and future plans.
