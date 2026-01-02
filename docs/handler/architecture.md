@@ -97,11 +97,11 @@ classDiagram
     Handler --> LogDecorator
     Handler --> LogSink
     
-    style Handler fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style LogFilter fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    style LogFormatter fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style LogDecorator fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-    style LogSink fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style Handler fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    style LogFilter fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    style LogFormatter fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style LogDecorator fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
+    style LogSink fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000
 ```
 
 ## Standard Implementations
