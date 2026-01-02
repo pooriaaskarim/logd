@@ -69,9 +69,9 @@ classDiagram
     Timezone *-- DSTZoneRule
     DSTZoneRule *-- DSTTransitionRule
     
-    style Timezone fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    style DSTZoneRule fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style DSTTransitionRule fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style Timezone fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    style DSTZoneRule fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style DSTTransitionRule fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
 ```
 
 ### Local Resolution
