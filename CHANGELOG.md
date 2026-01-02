@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.1: Logger Architecture Refactor & Performance Optimization + Critical Bug Fix
+
+- ### Bug Fix: Corrupted Pure Dart support fixed
+  - Version 0.3.0 dropped support for pure dart due to a mis-used library. **Fixed in version 0.3.1**.
+
+- ### Architectural Shift: Separated Configuration from Resolution
+  - **`LoggerConfig` & `LoggerCache`:** Introduced a dual-component architecture for logger configuration. `LoggerConfig` now strictly holds raw, explicitly set configuration values, while the new `LoggerCache` handles the hierarchical resolution (inheritance) and provides a high-performance caching layer.
+  - **Versioned Invalidation:** Implemented a version-based cache invalidation mechanism. `LoggerConfig` tracks changes via a `_version` counter, allowing `LoggerCache` to lazily re-resolve effective settings only when the source configuration or its ancestry changes.
+  - **Thread-Safety & Immutability:** Resolved configuration objects (like `handlers` and `stackMethodCount`) are now returned as **unmodifiable** collections, protecting the internal state from accidental external mutation.
+- ### Performance: Deep Equality Optimization
+  - **Smart Reconfiguration:** `Logger.configure` now performs deep equality checks on collections using internal `listEquals` and `mapEquals` utilities. This prevents redundant cache invalidations and descending tree walks when passing new collection instances that contain identical configurations.
+  - **Comprehensive Equality Support:** Implemented `operator ==` and `hashCode` across the entire configuration surface, including:
+    - **Handlers:** `Handler` now correctly compares its formatter, sink, filters, and decorators.
+    - **Time Engine:** `Timestamp` and `Timezone` (including DST rules and transition logic) now support value-based equality.
+    - **Stack Logic:** `StackTraceParser` and `CallbackInfo` now support deep comparison.
+    - **Filters & Formatters:** `LevelFilter`, `RegexFilter`, `PlainFormatter`, `BoxFormatter`, and `JsonFormatter` are now value-comparable.
+- ### Resilience & Testing
+  - **InternalLogger Resilience:** Added targeted tests to verify that `InternalLogger` remains safe and circular-logging-free even when primary handlers fail, preventing stack overflows during failure recovery.
+  - **Deep Inheritance:** Expanded the test suite to cover complex, multi-level hierarchy inheritance with partial overrides, ensuring configuration correctly "bubbles" through the tree.
+  - **LogBuffer Integration:** Verified the instance-based `LogBuffer` API (`logger.infoBuffer`) and its integration with the logging pipeline.
+- ### API & Maintenance
+  - **Immutability Enforcement:** Applied `@immutable` annotations to all core configuration and handler classes, providing better compile-time safety and alignment with modern Dart best practices.
+  - **Core Utilities:** Centralized collection equality logic into `src/core/utils.dart`.
+
 ## 0.3.0: Robust Fallback Logging & Handler Resilience
 - ### Fallback Logger for Circularity Prevention
   - Introduced `InternalLogger`, a safe, direct-to-console logging mechanism for library-internal errors.
