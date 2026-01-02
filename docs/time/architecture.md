@@ -14,6 +14,16 @@ graph LR
     DateTime[DateTime] --> Engine[Formatter Engine]
     Cache --> Engine
     Engine --> StringOut[Result String]
+    
+    classDef inputStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    classDef cacheStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef processStyle fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+    classDef outputStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
+    
+    class String,DateTime inputStyle
+    class Cache cacheStyle
+    class Parser,Segments,Engine processStyle
+    class StringOut outputStyle
 ```
 
 ### Components
@@ -58,6 +68,10 @@ classDiagram
 
     Timezone *-- DSTZoneRule
     DSTZoneRule *-- DSTTransitionRule
+    
+    style Timezone fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style DSTZoneRule fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style DSTTransitionRule fill:#fff3e0,stroke:#f57c00,stroke-width:2px
 ```
 
 ### Local Resolution

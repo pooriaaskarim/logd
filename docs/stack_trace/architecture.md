@@ -16,6 +16,14 @@ flowchart TD
     Parse --> Match{Matches?}
     Match -- Yes --> Struct[CallbackInfo]
     Match -- No --> Loop
+    
+    classDef inputStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    classDef processStyle fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+    classDef outputStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
+    
+    class Raw inputStyle
+    class Split,Parse processStyle
+    class Struct outputStyle
 ```
 
 ### Components
