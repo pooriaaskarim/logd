@@ -4,132 +4,219 @@
 [![Pub Points](https://img.shields.io/pub/points/logd.svg)](https://pub.dev/packages/logd/score)
 [![License: BSD 3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-A flexible, hierarchical logging library for Dart and Flutter applications. `logd` provides
-customizable logging with support for multiple handlers, formatters, sinks, and filters,
-making it ideal for debugging, monitoring, and production logging in complex projects.
+A hierarchical, high-performance logging library for Dart and Flutter applications.
 
-## Features
+`logd` provides fine-grained control over logging output through a flexible pipeline of handlers, formatters, sinks, and filters. It is designed for complex applications requiring sophisticated logging strategies while maintaining zero-boilerplate simplicity for basic use cases.
 
-- **Hierarchical Logger Tree**: Dot-separated case-insensitive naming for inheritance (e.g., 'app.ui' inherits from 'app').
-- **Pure Dart Support**: Fully compatible with standalone Dart environments.
-- **Dynamic Inheritance with Caching**: Dynamic configurations; configurations dynamically propagate down the hierarchy tree; cached configurations for performance.
-- **Customizable Layouts**: Boxed, JSON, or custom formatters.
-- **Customizable Outputs**: Console, File, and Network Sinks; Size/Time based File Rotation; Level and Regex Filters.
-- **Stack Trace Integration**: Automatic caller extraction, configurable frame counts per level, ignoring packages like 'flutter'.
-- **Timestamp/Timezone Support**: Custom patterns with timezone support (e.g., 'yyyy-MM-dd HH:mm:ss ZZZ').
-- **Multi-line Buffers**: Atomic logging for complex messages.
-- **Flutter Integration**: Attach to FlutterError and uncaught exceptions.
-- **Immutable and Efficient**: Loggers act as lightweight proxies to configurations; lazy inheritance and caching for optimal performance.
+---
 
-## Installation
+## Why logd?
 
-Add `logd` to your `pubspec.yaml`:
+**Hierarchical Configuration**: Organize loggers in a tree structure (`app.network.http`) where children inherit settings from parents. Configure once at the top level, override where needed.
+
+**Performance-Focused**: Lazy resolution and aggressive caching ensure minimal overhead. Disabled loggers cost virtually nothing.
+
+**Production-Ready**: Built-in fail-safe mechanisms prevent logging failures from crashing your application. Suitable for production environments.
+
+**Flexible Output**: Support for multiple output destinations (console, file, network), structured formats (JSON, boxed text), and intelligent filtering.
+
+---
+
+## Quick Start
+
+### Installation
+
+Add `logd` to your `pubspec.yaml`.
 
 ```yaml
 dependencies:
   logd: ^latest_version
 ```
+
 Then run:
 ```bash
-dart pub get
+dart pub get  # or flutter pub get
 ```
-For Flutter:
-```bash
-flutter pub get
-```
-## Usage
-### Basic Logging
-Import and get a logger:
+
+### Basic Usage
+
 ```dart
 import 'package:logd/logd.dart';
 
-final logger = Logger.get('my.app');
-logger.info('Application started');
-```
-### Configuring Loggers
-Set global or specific configs:
-```dart
-Logger.configure('global', logLovel: LogLevel.info);
-Logger.configure('my.app', enabled: true, includeFileLineInHeader: true);
-```
-### Logging with Details
-Include errors and stack traces:
-```dart
-try {
-// Code that may fail
-} catch (e, stack) {
-logger.error('Operation failed', error: e, stackTrace: stack);
+void main() {
+  final logger = Logger.get('app');
+  
+  logger.info('Application started');
+  logger.debug('Debug information');
+  logger.warning('Low disk space');
+  logger.error('Connection failed', error: exception, stackTrace: stack);
 }
 ```
-### Multi-line Buffers
-For atomic multi-line logs:
-```dart
-final buffer = logger.debugBuffer;
-buf?.writeln('Step 1: Initialize');
-buf?.writeln('Step 2: Process data');
-buf?.sync();
-```
-### Hierarchical Inheritance
-Child loggers inherit from parents dynamically:
-```dart
-final parent = Logger.get('app');
-final child = Logger.get('app.ui');
 
+**Output**:
+```
+[app][INFO]
+2025-01-03 00:15:23.456
+--app_main.dart:5
+----|Application started
+```
+
+---
+
+## Core Concepts
+
+### Hierarchical Loggers
+
+Loggers are named using dot-separated paths and inherit configuration from their ancestors:
+
+```dart
+// Configure the entire 'app' subtree
 Logger.configure('app', logLevel: LogLevel.warning);
-// 'app.ui' now uses warning level unless overridden
-```
-## Advanced:
-### Freezing Inheritance
-Snapshot configs down the Logger hierarchy tree to children for isolation or optimization:
-```dart
-parent.freezeInheritance();
-```
-### Attaching to Flutter
-Capture framework errors:
-```dart
-Logger.attachToFlutterErrors();
+
+// Override for specific subsystem
+Logger.configure('app.network', logLevel: LogLevel.debug);
+
+// Create loggers anywhere
+final uiLogger = Logger.get('app.ui.button');      // inherits WARNING from 'app'
+final httpLogger = Logger.get('app.network.http'); // inherits DEBUG from 'app.network'
+
+uiLogger.debug('Click');   // ignored (warning threshold)
+httpLogger.debug('GET /'); // visible (debug threshold)
 ```
 
-### Attach to Uncaught Errors
+### Log Levels
+
+Available levels in increasing severity:
+- `LogLevel.trace`: Detailed diagnostic information
+- `LogLevel.debug`: Developer-focused debugging
+- `LogLevel.info`: General informational messages
+- `LogLevel.warning`: Warning messages for potentially harmful situations
+- `LogLevel.error`: Error messages for failures
+
+---
+
+## Advanced Features
+
+### Custom Handlers
+
+Combine formatters and sinks to create custom output pipelines:
+
 ```dart
+// JSON logs to rotating file
+final jsonHandler = Handler(
+  formatter: JsonFormatter(),
+  sink: FileSink(
+    'logs/app.log',
+    fileRotation: TimeRotation(
+      interval: Duration(days: 1),
+      nameFormatter: Timestamp(formatter: 'yyyy-MM-dd'),
+      backupCount: 7,
+      compress: true,
+    ),
+  ),
+  filters: [LevelFilter(LogLevel.info)],  // Only info and above
+);
+
+Logger.configure('app', handlers: [jsonHandler]);
+```
+
+**Result**: JSON logs written to `logs/app.log`, rotated daily, keeping 7 compressed backups.
+
+### Atomic Multi-Line Logs
+
+Prevent log interleaving in concurrent environments:
+
+```dart
+final buffer = logger.infoBuffer;
+buffer?.writeln('=== User Session ===');
+buffer?.writeln('User ID: ${user.id}');
+buffer?.writeln('Login time: ${DateTime.now()}');
+buffer?.writeln('IP: ${request.ip}');
+buffer?.sink();  // Atomic write of all lines
+```
+
+### Multiple Output Destinations
+
+Send logs to multiple destinations simultaneously:
+
+```dart
+final consoleHandler = Handler(
+  formatter: BoxFormatter(useColors: true),
+  sink: ConsoleSink(),
+);
+
+final fileHandler = Handler(
+  formatter: PlainFormatter(),
+  sink: FileSink('logs/app.log'),
+);
+
+Logger.configure('global', handlers: [consoleHandler, fileHandler]);
+```
+
+### Filtering
+
+Control which logs reach which handlers:
+
+```dart
+// Level-based filtering
+final errorHandler = Handler(
+  formatter: JsonFormatter(),
+  sink: FileSink('logs/errors.log'),
+  filters: [LevelFilter(LogLevel.error)],  // Errors only
+);
+
+// Regex-based filtering (exclude sensitive data)
+final publicHandler = Handler(
+  formatter: PlainFormatter(),
+  sink: NetworkSink('https://logs.example.com'),
+  filters: [
+    RegexFilter(r'password|secret|token', exclude: true),
+  ],
+);
+```
+
+### Flutter Integration
+
+Capture framework errors and uncaught exceptions:
+
+```dart
+void main() {
+  // Attach to Flutter framework errors
+  Logger.attachToFlutterErrors();
+  
+  // Capture async errors
   runZonedGuarded(
-    // Run your app here
-    ,
+    () => runApp(MyApp()),
     (error, stack) {
-      Logger.get().error(
-        'Caught uncaught error in zone',
+      Logger.get('app.crash').error(
+        'Uncaught error',
         error: error,
         stackTrace: stack,
       );
     },
-);
+  );
+}
 ```
-## Examples
-### Custom Handler
+
+### Timezone and Timestamp Control
+
+Customize timestamp format and timezone:
+
 ```dart
-final handler = Handler(
-  formatter: JsonFormatter(),
-  sink: FileSink('logs/app.log'),
-  filters: [LevelFilter(LogLevel.warning)],
+final timestamp = Timestamp(
+  formatter: 'yyyy-MM-dd HH:mm:ss.SSS Z',
+  timezone: Timezone.named('America/New_York'),
 );
-Logger.configure('global', handlers: [handler]);
+
+Logger.configure('app', timestamp: timestamp);
 ```
-### FileRotation for FileSink
-#### Time Based
- ```dart
- FileSink(
-   'logs/app.log',
-   fileRotation: TimeRotation(
-     interval: Duration(days: 1),
-     nameFormatter: Timestamp(formatter: 'yyyy-MM-dd'),
-     backupCount: 7,
-     compress: true,
-   ),
- );
-// Rotated files: app-2025-11-11.log.gz, etc.
-// (current logs always to 'app.log').
-```
-#### Size Based
+
+**Output**: `2025-01-02 14:30:45.123 -05:00`
+
+### File Rotation Strategies
+
+#### Size-Based Rotation
+
 ```dart
 FileSink(
   'logs/app.log',
@@ -138,21 +225,126 @@ FileSink(
     backupCount: 5,
     compress: true,
   ),
-);
-// Rotated files: app.1.log.gz, app.2.log.gz, etc. (index 1 is newest).
+)
+// Creates: app.log, app.1.log.gz, app.2.log.gz, etc.
 ```
-### Custom Timestamp
+
+#### Time-Based Rotation
+
 ```dart
-final ts = Timestamp(formatter: 'yyyy-MM-dd HH:mm:ss Z', timeZone: TimeZone.utc());
-Logger.configure('global', timestamp: ts);
+FileSink(
+  'logs/app.log',
+  fileRotation: TimeRotation(
+    interval: Duration(hours: 1),
+    nameFormatter: Timestamp(formatter: 'yyyy-MM-dd_HH'),
+    backupCount: 24,
+  ),
+)
+// Creates: app-2025-01-02_14.log, app-2025-01-02_15.log, etc.
 ```
 
-For more examples, see the example/ directory.
+### Performance Optimization
 
+For production environments with static configuration:
+
+```dart
+// After configuration is complete, freeze the hierarchy
+Logger.get('app').freezeInheritance();
+
+// This snapshots all settings, eliminating dynamic resolution overhead
+// Note: Changes to parent loggers won't affect frozen children
+```
+
+---
+
+## Use Cases
+
+### Development Console Logging
+
+```dart
+// Colorful boxed output for terminal
+Logger.configure('global', handlers: [
+  Handler(
+    formatter: BoxFormatter(useColors: true, borderStyle: BorderStyle.rounded),
+    sink: ConsoleSink(),
+  ),
+]);
+```
+
+### Production JSON Logging
+
+```dart
+// Structured JSON for log aggregation systems
+Logger.configure('global', handlers: [
+  Handler(
+    formatter: JsonFormatter(),
+    sink: FileSink('logs/production.log'),
+  ),
+]);
+```
+
+### Microservice Logging
+
+```dart
+// Different handlers for different modules
+Logger.configure('api', handlers: [
+  Handler(formatter: JsonFormatter(), sink: FileSink('logs/api.log')),
+]);
+
+Logger.configure('database', handlers: [
+  Handler(formatter: JsonFormatter(), sink: FileSink('logs/db.log')),
+]);
+
+Logger.configure('auth', handlers: [
+  Handler(
+    formatter: JsonFormatter(),
+    sink: NetworkSink('https://security-logs.example.com'),
+    filters: [LevelFilter(LogLevel.warning)],
+  ),
+]);
+```
+
+---
+
+## Documentation
+
+Comprehensive technical documentation is available in the `docs/` directory:
+
+- **[Documentation Index](docs/README.md)** - Overview and navigation
+- **[Logger Philosophy](docs/logger/philosophy.md)** - Design principles and rationale
+- **[Logger Architecture](docs/logger/architecture.md)** - Implementation details
+- **[Handler Guide](docs/handler/architecture.md)** - Pipeline customization
+- **[Time Module](docs/time/architecture.md)** - Timestamp and timezone handling
+- **[Roadmap](docs/logger/roadmap.md)** - Planned features and known limitations
+
+---
 
 ## Contributing
-Contributions are welcome! Please read [CONTRIBUTING](CONTRIBUTING.md) for details.
+
+We welcome contributions! Whether you're:
+- Reporting bugs
+- Suggesting features
+- Improving documentation
+- Submitting pull requests
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+- Code style and standards
+- Testing requirements
+- PR submission process
+- Documentation updates
+
+For documentation contributions specifically, see [docs/CONTRIBUTING_DOCS.md](docs/CONTRIBUTING_DOCS.md).
+
+---
 
 ## License
-This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for
-details.
+
+This project is licensed under the **BSD 3-Clause License**. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/pooriaaskarim/logd/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/pooriaaskarim/logd/discussions)
+- **Pub.dev**: [logd package](https://pub.dev/packages/logd)
