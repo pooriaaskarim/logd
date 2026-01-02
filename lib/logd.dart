@@ -1,7 +1,8 @@
 library;
 
 export 'src/handler/handler.dart';
-export 'src/logger/logger.dart' hide InternalLogger, LogBuffer;
+export 'src/logger/logger.dart'
+    hide InternalLogger, LogBuffer, LoggerCache, LoggerConfig;
 export 'src/stack_trace/stack_trace.dart' hide CallbackInfo;
 export 'src/time/timestamp.dart'
     hide TimestampFormatter, TimestampFormatterCache;

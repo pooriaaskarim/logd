@@ -1,51 +1,55 @@
 part of '../handler.dart';
 
-/// File Rotation Handler.
+/// Base interface for file rotation policies.
 ///
-/// Subclasses implement triggers (e.g., size or time) for rotating the current
-/// log file. Rotation renames the current file (with optional compression) and
-/// starts fresh. Use [backupCount] to limit kept rotated files.
+/// Subclasses define the criteria for when a log file should be rotated (e.g.,
+/// based on size or time) and how the rotation is performed.
 abstract class FileRotation {
+  /// Creates a [FileRotation] policy.
+  ///
+  /// - [compress]: Whether to gzip compress rotated backup files.
+  /// - [backupCount]: The number of backup files to keep.
+  /// If 0, no backups are kept.
   FileRotation({
     this.compress = false,
     this.backupCount = 5,
   }) {
     if (backupCount < 0) {
-      throw ArgumentError('Invalid backupCount:'
-          ' $backupCount. Must be non-negative.');
+      throw ArgumentError(
+        'Invalid backupCount: $backupCount. Must be non-negative.',
+      );
     }
   }
 
   /// Whether to gzip compress rotated files.
   final bool compress;
 
-  /// Number of backup files to keep (deletes oldest if exceeded; 0 = no limit).
+  /// Number of backup files to keep
+  /// (deletes oldest if exceeded; 0 = no backups).
   final int backupCount;
 
-  /// Check if rotation is needed before appending new data.
+  /// Determines if rotation is necessary before appending
+  /// [newData] to [currentFile].
   Future<bool> needsRotation(final File currentFile, final String newData);
 
-  /// Perform the rotation: rename/compress current file, cleanup excess backups.
+  /// Performs the rotation of the file at [basePath].
+  ///
+  /// This typically involves renaming the current file, optionally compressing
+  /// it, and cleaning up old backups that exceed [backupCount].
   Future<void> rotate(final String basePath);
 }
 
-/// [FileRotation] based on log file size.
+/// A [FileRotation] policy that rotates files when they exceed a maximum size.
 ///
-/// Rotates when the file size would exceed [maxBytes] after appending.
-///
-/// Example:
-/// ```dart
-/// FileSink(
-///   'logs/app.log',
-///   fileRotation: SizeRotation(
-///     maxSize: '10 MB',
-///     backupCount: 5,
-///     compress: true,
-///   ),
-/// );
-/// ```
-/// Rotated files: app.1.log.gz, app.2.log.gz, etc. (index 1 is newest).
+/// Rotated files are indexed (e.g., `app.1.log`, `app.2.log`), where index 1
+/// is always the most recent backup.
 class SizeRotation extends FileRotation {
+  /// Creates a [SizeRotation] policy.
+  ///
+  /// - [maxSize]: A human-readable string representing the maximum size (e.g.,
+  ///   '10 MB', '512 KB').
+  /// - [filenameFormatter]: An optional function to customize the rotated
+  /// filename.
   SizeRotation({
     final String maxSize = '512 KB',
     super.compress,
@@ -53,12 +57,10 @@ class SizeRotation extends FileRotation {
     this.filenameFormatter,
   }) : maxBytes = parseMaxSizeLiteral(maxSize);
 
-  /// Optional: Custom formatter for rotated filenames.
+  /// A custom function for formatting rotated filenames.
   ///
-  /// Takes the base name (without extension), extension, rotation index.
-  /// Returns the rotated name (without path or compression suffix).
-  ///
-  /// Example for custom: (base, ext, index) => '$base-custom-$index$ext'
+  /// Takes the base name without extension, the extension, and the
+  /// backup index. Returns the relative filename.
   final String Function(
     String baseWithoutExt,
     String? ext,
@@ -74,9 +76,14 @@ class SizeRotation extends FileRotation {
       '${index != null ? '.$index' : ''}'
       '${ext != null && ext.isNotEmpty ? ext : ''}';
 
-  /// Maximum file size (parsed from string like '10 MB', '512 KB', '1 TB').
+  /// The maximum size in bytes after which rotation occurs.
+  ///
+  /// e.g. '10 MB', '512 KB', '1 TB'
   final int maxBytes;
 
+  /// Parses a human-readable size string into bytes.
+  ///
+  /// Supported units: B, KB, MB, GB, TB.
   static int parseMaxSizeLiteral(final String maxSizeLiteral) {
     final s = maxSizeLiteral.toUpperCase().replaceAll(' ', '');
     final match = RegExp(r'^(\d+(\.\d+)?)(TB|GB|MB|KB|B)?$').firstMatch(s);
@@ -115,7 +122,6 @@ class SizeRotation extends FileRotation {
       return;
     }
 
-    // Extract base and ext (platform-agnostic)
     final pathSeparator = io.Platform.pathSeparator;
     final normalizedPath =
         basePath.replaceAll('\\', pathSeparator).replaceAll('/', pathSeparator);
@@ -153,11 +159,13 @@ class SizeRotation extends FileRotation {
         await Context.fileSystem.file(backupPath).delete();
       }
       // Cleanup excess
-      final backupFiles = <File>[];
       final dir = file.parent;
       final entities = await dir.list().toList();
+      final backupFiles = <File>[];
       for (final e in entities) {
-        if (e is File && e.path.endsWith(extension)) {
+        if (e is File &&
+            e.path.startsWith(baseWithoutExt) &&
+            e.path.endsWith(extension)) {
           backupFiles.add(e);
         }
       }
@@ -174,48 +182,28 @@ class SizeRotation extends FileRotation {
   }
 }
 
-/// [FileRotation] based on time.
+/// A [FileRotation] policy that rotates files based on a time interval.
 ///
-/// Rotates every [interval] (e.g., Duration(hours: 1) for hourly,
-/// Duration(days: 7) for weekly).
-/// Uses [timestamp] to format the timestamp suffix for rotated files.
-///
-/// Predefined intervals: Duration(hours: 1) for hourly, Duration(days: 1)
-/// for daily, Duration(days: 7) for weekly.
-///
-/// Example:
-/// ```dart
-/// FileSink(
-///   'logs/app.log',
-///   fileRotation: TimeRotation(
-///     interval: Duration(days: 1),
-///     nameFormatter: Timestamp(formatter: 'yyyy-MM-dd'),
-///     backupCount: 7,
-///     compress: true,
-///   ),
-/// );
-/// ```
-/// Rotated files: app-2025-11-11.log.gz, etc.
-/// (current logs always to 'app.log').
+/// Rotated files are suffixed with a timestamp (e.g., `app-2025-01-01.log`).
 class TimeRotation extends FileRotation {
+  /// Creates a [TimeRotation] policy.
+  ///
+  /// - [interval]: The duration after which rotation occurs
+  /// (e.g., daily, weekly).
+  /// - [timestamp]: A [Timestamp] instance used to format the suffix.
   TimeRotation({
     this.interval = const Duration(days: 7),
-    this.timestamp = const Timestamp(formatter: 'yyyy-MM-dd'),
+    final Timestamp? timestamp,
     this.filenameFormatter,
     super.compress,
     super.backupCount,
-  }) {
-    if (interval.isNegative) {
-      throw ArgumentError('Invalid interval: $interval. Must be non-negative.');
-    }
-  }
+  })  : timestamp = timestamp ?? Timestamp(formatter: 'yyyy-MM-dd'),
+        assert(!interval.isNegative, 'Invalid interval: must be non-negative');
 
-  /// Optional: Custom formatter for rotated filenames.
+  /// A custom function for formatting rotated filenames.
   ///
-  /// Takes the base name (without extension), extension, rotation time.
-  /// Returns the rotated name (without path or compression suffix).
-  ///
-  /// Example for custom: (base, ext, time) => '$base-custom-$time.$ext'
+  /// Takes the base name without extension, the extension,
+  /// and the rotation time.
   final String Function(
     String baseWithoutExt,
     String? ext,
@@ -227,20 +215,22 @@ class TimeRotation extends FileRotation {
     final String? ext,
     final DateTime rotationTime,
   ) {
-    final ts = timestamp.getTimestamp() ??
+    final ts = timestamp.formatter.format(rotationTime) ??
         rotationTime.toIso8601String().split('T')[0];
     return '$baseWithoutExt-$ts${ext != null && ext.isNotEmpty ? ext : ''}';
   }
 
-  /// Rotation interval (must be positive;
-  /// e.g., Duration(hours: 1),
-  /// Duration(days: 7)).
+  /// The duration between rotations.
+  ///
+  /// Must be non-negative.
+  /// e.g. `Duration(days: 7)`
   final Duration interval;
 
-  /// Formatter for the timestamp suffix in rotated filenames
-  /// (default: 'yyyy-MM-dd').
+  /// The timestamp formatter for rotated filename suffixes.
   final Timestamp timestamp;
 
+  /// The last time rotation occurred
+  /// (calculated from the file's last modified time if null).
   DateTime? lastRotation;
 
   @override
@@ -260,7 +250,6 @@ class TimeRotation extends FileRotation {
       return;
     }
 
-    // Extract base and ext (platform-agnostic)
     final pathSeparator = io.Platform.pathSeparator;
     final normalizedPath =
         basePath.replaceAll('\\', pathSeparator).replaceAll('/', pathSeparator);
@@ -310,6 +299,7 @@ class TimeRotation extends FileRotation {
     }
   }
 
+  /// Initializes [lastRotation] from the file's metadata or current time.
   Future<void> initLastRotation(final File currentFile) async {
     if (lastRotation != null) {
       return;
@@ -322,31 +312,23 @@ class TimeRotation extends FileRotation {
   }
 }
 
-/// Appends to a file asynchronously, with optional rotation.
+/// A [LogSink] that appends formatted log lines to a local file.
 ///
-/// Creates a file sink at [basePath].
-///
-/// - [basePath]: Path to the log file (e.g., 'app.log' or 'logs/app.log').
-///   Must include a non-empty filename (extension optional, e.g., 'logs/my_log' is valid).
-///   Invalid if empty, a directory (ends in '/'), or no filename (e.g., '/').
-///   Parent directories are created if missing.
-/// - [fileRotation]: Optional rotation policy.
-class FileSink implements LogSink {
-  FileSink(
-    this.basePath, {
-    this.fileRotation,
-    this.enabled = true,
-  }) {
+/// It supports various file rotation policies (size-based, time-based) and
+/// optional GZip compression of rotated backups. Parent directories are
+/// automatically created if they do not exist.
+base class FileSink extends LogSink {
+  /// Creates a [FileSink] at the specified [basePath].
+  ///
+  /// - [basePath]: The relative or absolute path to the log file. Must point
+  ///   to a filename, not a directory.
+  /// - [fileRotation]: An optional policy for rotating the log file.
+  /// - [enabled]: Whether the sink is currently active.
+  FileSink(this.basePath, {this.fileRotation, super.enabled = true}) {
     _validateBasePath(basePath);
   }
 
-  /// Path to the current log file (e.g., 'logs/app.log').
-  ///
-  /// Rotated files will be named based on [FileRotation].
-  /// (e.g., app-2025-11-11.log or app.1.log).
-  ///
-  /// [basePath] should contain a valid filename. Paths not containing a valid
-  /// filename ( e.g. 'path/to/some/dir/' ) will throw [ArgumentError].
+  /// The path to the active log file (e.g., 'logs/app.log').
   final String basePath;
 
   void _validateBasePath(final String basePath) {
@@ -367,15 +349,15 @@ class FileSink implements LogSink {
     }
   }
 
-  /// Optional rotation policy (null = no rotation).
+  /// The rotation policy applied to this sink (null for no rotation).
   final FileRotation? fileRotation;
 
   @override
-  final bool enabled;
-
-  @override
-  Future<void> output(final List<String> lines, final LogLevel level) async {
-    if (lines.isEmpty) {
+  Future<void> output(
+    final Iterable<String> lines,
+    final LogLevel level,
+  ) async {
+    if (!enabled) {
       return;
     }
     final file = Context.fileSystem.file(basePath);
@@ -384,23 +366,28 @@ class FileSink implements LogSink {
       if (!await parentDir.exists()) {
         await parentDir.create(recursive: true);
       }
-      final newData = '${lines.join('\n')}\n';
+
+      final linesList = lines.toList();
+      if (linesList.isEmpty) {
+        return;
+      }
+      final newData = '${linesList.join('\n')}\n';
+
+      File targetFile = file;
       if (fileRotation != null &&
           await fileRotation!.needsRotation(file, newData)) {
         await fileRotation!.rotate(basePath);
+        targetFile = Context.fileSystem.file(basePath);
       }
-      await file.writeAsString(
+      await targetFile.writeAsString(
         newData,
         mode: io.FileMode.append,
         flush: true,
       );
     } catch (e, s) {
-      if (!const bool.fromEnvironment('dart.vm.product')) {
-        rethrow;
-      }
       InternalLogger.log(
         LogLevel.error,
-        'FileSink error (path: $basePath)',
+        'FileSink error',
         error: e,
         stackTrace: s,
       );

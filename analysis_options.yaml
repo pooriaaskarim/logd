@@ -4,7 +4,7 @@ linter:
   rules:
     avoid_dynamic_calls: true
     avoid_empty_else: true
-    avoid_print: true
+    avoid_print: false
     avoid_types_as_parameter_names: true
     prefer_relative_imports: true
     cancel_subscriptions: true
@@ -72,7 +72,7 @@ linter:
     no_runtimeType_toString: true
     non_constant_identifier_names: true
     noop_primitive_operations: true
-    one_member_abstracts: true
+    one_member_abstracts: false
     only_throw_errors: true
     overridden_fields: true
     parameter_assignments: true

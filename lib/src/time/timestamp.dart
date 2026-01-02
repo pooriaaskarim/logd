@@ -469,6 +469,7 @@ class TimestampFormatter {
 /// // This throws FormatException
 /// Timestamp(formatter: 'INVALID_TOKEN').timestamp;
 /// ```
+@immutable
 class Timestamp {
   /// The [formatter] parameter is a pattern string that defines how the
   /// timestamp should be formatted. See below for the supported tokens.
@@ -580,4 +581,15 @@ class Timestamp {
   /// Returns `null` if the formatter pattern is empty.
   String? get timestamp =>
       formatter.format((timezone ?? Timezone.local()).now, timezone: timezone);
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is Timestamp &&
+          runtimeType == other.runtimeType &&
+          formatter.pattern == other.formatter.pattern &&
+          timezone == other.timezone;
+
+  @override
+  int get hashCode => formatter.pattern.hashCode ^ timezone.hashCode;
 }

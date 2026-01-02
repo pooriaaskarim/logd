@@ -14,14 +14,11 @@ class InternalLogger {
     final Object? error,
     final StackTrace? stackTrace,
   }) {
-    // ignore: avoid_print
     print('[logd-internal] [${level.name.toUpperCase()}]: $message');
     if (error != null) {
-      // ignore: avoid_print
       print('[logd-internal] [Error]: $error');
     }
     if (stackTrace != null) {
-      // ignore: avoid_print
       print('[logd-internal] [Stack Trace]:\n$stackTrace');
     }
   }
