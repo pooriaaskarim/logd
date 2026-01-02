@@ -1,10 +1,17 @@
 part of '../handler.dart';
 
-/// Abstract base for formatting a [LogEntry] into lines of text.
-//ignore: one_member_abstracts
-abstract class LogFormatter {
+/// Abstract interface for formatting a [LogEntry] into a sequence of
+/// text lines.
+///
+/// Formatters are responsible for the structural representation of a log entry,
+/// such as converting it to JSON, a boxed layout, or a simple plain text line.
+abstract interface class LogFormatter {
   const LogFormatter();
 
-  /// Format the entry into lines (e.g., for boxed or JSON).
-  List<String> format(final LogEntry entry);
+  /// Formats the [entry] into an [Iterable] of strings.
+  ///
+  /// Using [Iterable] enables lazy evaluation and efficient processing when
+  /// chaining multiple formatters or applying decorators. Each string in the
+  /// iterable typically represents a single line of output.
+  Iterable<String> format(final LogEntry entry);
 }

@@ -3,6 +3,7 @@ part of 'stack_trace.dart';
 typedef FrameFilter = bool Function(String frame);
 
 /// Parser for extracting useful information from stack traces.
+@immutable
 class StackTraceParser {
   const StackTraceParser({
     this.ignorePackages = const [],
@@ -86,4 +87,15 @@ class StackTraceParser {
       fullMethod: fullMethod,
     );
   }
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is StackTraceParser &&
+          runtimeType == other.runtimeType &&
+          listEquals(ignorePackages, other.ignorePackages) &&
+          customFilter == other.customFilter;
+
+  @override
+  int get hashCode => Object.hash(Object.hashAll(ignorePackages), customFilter);
 }

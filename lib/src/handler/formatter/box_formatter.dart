@@ -1,22 +1,40 @@
 part of '../handler.dart';
 
-/// Formats log entries in a boxed of [lineLength] width, with colors and
-/// styled borders.
+/// A [LogFormatter] that wraps log entries in an ASCII box.
+///
+/// This formatter provides a highly visual output by enclosing the log message
+/// and its metadata (timestamp, level, origin) within a styled border. It
+/// supports auto-wrapping, ANSI colors, and multiple border styles.
 class BoxFormatter implements LogFormatter {
+  /// Creates a [BoxFormatter] with customizable styling and constraints.
+  ///
+  /// - [useColors]: Whether to use ANSI colors
+  /// (attempts auto-detection if null).
+  /// - [lineLength]: The maximum width of the box.
+  /// Auto-wraps content if exceeded.
+  /// - [borderStyle]: The visual style of the box borders
+  /// (rounded, sharp, double).
   BoxFormatter({
     this.useColors,
     this.lineLength,
     this.borderStyle = BorderStyle.rounded,
-  }) : assert(lineLength == null || lineLength > 0, 'Line length must be > 0.');
+  }) {
+    if (lineLength != null && lineLength! <= 0) {
+      throw ArgumentError('Invalid lineLength: $lineLength. Must be positive.');
+    }
+  }
 
-  /// Whether to use ANSI colors for output (auto-detected if null).
+  /// Explicit control over ANSI color usage.
+  ///
+  /// If `null`, colors are enabled only if the stdout supports ANSI escapes.
   final bool? useColors;
 
-  /// The maximum line length for wrapping (auto-detected terminal width
-  /// if null).
+  /// The maximum line length for wrapping.
+  ///
+  /// If `null`, it will attempt to detect the terminal width at runtime.
   final int? lineLength;
 
-  /// The style of box borders (rounded, sharp, double).
+  /// The visual style of the box borders.
   final BorderStyle borderStyle;
 
   late final bool _useColors = useColors ?? io.stdout.supportsAnsiEscapes;
@@ -33,7 +51,7 @@ class BoxFormatter implements LogFormatter {
   };
 
   @override
-  List<String> format(final LogEntry entry) {
+  Iterable<String> format(final LogEntry entry) {
     final innerWidth = _lineLength - 4;
     final content = <String>[
       ..._buildHeader(entry),

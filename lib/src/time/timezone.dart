@@ -1,7 +1,10 @@
+import 'package:meta/meta.dart';
+
 import '../core/context.dart';
 import '../logger/logger.dart';
 
 /// Local wall time for transitions (hour:minute).
+@immutable
 class LocalTime {
   const LocalTime(this.hour, this.minute)
       : assert(hour >= 0 && hour <= 23, 'Hour must be 0-23'),
@@ -11,9 +14,21 @@ class LocalTime {
   final int minute;
 
   Duration toDuration() => Duration(hours: hour, minutes: minute);
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is LocalTime &&
+          runtimeType == other.runtimeType &&
+          hour == other.hour &&
+          minute == other.minute;
+
+  @override
+  int get hashCode => Object.hash(hour, minute);
 }
 
 /// Rule for DST transition.
+@immutable
 class DSTTransitionRule {
   const DSTTransitionRule({
     required this.month,
@@ -41,9 +56,23 @@ class DSTTransitionRule {
 
   /// Local wall time of transition.
   final LocalTime at;
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is DSTTransitionRule &&
+          runtimeType == other.runtimeType &&
+          month == other.month &&
+          weekday == other.weekday &&
+          instance == other.instance &&
+          at == other.at;
+
+  @override
+  int get hashCode => Object.hash(month, weekday, instance, at);
 }
 
 /// Rule for Daylight Saving Time (DST) in a [Timezone].
+@immutable
 class DSTZoneRule {
   const DSTZoneRule({
     required this.standardOffset,
@@ -66,6 +95,19 @@ class DSTZoneRule {
 
   /// DST end rule (null for no DST).
   final DSTTransitionRule? end;
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is DSTZoneRule &&
+          runtimeType == other.runtimeType &&
+          standardOffset == other.standardOffset &&
+          dstDelta == other.dstDelta &&
+          start == other.start &&
+          end == other.end;
+
+  @override
+  int get hashCode => Object.hash(standardOffset, dstDelta, start, end);
 }
 
 /// Common fixed offsets (name to literal).
@@ -341,6 +383,7 @@ class TimezoneOffset {
 /// [offset] is DST aware offset from "UTC+00:00".
 ///
 /// [Timezone] handles DTC internally.
+@immutable
 class Timezone {
   const Timezone._({
     required this.name,
@@ -694,6 +737,17 @@ class Timezone {
       return result;
     }
   }
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is Timezone &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          _rule == other._rule;
+
+  @override
+  int get hashCode => Object.hash(name, _rule);
 }
 
 extension OffsetLiteralExt on Timezone {

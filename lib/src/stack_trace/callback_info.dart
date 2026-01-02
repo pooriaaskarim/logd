@@ -1,6 +1,7 @@
 part of 'stack_trace.dart';
 
 /// Data class holding parsed information from a stack frame.
+@immutable
 class CallbackInfo {
   const CallbackInfo({
     required this.className,
@@ -27,4 +28,24 @@ class CallbackInfo {
 
   @override
   String toString() => '$className.$methodName ($filePath:$lineNumber)';
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is CallbackInfo &&
+          runtimeType == other.runtimeType &&
+          className == other.className &&
+          methodName == other.methodName &&
+          filePath == other.filePath &&
+          lineNumber == other.lineNumber &&
+          fullMethod == other.fullMethod;
+
+  @override
+  int get hashCode => Object.hash(
+        className,
+        methodName,
+        filePath,
+        lineNumber,
+        fullMethod,
+      );
 }

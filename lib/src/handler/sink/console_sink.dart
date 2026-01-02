@@ -1,23 +1,22 @@
 part of '../handler.dart';
 
-/// Outputs to console using debugPrint (Flutter-safe).
-class ConsoleSink implements LogSink {
-  const ConsoleSink({
-    this.enabled = true,
-  });
+/// A [LogSink] that outputs formatted log lines to the system console.
+@immutable
+base class ConsoleSink extends LogSink {
+  const ConsoleSink({super.enabled});
 
   @override
-  final bool enabled;
-
-  @override
-  Future<void> output(final List<String> lines, final LogLevel level) async {
+  Future<void> output(
+    final Iterable<String> lines,
+    final LogLevel level,
+  ) async {
+    if (!enabled) {
+      return;
+    }
     try {
       for (final line in lines) {
-        //ignore: avoid_print
         print(line);
       }
-      //ignore: avoid_print
-      print('');
     } catch (e, s) {
       InternalLogger.log(
         LogLevel.error,
@@ -27,4 +26,14 @@ class ConsoleSink implements LogSink {
       );
     }
   }
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is ConsoleSink &&
+          runtimeType == other.runtimeType &&
+          enabled == other.enabled;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, enabled);
 }
