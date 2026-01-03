@@ -69,8 +69,39 @@ class Handler {
     }
     Iterable<LogLine> lines = formatter.format(entry);
 
-    // Apply decorators in the order they were defined
-    for (final decorator in decorators) {
+    /// Auto-sort to ensure correct visual composition:
+    /// 1. TransformDecorator (Content mutation)
+    /// 2. VisualDecorator (Content styling, e.g. ANSI colors)
+    /// 3. StructuralDecorator (Outer wrapping, e.g. Box, then Indentation)
+    ///
+    /// Using a Set for deduplication to prevent redundant decorators.
+    final sortedDecorators = decorators.toSet().toList()
+      ..sort((final a, final b) {
+        int priority(final LogDecorator decorator) {
+          if (decorator is TransformDecorator) {
+            return 0;
+          }
+          if (decorator is VisualDecorator) {
+            return 1;
+          }
+          if (decorator is StructuralDecorator) {
+            // Within Structural, Box comes before Hierarchy (Indentation).
+            // Box wraps content, Hierarchy indents the wrapped box.
+            if (decorator is BoxDecorator) {
+              return 2;
+            }
+            if (decorator is HierarchyDepthPrefixDecorator) {
+              return 3;
+            }
+            return 4; // Unknown structural decorators last
+          }
+          return 5; // Unknown other decorators
+        }
+
+        return priority(a).compareTo(priority(b));
+      });
+
+    for (final decorator in sortedDecorators) {
       lines = decorator.decorate(lines, entry);
     }
 

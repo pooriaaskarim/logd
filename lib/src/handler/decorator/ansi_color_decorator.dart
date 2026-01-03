@@ -74,4 +74,15 @@ final class AnsiColorDecorator extends VisualDecorator {
       yield LogLine(coloredText, tags: {...line.tags, LogLineTag.ansiColored});
     }
   }
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is AnsiColorDecorator &&
+          runtimeType == other.runtimeType &&
+          useColors == other.useColors &&
+          colorHeaderBackground == other.colorHeaderBackground;
+
+  @override
+  int get hashCode => useColors.hashCode ^ colorHeaderBackground.hashCode;
 }

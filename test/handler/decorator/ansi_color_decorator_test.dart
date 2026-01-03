@@ -62,5 +62,26 @@ void main() {
 
       expect(decorated, equals(lines));
     });
+
+    test('applies background color to header when enabled', () {
+      const decorator = AnsiColorDecorator(
+        useColors: true,
+        colorHeaderBackground: true,
+      );
+      final headerLines = [
+        LogLine('Header 1', tags: {LogLineTag.header}),
+        LogLine('Message 1', tags: {LogLineTag.message}),
+      ];
+
+      final decorated = decorator.decorate(headerLines, infoEntry).toList();
+
+      // Header line should have inverted color code (\x1B[7m)
+      expect(decorated[0].text, contains('\x1B[7m'));
+      expect(decorated[0].text, contains('Header 1'));
+
+      // Message line should NOT have inverted color code
+      expect(decorated[1].text, isNot(contains('\x1B[7m')));
+      expect(decorated[1].text, contains('Message 1'));
+    });
   });
 }

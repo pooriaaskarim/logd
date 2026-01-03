@@ -12,12 +12,14 @@
 
 ### ✅ P0: Decorator Composition Research
 **Goal**: Define rules for multi-decorator interaction.
-**Result**: Established best practices, implemented `AnsiStringExtension` for visible width alignment, and fixed scattered box issues.
-- [x] Document current decorator execution order
+**Result**: Established a flexible pipeline model.
+- [x] Document current decorator execution order (Manual pipeline)
 - [x] Create test matrix for common decorator combinations
 - [x] Define decorator contract regarding line structure assumptions
-- [x] Propose conflict resolution strategy (Implemented `wrapVisible`)
+- [x] Propose conflict resolution strategy (Independent coloring + Idempotency tags)
 - [x] Fixed `BoxDecorator` to be robust against multi-line input and long lines
+- [x] Implemented `HierarchyDepthPrefixDecorator` for visual nesting
+- [x] Implemented Independent Border Coloring in `BoxDecorator`
 
 ---
 

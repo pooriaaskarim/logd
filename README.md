@@ -148,6 +148,7 @@ final consoleHandler = Handler(
   ],
   sink: ConsoleSink(),
 );
+// Note: Decorators are auto-sorted by type for optimal composition
 
 final fileHandler = Handler(
   formatter: PlainFormatter(),
@@ -266,13 +267,21 @@ Logger.get('app').freezeInheritance();
 ### Development Console Logging
 
 ```dart
-// Colorful boxed output for terminal
+// Hierarchy-aware, colored, and boxed output for terminal
 Logger.configure('global', handlers: [
   Handler(
     formatter: StructuredFormatter(),
     decorators: [
-      BoxDecorator(borderStyle: BorderStyle.rounded),
-      AnsiColorDecorator(),
+      // Auto-sorted by type: Visual -> Structural (Box -> Hierarchy)
+      const AnsiColorDecorator(
+        useColors: true,
+        colorHeaderBackground: true,
+      ),
+      BoxDecorator(
+        borderStyle: BorderStyle.rounded,
+        useColors: true,
+      ),
+      const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
     sink: ConsoleSink(),
   ),
