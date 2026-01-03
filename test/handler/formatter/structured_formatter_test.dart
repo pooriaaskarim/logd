@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/core/utils.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -17,9 +16,9 @@ void main() {
       final formatter = StructuredFormatter(lineLength: 80);
       final lines = formatter.format(entry).toList();
 
-      expect(lines[0], startsWith('____'));
-      expect(lines[0], contains('[test]'));
-      expect(lines[0], contains('[INFO]'));
+      expect(lines[0].text, startsWith('____'));
+      expect(lines[0].text, contains('[test]'));
+      expect(lines[0].text, contains('[INFO]'));
     });
 
     test('wraps long message', () {
@@ -35,7 +34,7 @@ void main() {
       final lines = formatter.format(longEntry).toList();
 
       final msgStartIndex =
-          lines.indexWhere((final l) => l.startsWith('----|'));
+          lines.indexWhere((final l) => l.text.startsWith('----|'));
       final msgLines = lines.sublist(msgStartIndex);
 
       expect(msgLines.length, greaterThan(1));

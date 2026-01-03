@@ -10,7 +10,7 @@ final class JsonFormatter implements LogFormatter {
   const JsonFormatter();
 
   @override
-  Iterable<String> format(final LogEntry entry) sync* {
+  Iterable<LogLine> format(final LogEntry entry) sync* {
     final map = {
       'timestamp': entry.timestamp,
       'level': entry.level.name,
@@ -20,7 +20,7 @@ final class JsonFormatter implements LogFormatter {
       if (entry.error != null) 'error': entry.error.toString(),
       if (entry.stackTrace != null) 'stackTrace': entry.stackTrace.toString(),
     };
-    yield jsonEncode(map);
+    yield LogLine(jsonEncode(map), tags: const {LogLineTag.message});
   }
 }
 
@@ -34,7 +34,7 @@ final class JsonPrettyFormatter implements LogFormatter {
   const JsonPrettyFormatter();
 
   @override
-  Iterable<String> format(final LogEntry entry) sync* {
+  Iterable<LogLine> format(final LogEntry entry) sync* {
     final map = {
       'timestamp': entry.timestamp,
       'level': entry.level.name,
@@ -44,6 +44,9 @@ final class JsonPrettyFormatter implements LogFormatter {
       if (entry.error != null) 'error': entry.error.toString(),
       if (entry.stackTrace != null) 'stackTrace': entry.stackTrace.toString(),
     };
-    yield const JsonEncoder.withIndent('  ').convert(map);
+    final json = const JsonEncoder.withIndent('  ').convert(map);
+    for (final line in json.split('\n')) {
+      yield LogLine(line, tags: const {LogLineTag.message});
+    }
   }
 }

@@ -262,7 +262,7 @@ class LoggerHierarchyEdgeCases {}
 base class FailingSink extends LogSink {
   @override
   Future<void> output(
-    final Iterable<String> lines,
+    final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
     throw Exception('Simulated failure');
@@ -274,9 +274,9 @@ base class LogCollector extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<String> lines,
+    final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
-    logs.addAll(lines);
+    logs.addAll(lines.map((final l) => l.text));
   }
 }

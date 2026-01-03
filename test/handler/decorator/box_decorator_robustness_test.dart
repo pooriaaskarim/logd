@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/core/utils.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -8,7 +7,7 @@ void main() {
         'BoxDecorator with PlainFormatter and long message should '
         'not break the box', () {
       const formatter = PlainFormatter();
-      final box = BoxDecorator(lineLength: 40, useColors: false);
+      final box = BoxDecorator(lineLength: 40);
 
       const entry = LogEntry(
         loggerName: 'test',
@@ -22,14 +21,14 @@ void main() {
       );
 
       final formatted = formatter.format(entry);
-      final boxed = box.decorate(formatted, LogLevel.info).toList();
+      final boxed = box.decorate(formatted, entry).toList();
 
       // Check top/bottom border length
       final topWidth = boxed[0].visibleLength;
 
       for (int i = 0; i < boxed.length; i++) {
         final line = boxed[i];
-        print('Line $i: ${line.visibleLength} chars | $line');
+        print('Line $i: ${line.visibleLength} chars | ${line.text}');
         expect(
           line.visibleLength,
           equals(topWidth),
@@ -43,7 +42,7 @@ void main() {
         'BoxDecorator with JsonFormatter (long line) should '
         'wrap internal content', () {
       const formatter = JsonFormatter();
-      final box = BoxDecorator(lineLength: 30, useColors: false);
+      final box = BoxDecorator(lineLength: 30);
 
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_will_push_json_over_the_limit',
@@ -55,7 +54,7 @@ void main() {
       );
 
       final formatted = formatter.format(entry);
-      final boxed = box.decorate(formatted, LogLevel.error).toList();
+      final boxed = box.decorate(formatted, entry).toList();
 
       for (int i = 0; i < boxed.length; i++) {
         final line = boxed[i];

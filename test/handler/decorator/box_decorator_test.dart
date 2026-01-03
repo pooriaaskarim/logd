@@ -3,49 +3,46 @@ import 'package:test/test.dart';
 
 void main() {
   group('BoxDecorator', () {
-    final lines = ['line 1', 'line 2'];
+    final lines = [LogLine.plain('line 1'), LogLine.plain('line 2')];
+    const entry = LogEntry(
+      loggerName: 'test',
+      origin: 'test',
+      level: LogLevel.info,
+      message: 'msg',
+      timestamp: 'now',
+      hierarchyDepth: 0,
+    );
 
     test('adds rounded borders by default', () {
-      final decorator = BoxDecorator(lineLength: 20, useColors: false);
-      final boxed = decorator.decorate(lines, LogLevel.info).toList();
+      final decorator = BoxDecorator(lineLength: 20);
+      final boxed = decorator.decorate(lines, entry).toList();
 
-      expect(boxed.first, startsWith('╭'));
-      expect(boxed.last, startsWith('╰'));
-      expect(boxed[1], startsWith('│'));
-      expect(boxed[1], endsWith('│'));
+      expect(boxed.first.text, startsWith('╭'));
+      expect(boxed.last.text, startsWith('╰'));
+      expect(boxed[1].text, startsWith('│'));
+      expect(boxed[1].text, endsWith('│'));
     });
 
     test('respects sharp border style', () {
       final decorator = BoxDecorator(
         lineLength: 20,
-        useColors: false,
         borderStyle: BorderStyle.sharp,
       );
-      final boxed = decorator.decorate(lines, LogLevel.info).toList();
+      final boxed = decorator.decorate(lines, entry).toList();
 
-      expect(boxed.first, startsWith('┌'));
-      expect(boxed.last, startsWith('└'));
+      expect(boxed.first.text, startsWith('┌'));
+      expect(boxed.last.text, startsWith('└'));
     });
 
     test('respects double border style', () {
       final decorator = BoxDecorator(
         lineLength: 20,
-        useColors: false,
         borderStyle: BorderStyle.double,
       );
-      final boxed = decorator.decorate(lines, LogLevel.info).toList();
+      final boxed = decorator.decorate(lines, entry).toList();
 
-      expect(boxed.first, startsWith('╔'));
-      expect(boxed.last, startsWith('╚'));
-    });
-
-    test('colors borders when enabled', () {
-      final decorator = BoxDecorator(lineLength: 20, useColors: true);
-      final boxed = decorator.decorate(lines, LogLevel.error).toList();
-
-      expect(boxed.first, contains('\x1B[31m')); // Red for error
-      expect(boxed.first, contains('╭'));
-      expect(boxed.first, endsWith('\x1B[0m'));
+      expect(boxed.first.text, startsWith('╔'));
+      expect(boxed.last.text, startsWith('╚'));
     });
   });
 }

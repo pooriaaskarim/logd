@@ -56,7 +56,7 @@ class BoxFormatter implements LogFormatter {
   };
 
   @override
-  Iterable<String> format(final LogEntry entry) {
+  Iterable<LogLine> format(final LogEntry entry) {
     final innerWidth = _lineLength - 4;
     final content = <String>[
       ..._buildHeader(entry),
@@ -66,7 +66,7 @@ class BoxFormatter implements LogFormatter {
       if (entry.stackFrames != null)
         ..._buildStackTrace(entry.stackFrames!, innerWidth),
     ];
-    return _box(content, entry.level);
+    return _box(content, entry.level).map(LogLine.plain);
   }
 
   List<String> _buildHeader(final LogEntry entry) {

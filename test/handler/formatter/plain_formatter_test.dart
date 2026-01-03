@@ -18,7 +18,7 @@ void main() {
 
       expect(lines.length, equals(1));
       expect(
-        lines.first,
+        lines.first.text,
         equals('[INFO] 2025-01-01 12:00:00 [test.logger] Hello World'),
       );
     });
@@ -31,7 +31,7 @@ void main() {
       );
       final lines = formatter.format(entry).toList();
 
-      expect(lines.first, equals('[test.logger] Hello World'));
+      expect(lines.first.text, equals('[test.logger] Hello World'));
     });
 
     test('includes error and stack trace', () {
@@ -50,8 +50,8 @@ void main() {
       final lines = formatter.format(errorEntry).toList();
 
       expect(lines.length, equals(3));
-      expect(lines[1], equals('Error: Some error'));
-      expect(lines[2], contains('stack line 1'));
+      expect(lines[1].text, equals('Error: Some error'));
+      expect(lines[2].text, contains('stack line 1'));
     });
   });
 }

@@ -7,7 +7,7 @@ base class ConsoleSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<String> lines,
+    final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
     if (!enabled) {

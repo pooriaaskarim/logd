@@ -34,13 +34,16 @@ void _runDemo() {
     // StructuredFormatter handles the layout (origin, metadata, wrapping)
     formatter: StructuredFormatter(lineLength: 80),
     decorators: [
-      // BoxDecorator adds the visual frame (now robustly handles long lines)
+      // AnsiColorDecorator adds level-based coloring to the content (before boxing)
+      const AnsiColorDecorator(
+        useColors: true,
+      ),
+      // BoxDecorator adds the visual frame (border color is handled internally)
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 80,
+        useColors: true,
       ),
-      // AnsiColorDecorator adds level-based coloring
-      const AnsiColorDecorator(),
     ],
     sink: const ConsoleSink(),
   );
@@ -80,18 +83,38 @@ void _runDemo() {
     'User profile updated successfully.',
   );
 
-  // 3. Hierarchical Logging
+  // 3. Hierarchical Logging & Indentation
   // Loggers inherit configuration from their parents.
-  print('\n--- 3. Hierarchical Inheritance ---');
+  // We use HierarchyDepthPrefixDecorator to visually show the depth.
+  print('\n--- 3. Hierarchical Indentation ---');
+
+  final hierarchicalHandler = Handler(
+    formatter: StructuredFormatter(lineLength: 80),
+    decorators: [
+      const AnsiColorDecorator(useColors: true, colorHeaderBackground: true),
+      BoxDecorator(
+        borderStyle: BorderStyle.sharp,
+        lineLength: 80,
+        useColors: true,
+      ),
+      const HierarchyDepthPrefixDecorator(indent: '│ '),
+    ],
+    sink: const ConsoleSink(),
+  );
 
   Logger.configure(
     'example.service',
-    logLevel: LogLevel.warning, // Stricter than parent
+    handlers: [hierarchicalHandler],
+    logLevel: LogLevel.trace,
   );
 
-  final serviceLogger = Logger.get('example.service.database');
-  serviceLogger.info('This will NOT be logged (info < warning)');
-  serviceLogger.error('Critical database connection failure!');
+  final rootService = Logger.get('example.service');
+  final dbService = Logger.get('example.service.database');
+  final cacheService = Logger.get('example.service.database.cache');
+
+  rootService.info('General service message');
+  dbService.debug('Database query initiated...');
+  cacheService.trace('Cache hit for key: user_123');
 
   // 4. Multi-line Buffers
   // Send atomic multi-line logs without interleaving.

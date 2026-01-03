@@ -16,6 +16,8 @@ import '../time/timestamp.dart';
 part 'decorator/ansi_color_decorator.dart';
 part 'decorator/box_decorator.dart';
 part 'decorator/decorator.dart';
+part 'decorator/hierarchy_depth_prefix_decorator.dart';
+part 'decorator/prefix_decorator.dart';
 part 'filter/filter.dart';
 part 'filter/level_filter.dart';
 part 'filter/regex_filter.dart';
@@ -65,10 +67,11 @@ class Handler {
     if (filters.any((final filter) => !filter.shouldLog(entry))) {
       return;
     }
-    var lines = formatter.format(entry);
+    Iterable<LogLine> lines = formatter.format(entry);
 
+    // Apply decorators in the order they were defined
     for (final decorator in decorators) {
-      lines = decorator.decorate(lines, entry.level);
+      lines = decorator.decorate(lines, entry);
     }
 
     if (lines.isNotEmpty) {
@@ -92,4 +95,71 @@ class Handler {
       sink.hashCode ^
       Object.hashAll(filters) ^
       Object.hashAll(decorators);
+}
+
+/// Represents a single line in a log output, annotated with semantic tags.
+@immutable
+class LogLine {
+  /// Creates a [LogLine].
+  const LogLine(this.text, {this.tags = const {}});
+
+  /// Creates a [LogLine] from a string without any tags.
+  factory LogLine.plain(final String text) => LogLine(text);
+
+  /// The textual content of the line.
+  final String text;
+
+  /// Semantic tags describing the content of the line.
+  final Set<LogLineTag> tags;
+
+  /// The visible width of the line, excluding ANSI escape sequences.
+  int get visibleLength => text.visibleLength;
+
+  @override
+  String toString() => text;
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is LogLine &&
+          runtimeType == other.runtimeType &&
+          text == other.text &&
+          _setEquals(tags, other.tags);
+
+  @override
+  int get hashCode => text.hashCode ^ Object.hashAll(tags);
+
+  bool _setEquals<T>(final Set<T> a, final Set<T> b) {
+    if (a.length != b.length) {
+      return false;
+    }
+    return a.containsAll(b);
+  }
+}
+
+// LogLineTag stays here
+enum LogLineTag {
+  /// General metadata like timestamp, level, or logger name.
+  header,
+
+  /// Information about where the log was emitted (file, line, function).
+  origin,
+
+  /// The primary log message body.
+  message,
+
+  /// Error information (exception message).
+  error,
+
+  /// Individual frame in a stack trace.
+  stackFrame,
+
+  /// Structural lines like box borders or dividers.
+  border,
+
+  /// Indicates the line already contains ANSI color/style codes.
+  ansiColored,
+
+  /// Indicates the line is already enclosed in a box.
+  boxed,
 }

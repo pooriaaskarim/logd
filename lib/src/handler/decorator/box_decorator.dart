@@ -17,7 +17,7 @@ part of '../handler.dart';
 /// )
 /// ```
 @immutable
-final class BoxDecorator implements LogDecorator {
+final class BoxDecorator extends StructuralDecorator {
   /// Creates a [BoxDecorator] with customizable styling.
   ///
   /// - [useColors]: Whether to use ANSI colors for borders
@@ -32,20 +32,15 @@ final class BoxDecorator implements LogDecorator {
     this.borderStyle = BorderStyle.rounded,
   });
 
-  /// Explicit control over ANSI color usage.
-  ///
-  /// If `null`, colors are enabled only if stdout supports ANSI escapes.
-  final bool? useColors;
-
-  /// The width of the box.
-  ///
-  /// If `null`, it will attempt to detect the terminal width at runtime.
-  final int? lineLength;
-
   /// The visual style of the box borders.
   final BorderStyle borderStyle;
 
-  late final bool _useColors = useColors ?? io.stdout.supportsAnsiEscapes;
+  /// The maximum max width of the box.
+  final int? lineLength;
+
+  /// Whether to apply colors to the border.
+  final bool? useColors;
+
   late final int _lineLength = lineLength ??
       (io.stdout.hasTerminal ? io.stdout.terminalColumns - 4 : 80);
 
@@ -59,11 +54,14 @@ final class BoxDecorator implements LogDecorator {
   };
 
   @override
-  Iterable<String> decorate(
-    final Iterable<String> lines,
-    final LogLevel level,
-  ) {
-    final color = _useColors ? _levelColors[level] ?? '' : '';
+  Iterable<LogLine> decorate(
+    final Iterable<LogLine> lines,
+    final LogEntry entry,
+  ) sync* {
+    final enabled = useColors ?? io.stdout.supportsAnsiEscapes;
+    final color = enabled ? (_levelColors[entry.level] ?? '') : '';
+    final reset = enabled ? _ansiReset : '';
+
     String topLeft, topRight, bottomLeft, bottomRight, horizontal, vertical;
 
     switch (borderStyle) {
@@ -93,23 +91,47 @@ final class BoxDecorator implements LogDecorator {
         break;
     }
 
-    final reset = _useColors ? _ansiReset : '';
-    final top = '$color$topLeft${horizontal * _lineLength}$topRight$reset';
-    final bottom =
-        '$color$bottomLeft${horizontal * _lineLength}$bottomRight$reset';
+    final borderTags = {
+      LogLineTag.border,
+      LogLineTag.boxed,
+      if (enabled) LogLineTag.ansiColored,
+    };
 
-    final boxed = <String>[top];
+    final top = LogLine(
+      '$color$topLeft${horizontal * _lineLength}$topRight$reset',
+      tags: borderTags,
+    );
+    final bottom = LogLine(
+      '$color$bottomLeft${horizontal * _lineLength}$bottomRight$reset',
+      tags: borderTags,
+    );
+
+    final boxed = <LogLine>[top];
     for (final line in lines) {
-      for (final rawLine in line.split('\n')) {
-        for (final wrapped in rawLine.wrapVisible(_lineLength)) {
+      // Idempotency: Skip if already boxed
+      // (This prevents nested boxes if a line is already part of one)
+      if (line.tags.contains(LogLineTag.boxed)) {
+        yield line;
+        continue;
+      }
+
+      // Robustness: Split by newline in case line.text has them
+      final textLines = line.text.split('\n');
+      for (final textLine in textLines) {
+        for (final wrapped in textLine.wrapVisible(_lineLength)) {
           final padded = wrapped.padVisible(_lineLength);
-          boxed.add('$color$vertical$reset$padded$color$vertical$reset');
+          boxed.add(
+            LogLine(
+              '$color$vertical$reset$padded$color$vertical$reset',
+              tags: {...line.tags, ...borderTags},
+            ),
+          );
         }
       }
     }
     boxed.add(bottom);
 
-    return boxed;
+    yield* boxed;
   }
 
   @override
