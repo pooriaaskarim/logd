@@ -8,10 +8,9 @@ part of '../handler.dart';
 abstract interface class LogFormatter {
   const LogFormatter();
 
-  /// Formats the [entry] into an [Iterable] of strings.
+  /// Formats the [entry] into an [Iterable] of [LogLine]s.
   ///
   /// Using [Iterable] enables lazy evaluation and efficient processing when
-  /// chaining multiple formatters or applying decorators. Each string in the
-  /// iterable typically represents a single line of output.
-  Iterable<String> format(final LogEntry entry);
+  /// chaining multiple formatters or applying decorators.
+  Iterable<LogLine> format(final LogEntry entry);
 }

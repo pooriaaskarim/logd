@@ -4,17 +4,22 @@ part of '../handler.dart';
 ///
 /// Colors are applied based on the [LogLevel] severity. This is useful for
 /// enhancing readability in terminal environments that support ANSI colors.
-class AnsiColorDecorator implements LogDecorator {
+@immutable
+final class AnsiColorDecorator extends VisualDecorator {
   /// Creates an [AnsiColorDecorator].
   ///
   /// If [useColors] is `null`, it will attempt to auto-detect terminal support
   /// using `io.stdout.supportsAnsiEscapes`.
   const AnsiColorDecorator({
     this.useColors,
+    this.colorHeaderBackground = false,
   });
 
   /// Explicit override for enabling or disabling ANSI colors.
   final bool? useColors;
+
+  /// Whether to use a background color for the header line.
+  final bool colorHeaderBackground;
 
   static const _ansiReset = '\x1B[0m';
   static final _levelColors = {
@@ -26,9 +31,9 @@ class AnsiColorDecorator implements LogDecorator {
   };
 
   @override
-  Iterable<String> decorate(
-    final Iterable<String> lines,
-    final LogLevel level,
+  Iterable<LogLine> decorate(
+    final Iterable<LogLine> lines,
+    final LogEntry entry,
   ) sync* {
     final enabled = useColors ?? io.stdout.supportsAnsiEscapes;
     if (!enabled) {
@@ -36,9 +41,48 @@ class AnsiColorDecorator implements LogDecorator {
       return;
     }
 
-    final color = _levelColors[level] ?? '';
+    final level = entry.level;
+    final baseColor = _levelColors[level] ?? '';
+
     for (final line in lines) {
-      yield '$color$line$_ansiReset';
+      // Idempotency: Skip if already colored
+      if (line.tags.contains(LogLineTag.ansiColored)) {
+        yield line;
+        continue;
+      }
+
+      String coloredText;
+      if (line.tags.contains(LogLineTag.header)) {
+        if (colorHeaderBackground) {
+          // Headers with background: Bold + Level Color + Inverse/Background
+          coloredText = '\x1B[1m\x1B[7m$baseColor${line.text}$_ansiReset';
+        } else {
+          // Headers: Bold + Level color
+          coloredText = '\x1B[1m$baseColor${line.text}$_ansiReset';
+        }
+      } else if (line.tags.contains(LogLineTag.border)) {
+        // Borders: Pure level color
+        coloredText = '$baseColor${line.text}$_ansiReset';
+      } else if (line.tags.contains(LogLineTag.stackFrame)) {
+        // Stack frames: Dimmed (grey)
+        coloredText = '\x1B[90m${line.text}$_ansiReset';
+      } else {
+        // Message/Content: Pure level color
+        coloredText = '$baseColor${line.text}$_ansiReset';
+      }
+
+      yield LogLine(coloredText, tags: {...line.tags, LogLineTag.ansiColored});
     }
   }
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is AnsiColorDecorator &&
+          runtimeType == other.runtimeType &&
+          useColors == other.useColors &&
+          colorHeaderBackground == other.colorHeaderBackground;
+
+  @override
+  int get hashCode => useColors.hashCode ^ colorHeaderBackground.hashCode;
 }

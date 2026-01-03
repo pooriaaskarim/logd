@@ -5,12 +5,12 @@ part of '../handler.dart';
 ///
 /// The output is compact and suitable for machine parsing or structured logging
 /// backends.
-class JsonFormatter implements LogFormatter {
+final class JsonFormatter implements LogFormatter {
   /// Creates a [JsonFormatter].
   const JsonFormatter();
 
   @override
-  Iterable<String> format(final LogEntry entry) sync* {
+  Iterable<LogLine> format(final LogEntry entry) sync* {
     final map = {
       'timestamp': entry.timestamp,
       'level': entry.level.name,
@@ -20,7 +20,7 @@ class JsonFormatter implements LogFormatter {
       if (entry.error != null) 'error': entry.error.toString(),
       if (entry.stackTrace != null) 'stackTrace': entry.stackTrace.toString(),
     };
-    yield jsonEncode(map);
+    yield LogLine(jsonEncode(map), tags: const {LogLineTag.message});
   }
 }
 
@@ -29,12 +29,12 @@ class JsonFormatter implements LogFormatter {
 ///
 /// The output includes indentation and newlines, making it more readable for
 /// humans.
-class JsonPrettyFormatter implements LogFormatter {
+final class JsonPrettyFormatter implements LogFormatter {
   /// Creates a [JsonPrettyFormatter].
   const JsonPrettyFormatter();
 
   @override
-  Iterable<String> format(final LogEntry entry) sync* {
+  Iterable<LogLine> format(final LogEntry entry) sync* {
     final map = {
       'timestamp': entry.timestamp,
       'level': entry.level.name,
@@ -44,6 +44,9 @@ class JsonPrettyFormatter implements LogFormatter {
       if (entry.error != null) 'error': entry.error.toString(),
       if (entry.stackTrace != null) 'stackTrace': entry.stackTrace.toString(),
     };
-    yield const JsonEncoder.withIndent('  ').convert(map);
+    final json = const JsonEncoder.withIndent('  ').convert(map);
+    for (final line in json.split('\n')) {
+      yield LogLine(line, tags: const {LogLineTag.message});
+    }
   }
 }

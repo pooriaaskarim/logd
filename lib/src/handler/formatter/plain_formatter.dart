@@ -8,7 +8,7 @@ part of '../handler.dart';
 /// Example output:
 /// `[INFO] 2025-01-01 10:00:00 [main] Hello, World!`
 @immutable
-class PlainFormatter implements LogFormatter {
+final class PlainFormatter implements LogFormatter {
   /// Creates a [PlainFormatter] with customizable output components.
   const PlainFormatter({
     this.includeLevel = true,
@@ -26,7 +26,7 @@ class PlainFormatter implements LogFormatter {
   final bool includeLoggerName;
 
   @override
-  Iterable<String> format(final LogEntry entry) sync* {
+  Iterable<LogLine> format(final LogEntry entry) sync* {
     final buffer = StringBuffer();
 
     if (includeLevel) {
@@ -43,14 +43,22 @@ class PlainFormatter implements LogFormatter {
 
     buffer.write(entry.message);
 
-    yield buffer.toString();
+    yield LogLine(
+      buffer.toString(),
+      tags: const {LogLineTag.header, LogLineTag.message},
+    );
 
     if (entry.error != null) {
-      yield 'Error: ${entry.error}';
+      yield LogLine('Error: ${entry.error}', tags: const {LogLineTag.error});
     }
 
     if (entry.stackTrace != null) {
-      yield entry.stackTrace.toString();
+      final traceLines = entry.stackTrace.toString().split('\n');
+      for (final line in traceLines) {
+        if (line.trim().isNotEmpty) {
+          yield LogLine(line, tags: const {LogLineTag.stackFrame});
+        }
+      }
     }
   }
 

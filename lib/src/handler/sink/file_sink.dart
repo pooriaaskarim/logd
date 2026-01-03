@@ -354,7 +354,7 @@ base class FileSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<String> lines,
+    final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
     if (!enabled) {
@@ -371,7 +371,7 @@ base class FileSink extends LogSink {
       if (linesList.isEmpty) {
         return;
       }
-      final newData = '${linesList.join('\n')}\n';
+      final newData = '${linesList.map((final l) => l.text).join('\n')}\n';
 
       File targetFile = file;
       if (fileRotation != null &&

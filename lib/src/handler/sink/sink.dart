@@ -22,7 +22,7 @@ abstract base class LogSink {
   /// lines, which can be used by the sink for destination-specific logic (e.g.,
   /// using different output streams for errors).
   Future<void> output(
-    final Iterable<String> lines,
+    final Iterable<LogLine> lines,
     final LogLevel level,
   );
 }

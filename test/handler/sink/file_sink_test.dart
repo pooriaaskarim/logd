@@ -181,7 +181,10 @@ void main() {
 
     test('output writes to file', () async {
       final sink = FileSink('test.log');
-      await sink.output(['Hello', 'World'], LogLevel.info);
+      await sink.output(
+        [LogLine.plain('Hello'), LogLine.plain('World')],
+        LogLevel.info,
+      );
 
       final file = fs.files['test.log']!;
       expect(await file.exists(), isTrue);
@@ -194,13 +197,13 @@ void main() {
       final sink = FileSink('app.log', fileRotation: rotation);
 
       // 10:00 - Log 1
-      await sink.output(['Log 1'], LogLevel.info);
+      await sink.output([LogLine.plain('Log 1')], LogLevel.info);
       final file = fs.files['app.log']!;
       expect(utf8.decode(file.content), contains('Log 1'));
 
       // 12:00 - Log 2 (Should rotate)
       clock.set(DateTime(2025, 1, 1, 12, 0));
-      await sink.output(['Log 2'], LogLevel.info);
+      await sink.output([LogLine.plain('Log 2')], LogLevel.info);
 
       final currentFile = fs.files['app.log']!;
       // Current file has Log 2 only
@@ -220,12 +223,12 @@ void main() {
       final sink = FileSink('size.log', fileRotation: rotation);
 
       // '123456' + \n = 7 bytes
-      await sink.output(['123456'], LogLevel.info);
+      await sink.output([LogLine.plain('123456')], LogLevel.info);
       final file = fs.files['size.log']!;
       expect(await file.length(), equals(7));
 
       // Append 5 bytes ('7890' + \n) -> 12 bytes total > 10 -> Rotate
-      await sink.output(['7890'], LogLevel.info);
+      await sink.output([LogLine.plain('7890')], LogLevel.info);
 
       final currentFile = fs.files['size.log']!;
       // Current file has new data only
@@ -254,7 +257,7 @@ void main() {
       await b2.writeAsString('old 2');
 
       // Now trigger rotation
-      await sink.output(['trigger'], LogLevel.info);
+      await sink.output([LogLine.plain('trigger')], LogLevel.info);
 
       // We expect:
       // clean.1.log: 'trigger' (moved from current)
@@ -272,8 +275,8 @@ void main() {
       final rotation = SizeRotation(maxSize: '5 B', compress: true);
       final sink = FileSink('gzip.log', fileRotation: rotation);
 
-      await sink.output(['data'], LogLevel.info);
-      await sink.output(['rotate'], LogLevel.info);
+      await sink.output([LogLine.plain('data')], LogLevel.info);
+      await sink.output([LogLine.plain('rotate')], LogLevel.info);
 
       // Current file is 'rotate\n'
       expect(utf8.decode(fs.files['gzip.log']!.content), equals('rotate\n'));
@@ -294,11 +297,11 @@ void main() {
       final sink = FileSink('time_clean.log', fileRotation: rotation);
 
       // 10:00 - Initial log
-      await sink.output(['Initial'], LogLevel.info);
+      await sink.output([LogLine.plain('Initial')], LogLevel.info);
 
       // Next Day 11:00 - First rotation
       clock.set(DateTime(2025, 1, 2, 11, 0));
-      await sink.output(['Second'], LogLevel.info);
+      await sink.output([LogLine.plain('Second')], LogLevel.info);
 
       // Rotated: time_clean-2025-01-01.log (based on lastRotation=Jan 1)
       const jan1Backup = 'time_clean-2025-01-01.log';
@@ -306,7 +309,7 @@ void main() {
 
       // Next Day 12:00 - Second rotation
       clock.set(DateTime(2025, 1, 3, 12, 0));
-      await sink.output(['Third'], LogLevel.info);
+      await sink.output([LogLine.plain('Third')], LogLevel.info);
 
       // Rotated: time_clean-2025-01-02.log (based on lastRotation=Jan 2)
       const jan2Backup = 'time_clean-2025-01-02.log';
@@ -330,8 +333,8 @@ void main() {
       await unrelated.writeAsString('I should stay');
 
       // Trigger rotation
-      await sink.output(['data'], LogLevel.info);
-      await sink.output(['rotate'], LogLevel.info);
+      await sink.output([LogLine.plain('data')], LogLevel.info);
+      await sink.output([LogLine.plain('rotate')], LogLevel.info);
 
       expect(fs.files.containsKey('random.txt'), isTrue);
     });

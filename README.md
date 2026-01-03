@@ -109,7 +109,7 @@ final jsonHandler = Handler(
     'logs/app.log',
     fileRotation: TimeRotation(
       interval: Duration(days: 1),
-      nameFormatter: Timestamp(formatter: 'yyyy-MM-dd'),
+      timestamp: Timestamp(formatter: 'yyyy-MM-dd'),
       backupCount: 7,
       compress: true,
     ),
@@ -141,9 +141,14 @@ Send logs to multiple destinations simultaneously:
 
 ```dart
 final consoleHandler = Handler(
-  formatter: BoxFormatter(useColors: true),
+  formatter: StructuredFormatter(),
+  decorators: [
+    BoxDecorator(useColors: true),
+    AnsiColorDecorator(),
+  ],
   sink: ConsoleSink(),
 );
+// Note: Decorators are auto-sorted by type for optimal composition
 
 final fileHandler = Handler(
   formatter: PlainFormatter(),
@@ -236,7 +241,7 @@ FileSink(
   'logs/app.log',
   fileRotation: TimeRotation(
     interval: Duration(hours: 1),
-    nameFormatter: Timestamp(formatter: 'yyyy-MM-dd_HH'),
+    timestamp: Timestamp(formatter: 'yyyy-MM-dd_HH'),
     backupCount: 24,
   ),
 )
@@ -262,10 +267,22 @@ Logger.get('app').freezeInheritance();
 ### Development Console Logging
 
 ```dart
-// Colorful boxed output for terminal
+// Hierarchy-aware, colored, and boxed output for terminal
 Logger.configure('global', handlers: [
   Handler(
-    formatter: BoxFormatter(useColors: true, borderStyle: BorderStyle.rounded),
+    formatter: StructuredFormatter(),
+    decorators: [
+      // Auto-sorted by type: Visual -> Structural (Box -> Hierarchy)
+      const AnsiColorDecorator(
+        useColors: true,
+        colorHeaderBackground: true,
+      ),
+      BoxDecorator(
+        borderStyle: BorderStyle.rounded,
+        useColors: true,
+      ),
+      const HierarchyDepthPrefixDecorator(indent: '│ '),
+    ],
     sink: ConsoleSink(),
   ),
 ]);

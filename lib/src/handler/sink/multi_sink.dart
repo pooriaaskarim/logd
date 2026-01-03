@@ -31,7 +31,7 @@ base class MultiSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<String> lines,
+    final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
     if (!enabled) {
@@ -53,7 +53,7 @@ base class MultiSink extends LogSink {
 
   Future<void> _safeOutput(
     final LogSink sink,
-    final List<String> lines,
+    final List<LogLine> lines,
     final LogLevel level,
   ) async {
     try {
