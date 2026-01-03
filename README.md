@@ -109,7 +109,7 @@ final jsonHandler = Handler(
     'logs/app.log',
     fileRotation: TimeRotation(
       interval: Duration(days: 1),
-      nameFormatter: Timestamp(formatter: 'yyyy-MM-dd'),
+      timestamp: Timestamp(formatter: 'yyyy-MM-dd'),
       backupCount: 7,
       compress: true,
     ),
@@ -141,7 +141,11 @@ Send logs to multiple destinations simultaneously:
 
 ```dart
 final consoleHandler = Handler(
-  formatter: BoxFormatter(useColors: true),
+  formatter: StructuredFormatter(),
+  decorators: [
+    BoxDecorator(useColors: true),
+    AnsiColorDecorator(),
+  ],
   sink: ConsoleSink(),
 );
 
@@ -236,7 +240,7 @@ FileSink(
   'logs/app.log',
   fileRotation: TimeRotation(
     interval: Duration(hours: 1),
-    nameFormatter: Timestamp(formatter: 'yyyy-MM-dd_HH'),
+    timestamp: Timestamp(formatter: 'yyyy-MM-dd_HH'),
     backupCount: 24,
   ),
 )
@@ -265,7 +269,11 @@ Logger.get('app').freezeInheritance();
 // Colorful boxed output for terminal
 Logger.configure('global', handlers: [
   Handler(
-    formatter: BoxFormatter(useColors: true, borderStyle: BorderStyle.rounded),
+    formatter: StructuredFormatter(),
+    decorators: [
+      BoxDecorator(borderStyle: BorderStyle.rounded),
+      AnsiColorDecorator(),
+    ],
     sink: ConsoleSink(),
   ),
 ]);

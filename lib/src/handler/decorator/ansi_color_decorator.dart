@@ -4,7 +4,7 @@ part of '../handler.dart';
 ///
 /// Colors are applied based on the [LogLevel] severity. This is useful for
 /// enhancing readability in terminal environments that support ANSI colors.
-class AnsiColorDecorator implements LogDecorator {
+final class AnsiColorDecorator implements LogDecorator {
   /// Creates an [AnsiColorDecorator].
   ///
   /// If [useColors] is `null`, it will attempt to auto-detect terminal support
@@ -38,7 +38,9 @@ class AnsiColorDecorator implements LogDecorator {
 
     final color = _levelColors[level] ?? '';
     for (final line in lines) {
-      yield '$color$line$_ansiReset';
+      for (final splitLine in line.split('\n')) {
+        yield '$color$splitLine$_ansiReset';
+      }
     }
   }
 }

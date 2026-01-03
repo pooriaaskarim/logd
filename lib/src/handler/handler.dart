@@ -14,6 +14,7 @@ import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
 
 part 'decorator/ansi_color_decorator.dart';
+part 'decorator/box_decorator.dart';
 part 'decorator/decorator.dart';
 part 'filter/filter.dart';
 part 'filter/level_filter.dart';
@@ -22,6 +23,7 @@ part 'formatter/box_formatter.dart';
 part 'formatter/formatter.dart';
 part 'formatter/json_formatter.dart';
 part 'formatter/plain_formatter.dart';
+part 'formatter/structured_formatter.dart';
 part 'sink/console_sink.dart';
 part 'sink/file_sink.dart';
 part 'sink/multi_sink.dart';

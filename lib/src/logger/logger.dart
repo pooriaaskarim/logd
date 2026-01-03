@@ -30,8 +30,9 @@ const _defaultStackTraceParser = StackTraceParser(
 );
 final _defaultHandlers = <Handler>[
   Handler(
-    formatter: BoxFormatter(),
+    formatter: StructuredFormatter(),
     sink: const ConsoleSink(),
+    decorators: [BoxDecorator()],
   ),
 ];
 

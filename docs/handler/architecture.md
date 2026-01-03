@@ -40,7 +40,8 @@ Filters are deeply efficient checks run before any string manipulation occurs. I
 **Output**: `Iterable<String>`
 
 The formatter transforms the structured log entry into a list of strings.
-- **BoxFormatter**: Draws ASCII borders around the message.
+- **StructuredFormatter**: Detailed layout (header, origin, message) without borders. **(Preferred)**
+- **BoxFormatter**: Draws ASCII borders around the message. **(Deprecated - use StructuredFormatter + BoxDecorator)**
 - **JsonFormatter**: precise JSON serialization.
 - **PlainFormatter**: Standard `[timestamp] level: message` format.
 
@@ -49,7 +50,11 @@ The formatter transforms the structured log entry into a list of strings.
 **Input**: `Iterable<String>`
 **Output**: `Iterable<String>`
 
-Decorators apply post-formatting transformations. This is commonly used for terminal coloring, where ANSI codes are injected around specific lines based on the log level.
+Decorators apply post-formatting transformations. They are composable and execute in the order they appear in the `decorators` list.
+- **BoxDecorator**: Adds ASCII borders around the lines. It is now decoupled from the layout logic.
+- **AnsiColorDecorator**: Adds level-based coloring.
+
+For a deep dive into how decorators interact, see [Decorator Composition](decorator_composition.md).
 
 ### Stage 4: Output (Sinking)
 **Component**: `LogSink`

@@ -8,7 +8,7 @@ part of '../handler.dart';
 /// Example output:
 /// `[INFO] 2025-01-01 10:00:00 [main] Hello, World!`
 @immutable
-class PlainFormatter implements LogFormatter {
+final class PlainFormatter implements LogFormatter {
   /// Creates a [PlainFormatter] with customizable output components.
   const PlainFormatter({
     this.includeLevel = true,

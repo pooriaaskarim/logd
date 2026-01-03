@@ -5,7 +5,7 @@ part of '../handler.dart';
 ///
 /// The output is compact and suitable for machine parsing or structured logging
 /// backends.
-class JsonFormatter implements LogFormatter {
+final class JsonFormatter implements LogFormatter {
   /// Creates a [JsonFormatter].
   const JsonFormatter();
 
@@ -29,7 +29,7 @@ class JsonFormatter implements LogFormatter {
 ///
 /// The output includes indentation and newlines, making it more readable for
 /// humans.
-class JsonPrettyFormatter implements LogFormatter {
+final class JsonPrettyFormatter implements LogFormatter {
   /// Creates a [JsonPrettyFormatter].
   const JsonPrettyFormatter();
 

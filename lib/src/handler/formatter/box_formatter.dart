@@ -5,6 +5,11 @@ part of '../handler.dart';
 /// This formatter provides a highly visual output by enclosing the log message
 /// and its metadata (timestamp, level, origin) within a styled border. It
 /// supports auto-wrapping, ANSI colors, and multiple border styles.
+@Deprecated(
+  'Use StructuredFormatter with BoxDecorator instead. '
+  'Example: Handler(formatter: StructuredFormatter(),'
+  ' decorators: [BoxDecorator(),],)',
+)
 class BoxFormatter implements LogFormatter {
   /// Creates a [BoxFormatter] with customizable styling and constraints.
   ///
@@ -216,5 +221,3 @@ class BoxFormatter implements LogFormatter {
     return lines;
   }
 }
-
-enum BorderStyle { rounded, sharp, double }
