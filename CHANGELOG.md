@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0: Context-Aware Decorators & Visual Refinement
+- ### Context-Aware Decoration Pipeline
+  - **Full Context Access:** `LogDecorator.decorate()` now accepts the full `LogEntry` object, granting decorators access to metadata like `hierarchyDepth`, `tags`, and `loggerName` for smarter transformations.
+  - **Automatic Composition Control:** The `Handler` automatically sorts decorators by type (Transform → Visual → Structural) to ensure correct visual composition, with deduplication to prevent redundant processing.
+- ### Visual Refinements
+  - **Independent Coloring:** `BoxDecorator` now supports its own `useColors` parameter, allowing the structural border to be colored independently of the content. `AnsiColorDecorator` can now be focused purely on content styling.
+  - **Header Highlights:** `AnsiColorDecorator` adds a `colorHeaderBackground` option to apply bold background colors specifically to log headers, improving scannability in dense logs without bleeding into structural elements.
+  - **Hierarchy Visualization:** Introduced `HierarchyDepthPrefixDecorator` (formerly experimented as `TreeDecorator`). It adds visual indentation (defaulting to `│ `) based on the logger's hierarchy depth, creating a clear tree-like structure in the terminal.
+- ### API & Robustness
+  - **Simplified BoxDecorator:** Removed internal complexity from `BoxDecorator`, making it a pure `StructuralDecorator` focused on layout.
+  - **Robustness Tests:** Expanded test suite to cover deep decorator composition, ensuring that complex chains (Color -> Box -> Indent) render correctly without layout artifacts.
+
 ## 0.3.1: Logger Architecture Refactor & Performance Optimization + Critical Bug Fix
 
 - ### Bug Fix: Corrupted Pure Dart support fixed
