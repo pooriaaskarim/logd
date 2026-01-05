@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/handler/handler.dart';
 import 'package:test/test.dart';
 
 // Mock Sink to capture output
@@ -14,7 +13,7 @@ final class MemorySink extends LogSink {
     final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
-    buffer.addAll(lines.map((l) => l.text));
+    buffer.addAll(lines.map((final l) => l.text));
   }
 }
 
@@ -48,7 +47,7 @@ void main() {
         hierarchyDepth: 1,
       );
 
-      handler.log(entry);
+      await handler.log(entry);
 
       // Expected Result Pipeline:
       // 1. Ansi: Colors 'msg' -> \x1B[32mmsg\x1B[0m
@@ -65,8 +64,8 @@ void main() {
       expect(top, startsWith('>> '));
 
       // Check Box Border Color (Inner)
-      // Should contain Green color code for border
-      expect(top, contains('\x1B[32m╭'));
+      // Info level now defaults to blue (was green)
+      expect(top, contains('\x1B[34m╭'));
     });
 
     test('Dedupes decorators', () async {
@@ -75,9 +74,9 @@ void main() {
       final handler = Handler(
         sink: sink,
         formatter: StructuredFormatter(),
-        decorators: [
-          const AnsiColorDecorator(useColors: true),
-          const AnsiColorDecorator(useColors: true),
+        decorators: const [
+          AnsiColorDecorator(useColors: true),
+          AnsiColorDecorator(useColors: true),
         ],
       );
 
@@ -90,21 +89,23 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      handler.log(entry);
+      await handler.log(entry);
 
-      final line = sink.buffer.firstWhere((l) => l.contains('msg'));
+      final line = sink.buffer.firstWhere((final l) => l.contains('msg'));
 
       // If applied twice, we might see double codes or just one if idempotent.
       // AnsiColorDecorator IS idempotent check tags.
       // But verify strictly that `decorate` wasn't called redundant times?
-      // Actually, idempotency inside decorator handles it, but deduping in handler
-      // prevents the loop entirely.
-      // Let's rely on the fact that if it wasn't deduped, we might expect slightly
-      // different behavior or at least performance penalty.
-      // But here we just want to ensure it works and doesn't crash or duplicate output weirdly.
+      // Actually, idempotency inside decorator handles it, but deduping in
+      // handler prevents the loop entirely.
+      // Let's rely on the fact that if it wasn't deduped, we might expect
+      // slightly different behavior or at least performance penalty.
+      // But here we just want to ensure it works and doesn't crash or
+      // duplicate output weirdly.
 
       // Formatter adds prefix '----|' to message
-      expect(line, contains('\x1B[32m----|msg\x1B[0m'));
+      // Info level now defaults to blue (was green)
+      expect(line, contains('\x1B[34m----|msg\x1B[0m'));
     });
   });
 }

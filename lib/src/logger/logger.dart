@@ -21,7 +21,7 @@ const _defaultStackMethodCount = {
   LogLevel.error: 8,
 };
 final _defaultTimestamp = Timestamp(
-  formatter: 'yyyy.MMM.dd\nZZ HH:mm:ss.SSS',
+  formatter: 'yyyy.MMM.dd Z HH:mm:ss.SSS',
   timezone: Timezone.local(),
 );
 

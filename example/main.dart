@@ -91,7 +91,10 @@ void _runDemo() {
   final hierarchicalHandler = Handler(
     formatter: StructuredFormatter(lineLength: 80),
     decorators: [
-      const AnsiColorDecorator(useColors: true, colorHeaderBackground: true),
+      const AnsiColorDecorator(
+        useColors: true,
+        config: AnsiColorConfig(headerBackground: true),
+      ),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
         lineLength: 80,

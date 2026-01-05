@@ -27,25 +27,18 @@ final class PlainFormatter implements LogFormatter {
 
   @override
   Iterable<LogLine> format(final LogEntry entry) sync* {
-    final buffer = StringBuffer();
-
-    if (includeLevel) {
-      buffer.write('[${entry.level.name.toUpperCase()}] ');
-    }
-
-    if (includeTimestamp) {
-      buffer.write('${entry.timestamp} ');
-    }
-
-    if (includeLoggerName) {
-      buffer.write('[${entry.loggerName}] ');
-    }
-
-    buffer.write(entry.message);
-
+    //Todo: Decide on how to process multi-line messages
     yield LogLine(
-      buffer.toString(),
-      tags: const {LogLineTag.header, LogLineTag.message},
+      '${includeLevel ? '[${entry.level.name.toUpperCase()}] ' : ''}'
+              '${includeTimestamp ? '${entry.timestamp} ' : ''}'
+              '${includeLoggerName ? '[${entry.loggerName}] ' : ''}'
+              '${entry.message}'
+          .split('\n')
+          .join(' '),
+      tags: const {
+        LogLineTag.header,
+        LogLineTag.message,
+      },
     );
 
     if (entry.error != null) {

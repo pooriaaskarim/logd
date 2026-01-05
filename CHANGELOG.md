@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.1: Handler Robustness & Stability
+- ### Critical Bug Fixes
+  - **FileSink Race Condition:** Implemented mutex-based synchronization to serialize concurrent writes, preventing data loss during rapid logging
+  - **TimeRotation Accuracy:** Fixed timestamp tracking by updating `lastRotation` after successful writes, ensuring correct rotation triggers
+  - **Rotation Error Resilience:** Enhanced error handling to continue writing to original file when rotation fails, preventing data loss
+  - **BoxDecorator Width:** Fixed internal content width calculation (`lineLength - 2`) and added width clamping to prevent crashes
+  - **PlainFormatter Multi-line:** Now joins multi-line messages to prevent format breaks in file logs
+- ### ANSI Code Handling
+  - Added `wrapVisiblePreserveAnsi()` to maintain ANSI styles across line breaks, fixing style loss in wrapped content
+  - Added `padRightVisiblePreserveAnsi()` to ensure padding inherits styling, preventing visual gaps in colored headers
+  - Introduced `AnsiColorScheme` and `AnsiColorConfig` for structured color customization
+  - Replaced boolean `colorHeaderBackground` with explicit `AnsiColorConfig(headerBackground: true)`
+- ### Robustness & Idempotency
+  - Width clamping in `StructuredFormatter` and `BoxDecorator` prevents negative width crashes
+  - `BoxDecorator` idempotency check prevents nested box decorations
+  - Fixed `LogBuffer` to avoid unnecessary stack trace creation during sink
+- ### Examples & Documentation
+  - Added 17 comprehensive examples covering basic setups, formatters, decorators, sinks, filters, and edge cases
+  - Updated `docs/handler/README.md` with color customization and edge case handling info
+  - Added migration guide for `BoxFormatter` and color configuration changes
+- ### Test Coverage
+  - Added 13+ edge case test files validating concurrency, null handling, Unicode, ANSI codes, extreme widths, rotation timing, and error handling
+  - Over 2,400 new lines of test code ensuring robust behavior under edge conditions
+
 ## 0.4.0: Context-Aware Decorators & Visual Refinement
 - ### Context-Aware Decoration Pipeline
   - **Full Context Access:** `LogDecorator.decorate()` now accepts the full `LogEntry` object, granting decorators access to metadata like `hierarchyDepth`, `tags`, and `loggerName` for smarter transformations.

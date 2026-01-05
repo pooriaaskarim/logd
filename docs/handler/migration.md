@@ -69,6 +69,74 @@ final handler = Handler(
 | `borderStyle` | `BoxDecorator(borderStyle: ...)` |
 | `useColors` | `AnsiColorDecorator()` (Preferred) or `BoxDecorator(useColors: ...)` |
 
+### Color Customization (New in v0.5.0)
+
+With the new ANSI color infrastructure, you can customize colors for different use cases:
+
+```dart
+// Dark terminal theme
+final darkHandler = Handler(
+  formatter: StructuredFormatter(),
+  decorators: [
+    AnsiColorDecorator(colorScheme: AnsiColorScheme.darkScheme),
+    BoxDecorator(colorScheme: AnsiColorScheme.darkScheme),
+  ],
+  sink: ConsoleSink(),
+);
+
+// Custom colors
+final customScheme = AnsiColorScheme(
+  trace: AnsiColor.cyan,
+  info: AnsiColor.brightMagenta,
+  error: AnsiColor.brightRed,
+);
+
+final customHandler = Handler(
+  formatter: StructuredFormatter(),
+  decorators: [
+    AnsiColorDecorator(colorScheme: customScheme),
+    BoxDecorator(colorScheme: customScheme),
+  ],
+  sink: ConsoleSink(),
+);
+
+// Control which elements to color
+final selectiveHandler = Handler(
+  formatter: StructuredFormatter(),
+  decorators: [
+    AnsiColorDecorator(
+      config: AnsiColorConfig(
+        colorHeader: true,
+        colorBody: true,
+        colorBorder: false,  // Skip borders
+        colorStackFrame: true,
+      ),
+    ),
+  ],
+  sink: ConsoleSink(),
+);
+```
+
+#### Header Background Migration
+
+Old `AnsiColorDecorator(colorHeaderBackground: true)`:
+
+```dart
+// Old (deprecated)
+AnsiColorDecorator(
+  useColors: true,
+  colorHeaderBackground: true,  // Removed in v0.5.0
+);
+```
+
+```dart
+// New
+AnsiColorDecorator(
+  useColors: true,
+  config: AnsiColorConfig(headerBackground: true),
+);
+```
+
 ## Troubleshooting
 
 ### Box Alignment Issues

@@ -18,8 +18,9 @@ void main() {
       final decorated = decorator.decorate(lines, infoEntry).toList();
 
       expect(decorated.length, equals(2));
-      // Just check if it contains the color code and the text.
-      expect(decorated[0].text, contains('\x1B[32m')); // Green
+      // Just check if it contains color code and text.
+      // Info level now defaults to blue (was green)
+      expect(decorated[0].text, contains('\x1B[34m')); // Blue
       expect(decorated[0].text, endsWith('\x1B[0m'));
       expect(decorated[0].text, contains('line 1'));
     });
@@ -51,7 +52,9 @@ void main() {
         ),
       ).first;
 
-      expect(info.text, contains('\x1B[32m')); // Green
+      // Using default scheme: trace=green, debug=white, info=blue,
+      // warning=yellow, error=red
+      expect(info.text, contains('\x1B[34m')); // Blue
       expect(error.text, contains('\x1B[31m')); // Red
       expect(warning.text, contains('\x1B[33m')); // Yellow
     });
@@ -66,11 +69,11 @@ void main() {
     test('applies background color to header when enabled', () {
       const decorator = AnsiColorDecorator(
         useColors: true,
-        colorHeaderBackground: true,
+        config: AnsiColorConfig(headerBackground: true),
       );
       final headerLines = [
-        LogLine('Header 1', tags: {LogLineTag.header}),
-        LogLine('Message 1', tags: {LogLineTag.message}),
+        const LogLine('Header 1', tags: {LogLineTag.header}),
+        const LogLine('Message 1', tags: {LogLineTag.message}),
       ];
 
       final decorated = decorator.decorate(headerLines, infoEntry).toList();

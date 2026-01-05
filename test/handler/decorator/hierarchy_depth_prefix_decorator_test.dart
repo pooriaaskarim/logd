@@ -5,7 +5,7 @@ void main() {
   group('HierarchyDepthPrefixDecorator', () {
     final lines = [LogLine.plain('msg')];
 
-    LogEntry createEntry(int depth) => LogEntry(
+    LogEntry createEntry(final int depth) => LogEntry(
           loggerName: 'test',
           origin: 'test',
           level: LogLevel.info,
@@ -36,7 +36,7 @@ void main() {
 
     test('preserves tags', () {
       final taggedLines = [
-        LogLine('content', tags: {LogLineTag.message})
+        const LogLine('content', tags: {LogLineTag.message}),
       ];
       const decorator = HierarchyDepthPrefixDecorator();
       final decorated = decorator.decorate(taggedLines, createEntry(1)).first;
