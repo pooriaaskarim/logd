@@ -24,13 +24,14 @@ void main() {
       expect(colored.length, equals(4));
 
       // Top border should be colored
-      expect(colored[0].text, startsWith('\x1B[32m')); // Green
+      // Info level now defaults to blue (was green)
+      expect(colored[0].text, startsWith('\x1B[34m')); // Blue
       expect(colored[0].text, contains('╭'));
       expect(colored[0].text, endsWith('\x1B[0m'));
 
       // Content lines should be colored (on the outside of the
       // box vertical bars)
-      expect(colored[1].text, startsWith('\x1B[32m'));
+      expect(colored[1].text, startsWith('\x1B[34m')); // Blue
       expect(colored[1].text, contains('│'));
       expect(colored[1].text, endsWith('\x1B[0m'));
     });
@@ -45,12 +46,13 @@ void main() {
       expect(boxed.length, equals(4));
 
       // Top border should NOT be colored (because box was applied AFTER color)
-      expect(boxed[0].text, isNot(startsWith('\x1B[32m')));
+      expect(boxed[0].text, isNot(startsWith('\x1B[34m')));
       expect(boxed[0].text, startsWith('╭'));
 
       // Content line should contain color codes INSIDE the box vertical bars
       expect(boxed[1].text, startsWith('│'));
-      expect(boxed[1].text, contains('\x1B[32mmsg line 1\x1B[0m'));
+      // Info level now defaults to blue (was green)
+      expect(boxed[1].text, contains('\x1B[34mmsg line 1          \x1B[0m'));
       expect(boxed[1].text, endsWith('│'));
     });
 
@@ -78,7 +80,11 @@ void main() {
 
       final middleLine = boxed[1];
       expect(middleLine.visibleLength, equals(22));
-      expect(middleLine.text.contains('\x1B[32mabc\x1B[0m'), isTrue);
+      // Info level now defaults to blue (was green)
+      expect(
+        middleLine.text.contains('\x1B[34mabc                 \x1B[0m'),
+        isTrue,
+      );
       expect(middleLine.text, startsWith('│'));
       expect(middleLine.text, endsWith('│'));
     });
@@ -128,20 +134,23 @@ void main() {
         expect(line.text, startsWith('>> '));
       }
 
-      // Check top border: Indent -> Color(Grey) -> TopLeft
+      // Check top border: Indent -> Color -> TopLeft
       // Note: BoxDecorator applies color to the border characters.
-      // Expected: ">> " + "\x1B[32m" + "╭" ...
       final top = finalOutput[0].text;
-      // expect(top, contains('\x1B[90m')); // Trace color (default for test entry?)
-      // Wait, entry is Info level (Green = 32m)
-      expect(top, contains('\x1B[32m'));
+      // Info level now defaults to blue (was green)
+      expect(top, contains('\x1B[34m'));
       expect(top, contains('╭'));
 
-      // Check content line: Indent -> BorderColor -> Vertical -> Reset -> ContentColor -> Msg
+      // Check content line: Indent -> BorderColor -> Vertical -> Reset
+      // -> ContentColor -> Msg
       final content = finalOutput[1].text;
       expect(content, startsWith('>> '));
       expect(content, contains('│'));
-      expect(content, contains('\x1B[32mmsg line 1\x1B[0m')); // Colored content
+      // Info level now defaults to blue (was green)
+      expect(
+        content,
+        contains('\x1B[34mmsg line 1          \x1B[0m'),
+      ); // Colored content
     });
   });
 }

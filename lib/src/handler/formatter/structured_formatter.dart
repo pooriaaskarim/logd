@@ -26,7 +26,8 @@ final class StructuredFormatter implements LogFormatter {
 
   @override
   Iterable<LogLine> format(final LogEntry entry) {
-    final innerWidth = _lineLength - 4;
+    // Ensure innerWidth is at least 1 to prevent negative widths
+    final innerWidth = (_lineLength - 4).clamp(1, double.infinity).toInt();
     return <LogLine>[
       ..._buildHeader(entry),
       ..._buildOrigin(entry.origin, innerWidth),
@@ -34,6 +35,7 @@ final class StructuredFormatter implements LogFormatter {
       if (entry.error != null) ..._buildError(entry.error!, innerWidth),
       if (entry.stackFrames != null)
         ..._buildStackTrace(entry.stackFrames!, innerWidth),
+      // const LogLine('\n'),
     ];
   }
 
@@ -43,7 +45,9 @@ final class StructuredFormatter implements LogFormatter {
     final ts = entry.timestamp;
     final header = '$logger$level\n$ts';
     const prefix = '____';
-    final wrapWidth = _lineLength - prefix.length;
+    // Ensure wrapWidth is at least 1
+    final wrapWidth =
+        (_lineLength - prefix.length).clamp(1, double.infinity).toInt();
     final raw =
         header.split('\n').where((final l) => l.trim().isNotEmpty).toList();
     final out = <LogLine>[];
@@ -52,7 +56,10 @@ final class StructuredFormatter implements LogFormatter {
       for (int i = 0; i < wrapped.length; i++) {
         out.add(
           LogLine(
-            prefix + wrapped[i].padVisible(wrapWidth, '_').padLeft(16, '_'),
+            prefix +
+                wrapped[i]
+                    .padRightVisiblePreserveAnsi(wrapWidth, '_')
+                    .padLeft(16, '_'),
             tags: const {LogLineTag.header},
           ),
         );
@@ -63,7 +70,9 @@ final class StructuredFormatter implements LogFormatter {
 
   List<LogLine> _buildOrigin(final String origin, final int innerWidth) {
     const prefix = '--';
-    final wrapped = _wrap(origin, innerWidth);
+    // Ensure wrap width is at least 1
+    final wrapWidth = innerWidth.clamp(1, double.infinity).toInt();
+    final wrapped = _wrap(origin, wrapWidth);
     return wrapped.asMap().entries.map((final e) {
       final p = e.key == 0 ? prefix : ' ' * prefix.length;
       return LogLine(p + e.value, tags: const {LogLineTag.origin});
@@ -74,7 +83,9 @@ final class StructuredFormatter implements LogFormatter {
     final raw =
         content.split('\n').where((final l) => l.trim().isNotEmpty).toList();
     const prefix = '----|';
-    final wrapWidth = innerWidth - prefix.length + 1;
+    // Ensure wrapWidth is at least 1
+    final wrapWidth =
+        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
     final out = <LogLine>[];
     for (final line in raw) {
       final wrapped = _wrap(line, wrapWidth);
@@ -96,7 +107,9 @@ final class StructuredFormatter implements LogFormatter {
         .where((final l) => l.trim().isNotEmpty)
         .toList();
     const prefix = '----|';
-    final wrapWidth = innerWidth - prefix.length + 1;
+    // Ensure wrapWidth is at least 1
+    final wrapWidth =
+        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
     final lines = <LogLine>[
       ..._wrap('Error:', wrapWidth).map(
         (final l) => LogLine(
@@ -121,7 +134,9 @@ final class StructuredFormatter implements LogFormatter {
     final int innerWidth,
   ) {
     const prefix = '----|';
-    final wrapWidth = innerWidth - prefix.length + 1;
+    // Ensure wrapWidth is at least 1
+    final wrapWidth =
+        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
     final lines = <LogLine>[
       ..._wrap('Stack Trace:', wrapWidth).map(
         (final l) => LogLine(prefix + l, tags: const {LogLineTag.stackFrame}),
@@ -140,7 +155,7 @@ final class StructuredFormatter implements LogFormatter {
   }
 
   List<String> _wrap(final String text, final int maxWidth) =>
-      text.wrapVisible(maxWidth).toList();
+      text.wrapVisiblePreserveAnsi(maxWidth).toList();
 
   @override
   bool operator ==(final Object other) =>

@@ -44,17 +44,38 @@ bool mapEquals<K, V>(final Map<K, V>? a, final Map<K, V>? b) {
 @internal
 extension AnsiStringExtension on String {
   static final _ansiRegex = RegExp(r'\x1B\[[0-?]*[ -/]*[@-~]');
+  static const _ansiReset = '\x1B[0m';
 
   /// Returns the visible length of the string, excluding ANSI escape sequences.
   int get visibleLength => replaceAll(_ansiRegex, '').length;
 
-  /// Pads this string on the right to [width] visible characters.
-  String padVisible(final int width, [final String padding = ' ']) {
+  /// Pads this string on the right to [width] visible characters,
+  /// preserving leading ANSI sequences and ensuring padding is styled.
+  ///
+  /// If the string has leading ANSI (e.g., color), the padding is added
+  /// to the stripped text, then the ANSI is reapplied around the padded
+  /// content with reset at the end. This ensures padding inherits the style
+  /// (e.g., background/inverse), preventing "gaps" or "weird" appearance
+  /// in styled lines (like headers with inverse).
+  String padRightVisiblePreserveAnsi(
+    final int width, [
+    final String padding = ' ',
+  ]) {
+    final safeWidth = width.clamp(1, double.infinity).toInt();
     final visible = visibleLength;
-    if (visible >= width) {
+    if (visible >= safeWidth) {
       return this;
     }
-    return this + padding * (width - visible);
+    // Extract all leading ANSI escape sequences
+    final ansiRegex = RegExp(r'^(?:\x1B\[[0-?]*[ -/]*[@-~])+');
+    final match = ansiRegex.firstMatch(this);
+    final ansiPrefix = match?.group(0) ?? '';
+    // Get visible text without ANSI codes for padding
+    final visibleText = stripAnsi;
+    // Pad the visible text
+    final paddedText = visibleText.padRight(safeWidth, padding);
+    // Reapply ANSI prefix to padded text with reset at end
+    return '$ansiPrefix$paddedText$_ansiReset';
   }
 
   /// Removes all ANSI escape sequences from the string.
@@ -65,8 +86,13 @@ extension AnsiStringExtension on String {
   ///
   /// This is a basic implementation that does not currently preserve
   /// ANSI state across line breaks.
+  ///
+  /// If [width] is less than 1, it is clamped to 1 to prevent issues.
   Iterable<String> wrapVisible(final int width) sync* {
-    if (visibleLength <= width) {
+    // Ensure width is at least 1
+    final safeWidth = width.clamp(1, double.infinity).toInt();
+
+    if (visibleLength <= safeWidth) {
       yield this;
       return;
     }
@@ -80,14 +106,14 @@ extension AnsiStringExtension on String {
     // will fix the "scattered box" issue for most cases.
 
     while (start < raw.length) {
-      var end = start + width;
+      var end = start + safeWidth;
       if (end > raw.length) {
         end = raw.length;
       }
 
       // Find visible width of this chunk
       var chunk = raw.substring(start, end);
-      while (chunk.visibleLength > width && chunk.length > 1) {
+      while (chunk.visibleLength > safeWidth && chunk.length > 1) {
         end--;
         chunk = raw.substring(start, end);
       }
@@ -106,6 +132,37 @@ extension AnsiStringExtension on String {
       while (start < raw.length && raw[start].contains(RegExp(r'\s'))) {
         start++;
       }
+    }
+  }
+
+  /// Wraps this string preserving ANSI escape codes across line breaks.
+  ///
+  /// ANSI codes at the start are preserved and applied to each wrapped line.
+  /// The reset code (\x1B[0m) is added at the end of each line to prevent
+  /// style leakage.
+  ///
+  /// If [width] is less than 1, it is clamped to 1 to prevent issues.
+  Iterable<String> wrapVisiblePreserveAnsi(final int width) sync* {
+    // Ensure width is at least 1
+    final safeWidth = width.clamp(1, double.infinity).toInt();
+
+    final visible = visibleLength;
+    if (visible <= safeWidth) {
+      yield this;
+      return;
+    }
+    // Extract all leading ANSI escape sequences
+    final ansiRegex = RegExp(r'^(?:\x1B\[[0-?]*[ -/]*[@-~])+');
+    final match = ansiRegex.firstMatch(this);
+    final ansiPrefix = match?.group(0) ?? '';
+    // Get visible text without ANSI codes for wrapping
+    final visibleText = stripAnsi;
+    // Wrap the visible text
+    final lines = visibleText.wrapVisible(safeWidth).toList();
+    // Apply ANSI prefix to each wrapped line
+    for (var i = 0; i < lines.length; i++) {
+      // Add reset at end of each line to prevent leakage
+      yield '$ansiPrefix${lines[i]}$_ansiReset';
     }
   }
 }

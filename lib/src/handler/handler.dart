@@ -12,6 +12,7 @@ import '../core/utils.dart';
 import '../logger/logger.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
+import 'ansi_colors.dart';
 
 part 'decorator/ansi_color_decorator.dart';
 part 'decorator/box_decorator.dart';

@@ -1,6 +1,5 @@
 # Miscellaneous
 *.class
-*.log
 *.pyc
 *.swp
 .dart_tool
@@ -32,3 +31,5 @@ migrate_working_dir/
 /build/
 /coverage/
 scripts/
+*.log
+logs/

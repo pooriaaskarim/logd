@@ -18,7 +18,6 @@ Responsible for the processing pipeline of log entries.
 - [Design Philosophy](handler/philosophy.md)
 - [Architecture](handler/architecture.md)
 - [Roadmap](handler/roadmap.md)
-- [Roadmap](handler/roadmap.md)
 
 ### Time
 Handles timestamp generation and timezone management.

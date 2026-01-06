@@ -213,7 +213,9 @@ void main() {
       buffer.sink();
 
       expect(logCollector.logs, isNotEmpty);
-      expect(logCollector.logs.first, equals('line 1\nline 2\n'));
+      // PlainFormatter normalizes newlines to spaces, so we expect spaces
+      // instead
+      expect(logCollector.logs.first, equals('line 1 line 2 '));
     });
   });
 

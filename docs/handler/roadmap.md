@@ -57,6 +57,11 @@
 - [ ] Flush policy: on buffer full, on timer, or explicit flush()
 - [ ] Thread-safety for concurrent log writes
 
+
+## Fixes
+
+### 🟡 P1: ANSI Leakage in PainFormatter
+- [ ] 
 ---
 
 ## Known Issues

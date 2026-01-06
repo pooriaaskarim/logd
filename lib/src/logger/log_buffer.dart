@@ -20,7 +20,7 @@ class LogBuffer extends StringBuffer {
   /// Sinks the buffer and clears it.
   void sink() {
     if (isNotEmpty) {
-      _logger._log(logLevel, toString(), null, StackTrace.current).catchError(
+      _logger._log(logLevel, toString(), null, null).catchError(
             (final e) => InternalLogger.log(
               LogLevel.error,
               'Error while logging from buffer.',

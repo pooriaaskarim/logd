@@ -11,7 +11,10 @@ part of '../handler.dart';
 /// Handler(
 ///   formatter: StructuredFormatter(),
 ///   decorators: [
-///     BoxDecorator(borderStyle: BorderStyle.rounded),
+///     BoxDecorator(
+///       borderStyle: BorderStyle.rounded,
+///       colorScheme: AnsiColorScheme.defaultScheme,
+///     ),
 ///   ],
 ///   sink: ConsoleSink(),
 /// )
@@ -22,15 +25,26 @@ final class BoxDecorator extends StructuralDecorator {
   ///
   /// - [useColors]: Whether to use ANSI colors for borders
   /// (attempts auto-detection if null).
-  /// - [lineLength]: The width of the box.
+  /// - [lineLength]: The total width of the box including borders.
   /// If `null`, attempts to detect terminal width or defaults to 80.
+  /// Must be at least 3 to accommodate borders and content.
   /// - [borderStyle]: The visual style of the box borders
   /// (rounded, sharp, double).
+  /// - [colorScheme]: Defines which colors to use for different log levels.
+  /// Defaults to [AnsiColorScheme.defaultScheme].
   BoxDecorator({
     this.useColors,
     this.lineLength,
     this.borderStyle = BorderStyle.rounded,
-  });
+    this.colorScheme = AnsiColorScheme.defaultScheme,
+  }) {
+    if (lineLength != null && lineLength! < 3) {
+      throw ArgumentError(
+        'Invalid lineLength: $lineLength.'
+        ' Must be at least 3 to accommodate borders.',
+      );
+    }
+  }
 
   /// The visual style of the box borders.
   final BorderStyle borderStyle;
@@ -41,17 +55,15 @@ final class BoxDecorator extends StructuralDecorator {
   /// Whether to apply colors to the border.
   final bool? useColors;
 
-  late final int _lineLength = lineLength ??
-      (io.stdout.hasTerminal ? io.stdout.terminalColumns - 4 : 80);
+  /// Color scheme for border coloring.
+  final AnsiColorScheme colorScheme;
+
+  late final int _lineLength = (lineLength ??
+          (io.stdout.hasTerminal ? io.stdout.terminalColumns - 4 : 80))
+      .clamp(3, double.infinity)
+      .toInt();
 
   static const _ansiReset = '\x1B[0m';
-  static final _levelColors = {
-    LogLevel.trace: '\x1B[90m', // Grey
-    LogLevel.debug: '\x1B[37m', // White
-    LogLevel.info: '\x1B[32m', // Green
-    LogLevel.warning: '\x1B[33m', // Yellow
-    LogLevel.error: '\x1B[31m', // Red
-  };
 
   @override
   Iterable<LogLine> decorate(
@@ -59,11 +71,15 @@ final class BoxDecorator extends StructuralDecorator {
     final LogEntry entry,
   ) sync* {
     final enabled = useColors ?? io.stdout.supportsAnsiEscapes;
-    final color = enabled ? (_levelColors[entry.level] ?? '') : '';
+    final color =
+        enabled ? colorScheme.colorForLevel(entry.level).foreground : '';
     final reset = enabled ? _ansiReset : '';
-
-    String topLeft, topRight, bottomLeft, bottomRight, horizontal, vertical;
-
+    final String topLeft,
+        topRight,
+        bottomLeft,
+        bottomRight,
+        horizontal,
+        vertical;
     switch (borderStyle) {
       case BorderStyle.rounded:
         topLeft = '╭';
@@ -91,6 +107,14 @@ final class BoxDecorator extends StructuralDecorator {
         break;
     }
 
+    // Idempotency: If all input lines are already boxed, yield as-is
+    final linesList = lines.toList();
+    if (linesList.isNotEmpty &&
+        linesList.every((final line) => line.tags.contains(LogLineTag.boxed))) {
+      yield* linesList;
+      return;
+    }
+
     final borderTags = {
       LogLineTag.border,
       LogLineTag.boxed,
@@ -108,8 +132,7 @@ final class BoxDecorator extends StructuralDecorator {
 
     final boxed = <LogLine>[top];
     for (final line in lines) {
-      // Idempotency: Skip if already boxed
-      // (This prevents nested boxes if a line is already part of one)
+      // Idempotency: Skip already-boxed lines
       if (line.tags.contains(LogLineTag.boxed)) {
         yield line;
         continue;
@@ -118,8 +141,9 @@ final class BoxDecorator extends StructuralDecorator {
       // Robustness: Split by newline in case line.text has them
       final textLines = line.text.split('\n');
       for (final textLine in textLines) {
-        for (final wrapped in textLine.wrapVisible(_lineLength)) {
-          final padded = wrapped.padVisible(_lineLength);
+        for (final wrapped in textLine.wrapVisiblePreserveAnsi(_lineLength)) {
+          // Use ANSI-aware padding to style padding within the line's ANSI
+          final padded = wrapped.padRightVisiblePreserveAnsi(_lineLength);
           boxed.add(
             LogLine(
               '$color$vertical$reset$padded$color$vertical$reset',
@@ -141,11 +165,15 @@ final class BoxDecorator extends StructuralDecorator {
           runtimeType == other.runtimeType &&
           useColors == other.useColors &&
           lineLength == other.lineLength &&
-          borderStyle == other.borderStyle;
+          borderStyle == other.borderStyle &&
+          colorScheme == other.colorScheme;
 
   @override
   int get hashCode =>
-      useColors.hashCode ^ lineLength.hashCode ^ borderStyle.hashCode;
+      useColors.hashCode ^
+      lineLength.hashCode ^
+      borderStyle.hashCode ^
+      colorScheme.hashCode;
 }
 
 /// Visual styles for box borders.
