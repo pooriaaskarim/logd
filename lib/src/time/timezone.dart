@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart';
 
-import '../core/context.dart';
+import '../core/context/context.dart';
 import '../logger/logger.dart';
 
 /// Local wall time for transitions (hour:minute).

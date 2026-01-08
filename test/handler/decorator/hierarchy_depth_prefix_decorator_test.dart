@@ -44,7 +44,7 @@ void main() {
     test('preserves tags', () {
       final taggedLines = [
         const LogLine([
-          LogSegment('content', tags: {LogTag.message})
+          LogSegment('content', tags: {LogTag.message}),
         ]),
       ];
       const decorator = HierarchyDepthPrefixDecorator();

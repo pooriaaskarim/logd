@@ -1,4 +1,77 @@
-part of 'handler.dart';
+import 'package:meta/meta.dart';
+import '../../../logd.dart';
+
+/// Semantic tags describing the content of a [LogSegment].
+enum LogTag {
+  /// General metadata like timestamp, level, or logger name.
+  header,
+
+  /// Information about where the log was emitted (file, line, function).
+  origin,
+
+  /// The primary log message body.
+  message,
+
+  /// Error information (exception message).
+  error,
+
+  /// Individual frame in a stack trace.
+  stackFrame,
+
+  /// Content related to the log level (e.g. the "[[INFO]]" text).
+  level,
+
+  /// Content related to the timestamp.
+  timestamp,
+
+  /// Content related to the logger name.
+  loggerName,
+
+  /// Structural lines like box borders or dividers.
+  border,
+}
+
+/// Visual style suggestion for a log segment.
+@immutable
+class TextStyle {
+  /// Creates a [TextStyle].
+  const TextStyle({
+    this.color,
+    this.bold,
+    this.dim,
+    this.italic,
+    this.inverse,
+  });
+
+  /// The suggested foreground color.
+  final LogColor? color;
+
+  /// Whether the text should be bold.
+  final bool? bold;
+
+  /// Whether the text should be dimmed (faint).
+  final bool? dim;
+
+  /// Whether the text should be italic.
+  final bool? italic;
+
+  /// Whether the text should be inverted (reverse video).
+  final bool? inverse;
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is TextStyle &&
+          runtimeType == other.runtimeType &&
+          color == other.color &&
+          bold == other.bold &&
+          dim == other.dim &&
+          italic == other.italic &&
+          inverse == other.inverse;
+
+  @override
+  int get hashCode => Object.hash(color, bold, dim, italic, inverse);
+}
 
 /// Abstract color definitions for log rendering.
 ///
@@ -202,13 +275,27 @@ class ColorConfig {
 
   /// Determines if a segment with given tags should be colored.
   bool shouldColor(final Set<LogTag> tags) {
-    if (tags.contains(LogTag.timestamp)) return colorTimestamp;
-    if (tags.contains(LogTag.level)) return colorLevel;
-    if (tags.contains(LogTag.loggerName)) return colorLoggerName;
-    if (tags.contains(LogTag.message)) return colorMessage;
-    if (tags.contains(LogTag.border)) return colorBorder;
-    if (tags.contains(LogTag.stackFrame)) return colorStackFrame;
-    if (tags.contains(LogTag.error)) return colorError;
+    if (tags.contains(LogTag.timestamp)) {
+      return colorTimestamp;
+    }
+    if (tags.contains(LogTag.level)) {
+      return colorLevel;
+    }
+    if (tags.contains(LogTag.loggerName)) {
+      return colorLoggerName;
+    }
+    if (tags.contains(LogTag.message)) {
+      return colorMessage;
+    }
+    if (tags.contains(LogTag.border)) {
+      return colorBorder;
+    }
+    if (tags.contains(LogTag.stackFrame)) {
+      return colorStackFrame;
+    }
+    if (tags.contains(LogTag.error)) {
+      return colorError;
+    }
     return true; // Default: color everything
   }
 

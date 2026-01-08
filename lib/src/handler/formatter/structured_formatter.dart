@@ -44,49 +44,79 @@ final class StructuredFormatter implements LogFormatter {
 
     // First line: [loggerName][LEVEL] with fine-grained tags
     final loggerText = entry.loggerName;
-    final levelText = entry.level.name.toUpperCase();
+    final levelName = entry.level.name.toUpperCase();
+    final headerContent = '[$loggerText][$levelName]';
 
-    // Calculate visible content: '[loggerName][LEVEL]'
-    final contentLen =
-        1 + loggerText.visibleLength + 2 + levelText.visibleLength + 1;
-    // Total underscores to fill: width - prefix.length - contentLen
-    final totalUnderscores = width - prefix.length - contentLen;
+    final wrapWidth = (width - prefix.length).clamp(1, double.infinity).toInt();
+    final wrappedHeader = _wrap(headerContent, wrapWidth);
 
-    final line1Segments = <LogSegment>[
-      LogSegment(prefix, tags: {LogTag.header}),
-      LogSegment('[', tags: {LogTag.header}),
-      LogSegment(loggerText, tags: {LogTag.header, LogTag.loggerName}),
-      LogSegment(']', tags: {LogTag.header}),
-      LogSegment('[', tags: {LogTag.header}),
-      LogSegment(levelText, tags: {LogTag.header, LogTag.level}),
-      LogSegment(']', tags: {LogTag.header}),
-    ];
-
-    if (totalUnderscores > 0) {
-      line1Segments.add(
-        LogSegment('_' * totalUnderscores, tags: {LogTag.header}),
-      );
+    for (int i = 0; i < wrappedHeader.length; i++) {
+      final lineText = wrappedHeader[i];
+      // We need to re-tag the semantic parts if possible, but wrapping
+      // breaks it.
+      // For simplicity in wrapped headers, we tag the whole line as header.
+      // If it's the first line and not wrapped (common case),
+      // we keep fine-grained tags.
+      if (wrappedHeader.length == 1) {
+        final totalUnderscores = width - prefix.length - lineText.visibleLength;
+        final segments = <LogSegment>[
+          const LogSegment(prefix, tags: {LogTag.header}),
+          const LogSegment('[', tags: {LogTag.header}),
+          LogSegment(
+            loggerText,
+            tags: const <LogTag>{LogTag.header, LogTag.loggerName},
+          ),
+          const LogSegment(']', tags: {LogTag.header}),
+          const LogSegment('[', tags: {LogTag.header}),
+          LogSegment(levelName, tags: const {LogTag.header, LogTag.level}),
+          const LogSegment(']', tags: {LogTag.header}),
+        ];
+        if (totalUnderscores > 0) {
+          segments.add(
+            LogSegment('_' * totalUnderscores, tags: const {LogTag.header}),
+          );
+        }
+        out.add(LogLine(segments));
+      } else {
+        out.add(
+          LogLine([
+            const LogSegment(prefix, tags: {LogTag.header}),
+            LogSegment(lineText, tags: const {LogTag.header}),
+          ]),
+        );
+      }
     }
-
-    out.add(LogLine(line1Segments));
 
     // Second line: timestamp with fine-grained tag
     final timestampText = entry.timestamp;
-    final tsLen = timestampText.visibleLength;
-    final tsUnderscores = width - prefix.length - tsLen;
+    final wrappedTimestamp = _wrap(timestampText, wrapWidth);
 
-    final line2Segments = <LogSegment>[
-      LogSegment(prefix, tags: {LogTag.header}),
-      LogSegment(timestampText, tags: {LogTag.header, LogTag.timestamp}),
-    ];
-
-    if (tsUnderscores > 0) {
-      line2Segments.add(
-        LogSegment('_' * tsUnderscores, tags: {LogTag.header}),
-      );
+    for (int i = 0; i < wrappedTimestamp.length; i++) {
+      final lineText = wrappedTimestamp[i];
+      if (wrappedTimestamp.length == 1) {
+        final tsUnderscores = width - prefix.length - lineText.visibleLength;
+        final segments = <LogSegment>[
+          const LogSegment(prefix, tags: {LogTag.header}),
+          LogSegment(
+            timestampText,
+            tags: const {LogTag.header, LogTag.timestamp},
+          ),
+        ];
+        if (tsUnderscores > 0) {
+          segments.add(
+            LogSegment('_' * tsUnderscores, tags: const {LogTag.header}),
+          );
+        }
+        out.add(LogLine(segments));
+      } else {
+        out.add(
+          LogLine([
+            const LogSegment(prefix, tags: {LogTag.header}),
+            LogSegment(lineText, tags: const {LogTag.header}),
+          ]),
+        );
+      }
     }
-
-    out.add(LogLine(line2Segments));
 
     return out;
   }
@@ -98,7 +128,7 @@ final class StructuredFormatter implements LogFormatter {
     return wrapped.asMap().entries.map((final e) {
       final p = e.key == 0 ? prefix : ' ' * prefix.length;
       return LogLine([
-        LogSegment(p + e.value, tags: {LogTag.origin}),
+        LogSegment(p + e.value, tags: const {LogTag.origin}),
       ]);
     }).toList();
   }
@@ -114,9 +144,11 @@ final class StructuredFormatter implements LogFormatter {
       final wrapped = _wrap(line, wrapWidth);
       for (int i = 0; i < wrapped.length; i++) {
         final p = i == 0 ? prefix : ' ' * prefix.length;
-        out.add(LogLine([
-          LogSegment(p + wrapped[i], tags: {LogTag.message}),
-        ]));
+        out.add(
+          LogLine([
+            LogSegment(p + wrapped[i], tags: const {LogTag.message}),
+          ]),
+        );
       }
     }
     return out;
@@ -139,7 +171,7 @@ final class StructuredFormatter implements LogFormatter {
         (final l) => LogLine([
           LogSegment(
             prefix + l,
-            tags: {LogTag.error},
+            tags: const {LogTag.error},
           ),
         ]),
       ),
@@ -149,9 +181,11 @@ final class StructuredFormatter implements LogFormatter {
 
       for (int i = 0; i < wrapped.length; i++) {
         final p = i == 0 ? prefix : ' ' * prefix.length;
-        lines.add(LogLine([
-          LogSegment(p + wrapped[i], tags: {LogTag.error}),
-        ]));
+        lines.add(
+          LogLine([
+            LogSegment(p + wrapped[i], tags: const {LogTag.error}),
+          ]),
+        );
       }
     }
     return lines;
@@ -167,7 +201,7 @@ final class StructuredFormatter implements LogFormatter {
     final lines = <LogLine>[
       ..._wrap('Stack Trace:', wrapWidth).map(
         (final l) => LogLine([
-          LogSegment(prefix + l, tags: {LogTag.stackFrame}),
+          LogSegment(prefix + l, tags: const {LogTag.stackFrame}),
         ]),
       ),
     ];
@@ -177,9 +211,11 @@ final class StructuredFormatter implements LogFormatter {
       final wrapped = _wrap(line, wrapWidth);
       for (int i = 0; i < wrapped.length; i++) {
         final p = i == 0 ? prefix : ' ' * prefix.length;
-        lines.add(LogLine([
-          LogSegment(p + wrapped[i], tags: {LogTag.stackFrame}),
-        ]));
+        lines.add(
+          LogLine([
+            LogSegment(p + wrapped[i], tags: const {LogTag.stackFrame}),
+          ]),
+        );
       }
     }
     return lines;

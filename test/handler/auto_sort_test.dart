@@ -25,7 +25,7 @@ void main() {
       // Input Order: Hierarchy (3) -> Box (2) -> Ansi (1). Reverse of desired.
       final handler = Handler(
         sink: sink,
-        formatter: StructuredFormatter(),
+        formatter: const StructuredFormatter(),
         decorators: [
           const HierarchyDepthPrefixDecorator(indent: '>> '),
           BoxDecorator(lineLength: 20),
@@ -62,7 +62,8 @@ void main() {
 
       final top = lines[0];
       // Check Hierarchy First (Outer)
-      // Hierarchy comes before Color, so Color decorates the prefix (LogTag.header).
+      // Hierarchy comes before Color, so Color decorates the prefix
+      // (LogTag.header).
       expect(top, contains('>> '));
 
       // Check Box Border Color (Inner)
@@ -75,10 +76,10 @@ void main() {
       // Input: Two identical ColorDecorators
       final handler = Handler(
         sink: sink,
-        formatter: StructuredFormatter(),
+        formatter: const StructuredFormatter(),
         decorators: const [
-          const ColorDecorator(),
-          const ColorDecorator(),
+          ColorDecorator(),
+          ColorDecorator(),
         ],
       );
 

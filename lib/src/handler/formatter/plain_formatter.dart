@@ -27,7 +27,9 @@ final class PlainFormatter implements LogFormatter {
 
   @override
   Iterable<LogLine> format(
-      final LogEntry entry, final LogContext context) sync* {
+    final LogEntry entry,
+    final LogContext context,
+  ) sync* {
     final segments = <LogSegment>[];
 
     if (includeLevel) {
@@ -57,8 +59,11 @@ final class PlainFormatter implements LogFormatter {
       );
     }
 
-    // Split message by newline to respect multi-line messages, but here we just join for simplicity as plain formatter
-    // Or should we support multi-line? Original code did split().join(' ')
+    // Split message by newline to respect multi-line messages, but here
+    // we just join for simplicity as plain formatter
+    // Or should we support multi-line?
+    // Original code did split().join(' ')
+    //todo: rationalize and decide behavior
     segments.add(
       LogSegment(
         entry.message.split('\n').join(' '),
@@ -79,7 +84,7 @@ final class PlainFormatter implements LogFormatter {
       for (final line in traceLines) {
         if (line.trim().isNotEmpty) {
           yield LogLine([
-            LogSegment(line, tags: const {LogTag.stackFrame})
+            LogSegment(line, tags: const {LogTag.stackFrame}),
           ]);
         }
       }

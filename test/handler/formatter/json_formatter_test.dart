@@ -150,7 +150,7 @@ void main() {
       final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, greaterThan(0));
-      final json = lines.map((l) => l.toString()).join();
+      final json = lines.map((final l) => l.toString()).join();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['fields'], isNotNull);
@@ -188,7 +188,7 @@ void main() {
       const formatter = JsonSemanticFormatter();
       final lines = formatter.format(entry, mockContext).toList();
 
-      final json = lines.map((l) => l.toString()).join();
+      final json = lines.map((final l) => l.toString()).join();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['metadata'], isNotNull);
@@ -201,7 +201,7 @@ void main() {
       final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, greaterThan(10)); // Pretty JSON has many lines
-      final output = lines.map((l) => l.toString()).join('\n');
+      final output = lines.map((final l) => l.toString()).join('\n');
       expect(output, contains('  "fields"'));
       expect(output, contains('    "timestamp"'));
     });
@@ -221,7 +221,7 @@ void main() {
       const formatter = JsonSemanticFormatter();
       final lines = formatter.format(errorEntry, mockContext).toList();
 
-      final json = lines.map((l) => l.toString()).join();
+      final json = lines.map((final l) => l.toString()).join();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
       final fields = decoded['fields'] as Map<String, dynamic>;
 

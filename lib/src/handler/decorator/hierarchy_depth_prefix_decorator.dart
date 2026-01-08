@@ -31,7 +31,7 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
 
     final depthStr = indent * entry.hierarchyDepth;
     final fullPrefix = '$prefix$depthStr';
-    final prefixSegment = LogSegment(fullPrefix, tags: {LogTag.border});
+    final prefixSegment = LogSegment(fullPrefix, tags: const {LogTag.border});
 
     return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
   }

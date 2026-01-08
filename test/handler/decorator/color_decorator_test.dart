@@ -29,7 +29,7 @@ void main() {
     });
 
     test('different levels have different colors', () {
-      final decorator = ColorDecorator(
+      const decorator = ColorDecorator(
         colorScheme: ColorScheme(
           trace: LogColor.green,
           debug: LogColor.white,
@@ -40,32 +40,36 @@ void main() {
       );
 
       final info = renderLines(
-              decorator.decorate([LogLine.text('msg')], infoEntry, mockContext))
-          .first;
-      final error = renderLines(decorator.decorate(
-        [LogLine.text('msg')],
-        const LogEntry(
-          loggerName: 'test',
-          origin: 'test',
-          level: LogLevel.error,
-          message: 'msg',
-          timestamp: 'now',
-          hierarchyDepth: 0,
+        decorator.decorate([LogLine.text('msg')], infoEntry, mockContext),
+      ).first;
+      final error = renderLines(
+        decorator.decorate(
+          [LogLine.text('msg')],
+          const LogEntry(
+            loggerName: 'test',
+            origin: 'test',
+            level: LogLevel.error,
+            message: 'msg',
+            timestamp: 'now',
+            hierarchyDepth: 0,
+          ),
+          mockContext,
         ),
-        mockContext,
-      )).first;
-      final warning = renderLines(decorator.decorate(
-        [LogLine.text('msg')],
-        const LogEntry(
-          loggerName: 'test',
-          origin: 'test',
-          level: LogLevel.warning,
-          message: 'msg',
-          timestamp: 'now',
-          hierarchyDepth: 0,
+      ).first;
+      final warning = renderLines(
+        decorator.decorate(
+          [LogLine.text('msg')],
+          const LogEntry(
+            loggerName: 'test',
+            origin: 'test',
+            level: LogLevel.warning,
+            message: 'msg',
+            timestamp: 'now',
+            hierarchyDepth: 0,
+          ),
+          mockContext,
         ),
-        mockContext,
-      )).first;
+      ).first;
 
       // Using default scheme: trace=green, debug=white, info=blue,
       // warning=yellow, error=red
@@ -83,7 +87,7 @@ void main() {
     });
 
     test('respects config (colorBody: false)', () {
-      final decorator = ColorDecorator(
+      const decorator = ColorDecorator(
         config: ColorConfig(
           colorMessage: false,
           colorTimestamp: true,
@@ -96,10 +100,10 @@ void main() {
       );
       final headerLines = [
         const LogLine([
-          LogSegment('Header 1', tags: {LogTag.header})
+          LogSegment('Header 1', tags: {LogTag.header}),
         ]),
         const LogLine([
-          LogSegment('Message 1', tags: {LogTag.message})
+          LogSegment('Message 1', tags: {LogTag.message}),
         ]),
       ];
 

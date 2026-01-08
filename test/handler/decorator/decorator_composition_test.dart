@@ -73,10 +73,12 @@ void main() {
           )
           .first;
 
-      // Note: PrefixDecorator adds header LogSegment, LogLine.toString() joins them.
+      // Note: PrefixDecorator adds header LogSegment, LogLine.toString() joins
+      // them.
       // renderLines also joins them.
       // If mockContext.supportsAnsi is true, and header is colored?
-      // PrefixDecorator uses `LogTag.header`. ColorDecorator is NOT involved here?
+      // PrefixDecorator uses `LogTag.header`. ColorDecorator is NOT involved
+      // here?
       // Wait, PrefixDecorator assigns `tags: {LogTag.header}`.
       // IF we used ColorDecorator it would color it. But here we don't.
       // So renderLines output is plain.
@@ -94,8 +96,10 @@ void main() {
 
       final middleLine = boxed[1];
       // visibleLength should be 3 ('abc'). ANSI is style, not text.
-      expect(middleLine.visibleLength,
-          equals(3 + 15 + 2)); // abc + pad + borders(2) = 20
+      expect(
+        middleLine.visibleLength,
+        equals(3 + 15 + 2),
+      ); // abc + pad + borders(2) = 20
 
       final renderedMiddle = rendered[1];
       // Info level now defaults to blue (was green)
@@ -106,8 +110,12 @@ void main() {
       expect(renderedMiddle, startsWith('│'));
       expect(renderedMiddle, endsWith('│'));
     });
-    // Skipped: BoxDecorator no longer handles internal newlines (expects formatter to split).
-    // test('BoxDecorator handles internal newlines in input strings', () { ... });
+    // Skipped: BoxDecorator no longer handles internal newlines (expects
+    // formatter to split).
+    // test(
+    //    'BoxDecorator handles internal newlines in input strings',
+    //    () { ... },
+    // );
 
     test('Best Practice Order: Box -> Ansi -> Hierarchy', () {
       // 1. Color Content
@@ -126,7 +134,8 @@ void main() {
       );
 
       // Pipeline execution
-      // Pipeline execution: Box -> Color -> Hierarchy to ensure borders are colored
+      // Pipeline execution: Box -> Color -> Hierarchy to ensure borders are
+      // colored
       final s1 = box.decorate(lines, deepEntry, mockContext);
       final s2 = ansi.decorate(s1, deepEntry, mockContext);
       final finalOutput =

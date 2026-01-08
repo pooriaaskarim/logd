@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
-import '../core/utils.dart';
+import '../core/log_level.dart';
+import '../core/utils/utils.dart';
 import '../handler/handler.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
@@ -8,10 +9,11 @@ import '../time/timezone.dart';
 import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
     as flutter_stubs;
 
+export '../core/log_level.dart';
+
 part 'internal_logger.dart';
 part 'log_buffer.dart';
 part 'log_entry.dart';
-part 'log_level.dart';
 
 const _defaultStackMethodCount = {
   LogLevel.trace: 0,
@@ -30,7 +32,7 @@ const _defaultStackTraceParser = StackTraceParser(
 );
 final _defaultHandlers = <Handler>[
   Handler(
-    formatter: StructuredFormatter(),
+    formatter: const StructuredFormatter(),
     sink: const ConsoleSink(),
     decorators: [BoxDecorator()],
   ),

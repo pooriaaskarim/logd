@@ -11,7 +11,9 @@ final class JsonFormatter implements LogFormatter {
 
   @override
   Iterable<LogLine> format(
-      final LogEntry entry, final LogContext context) sync* {
+    final LogEntry entry,
+    final LogContext context,
+  ) sync* {
     final map = {
       'timestamp': entry.timestamp,
       'level': entry.level.name,
@@ -23,7 +25,7 @@ final class JsonFormatter implements LogFormatter {
     };
     yield LogLine(
       [
-        LogSegment(jsonEncode(map), tags: {LogTag.message})
+        LogSegment(jsonEncode(map), tags: const {LogTag.message}),
       ],
     );
   }
@@ -40,7 +42,9 @@ final class JsonPrettyFormatter implements LogFormatter {
 
   @override
   Iterable<LogLine> format(
-      final LogEntry entry, final LogContext context) sync* {
+    final LogEntry entry,
+    final LogContext context,
+  ) sync* {
     final map = {
       'timestamp': entry.timestamp,
       'level': entry.level.name,
@@ -54,7 +58,7 @@ final class JsonPrettyFormatter implements LogFormatter {
     for (final line in json.split('\n')) {
       yield LogLine(
         [
-          LogSegment(line, tags: {LogTag.message})
+          LogSegment(line, tags: const {LogTag.message}),
         ],
       );
     }
@@ -64,7 +68,8 @@ final class JsonPrettyFormatter implements LogFormatter {
 /// A [LogFormatter] that transforms a [LogEntry] into JSON with semantic tags.
 ///
 /// Useful for JSON-based logging systems that want to preserve semantic
-/// information for rendering or analysis. Each field includes its semantic tags.
+/// information for rendering or analysis. Each field includes its semantic
+/// tags.
 ///
 /// Example output:
 /// ```json
@@ -77,6 +82,7 @@ final class JsonPrettyFormatter implements LogFormatter {
 ///   }
 /// }
 /// ```
+@immutable
 final class JsonSemanticFormatter implements LogFormatter {
   /// Creates a [JsonSemanticFormatter].
   const JsonSemanticFormatter({this.prettyPrint = false});
@@ -86,38 +92,40 @@ final class JsonSemanticFormatter implements LogFormatter {
 
   @override
   Iterable<LogLine> format(
-      final LogEntry entry, final LogContext context) sync* {
+    final LogEntry entry,
+    final LogContext context,
+  ) sync* {
     final map = {
       'fields': {
         'timestamp': {
           'value': entry.timestamp,
-          'tags': ['header', 'timestamp']
+          'tags': ['header', 'timestamp'],
         },
         'level': {
           'value': entry.level.name,
-          'tags': ['header', 'level']
+          'tags': ['header', 'level'],
         },
         'logger': {
           'value': entry.loggerName,
-          'tags': ['header', 'loggerName']
+          'tags': ['header', 'loggerName'],
         },
         'origin': {
           'value': entry.origin,
-          'tags': ['origin']
+          'tags': ['origin'],
         },
         'message': {
           'value': entry.message,
-          'tags': ['message']
+          'tags': ['message'],
         },
         if (entry.error != null)
           'error': {
             'value': entry.error.toString(),
-            'tags': ['error']
+            'tags': ['error'],
           },
         if (entry.stackTrace != null)
           'stackTrace': {
             'value': entry.stackTrace.toString(),
-            'tags': ['stackFrame']
+            'tags': ['stackFrame'],
           },
       },
       'metadata': {
@@ -131,7 +139,7 @@ final class JsonSemanticFormatter implements LogFormatter {
 
     for (final line in json.split('\n')) {
       yield LogLine([
-        LogSegment(line, tags: {LogTag.message})
+        LogSegment(line, tags: const {LogTag.message}),
       ]);
     }
   }

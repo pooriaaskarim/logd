@@ -37,20 +37,21 @@ Filters are deeply efficient checks run before any string manipulation occurs. I
 ### Stage 2: Formatting
 **Component**: `LogFormatter`
 **Input**: `LogEntry`
-**Output**: `Iterable<String>`
+**Output**: `Iterable<LogLine>`
 
-The formatter transforms the structured log entry into a list of strings.
-- **StructuredFormatter**: Detailed layout (header, origin, message) without borders. **(Preferred)**
-- **BoxFormatter**: Draws ASCII borders around the message. **(Deprecated - use StructuredFormatter + BoxDecorator)**
-- **JsonFormatter**: precise JSON serialization.
+The formatter transforms the structured log entry into a list of semantic lines (`LogLine`). Each line is composed of colored or tagged segments.
+- **StructuredFormatter**: Detailed layout (header, origin, message) with fine-grained semantic tagging. **(Preferred)**
+- **MarkdownFormatter**: Generates structured Markdown output.
+- **JsonSemanticFormatter**: precise JSON serialization with embedded tags.
+- **HTMLFormatter**: Produces semantic HTML segments.
 - **PlainFormatter**: Standard `[timestamp] level: message` format.
 
 ### Stage 3: Decoration
 **Component**: `LogDecorator`
-**Input**: `Iterable<String>`
-**Output**: `Iterable<String>`
+**Input**: `Iterable<LogLine>`
+**Output**: `Iterable<LogLine>`
 
-Decorators apply post-formatting transformations. They are composable and execute in the order they appear in the `decorators` list.
+Decorators apply post-formatting transformations. They are composable and execute in the order they appear in the `decorators` list (auto-sorted by type).
 - **BoxDecorator**: Adds ASCII borders around the lines. It is now decoupled from the layout logic.
 - **ColorDecorator**: Adds level-based coloring.
 
@@ -58,7 +59,7 @@ For a deep dive into how decorators interact, see [Decorator Composition](decora
 
 ### Stage 4: Output (Sinking)
 **Component**: `LogSink`
-**Input**: `Iterable<String>`
+**Input**: `Iterable<LogLine>`
 **Output**: `Future<void>` (I/O Side Effect)
 
 The sink handles the physical write operation. Sinks are designed to be non-blocking where possible.

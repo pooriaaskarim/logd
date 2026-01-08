@@ -6,15 +6,18 @@ import 'dart:io' as io;
 
 import 'package:meta/meta.dart';
 
-import '../core/context.dart';
-import '../core/io/file_system.dart';
-import '../core/utils.dart';
+import '../core/coloring/ansi.dart';
+import '../core/coloring/colors.dart';
+import '../core/context/context.dart';
+import '../core/context/io/file_system.dart';
+import '../core/utils/utils.dart';
 import '../logger/logger.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
 
-part 'ansi.dart';
-part 'colors.dart';
+export '../core/coloring/ansi.dart';
+export '../core/coloring/colors.dart';
+
 part 'decorator/color_decorator.dart';
 part 'decorator/box_decorator.dart';
 part 'decorator/decorator.dart';
@@ -141,7 +144,8 @@ class Handler {
 
 /// Shared context passed through the logging pipeline.
 ///
-/// Contains configuration and capabilities relevant to formatting and decorating.
+/// Contains configuration and capabilities relevant to formatting
+/// and decorating.
 @immutable
 class LogContext {
   /// Creates a [LogContext].
@@ -216,77 +220,4 @@ class LogSegment {
     }
     return a.containsAll(b);
   }
-}
-
-/// Visual style suggestion for a log segment.
-@immutable
-@immutable
-class TextStyle {
-  /// Creates a [TextStyle].
-  const TextStyle({
-    this.color,
-    this.bold,
-    this.dim,
-    this.italic,
-    this.inverse,
-  });
-
-  /// The suggested foreground color.
-  final LogColor? color;
-
-  /// Whether the text should be bold.
-  final bool? bold;
-
-  /// Whether the text should be dimmed (faint).
-  final bool? dim;
-
-  /// Whether the text should be italic.
-  final bool? italic;
-
-  /// Whether the text should be inverted (reverse video).
-  final bool? inverse;
-
-  @override
-  bool operator ==(final Object other) =>
-      identical(this, other) ||
-      other is TextStyle &&
-          runtimeType == other.runtimeType &&
-          color == other.color &&
-          bold == other.bold &&
-          dim == other.dim &&
-          italic == other.italic &&
-          inverse == other.inverse;
-
-  @override
-  int get hashCode => Object.hash(color, bold, dim, italic, inverse);
-}
-
-/// Semantic tags describing the content of a [LogSegment].
-enum LogTag {
-  /// General metadata like timestamp, level, or logger name.
-  header,
-
-  /// Information about where the log was emitted (file, line, function).
-  origin,
-
-  /// The primary log message body.
-  message,
-
-  /// Error information (exception message).
-  error,
-
-  /// Individual frame in a stack trace.
-  stackFrame,
-
-  /// Content related to the log level (e.g. the "[[INFO]]" text).
-  level,
-
-  /// Content related to the timestamp.
-  timestamp,
-
-  /// Content related to the logger name.
-  loggerName,
-
-  /// Structural lines like box borders or dividers.
-  border,
 }

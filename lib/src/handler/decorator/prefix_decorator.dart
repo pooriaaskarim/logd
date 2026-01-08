@@ -15,7 +15,7 @@ final class PrefixDecorator extends TransformDecorator {
     final LogEntry entry,
     final LogContext context,
   ) {
-    final prefixSegment = LogSegment(prefix, tags: {LogTag.header});
+    final prefixSegment = LogSegment(prefix, tags: const {LogTag.header});
     return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
   }
 

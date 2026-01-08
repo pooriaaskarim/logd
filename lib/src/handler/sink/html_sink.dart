@@ -3,7 +3,8 @@ part of '../handler.dart';
 /// A sink that writes HTML-formatted logs to files.
 ///
 /// Automatically wraps logs with complete HTML document structure including
-/// embedded CSS for styling. Use with [HTMLFormatter] for styled HTML log files.
+/// embedded CSS for styling. Use with [HTMLFormatter] for styled HTML log
+/// files.
 ///
 /// **Important**: Call [close()] when done logging to write the HTML footer.
 ///

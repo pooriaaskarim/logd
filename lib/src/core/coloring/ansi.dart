@@ -1,4 +1,4 @@
-part of 'handler.dart';
+import '../../../logd.dart';
 
 /// ANSI escape codes for basic 16-color terminal support.
 ///

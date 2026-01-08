@@ -119,20 +119,34 @@ void _runDemo() {
   dbService.debug('Database query initiated...');
   cacheService.trace('Cache hit for key: user_123');
 
-  // 4. Multi-line Buffers
+  // 4. Semantic Logging
+  // JsonSemanticFormatter preserves tags for machine analysis.
+  print('\n--- 4. Semantic JSON Logging ---');
+
+  final semanticHandler = Handler(
+    formatter: const JsonSemanticFormatter(prettyPrint: true),
+    sink: const ConsoleSink(),
+  );
+
+  Logger.configure('example.semantic', handlers: [semanticHandler]);
+  final semanticLogger = Logger.get('example.semantic');
+
+  semanticLogger.info('Task completed successfully.');
+
+  // 5. Atomic Multi-line Buffers
   // Send atomic multi-line logs without interleaving.
-  print('\n--- 4. Atomic Multi-line Buffers ---');
+  print('\n--- 5. Atomic Multi-line Buffers ---');
 
   final buffer = logger.infoBuffer;
   buffer?.writeln('Deployment Report:');
-  buffer?.writeln(' - Artifact: logd_v0.2.0.aot');
+  buffer?.writeln(' - Artifact: logd_v0.4.2.aot');
   buffer?.writeln(' - Target: production-us-east');
   buffer?.writeln(' - Status: SUCCESS');
   buffer?.sink();
 
-  // 5. Advanced Sink Configurations
+  // 6. Multi-Sink & File Rotation
   // Output to multiple destinations simultaneously.
-  print('\n--- 5. Multi-Sink & File Rotation ---');
+  print('\n--- 6. Multi-Sink & File Rotation ---');
 
   final fileHandler = Handler(
     formatter: const PlainFormatter(),
@@ -155,9 +169,9 @@ void _runDemo() {
 
   auditLogger.error('Security alert: Unauthorized access attempt detected');
 
-  // 6. Stack Trace Parsing
+  // 7. Stack Trace Parsing
   // Clean, readable stack traces with package filtering.
-  print('\n--- 6. Clean Stack Traces ---');
+  print('\n--- 7. Clean Stack Traces ---');
 
   try {
     _simulateError();

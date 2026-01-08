@@ -2,8 +2,10 @@ part of '../handler.dart';
 
 /// A [LogFormatter] that transforms log entries into GitHub-Flavored Markdown.
 ///
-/// Generates well-structured Markdown suitable for documentation, GitHub issues,
-/// or knowledge bases. Includes syntax highlighting, tables, and semantic structure.
+/// Generates well-structured Markdown suitable for documentation, GitHub
+/// issues,
+/// or knowledge bases. Includes syntax highlighting, tables,
+/// and semantic structure.
 ///
 /// The formatter creates readable markdown with:
 /// - Headings for log levels
@@ -14,7 +16,8 @@ part of '../handler.dart';
 final class MarkdownFormatter implements LogFormatter {
   /// Creates a [MarkdownFormatter].
   ///
-  /// - [useCodeBlocks]: Whether to wrap messages in code blocks (default: true).
+  /// - [useCodeBlocks]: Whether to wrap messages in code blocks
+  /// (default: true).
   /// - [headingLevel]: Heading level for log entries (1-6, default: 3).
   const MarkdownFormatter({
     this.useCodeBlocks = true,

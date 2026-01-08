@@ -14,7 +14,7 @@ void main() {
     );
 
     test('colorFor respects tag-specific overrides', () {
-      final scheme = ColorScheme(
+      const scheme = ColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
@@ -83,7 +83,7 @@ void main() {
     });
 
     test('ColorDecorator applies tag-specific colors', () {
-      final customScheme = ColorScheme(
+      const customScheme = ColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
@@ -93,7 +93,7 @@ void main() {
         levelColor: LogColor.brightCyan, // Different from base
       );
 
-      final decorator = ColorDecorator(colorScheme: customScheme);
+      const decorator = ColorDecorator(colorScheme: customScheme);
 
       final lines = [
         const LogLine([

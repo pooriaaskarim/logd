@@ -1,5 +1,5 @@
-import 'package:logd/src/core/clock/clock.dart';
-import 'package:logd/src/core/context.dart';
+import 'package:logd/src/core/context/clock/clock.dart';
+import 'package:logd/src/core/context/context.dart';
 import 'package:logd/src/time/timezone.dart';
 import 'package:test/test.dart';
 

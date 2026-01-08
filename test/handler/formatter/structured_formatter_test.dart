@@ -14,7 +14,7 @@ void main() {
     );
 
     test('formats header with correct prefix', () {
-      final formatter = StructuredFormatter(lineLength: 80);
+      const formatter = StructuredFormatter(lineLength: 80);
       final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines[0].toString(), startsWith('____'));
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('wraps long message', () {
-      final formatter = StructuredFormatter(lineLength: 20);
+      const formatter = StructuredFormatter(lineLength: 20);
       const longEntry = LogEntry(
         loggerName: 't',
         origin: 'o',

@@ -21,6 +21,7 @@ void main() async {
         borderStyle: BorderStyle.rounded,
         lineLength: 100,
       ),
+      HierarchyDepthPrefixDecorator()
     ],
     sink: const ConsoleSink(),
   );

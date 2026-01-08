@@ -1,143 +1,73 @@
-# BoxFormatter Migration Guide
+# Migration Guide
 
-As of version 0.2.0, `BoxFormatter` is deprecated. While it remains functional for backward compatibility, it is recommended to migrate to the new composable system using `StructuredFormatter` and `BoxDecorator`.
+The `logd` library has evolved from a simple logging utility to a high-performance, segment-based pipeline. This guide helps you migrate from legacy patterns to the modern architecture introduced in v0.4.2.
 
-## Why the Change?
+## Key Transitions
 
-The original `BoxFormatter` coupled two distinct responsibilities:
-1. **Layout**: Organizing log metadata (timestamp, origin, etc.).
-2. **Visual Framing**: Drawing ASCII borders.
+### 1. From BoxFormatter to Decorator Pipeline
+As of v0.4.1, `BoxFormatter` is deprecated. Responsibilities are now split between Layout (Formatter) and Framing (Decorator).
 
-By splitting these, you can now:
-- Use the structured layout WITHOUT boxes (e.g., for file logs).
-- Apply boxes to OTHER formatters (e.g., a simple plain formatter).
-- Compose multiple decorators (e.g., Colors + Boxes + Custom tags) in a predictable way.
-
-## Migration Examples
-
-### Standard Boxed Logging
-
-**Before**:
+**Legacy (BoxFormatter)**:
 ```dart
 final handler = Handler(
   formatter: BoxFormatter(
     borderStyle: BorderStyle.rounded,
     lineLength: 80,
-    
   ),
-  sink: ConsoleSink(),
+  sink: const ConsoleSink(),
 );
 ```
 
-**After**:
+**Modern (StructuredFormatter + BoxDecorator)**:
 ```dart
 final handler = Handler(
   formatter: StructuredFormatter(lineLength: 80),
   decorators: [
-    BoxDecorator(
-      borderStyle: BorderStyle.rounded,
-      lineLength: 80,
-       // Recommended: use ColorDecorator instead
-    ),
-    ColorDecorator(), // Handles coloring for both content and borders
+    BoxDecorator(borderStyle: BorderStyle.rounded, lineLength: 80),
+    const ColorDecorator(), // Recommended: Add color after structural decorators
   ],
-  sink: ConsoleSink(),
+  sink: const ConsoleSink(),
 );
 ```
 
-> [!TIP]
-> **Recommended Pattern**: We recommend disabling `useColors` in `BoxDecorator` and adding `ColorDecorator` at the end of the `decorators` list. This ensures consistent coloring across the entire output.
+### 2. Segment-Based Architecture (v0.4.2+)
+The single-string output pipeline has been replaced with `LogLine` and `LogSegment`. This allows decorators and sinks to understand the **semantics** of each part of a line.
 
-### Plain Layout (No Box)
+- **Formatters**: Now implement `format(entry, context)` returning `Iterable<LogLine>`.
+- **Decorators**: Now implement `decorate(lines, entry, context)` returning `Iterable<LogLine>`.
+- **Sinks**: Now implement `output(lines, level)` taking `Iterable<LogLine>`.
 
-**Before**:
-(Not easily possible with `BoxFormatter`)
+### 3. Advanced Color Configuration
+Coloring is no longer a simple boolean. It uses `ColorScheme` and `ColorConfig` to target specific semantic tags.
 
-**After**:
+**Legacy (colorHeaderBackground)**:
 ```dart
-final handler = Handler(
-  formatter: StructuredFormatter(lineLength: 80),
-  sink: ConsoleSink(),
-);
+ColorDecorator(colorHeaderBackground: true) // Deprecated
+```
+
+**Modern (ColorConfig)**:
+```dart
+ColorDecorator(
+  config: ColorConfig(headerBackground: true),
+  scheme: ColorScheme.darkScheme,
+)
 ```
 
 ## Parameter Mapping
 
-| Old `BoxFormatter` | New Component |
-|-------------------|---------------|
-| `lineLength` | `StructuredFormatter(lineLength: ...)` AND `BoxDecorator(lineLength: ...)` |
+| Old Parameter | New Component / Parameter |
+|---------------|---------------------------|
+| `lineLength`  | `StructuredFormatter(lineLength: ...)` AND `BoxDecorator(lineLength: ...)` |
 | `borderStyle` | `BoxDecorator(borderStyle: ...)` |
-| `useColors` | `ColorDecorator()` (Preferred) or `BoxDecorator(useColors: ...)` |
+| `useColors`   | `ColorDecorator()` (Preferred) |
 
-### Color Customization (New in v0.5.0)
+## Breaking Changes in v0.4.2
+- `LogFormatter.format` return type changed from `Iterable<String>` to `Iterable<LogLine>`.
+- `LogDecorator.decorate` parameter and return type changed to `Iterable<LogLine>`.
+- `LogSink.output` parameter changed to `Iterable<LogLine>`.
+- Internal modules moved to `lib/src/core/`. Public exports in `lib/logd.dart` remain the same.
 
-With the new ANSI color infrastructure, you can customize colors for different use cases:
-
-```dart
-// Dark terminal theme
-final darkHandler = Handler(
-  formatter: StructuredFormatter(),
-  decorators: [
-    ColorDecorator(
-    BoxDecorator(
-  ],
-  sink: ConsoleSink(),
-);
-
-// Custom colors
-final customScheme = AnsiColorScheme(
-  trace: AnsiColor.cyan,
-  info: AnsiColor.brightMagenta,
-  error: AnsiColor.brightRed,
-);
-
-final customHandler = Handler(
-  formatter: StructuredFormatter(),
-  decorators: [
-    ColorDecorator(
-    BoxDecorator(
-  ],
-  sink: ConsoleSink(),
-);
-
-// Control which elements to color
-final selectiveHandler = Handler(
-  formatter: StructuredFormatter(),
-  decorators: [
-    ColorDecorator(
-      config: AnsiColorConfig(
-        colorHeader: true,
-        colorBody: true,
-        colorBorder: false,  // Skip borders
-        colorStackFrame: true,
-      ),
-    ),
-  ],
-  sink: ConsoleSink(),
-);
-```
-
-#### Header Background Migration
-
-Old `ColorDecorator(colorHeaderBackground: true)`:
-
-```dart
-// Old (deprecated)
-ColorDecorator(
-  
-  colorHeaderBackground: true,  // Removed in v0.5.0
-);
-```
-
-```dart
-// New
-ColorDecorator(
-  
-  config: AnsiColorConfig(headerBackground: true),
-);
-```
-
-## Troubleshooting
-
-### Box Alignment Issues
-If your box borders look "shaggy" or misaligned, ensure that any decorator that significantly changes line length (like `ColorDecorator`) is placed **AFTER** `BoxDecorator` in the list. `BoxDecorator` now handles existing ANSI codes correctly, but it's still best practice to color the final structure.
+## Recommendations
+- **Order Matters**: Put `BoxDecorator` before `ColorDecorator` if you want the borders to be colored along with the content.
+- **Hierarchy**: Use `HierarchyDepthPrefixDecorator` to visualize nested loggers.
+- **Buffers**: Use `logger.infoBuffer` for multi-line logs to ensure they stay grouped together.
