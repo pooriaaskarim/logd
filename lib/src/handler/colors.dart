@@ -34,13 +34,60 @@ class ColorScheme {
     required this.info,
     required this.warning,
     required this.error,
+    this.timestampColor,
+    this.loggerNameColor,
+    this.levelColor,
+    this.borderColor,
+    this.stackFrameColor,
   });
 
+  // Base colors per level
   final LogColor trace;
   final LogColor debug;
   final LogColor info;
   final LogColor warning;
   final LogColor error;
+
+  // Override colors for specific tags (optional)
+  /// Color for timestamp segments. If null, uses base level color.
+  final LogColor? timestampColor;
+
+  /// Color for logger name segments. If null, uses base level color.
+  final LogColor? loggerNameColor;
+
+  /// Color for level indicator segments. If null, uses base level color.
+  final LogColor? levelColor;
+
+  /// Color for border segments. If null, uses base level color.
+  final LogColor? borderColor;
+
+  /// Color for stack frame segments. If null, uses base level color.
+  final LogColor? stackFrameColor;
+
+  /// Get color for a specific tag set at a given level.
+  ///
+  /// Priority: specific tag overrides > base level color.
+  LogColor colorFor(final LogLevel level, final Set<LogTag> tags) {
+    // Check for specific tag overrides first
+    if (tags.contains(LogTag.timestamp) && timestampColor != null) {
+      return timestampColor!;
+    }
+    if (tags.contains(LogTag.loggerName) && loggerNameColor != null) {
+      return loggerNameColor!;
+    }
+    if (tags.contains(LogTag.level) && levelColor != null) {
+      return levelColor!;
+    }
+    if (tags.contains(LogTag.border) && borderColor != null) {
+      return borderColor!;
+    }
+    if (tags.contains(LogTag.stackFrame) && stackFrameColor != null) {
+      return stackFrameColor!;
+    }
+
+    // Fallback to base level color
+    return colorForLevel(level);
+  }
 
   LogColor colorForLevel(final LogLevel level) {
     switch (level) {
@@ -92,10 +139,26 @@ class ColorScheme {
           debug == other.debug &&
           info == other.info &&
           warning == other.warning &&
-          error == other.error;
+          error == other.error &&
+          timestampColor == other.timestampColor &&
+          loggerNameColor == other.loggerNameColor &&
+          levelColor == other.levelColor &&
+          borderColor == other.borderColor &&
+          stackFrameColor == other.stackFrameColor;
 
   @override
-  int get hashCode => Object.hash(trace, debug, info, warning, error);
+  int get hashCode => Object.hash(
+        trace,
+        debug,
+        info,
+        warning,
+        error,
+        timestampColor,
+        loggerNameColor,
+        levelColor,
+        borderColor,
+        stackFrameColor,
+      );
 }
 
 /// Configuration for fine-grained color application in [ColorDecorator].
@@ -103,50 +166,100 @@ class ColorScheme {
 class ColorConfig {
   /// Creates a color application configuration.
   const ColorConfig({
-    this.colorHeader = true,
-    this.colorBody = true,
+    this.colorTimestamp = true,
+    this.colorLevel = true,
+    this.colorLoggerName = true,
+    this.colorMessage = true,
     this.colorBorder = true,
     this.colorStackFrame = true,
+    this.colorError = true,
     this.headerBackground = false,
   });
 
-  /// Whether to color header lines (timestamp, level, logger name).
-  final bool colorHeader;
+  /// Whether to color timestamp segments.
+  final bool colorTimestamp;
 
-  /// Whether to color the main message body.
-  final bool colorBody;
+  /// Whether to color level indicator segments.
+  final bool colorLevel;
+
+  /// Whether to color logger name segments.
+  final bool colorLoggerName;
+
+  /// Whether to color message body segments.
+  final bool colorMessage;
 
   /// Whether to color structural borders (e.g., box borders).
   final bool colorBorder;
 
-  /// Whether to color stack trace frames.
+  /// Whether to color stack trace frame segments.
   final bool colorStackFrame;
 
-  /// Whether to use a background color for headers instead of foreground.
+  /// Whether to color error information segments.
+  final bool colorError;
+
+  /// Whether to use inverse video (background color) for headers.
   final bool headerBackground;
+
+  /// Determines if a segment with given tags should be colored.
+  bool shouldColor(final Set<LogTag> tags) {
+    if (tags.contains(LogTag.timestamp)) return colorTimestamp;
+    if (tags.contains(LogTag.level)) return colorLevel;
+    if (tags.contains(LogTag.loggerName)) return colorLoggerName;
+    if (tags.contains(LogTag.message)) return colorMessage;
+    if (tags.contains(LogTag.border)) return colorBorder;
+    if (tags.contains(LogTag.stackFrame)) return colorStackFrame;
+    if (tags.contains(LogTag.error)) return colorError;
+    return true; // Default: color everything
+  }
 
   /// Default configuration: color everything, no header background.
   static const all = ColorConfig();
 
+  /// Minimal configuration: only color essential parts.
+  static const minimal = ColorConfig(
+    colorTimestamp: false,
+    colorLoggerName: false,
+    colorBorder: false,
+  );
+
   /// Color everything except borders.
   static const noBorders = ColorConfig(
-    colorHeader: true,
-    colorBody: true,
     colorBorder: false,
-    colorStackFrame: true,
   );
+
+  // Legacy compatibility methods
+  @Deprecated('''
+Use tag-specific controls instead.
+Will be dropped in v0.5.0''')
+  bool get colorHeader => colorTimestamp || colorLevel || colorLoggerName;
+
+  @Deprecated('''
+Use [colorMessage] instead.
+Will be dropped in v0.5.0''')
+  bool get colorBody => colorMessage;
 
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
       other is ColorConfig &&
-          colorHeader == other.colorHeader &&
-          colorBody == other.colorBody &&
+          colorTimestamp == other.colorTimestamp &&
+          colorLevel == other.colorLevel &&
+          colorLoggerName == other.colorLoggerName &&
+          colorMessage == other.colorMessage &&
           colorBorder == other.colorBorder &&
           colorStackFrame == other.colorStackFrame &&
+          colorError == other.colorError &&
           headerBackground == other.headerBackground;
 
   @override
   int get hashCode => Object.hash(
-      colorHeader, colorBody, colorBorder, colorStackFrame, headerBackground);
+        colorTimestamp,
+        colorLevel,
+        colorLoggerName,
+        colorMessage,
+        colorBorder,
+        colorStackFrame,
+        colorError,
+        headerBackground,
+      );
 }

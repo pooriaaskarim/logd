@@ -15,7 +15,7 @@ void main() async {
   final wrappedHandler = Handler(
     formatter: StructuredFormatter(lineLength: 40),
     decorators: const [
-      const ColorDecorator(),
+      ColorDecorator(),
     ],
     sink: const ConsoleSink(),
   );

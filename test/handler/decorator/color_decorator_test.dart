@@ -85,8 +85,10 @@ void main() {
     test('respects config (colorBody: false)', () {
       final decorator = ColorDecorator(
         config: ColorConfig(
-          colorBody: false,
-          colorHeader: true,
+          colorMessage: false,
+          colorTimestamp: true,
+          colorLevel: true,
+          colorLoggerName: true,
           colorBorder: true,
           colorStackFrame: true,
           headerBackground: true,

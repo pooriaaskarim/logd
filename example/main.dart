@@ -90,8 +90,10 @@ void _runDemo() {
     decorators: [
       const ColorDecorator(
         config: ColorConfig(
-          colorHeader: true,
-          colorBody: false, // Don't color message body
+          colorTimestamp: true,
+          colorLevel: true,
+          colorLoggerName: true,
+          colorMessage: false, // Don't color message body
         ),
       ),
       BoxDecorator(

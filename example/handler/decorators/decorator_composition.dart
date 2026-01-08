@@ -36,8 +36,10 @@ void main() async {
       const ColorDecorator(
           config: ColorConfig(
         colorBorder: false,
-        colorHeader: true,
-        colorBody: false,
+        colorTimestamp: true,
+        colorLevel: true,
+        colorLoggerName: true,
+        colorMessage: false,
         headerBackground: true,
       )),
     ],

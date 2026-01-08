@@ -1,33 +1,39 @@
 part of '../handler.dart';
 
-/// A [LogDecorator] that adds ANSI color escape sequences to log lines.
+/// A [LogDecorator] that applies semantic colors to log lines based on tags.
 ///
-/// Colors are applied based on the [LogLevel] severity. This is useful for
-/// enhancing readability in terminal environments that support ANSI colors.
+/// Colors are applied based on the [LogLevel] severity and semantic [LogTag]s.
+/// This decorator is sink-agnostic; sinks interpret [LogColor] as appropriate
+/// for their output format (ANSI, HTML, etc.).
 ///
-/// Example with custom colors:
+/// Example with fine-grained color control:
 /// ```dart
 /// ColorDecorator(
-///   colorScheme: AnsiColorScheme(
-///     trace: AnsiColor.cyan,
-///     debug: AnsiColor.white,
-///     info: AnsiColor.brightBlue,
-///     warning: AnsiColor.yellow,
-///     error: AnsiColor.brightRed,
+///   colorScheme: ColorScheme(
+///     info: LogColor.blue,
+///     error: LogColor.red,
+///     // Override specific tags
+///     timestampColor: LogColor.brightBlack,
+///     levelColor: LogColor.brightBlue,
 ///   ),
-///   config: AnsiColorConfig.noBorders,
+///   config: ColorConfig(
+///     colorTimestamp: true,
+///     colorLevel: true,
+///     colorMessage: false, // Don't color message body
+///   ),
 /// )
 /// ```
 @immutable
 final class ColorDecorator extends VisualDecorator {
   /// Creates a [ColorDecorator].
   ///
-  /// If [useColors] is `null`, it will attempt to auto-detect terminal support
-  /// using `io.stdout.supportsAnsiEscapes`.
+  /// If [useColors] is `null`, decoration proceeds (sinks decide rendering).
+  /// Set to `false` to explicitly skip color decoration.
   ///
+  /// [colorScheme] maps log levels and tags to semantic colors.
   /// Defaults to [ColorScheme.defaultScheme].
   ///
-  /// [config] controls which parts of the log to color.
+  /// [config] controls which semantic parts get colored.
   /// Defaults to [ColorConfig.all] (color everything).
   const ColorDecorator({
     this.useColors,
@@ -35,10 +41,10 @@ final class ColorDecorator extends VisualDecorator {
     this.config = ColorConfig.all,
   });
 
-  /// Explicit override for enabling or disabling ANSI colors.
+  /// Explicit override for enabling or disabling colors.
   final bool? useColors;
 
-  /// Color scheme mapping log levels to semantic colors.
+  /// Color scheme mapping log levels and tags to semantic colors.
   final ColorScheme colorScheme;
 
   /// Configuration for color application.
@@ -50,87 +56,83 @@ final class ColorDecorator extends VisualDecorator {
     final LogEntry entry,
     final LogContext context,
   ) sync* {
-    // If the sink or context explicitly says no ANSI, we might skip decoration
-    // to save processing, OR we can attach styles anyway and let the Sink ignore them.
-    // Providing styles allows sinks that *do* support them to work, even if the primary one doesn't?
-    // But `supportsAnsi` in context usually comes from the primary sink.
-    // Let's stick to: if context says no ANSI, we can skip for optimization,
-    // unless we want to support multi-sink with mixed capabilities?
-    // "Deferred Rendering" implies we attach styles regardless, and Sink decides.
-    // BUT `ColorDecorator` implies "ANSI" specifically?
-    // Actually, it maps *semantics* to *colors*. It should probably be called `SemanticColorDecorator` but let's keep the name suitable.
-    // However, if we want to support a FileSink (no color) and ConsoleSink (color) from the same pipeline,
-    // we MUST attach styles here. The FileSink will ignore `TextStyle`.
-
-    // Default to true here, Sink decides final rendering.
-    // Actually, if `useColors` is explicitly `false`, we shouldn't decorate.
     if (useColors == false) {
       yield* lines;
       return;
     }
 
     final level = entry.level;
-    final baseColor = colorScheme.colorForLevel(level);
 
     for (final line in lines) {
       final newSegments = <LogSegment>[];
       for (final segment in line.segments) {
-        if (segment.style != null) {
-          // Idempotency: if already styled, maybe skip? or merge?
-          // For now, preserve existing style if it seems "complete"?
-          // Or just overwrite/merge. Let's merge if possible or just append.
+        final tags = segment.tags;
+
+        // Check if we should color this segment
+        if (!config.shouldColor(tags)) {
           newSegments.add(segment);
           continue;
         }
 
-        TextStyle? style;
-        final tags = segment.tags;
+        // Get color for this specific tag combination
+        final color = colorScheme.colorFor(level, tags);
 
-        if (tags.contains(LogTag.stackFrame)) {
-          if (config.colorStackFrame) {
+        // Handle style merging
+        if (segment.style != null) {
+          // Merge color into existing style
+          final mergedStyle = TextStyle(
+            color: color,
+            bold: segment.style!.bold,
+            dim: segment.style!.dim,
+            italic: segment.style!.italic,
+            inverse: segment.style!.inverse,
+          );
+          newSegments
+              .add(LogSegment(segment.text, tags: tags, style: mergedStyle));
+        } else {
+          // Apply new style with color and semantic styling
+          TextStyle? style;
+
+          // Stack frames: special bright-black color
+          if (tags.contains(LogTag.stackFrame)) {
             style = const TextStyle(color: LogColor.brightBlack);
           }
-        } else if (tags.contains(LogTag.border)) {
-          if (config.colorBorder) {
-            style = TextStyle(color: baseColor, dim: true);
+          // Borders: dimmed
+          else if (tags.contains(LogTag.border)) {
+            style = TextStyle(color: color, dim: true);
           }
-        } else if (tags.contains(LogTag.header)) {
-          if (config.colorHeader) {
-            // Differentiate inner header parts if possible
+          // Headers with fine-grained control
+          else if (tags.contains(LogTag.header)) {
             if (tags.contains(LogTag.level)) {
+              // Level indicators: bold
               style = TextStyle(
-                color: baseColor,
+                color: color,
                 bold: true,
                 inverse: config.headerBackground,
               );
             } else if (tags.contains(LogTag.timestamp) ||
                 tags.contains(LogTag.loggerName)) {
+              // Timestamps/Logger names: dimmed
               style = TextStyle(
-                color: baseColor,
+                color: color,
                 dim: true,
                 inverse: config.headerBackground,
               );
             } else {
-              // Generic header fallback
+              // Generic header: bold
               style = TextStyle(
-                color: baseColor,
+                color: color,
                 bold: true,
                 inverse: config.headerBackground,
               );
             }
           }
-        } else {
-          // Body/Message
-          if (config.colorBody) {
-            style = TextStyle(color: baseColor);
+          // Body/Message: standard color
+          else {
+            style = TextStyle(color: color);
           }
-        }
 
-        if (style != null) {
-          newSegments
-              .add(LogSegment(segment.text, tags: segment.tags, style: style));
-        } else {
-          newSegments.add(segment);
+          newSegments.add(LogSegment(segment.text, tags: tags, style: style));
         }
       }
       yield LogLine(newSegments);

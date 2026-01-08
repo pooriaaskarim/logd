@@ -55,8 +55,10 @@ void main() async {
   // 2. High Contrast (Header Only)
   final highContrast = ColorDecorator(
     config: ColorConfig(
-      colorHeader: true,
-      colorBody: false,
+      colorTimestamp: true,
+      colorLevel: true,
+      colorLoggerName: true,
+      colorMessage: false,
       colorBorder: false,
       colorStackFrame: false,
     ),

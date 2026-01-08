@@ -6,7 +6,8 @@ part of '../handler.dart';
 /// and its metadata (timestamp, level, origin) in a structured format with
 /// clear visual separators. It supports auto-wrapping for long content.
 ///
-@immutable
+/// Uses fine-grained semantic tags ([LogTag.timestamp], [LogTag.level],
+/// [LogTag.loggerName]) within headers to enable tag-specific color overrides.
 @immutable
 final class StructuredFormatter implements LogFormatter {
   /// Creates a [StructuredFormatter] with customizable constraints.
@@ -33,36 +34,60 @@ final class StructuredFormatter implements LogFormatter {
       if (entry.error != null) ..._buildError(entry.error!, innerWidth),
       if (entry.stackFrames != null)
         ..._buildStackTrace(entry.stackFrames!, innerWidth),
-      // const LogLine('\n'),
     ];
   }
 
   List<LogLine> _buildHeader(final LogEntry entry, final int width) {
-    final logger = '[${entry.loggerName}]';
-    final level = '[${entry.level.name.toUpperCase()}]';
-    final ts = entry.timestamp;
-    final header = '$logger$level\n$ts';
     const prefix = '____';
-    final wrapWidth = (width - prefix.length).clamp(1, double.infinity).toInt();
-    final raw =
-        header.split('\n').where((final l) => l.trim().isNotEmpty).toList();
+
     final out = <LogLine>[];
-    for (final line in raw) {
-      final wrapped = _wrap(line, wrapWidth);
-      for (int i = 0; i < wrapped.length; i++) {
-        out.add(
-          LogLine([
-            LogSegment(
-              prefix +
-                  wrapped[i]
-                      .padRightVisiblePreserveAnsi(wrapWidth, '_')
-                      .padLeft(16, '_'),
-              tags: {LogTag.header},
-            ),
-          ]),
-        );
-      }
+
+    // First line: [loggerName][LEVEL] with fine-grained tags
+    final loggerText = entry.loggerName;
+    final levelText = entry.level.name.toUpperCase();
+
+    // Calculate visible content: '[loggerName][LEVEL]'
+    final contentLen =
+        1 + loggerText.visibleLength + 2 + levelText.visibleLength + 1;
+    // Total underscores to fill: width - prefix.length - contentLen
+    final totalUnderscores = width - prefix.length - contentLen;
+
+    final line1Segments = <LogSegment>[
+      LogSegment(prefix, tags: {LogTag.header}),
+      LogSegment('[', tags: {LogTag.header}),
+      LogSegment(loggerText, tags: {LogTag.header, LogTag.loggerName}),
+      LogSegment(']', tags: {LogTag.header}),
+      LogSegment('[', tags: {LogTag.header}),
+      LogSegment(levelText, tags: {LogTag.header, LogTag.level}),
+      LogSegment(']', tags: {LogTag.header}),
+    ];
+
+    if (totalUnderscores > 0) {
+      line1Segments.add(
+        LogSegment('_' * totalUnderscores, tags: {LogTag.header}),
+      );
     }
+
+    out.add(LogLine(line1Segments));
+
+    // Second line: timestamp with fine-grained tag
+    final timestampText = entry.timestamp;
+    final tsLen = timestampText.visibleLength;
+    final tsUnderscores = width - prefix.length - tsLen;
+
+    final line2Segments = <LogSegment>[
+      LogSegment(prefix, tags: {LogTag.header}),
+      LogSegment(timestampText, tags: {LogTag.header, LogTag.timestamp}),
+    ];
+
+    if (tsUnderscores > 0) {
+      line2Segments.add(
+        LogSegment('_' * tsUnderscores, tags: {LogTag.header}),
+      );
+    }
+
+    out.add(LogLine(line2Segments));
+
     return out;
   }
 
