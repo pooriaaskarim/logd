@@ -12,5 +12,5 @@ abstract interface class LogFormatter {
   ///
   /// Using [Iterable] enables lazy evaluation and efficient processing when
   /// chaining multiple formatters or applying decorators.
-  Iterable<LogLine> format(final LogEntry entry);
+  Iterable<LogLine> format(final LogEntry entry, final LogContext context);
 }

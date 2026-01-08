@@ -26,30 +26,90 @@ final class PlainFormatter implements LogFormatter {
   final bool includeLoggerName;
 
   @override
-  Iterable<LogLine> format(final LogEntry entry) sync* {
-    //Todo: Decide on how to process multi-line messages
-    yield LogLine(
-      '${includeLevel ? '[${entry.level.name.toUpperCase()}] ' : ''}'
-              '${includeTimestamp ? '${entry.timestamp} ' : ''}'
-              '${includeLoggerName ? '[${entry.loggerName}] ' : ''}'
-              '${entry.message}'
-          .split('\n')
-          .join(' '),
-      tags: const {
-        LogLineTag.header,
-        LogLineTag.message,
-      },
-    );
+  Iterable<LogLine> format(
+    final LogEntry entry,
+    final LogContext context,
+  ) sync* {
+    final segments = <LogSegment>[];
+
+    if (includeLevel) {
+      segments
+        ..add(
+          LogSegment(
+            '[${entry.level.name.toUpperCase()}]',
+            tags: const {LogTag.header, LogTag.level},
+          ),
+        )
+        ..add(
+          const LogSegment(
+            ' ',
+          ),
+        );
+    }
+
+    if (includeTimestamp) {
+      segments
+        ..add(
+          LogSegment(
+            entry.timestamp,
+            tags: const {LogTag.header, LogTag.timestamp},
+          ),
+        )
+        ..add(
+          const LogSegment(
+            ' ',
+          ),
+        );
+    }
+
+    if (includeLoggerName) {
+      segments
+        ..add(
+          LogSegment(
+            '[${entry.loggerName}]',
+            tags: const {LogTag.header, LogTag.loggerName},
+          ),
+        )
+        ..add(
+          const LogSegment(
+            ' ',
+          ),
+        );
+    }
+
+    final messageLines = entry.message.split('\n');
+    if (messageLines.isNotEmpty) {
+      final firstLineSegments = [
+        ...segments,
+        LogSegment(
+          messageLines.first,
+          tags: const {LogTag.message},
+        ),
+      ];
+      yield LogLine(firstLineSegments);
+
+      for (int i = 1; i < messageLines.length; i++) {
+        yield LogLine([
+          LogSegment(messageLines[i], tags: const {LogTag.message}),
+        ]);
+      }
+    } else {
+      yield LogLine(segments);
+    }
 
     if (entry.error != null) {
-      yield LogLine('Error: ${entry.error}', tags: const {LogLineTag.error});
+      yield LogLine([
+        LogSegment('Error: ${entry.error}', tags: const {LogTag.error}),
+      ]);
     }
 
     if (entry.stackTrace != null) {
       final traceLines = entry.stackTrace.toString().split('\n');
       for (final line in traceLines) {
         if (line.trim().isNotEmpty) {
-          yield LogLine(line, tags: const {LogLineTag.stackFrame});
+          yield LogLine([
+            LogSegment(line, tags: const {LogTag.stackFrame}),
+          ]);
         }
       }
     }

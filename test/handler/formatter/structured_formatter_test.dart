@@ -1,5 +1,6 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('StructuredFormatter', () {
@@ -13,16 +14,16 @@ void main() {
     );
 
     test('formats header with correct prefix', () {
-      final formatter = StructuredFormatter(lineLength: 80);
-      final lines = formatter.format(entry).toList();
+      const formatter = StructuredFormatter();
+      final lines = formatter.format(entry, mockContext).toList();
 
-      expect(lines[0].text, startsWith('____'));
-      expect(lines[0].text, contains('[test]'));
-      expect(lines[0].text, contains('[INFO]'));
+      expect(lines[0].toString(), startsWith('____'));
+      expect(lines[0].toString(), contains('[test]'));
+      expect(lines[0].toString(), contains('[INFO]'));
     });
 
     test('wraps long message', () {
-      final formatter = StructuredFormatter(lineLength: 20);
+      const formatter = StructuredFormatter();
       const longEntry = LogEntry(
         loggerName: 't',
         origin: 'o',
@@ -31,10 +32,12 @@ void main() {
         timestamp: 'ts',
         hierarchyDepth: 0,
       );
-      final lines = formatter.format(longEntry).toList();
+      final lines = formatter
+          .format(longEntry, const LogContext(availableWidth: 20))
+          .toList();
 
       final msgStartIndex =
-          lines.indexWhere((final l) => l.text.startsWith('----|'));
+          lines.indexWhere((final l) => l.toString().startsWith('----|'));
       final msgLines = lines.sublist(msgStartIndex);
 
       expect(msgLines.length, greaterThan(1));

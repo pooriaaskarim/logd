@@ -12,7 +12,7 @@ import 'package:logd/logd.dart';
 void main() async {
   // Create a multi-sink handler
   final multiHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     sink: MultiSink([
       const ConsoleSink(), // Console with structured format
       FileSink(
@@ -20,6 +20,7 @@ void main() async {
         fileRotation: SizeRotation(maxSize: '10 KB'),
       ), // File with same format
     ]),
+    lineLength: 80,
   );
 
   Logger.configure(

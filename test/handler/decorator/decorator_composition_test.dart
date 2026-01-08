@@ -1,9 +1,10 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import 'mock_context.dart';
 
 void main() {
   group('Decorator Composition', () {
-    final lines = [LogLine.plain('msg line 1'), LogLine.plain('msg line 2')];
+    final lines = [LogLine.text('msg line 1'), LogLine.text('msg line 2')];
     const entry = LogEntry(
       loggerName: 'test',
       origin: 'test',
@@ -13,47 +14,50 @@ void main() {
       hierarchyDepth: 0,
     );
 
-    test('Order: BoxDecorator then AnsiColorDecorator colors the borders', () {
-      final box = BoxDecorator(lineLength: 20, useColors: false);
-      const color = AnsiColorDecorator(useColors: true);
+    test('Order: BoxDecorator then ColorDecorator colors the borders', () {
+      const box = BoxDecorator();
+      const color = ColorDecorator(useColors: true);
 
-      final boxed = box.decorate(lines, entry);
-      final colored = color.decorate(boxed, entry).toList();
+      final boxed = box.decorate(lines, entry, mockContext);
+      final colored = color.decorate(boxed, entry, mockContext).toList();
+      final rendered = renderLines(colored);
 
       // Should have top border, 2 content lines, bottom border = 4 lines
-      expect(colored.length, equals(4));
+      expect(rendered.length, equals(4));
 
-      // Top border should be colored
+      // Top border should be colored and dimmed
       // Info level now defaults to blue (was green)
-      expect(colored[0].text, startsWith('\x1B[34m')); // Blue
-      expect(colored[0].text, contains('╭'));
-      expect(colored[0].text, endsWith('\x1B[0m'));
+      expect(rendered[0], startsWith('\x1B[2m\x1B[34m')); // Dim + Blue
+      expect(rendered[0], contains('╭'));
+      expect(rendered[0], endsWith('\x1B[0m'));
 
-      // Content lines should be colored (on the outside of the
+      // Content lines should be colored and dimmed (borders)
       // box vertical bars)
-      expect(colored[1].text, startsWith('\x1B[34m')); // Blue
-      expect(colored[1].text, contains('│'));
-      expect(colored[1].text, endsWith('\x1B[0m'));
+      expect(rendered[1], startsWith('\x1B[2m\x1B[34m')); // Dim + Blue
+      expect(rendered[1], contains('│'));
+      expect(rendered[1], endsWith('\x1B[0m'));
     });
 
-    test('Order: AnsiColorDecorator then BoxDecorator keeps borders plain', () {
-      const color = AnsiColorDecorator(useColors: true);
-      final box = BoxDecorator(lineLength: 20, useColors: false);
+    test('Order: ColorDecorator then BoxDecorator keeps borders plain', () {
+      const color = ColorDecorator(useColors: true);
+      const box = BoxDecorator();
 
-      final colored = color.decorate(lines, entry);
-      final boxed = box.decorate(colored, entry).toList();
+      final colored = color.decorate(lines, entry, mockContext);
+      final boxed = box.decorate(colored, entry, mockContext).toList();
+      final rendered = renderLines(boxed);
 
-      expect(boxed.length, equals(4));
+      expect(rendered.length, equals(4));
 
       // Top border should NOT be colored (because box was applied AFTER color)
-      expect(boxed[0].text, isNot(startsWith('\x1B[34m')));
-      expect(boxed[0].text, startsWith('╭'));
+      expect(rendered[0], isNot(startsWith('\x1B[2m\x1B[34m')));
+      expect(rendered[0], startsWith('╭'));
 
-      // Content line should contain color codes INSIDE the box vertical bars
-      expect(boxed[1].text, startsWith('│'));
+      // Content line should contain_color codes INSIDE the box vertical bars
+      expect(rendered[1], startsWith('│'));
       // Info level now defaults to blue (was green)
-      expect(boxed[1].text, contains('\x1B[34mmsg line 1          \x1B[0m'));
-      expect(boxed[1].text, endsWith('│'));
+      // Padding is OUTSIDE the ANSI block now
+      expect(rendered[1], contains('\x1B[34mmsg line 1\x1B[0m'));
+      expect(rendered[1], endsWith('│'));
     });
 
     test('Multiple decorators apply sequentially', () {
@@ -63,54 +67,55 @@ void main() {
 
       final result = decorator2
           .decorate(
-            decorator1.decorate([LogLine.plain('msg')], entry),
+            decorator1.decorate([LogLine.text('msg')], entry, mockContext),
             entry,
+            mockContext,
           )
           .first;
 
-      expect(result.text, equals('P2: P1: msg'));
+      // Note: PrefixDecorator adds header LogSegment, LogLine.toString() joins
+      // them.
+      // renderLines also joins them.
+      // If mockContext.supportsAnsi is true, and header is colored?
+      // PrefixDecorator uses `LogTag.header`. ColorDecorator is NOT involved
+      // here?
+      // Wait, PrefixDecorator assigns `tags: {LogTag.header}`.
+      // IF we used ColorDecorator it would color it. But here we don't.
+      // So renderLines output is plain.
+      expect(result.toString(), equals('P2: P1: msg'));
     });
 
     test('BoxDecorator handles already colored lines using padVisible', () {
-      const color = AnsiColorDecorator(useColors: true);
-      final box = BoxDecorator(lineLength: 20, useColors: false);
+      const color = ColorDecorator(useColors: true);
+      const box = BoxDecorator();
 
-      final colored = color.decorate([LogLine.plain('abc')], entry).toList();
-      final boxed = box.decorate(colored, entry).toList();
+      final colored =
+          color.decorate([LogLine.text('abc')], entry, mockContext).toList();
+      final boxed = box.decorate(colored, entry, mockContext).toList();
+      final rendered = renderLines(boxed);
 
       final middleLine = boxed[1];
-      expect(middleLine.visibleLength, equals(22));
+      // visibleLength should be 3 ('abc'). ANSI is style, not text.
+      expect(
+        middleLine.visibleLength,
+        equals(3 + 75 + 2),
+      ); // abc + pad + borders(2) = 80 (mockContext default)
+
+      final renderedMiddle = rendered[1];
       // Info level now defaults to blue (was green)
       expect(
-        middleLine.text.contains('\x1B[34mabc                 \x1B[0m'),
+        renderedMiddle.contains('\x1B[34mabc\x1B[0m'),
         isTrue,
       );
-      expect(middleLine.text, startsWith('│'));
-      expect(middleLine.text, endsWith('│'));
-    });
-    test('BoxDecorator handles internal newlines in input strings', () {
-      final box = BoxDecorator(lineLength: 20, useColors: false);
-      // Formatter output shouldn't have newlines now, but for robustness:
-      final lines = [LogLine.plain('line 1\nline 2')];
-      // Note: BoxDecorator.decorate itself doesn't split anymore as per
-      // our change because we expect Formatter to yield separate lines.
-      // But we kept wrapVisible which handles it if text still has newlines.
-      final boxed = box.decorate(lines, entry).toList();
-
-      // Should have top, line 1, line 2, bottom = 4 lines
-      expect(boxed.length, equals(4));
-      expect(boxed[1].text, contains('line 1'));
-      expect(boxed[1].text, startsWith('│'));
-      expect(boxed[1].text, endsWith('│'));
-      expect(boxed[2].text, contains('line 2'));
-      expect(boxed[2].text, endsWith('│'));
+      expect(renderedMiddle, startsWith('│'));
+      expect(renderedMiddle, endsWith('│'));
     });
 
-    test('Best Practice Order: Ansi -> Box -> Hierarchy', () {
+    test('Best Practice Order: Box -> Ansi -> Hierarchy', () {
       // 1. Color Content
-      const ansi = AnsiColorDecorator(useColors: true);
+      const ansi = ColorDecorator(useColors: true);
       // 2. Box it (with its own border color)
-      final box = BoxDecorator(lineLength: 20, useColors: true);
+      const box = BoxDecorator();
       // 3. Indent it
       const hierarchy = HierarchyDepthPrefixDecorator(indent: '>> ');
       const deepEntry = LogEntry(
@@ -123,33 +128,37 @@ void main() {
       );
 
       // Pipeline execution
-      final s1 = ansi.decorate(lines, deepEntry);
-      final s2 = box.decorate(s1, deepEntry);
-      final finalOutput = hierarchy.decorate(s2, deepEntry).toList();
+      // Pipeline execution: Box -> Color -> Hierarchy to ensure borders are
+      // colored
+      final s1 = box.decorate(lines, deepEntry, mockContext);
+      final s2 = ansi.decorate(s1, deepEntry, mockContext);
+      final finalOutput =
+          hierarchy.decorate(s2, deepEntry, mockContext).toList();
+      final rendered = renderLines(finalOutput);
 
-      expect(finalOutput.length, equals(4));
+      expect(rendered.length, equals(4));
 
       // Check indentation exists on ALL lines (outside the box)
-      for (final line in finalOutput) {
-        expect(line.text, startsWith('>> '));
+      for (final line in rendered) {
+        expect(line, startsWith('>> '));
       }
 
       // Check top border: Indent -> Color -> TopLeft
       // Note: BoxDecorator applies color to the border characters.
-      final top = finalOutput[0].text;
-      // Info level now defaults to blue (was green)
-      expect(top, contains('\x1B[34m'));
+      final top = rendered[0];
+      // Info level now defaults to blue (was green), borders are dimmed
+      expect(top, contains('\x1B[2m\x1B[34m'));
       expect(top, contains('╭'));
 
       // Check content line: Indent -> BorderColor -> Vertical -> Reset
       // -> ContentColor -> Msg
-      final content = finalOutput[1].text;
+      final content = rendered[1];
       expect(content, startsWith('>> '));
       expect(content, contains('│'));
       // Info level now defaults to blue (was green)
       expect(
         content,
-        contains('\x1B[34mmsg line 1          \x1B[0m'),
+        contains('\x1B[34mmsg line 1\x1B[0m'),
       ); // Colored content
     });
   });

@@ -7,7 +7,8 @@ void main() {
         'BoxDecorator with PlainFormatter and long message should '
         'not break the box', () {
       const formatter = PlainFormatter();
-      final box = BoxDecorator(lineLength: 40);
+      const box = BoxDecorator();
+      const context = LogContext(availableWidth: 40);
 
       const entry = LogEntry(
         loggerName: 'test',
@@ -20,20 +21,20 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = formatter.format(entry);
-      final boxed = box.decorate(formatted, entry).toList();
+      final formatted = formatter.format(entry, context);
+      final boxed = box.decorate(formatted, entry, context).toList();
 
       // Check top/bottom border length
       final topWidth = boxed[0].visibleLength;
 
       for (int i = 0; i < boxed.length; i++) {
         final line = boxed[i];
-        print('Line $i: ${line.visibleLength} chars | ${line.text}');
+        print('Line $i: ${line.visibleLength} chars | $line');
         expect(
           line.visibleLength,
           equals(topWidth),
-          reason: 'Line $i has inconsistent width: ${line.visibleLength}'
-              ' vs $topWidth',
+          reason: 'Line \$i has inconsistent width: \${line.visibleLength}'
+              ' vs \$topWidth',
         );
       }
     });
@@ -42,7 +43,8 @@ void main() {
         'BoxDecorator with JsonFormatter (long line) should '
         'wrap internal content', () {
       const formatter = JsonFormatter();
-      final box = BoxDecorator(lineLength: 30);
+      const box = BoxDecorator();
+      const context = LogContext(availableWidth: 30);
 
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_will_push_json_over_the_limit',
@@ -53,8 +55,8 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = formatter.format(entry);
-      final boxed = box.decorate(formatted, entry).toList();
+      final formatted = formatter.format(entry, context);
+      final boxed = box.decorate(formatted, entry, context).toList();
 
       for (int i = 0; i < boxed.length; i++) {
         final line = boxed[i];

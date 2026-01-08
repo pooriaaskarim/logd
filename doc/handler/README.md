@@ -11,30 +11,31 @@ A `Handler` encapsulates two distinct operations:
 ## Components
 
 ### Formatters
-- `StructuredFormatter`: Detailed layout (header, origin, message) without borders. **(New)**
+- `StructuredFormatter`: Detailed layout (header, origin, message) without borders. **(Preferred)**
 - `BoxFormatter`: Wraps logs in a visual box. **(Deprecated - use StructuredFormatter + BoxDecorator)**
 - `JsonFormatter`: Serializes logs to JSON for machine parsing.
 - `PlainFormatter`: Simple text output.
 
 ### Decorators
 Decorators now have full access to the `LogEntry` object, including metadata like `hierarchyDepth`, `tags`, and `loggerName`, enabling more context-aware transformations.
-- `BoxDecorator`: Adds ASCII borders around formatted lines. Supports independent coloring via its `useColors` parameter.
-- `AnsiColorDecorator`: Adds level-based coloring with customizable color schemes and color application options. Includes a `colorHeaderBackground` option for bold header highlights.
+- `BoxDecorator`: Adds ASCII borders around formatted lines.
+- `ColorDecorator`: Adds level-based coloring with customizable color schemes and color application options. Includes a `headerBackground` option for bold header highlights.
 - `HierarchyDepthPrefixDecorator`: Adds visual indentation (defaulting to `│ `) based on the logger's hierarchy depth, creating a clear tree-like structure in the terminal.
 
 #### ANSI Color Customization
 
-Both `AnsiColorDecorator` and `BoxDecorator` support customizable color schemes:
+Both `ColorDecorator` and `BoxDecorator` support customizable color schemes:
 
 ```dart
 // Use predefined color schemes
 final darkHandler = Handler(
-  formatter: StructuredFormatter(),
-  decorators: [
-    AnsiColorDecorator(colorScheme: AnsiColorScheme.darkScheme),
-    BoxDecorator(colorScheme: AnsiColorScheme.darkScheme),
+  formatter: const StructuredFormatter(),
+  decorators: const [
+    BoxDecorator(),
+    ColorDecorator(),
   ],
-  sink: ConsoleSink(),
+  sink: const ConsoleSink(),
+  lineLength: 80,
 );
 
 // Or create custom color scheme
@@ -47,34 +48,35 @@ final customScheme = AnsiColorScheme(
 );
 
 final customHandler = Handler(
-  formatter: StructuredFormatter(),
-  decorators: [
-    AnsiColorDecorator(colorScheme: customScheme),
+  formatter: const StructuredFormatter(),
+  decorators: const [
+    ColorDecorator(),
   ],
-  sink: ConsoleSink(),
+  sink: const ConsoleSink(),
+  lineLength: 80,
 );
 ```
 
 #### Fine-Grained Color Control
 
-`AnsiColorDecorator` supports granular control over which log elements to color, including options for header background highlights:
+`ColorDecorator` supports granular control over which log elements to color, including options for header background highlights:
 
 ```dart
 // Color only headers
-const headerOnly = AnsiColorDecorator(
-  useColors: true,
+const headerOnly = ColorDecorator(
+  
   config: AnsiColorConfig.headerOnly,
 );
 
 // Color everything except borders
-const noBorders = AnsiColorDecorator(
-  useColors: true,
+const noBorders = ColorDecorator(
+  
   config: AnsiColorConfig.noBorders,
 );
 
 // Custom configuration
-const custom = AnsiColorDecorator(
-  useColors: true,
+const custom = ColorDecorator(
+  
   config: AnsiColorConfig(
     colorHeader: true,
     colorBody: true,
@@ -107,12 +109,13 @@ The power of the Handler module lies in its composability. You can chain decorat
 
 ```dart
 Handler(
-  formatter: StructuredFormatter(),
-  decorators: [
+  formatter: const StructuredFormatter(),
+  decorators: const [
     BoxDecorator(borderStyle: BorderStyle.double),
-    AnsiColorDecorator(),
+    ColorDecorator(),
   ],
-  sink: ConsoleSink(),
+  sink: const ConsoleSink(),
+  lineLength: 80,
 )
 ```
 

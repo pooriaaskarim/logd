@@ -1,19 +1,23 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import 'decorator/mock_context.dart';
 
 // Mock Sink to capture output
 final class MemorySink extends LogSink {
-  final List<String> buffer = [];
+  final List<List<LogLine>> buffer = [];
 
   @override
   bool get enabled => true;
+
+  @override
+  int get preferredWidth => 80;
 
   @override
   Future<void> output(
     final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
-    buffer.addAll(lines.map((final l) => l.text));
+    buffer.add(lines.toList());
   }
 }
 
@@ -24,12 +28,13 @@ void main() {
       // Input Order: Hierarchy (3) -> Box (2) -> Ansi (1). Reverse of desired.
       final handler = Handler(
         sink: sink,
-        formatter: StructuredFormatter(),
-        decorators: [
-          const HierarchyDepthPrefixDecorator(indent: '>> '),
-          BoxDecorator(useColors: true, lineLength: 20),
-          const AnsiColorDecorator(useColors: true),
+        formatter: const StructuredFormatter(),
+        decorators: const [
+          HierarchyDepthPrefixDecorator(indent: '>> '),
+          BoxDecorator(borderStyle: BorderStyle.rounded),
+          ColorDecorator(),
         ],
+        lineLength: 20,
       );
 
       // We need to bypass Logger and call handler direct or use a logger
@@ -56,12 +61,14 @@ void main() {
       //    Vertical: \x1B[32m│\x1B[0m
       // 3. Hierarchy: Indents everything with '>> '.
 
-      final lines = sink.buffer;
+      final lines = renderLines(sink.buffer.first);
       expect(lines.length, greaterThan(0));
 
       final top = lines[0];
       // Check Hierarchy First (Outer)
-      expect(top, startsWith('>> '));
+      // Hierarchy comes before Color, so Color decorates the prefix
+      // (LogTag.header).
+      expect(top, contains('>> '));
 
       // Check Box Border Color (Inner)
       // Info level now defaults to blue (was green)
@@ -70,13 +77,13 @@ void main() {
 
     test('Dedupes decorators', () async {
       final sink = MemorySink();
-      // Input: Two identical AnsiColorDecorators
+      // Input: Two identical ColorDecorators
       final handler = Handler(
         sink: sink,
-        formatter: StructuredFormatter(),
+        formatter: const StructuredFormatter(),
         decorators: const [
-          AnsiColorDecorator(useColors: true),
-          AnsiColorDecorator(useColors: true),
+          ColorDecorator(),
+          ColorDecorator(),
         ],
       );
 
@@ -91,10 +98,11 @@ void main() {
 
       await handler.log(entry);
 
-      final line = sink.buffer.firstWhere((final l) => l.contains('msg'));
+      final lines = renderLines(sink.buffer.single);
+      final line = lines.firstWhere((final l) => l.contains('msg'));
 
       // If applied twice, we might see double codes or just one if idempotent.
-      // AnsiColorDecorator IS idempotent check tags.
+      // ColorDecorator IS idempotent check tags.
       // But verify strictly that `decorate` wasn't called redundant times?
       // Actually, idempotency inside decorator handles it, but deduping in
       // handler prevents the loop entirely.

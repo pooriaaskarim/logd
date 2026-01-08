@@ -1,4 +1,4 @@
-// Example: AnsiColorDecorator
+// Example: ColorDecorator
 //
 // Demonstrates:
 // - Level-based coloring
@@ -13,60 +13,66 @@ import 'package:logd/logd.dart';
 void main() async {
   // Default color scheme
   final defaultHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: const [
-      AnsiColorDecorator(useColors: true),
+      ColorDecorator(useColors: true),
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
-  // Custom color scheme
-  final customScheme = AnsiColorScheme(
-    trace: AnsiColor.cyan,
-    debug: AnsiColor.white,
-    info: AnsiColor.brightBlue,
-    warning: AnsiColor.brightYellow,
-    error: AnsiColor.brightRed,
+  // 1. Custom Color Scheme
+  final customColors = ColorDecorator(
+    colorScheme: ColorScheme(
+      trace: LogColor.cyan,
+      debug: LogColor.white,
+      info: LogColor.brightBlue,
+      warning: LogColor.yellow,
+      error: LogColor.brightRed,
+    ),
   );
-
   final customHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
-      AnsiColorDecorator(
-        useColors: true,
-        colorScheme: customScheme,
-      ),
+      customColors,
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
-  // Header background
+  // 3. Header Background (Reverse Video)
+  final headerHighlight = ColorDecorator(
+    config: ColorConfig(
+      headerBackground: true,
+    ),
+  );
   final headerBgHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
-    decorators: const [
-      AnsiColorDecorator(
-        useColors: true,
-        config: AnsiColorConfig(headerBackground: true),
-      ),
+    formatter: const StructuredFormatter(),
+    decorators: [
+      headerHighlight,
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
-  // Selective coloring
+  // 2. High Contrast (Header Only)
+  final highContrast = ColorDecorator(
+    config: ColorConfig(
+      colorTimestamp: true,
+      colorLevel: true,
+      colorLoggerName: true,
+      colorMessage: false,
+      colorBorder: false,
+      colorStackFrame: false,
+    ),
+  );
   final selectiveHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
-    decorators: const [
-      AnsiColorDecorator(
-        useColors: true,
-        config: AnsiColorConfig(
-          colorHeader: true,
-          colorBody: true,
-          colorBorder: false,
-          colorStackFrame: true,
-        ),
-      ),
+    formatter: const StructuredFormatter(),
+    decorators: [
+      highContrast,
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure('example.default', handlers: [defaultHandler]);

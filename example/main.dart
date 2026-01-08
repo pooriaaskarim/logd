@@ -32,20 +32,17 @@ void _runDemo() {
 
   final composableHandler = Handler(
     // StructuredFormatter handles the layout (origin, metadata, wrapping)
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
-      // AnsiColorDecorator adds level-based coloring to the content (before boxing)
-      const AnsiColorDecorator(
-        useColors: true,
-      ),
+      // ColorDecorator adds level-based coloring to the content (before boxing)
+      const ColorDecorator(),
       // BoxDecorator adds the visual frame (border color is handled internally)
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 80,
-        useColors: true,
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure(
@@ -69,11 +66,11 @@ void _runDemo() {
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.double,
-        lineLength: 50, // Narrow box for JSON
       ),
-      const AnsiColorDecorator(),
+      const ColorDecorator(),
     ],
     sink: const ConsoleSink(),
+    lineLength: 50, // Narrow box for JSON
   );
 
   Logger.configure('example.json', handlers: [jsonBoxedHandler]);
@@ -89,20 +86,23 @@ void _runDemo() {
   print('\n--- 3. Hierarchical Indentation ---');
 
   final hierarchicalHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
-      const AnsiColorDecorator(
-        useColors: true,
-        config: AnsiColorConfig(headerBackground: true),
+      const ColorDecorator(
+        config: ColorConfig(
+          colorTimestamp: true,
+          colorLevel: true,
+          colorLoggerName: true,
+          colorMessage: false, // Don't color message body
+        ),
       ),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
-        lineLength: 80,
-        useColors: true,
       ),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure(
@@ -119,20 +119,34 @@ void _runDemo() {
   dbService.debug('Database query initiated...');
   cacheService.trace('Cache hit for key: user_123');
 
-  // 4. Multi-line Buffers
+  // 4. Styled JSON Logging (Vibrant JSON)
+  // JsonPrettyFormatter enables vibrant, styled JSON in the terminal.
+  print('\n--- 4. Styled JSON Logging ---');
+
+  final prettyHandler = Handler(
+    formatter: const JsonPrettyFormatter(),
+    sink: const ConsoleSink(),
+  );
+
+  Logger.configure('example.pretty', handlers: [prettyHandler]);
+  final prettyLogger = Logger.get('example.pretty');
+
+  prettyLogger.info('Task completed successfully.');
+
+  // 5. Atomic Multi-line Buffers
   // Send atomic multi-line logs without interleaving.
-  print('\n--- 4. Atomic Multi-line Buffers ---');
+  print('\n--- 5. Atomic Multi-line Buffers ---');
 
   final buffer = logger.infoBuffer;
   buffer?.writeln('Deployment Report:');
-  buffer?.writeln(' - Artifact: logd_v0.2.0.aot');
+  buffer?.writeln(' - Artifact: logd_v0.5.0.aot');
   buffer?.writeln(' - Target: production-us-east');
   buffer?.writeln(' - Status: SUCCESS');
   buffer?.sink();
 
-  // 5. Advanced Sink Configurations
+  // 6. Multi-Sink & File Rotation
   // Output to multiple destinations simultaneously.
-  print('\n--- 5. Multi-Sink & File Rotation ---');
+  print('\n--- 6. Multi-Sink & File Rotation ---');
 
   final fileHandler = Handler(
     formatter: const PlainFormatter(),
@@ -155,9 +169,9 @@ void _runDemo() {
 
   auditLogger.error('Security alert: Unauthorized access attempt detected');
 
-  // 6. Stack Trace Parsing
+  // 7. Stack Trace Parsing
   // Clean, readable stack traces with package filtering.
-  print('\n--- 6. Clean Stack Traces ---');
+  print('\n--- 7. Clean Stack Traces ---');
 
   try {
     _simulateError();

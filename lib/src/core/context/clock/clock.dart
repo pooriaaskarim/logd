@@ -1,4 +1,4 @@
-import '../../logger/logger.dart';
+import '../../../logger/logger.dart';
 import 'clock_native.dart' if (dart.library.html) 'clock_web.dart'
     as platform_tz;
 

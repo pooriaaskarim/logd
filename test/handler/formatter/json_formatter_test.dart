@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('JsonFormatter', () {
@@ -16,10 +17,10 @@ void main() {
 
     test('outputs compact JSON', () {
       const formatter = JsonFormatter();
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, equals(1));
-      final json = lines.first.text;
+      final json = lines.first.toString();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['timestamp'], equals('2025-01-01 10:00:00'));
@@ -44,10 +45,10 @@ void main() {
       );
 
       const formatter = JsonFormatter();
-      final lines = formatter.format(errorEntry).toList();
+      final lines = formatter.format(errorEntry, mockContext).toList();
 
       expect(lines.length, equals(1));
-      final json = lines.first.text;
+      final json = lines.first.toString();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['error'], equals('Connection failed'));
@@ -66,10 +67,10 @@ void main() {
       );
 
       const formatter = JsonFormatter();
-      final lines = formatter.format(stackEntry).toList();
+      final lines = formatter.format(stackEntry, mockContext).toList();
 
       expect(lines.length, equals(1));
-      final json = lines.first.text;
+      final json = lines.first.toString();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['stackTrace'], equals('stack line 1'));
@@ -89,10 +90,10 @@ void main() {
 
     test('outputs formatted JSON with indentation', () {
       const formatter = JsonPrettyFormatter();
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, greaterThan(1));
-      final output = lines.map((final l) => l.text).join('\n');
+      final output = lines.map((final l) => l.toString()).join('\n');
 
       expect(output, contains('  "timestamp": '));
       expect(output, contains('  "level": '));
@@ -118,10 +119,10 @@ void main() {
       );
 
       const formatter = JsonFormatter();
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, equals(1));
-      final json = lines.first.text;
+      final json = lines.first.toString();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['timestamp'], equals('2025-01-01 14:30:15.123'));
@@ -131,6 +132,66 @@ void main() {
       expect(decoded['message'], equals('Processing request'));
       expect(decoded['error'], isNotNull);
       expect(decoded['stackTrace'], isNotNull);
+    });
+  });
+
+  group('JsonSemanticFormatter', () {
+    const entry = LogEntry(
+      loggerName: 'app',
+      origin: 'main.dart:10',
+      level: LogLevel.info,
+      message: 'Test message',
+      timestamp: '2025-01-01 10:00:00',
+      hierarchyDepth: 2,
+    );
+
+    test('emits semantic tags when color is true', () {
+      const formatter = JsonPrettyFormatter(color: true);
+      final lines = formatter.format(entry, mockContext).toList();
+
+      expect(lines.length, greaterThan(0));
+      bool foundTag = false;
+      for (final line in lines) {
+        for (final segment in line.segments) {
+          if (segment.tags.contains(LogTag.jsonKey) ||
+              segment.tags.contains(LogTag.jsonValue) ||
+              segment.tags.contains(LogTag.jsonPunctuation)) {
+            foundTag = true;
+            break;
+          }
+        }
+      }
+      expect(foundTag, isTrue);
+    });
+
+    test('does not emit semantic tags when color is false', () {
+      const formatter = JsonPrettyFormatter(color: false);
+      final lines = formatter.format(entry, mockContext).toList();
+
+      expect(lines.length, greaterThan(0));
+      for (final line in lines) {
+        for (final segment in line.segments) {
+          expect(segment.tags.contains(LogTag.jsonKey), isFalse);
+          expect(segment.tags.contains(LogTag.jsonValue), isFalse);
+          expect(segment.tags.contains(LogTag.jsonPunctuation), isFalse);
+        }
+      }
+    });
+
+    test('prettyPrint produces indented output', () {
+      const formatter = JsonPrettyFormatter(indent: '    ');
+      final lines = formatter.format(entry, mockContext).toList();
+
+      // Check if any line (except first/last) starts with the indent
+      bool foundIndent = false;
+      for (final line in lines) {
+        final text = line.segments.map((final s) => s.text).join();
+        if (text.startsWith('    "')) {
+          foundIndent = true;
+          break;
+        }
+      }
+      expect(foundIndent, isTrue);
     });
   });
 }

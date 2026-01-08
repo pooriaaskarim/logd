@@ -10,17 +10,32 @@
 - [x] Deprecate `BoxFormatter`, provide migration guide
 - [x] Add tests for decorator + formatter composition
 
-### ✅ P0: Decorator Composition Research
-**Goal**: Define rules for multi-decorator interaction.
-**Result**: Established a flexible pipeline model.
-- [x] Document current decorator execution order (Manual pipeline)
-- [x] Create test matrix for common decorator combinations
-- [x] Define decorator contract regarding line structure assumptions
-- [x] Propose conflict resolution strategy (Independent coloring + Idempotency tags)
-- [x] Fixed `BoxDecorator` to be robust against multi-line input and long lines
-- [x] Implemented `HierarchyDepthPrefixDecorator` for visual nesting
-- [x] Implemented Independent Border Coloring in `BoxDecorator`
+### ✅ P0: Semantic Segment Refactoring
+**Goal**: Enable granular control over log content.
+**Result**: Introduced `LogLine` and `LogSegment` architecture.
+- [x] Implement `LogSegment` with `Set<LogTag>` support
+- [x] Update all formatters to emit `LogLine`
+- [x] Implement fine-grained tagging in `StructuredFormatter`
+- [x] Add `JsonSemanticFormatter` for metadata-rich output
+- [x] Add `MarkdownFormatter` and `HTMLFormatter`
 
+### ✅ ✅ P0: Visual Showcase (Logd Theatre)
+**Goal**: Demonstrate complex capabilities in a single interactive dashboard.
+**Result**: Created `example/log_theatre.dart`.
+- [x] Implement mock dashboard UI in terminal
+- [x] Showcase real-time multi-handler processing
+- [x] Demonstrate all border styles and coloring configurations
+
+### ✅ P0: Centralized Layout Management
+**Goal**: Consolidate layout constraints and remove redundant parameters.
+**Result**: Moved `lineLength` to `Handler` and added `preferredWidth` to `LogSink`.
+- [x] Remove `lineLength` from `StructuredFormatter` and `BoxDecorator`
+- [x] Implement `LogSink.preferredWidth` across all sink types
+- [x] Update `LogContext` to provide `availableWidth`
+- [x] Migrate all examples and tests to the new model
+
+### ✅ P1: ANSI Leakage in PainFormatter
+- [*]
 ---
 
 ## Active Development
@@ -60,8 +75,6 @@
 
 ## Fixes
 
-### 🟡 P1: ANSI Leakage in PainFormatter
-- [ ] 
 ---
 
 ## Known Issues

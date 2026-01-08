@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:logd/src/core/clock/clock.dart';
-import 'package:logd/src/core/context.dart';
-import 'package:logd/src/core/io/file_system.dart';
+import 'package:logd/src/core/context/clock/clock.dart';
+import 'package:logd/src/core/context/context.dart';
+import 'package:logd/src/core/context/io/file_system.dart';
 
 class MockClock implements Clock {
   @override

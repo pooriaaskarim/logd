@@ -14,60 +14,61 @@ import 'package:logd/logd.dart';
 void main() async {
   // Color then Box (correct order)
   final colorThenBox = Handler(
-    formatter: PlainFormatter(),
+    formatter: const PlainFormatter(),
     decorators: [
-      const AnsiColorDecorator(
-        useColors: true,
-      ),
+      const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 60,
-        useColors: false, // Explicitly disable colors to prevent auto-detection
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Box then Color (auto-sorted)
   final boxThenColor = Handler(
-    formatter: PlainFormatter(),
+    formatter: const PlainFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 60,
       ),
-      // Note: useColors defaults to null (auto-detect), which may color borders
-      // BoxDecorator's useColors: false setting only applies to border coloring
-      // ANSI ColorDecorator will handle content coloring independently
-      const AnsiColorDecorator(useColors: true),
+      const ColorDecorator(
+          config: ColorConfig(
+        colorBorder: false,
+        colorTimestamp: true,
+        colorLevel: true,
+        colorLoggerName: true,
+        colorMessage: false,
+        headerBackground: true,
+      )),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Box then Color (auto-sorted)
 
   // Color + Box + Hierarchy
   final fullComposition = Handler(
-    formatter: PlainFormatter(),
+    formatter: const PlainFormatter(),
     decorators: [
-      const AnsiColorDecorator(useColors: true),
+      const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
-        lineLength: 60,
-        useColors: false,
       ),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Multiple color decorators (should deduplicate)
   final duplicateColors = Handler(
-    formatter: PlainFormatter(),
+    formatter: const PlainFormatter(),
     decorators: const [
-      AnsiColorDecorator(useColors: true),
-      AnsiColorDecorator(useColors: true), // Duplicate
-      AnsiColorDecorator(useColors: true), // Duplicate
+      ColorDecorator(),
+      ColorDecorator(), // Duplicate
+      ColorDecorator(), // Duplicate
     ],
     sink: const ConsoleSink(),
   );

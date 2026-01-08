@@ -1,3 +1,4 @@
+import 'package:characters/characters.dart';
 import 'package:meta/meta.dart';
 
 /// Internal utility for list equality.
@@ -46,8 +47,44 @@ extension AnsiStringExtension on String {
   static final _ansiRegex = RegExp(r'\x1B\[[0-?]*[ -/]*[@-~]');
   static const _ansiReset = '\x1B[0m';
 
-  /// Returns the visible length of the string, excluding ANSI escape sequences.
-  int get visibleLength => replaceAll(_ansiRegex, '').length;
+  /// Returns the estimated terminal cell width of the string, excluding ANSI
+  /// codes.
+  ///
+  /// Wide characters (CJK, Emojis) are counted as 2 cells, others as 1.
+  int get visibleLength {
+    final stripped = stripAnsi;
+    int width = 0;
+    for (final char in stripped.characters) {
+      width += _isWide(char) ? 2 : 1;
+    }
+    return width;
+  }
+
+  /// Whether the character is likely to take 2 terminal cells (Wide/Emoji).
+  bool _isWide(final String char) {
+    if (char.length > 1) {
+      // It's a surrogate pair or multi-char cluster (likely emoji/complex char)
+      return true;
+    }
+    final code = char.codeUnitAt(0);
+    // Simple heuristic for CJK and other wide characters:
+    // 0x1100-0x115F: Hangul Jamo
+    // 0x2E80-0xA4CF: CJK Radicals, Symbols, Punctuation, Japanese, Chinese, Yi
+    // 0xAC00-0xD7A3: Hangul Syllables
+    // 0xF900-0xFAFF: CJK Compatibility Ideographs
+    // 0xFE10-0xFE19: Vertical forms
+    // 0xFE30-0xFE6F: CJK Compatibility Forms
+    // 0xFF00-0xFF60: Fullwidth Forms
+    // 0xFFE0-0xFFE6: Fullwidth Forms
+    return (code >= 0x1100 && code <= 0x115F) ||
+        (code >= 0x2E80 && code <= 0xA4CF) ||
+        (code >= 0xAC00 && code <= 0xD7A3) ||
+        (code >= 0xF900 && code <= 0xFAFF) ||
+        (code >= 0xFE10 && code <= 0xFE19) ||
+        (code >= 0xFE30 && code <= 0xFE6F) ||
+        (code >= 0xFF00 && code <= 0xFF60) ||
+        (code >= 0xFFE0 && code <= 0xFFE6);
+  }
 
   /// Pads this string on the right to [width] visible characters,
   /// preserving leading ANSI sequences and ensuring padding is styled.
@@ -92,45 +129,59 @@ extension AnsiStringExtension on String {
     // Ensure width is at least 1
     final safeWidth = width.clamp(1, double.infinity).toInt();
 
+    final stripped = stripAnsi;
     if (visibleLength <= safeWidth) {
       yield this;
       return;
     }
 
-    final raw = this;
-    var start = 0;
+    final chars = stripped.characters.toList();
+    var current = 0;
 
-    // This is a naive implementation: it finds safe breakpoints
-    // based on technical length but checks visible width.
-    // Truly robust multi-line ANSI wrapping is complex, but this
-    // will fix the "scattered box" issue for most cases.
+    while (current < chars.length) {
+      int accumulatedWidth = 0;
+      int breakIndex = current;
+      int? lastSpaceIndex;
 
-    while (start < raw.length) {
-      var end = start + safeWidth;
-      if (end > raw.length) {
-        end = raw.length;
-      }
+      // Find how many characters fit in [safeWidth] cell units
+      for (int i = current; i < chars.length; i++) {
+        final char = chars[i];
+        final charWidth = _isWide(char) ? 2 : 1;
 
-      // Find visible width of this chunk
-      var chunk = raw.substring(start, end);
-      while (chunk.visibleLength > safeWidth && chunk.length > 1) {
-        end--;
-        chunk = raw.substring(start, end);
-      }
+        if (accumulatedWidth + charWidth > safeWidth) {
+          break;
+        }
 
-      // Try to break at space
-      if (end < raw.length && !raw[end].contains(RegExp(r'\s'))) {
-        final space = raw.lastIndexOf(' ', end);
-        if (space > start) {
-          end = space;
-          chunk = raw.substring(start, end);
+        accumulatedWidth += charWidth;
+        breakIndex = i + 1;
+        if (char == ' ') {
+          lastSpaceIndex = i;
         }
       }
 
+      // If we found a space and we are not at the end of the string, break
+      // there
+      if (lastSpaceIndex != null && breakIndex < chars.length) {
+        breakIndex = lastSpaceIndex; // break before the space
+      }
+
+      final chunk = chars.sublist(current, breakIndex).join();
       yield chunk.trimRight();
-      start = end;
-      while (start < raw.length && raw[start].contains(RegExp(r'\s'))) {
-        start++;
+
+      current = breakIndex;
+      // Skip leading spaces on the next line
+      while (current < chars.length && chars[current] == ' ') {
+        current++;
+      }
+
+      // Safety break for empty progress
+      if (accumulatedWidth == 0 && current < chars.length) {
+        // If a single character is wider than safeWidth, we must include it
+        // anyway
+        // or we'll loop forever.
+        final char = chars[current];
+        yield char;
+        current++;
       }
     }
   }

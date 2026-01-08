@@ -1,4 +1,36 @@
 # Changelog
+ 
+## 0.5.0: Centralized Layout & Rigid Alignment
+- ### Core Architecture & Layout
+  - **Centralized Layout Management**: Introduced a rigid layout system where `Handler.lineLength` acts as the primary constraint, falling back to `LogSink.preferredWidth` (e.g., 80 for Terminal, dynamic for others)
+  - **LogContext Evolution**: `LogContext` now carries `availableWidth`, serving as the single, authoritative source of truth for all layout calculations in formatters and decorators
+  - **Parameter Cleanup**: Removed deprecated and redundant `lineLength` parameters from `StructuredFormatter`, `BoxDecorator`, and `BoxFormatter` to enforce centralized control and reduce API surface
+- ### Component Enhancements
+  - **Const-Friendly Decorators**: Migrated `BoxDecorator` and `JsonPrettyFormatter` to `const` constructors where possible, improving initialization performance
+  - **Logical Segment Tags**: Added `LogTag.prefix` to support specialized content prefixes from `PrefixDecorator`, providing better isolation from header coloring
+  - **PlainFormatter Refinement**: Improved multi-line message handling in `PlainFormatter` to yield distinct segments, preventing structural breaks during decoration
+- ### Quality & Safety
+  - **Width Clamping**: Consistent width clamping across the pipeline ensures stability even with extremely narrow terminal configurations
+  - **Zero-Lint State**: Resolved all lingering linting warnings related to the layout API transition across the entire core library, examples, and test suite
+  - **Comprehensive Test Migration**: Full coverage of the new layout model in `null_safety_test.dart`, `layout_safety_test.dart`, and `decorator_composition_test.dart`
+
+## 0.4.2: Semantic Segments & Visual Overhaul
+- ### Core Architecture & Structure
+  - **Directory Overhaul**: Centralized internal modules under `lib/src/core/` (coloring, context, utils, logger, time, stack_trace) for cleaner package organization
+  - **Semantic Tagging Engine**: Migrated the entire pipeline to a segment-based architecture. Formatters now emit `LogLine` objects composed of `LogSegment`s with rich semantic tags (`LogTag`)
+- ### New Formatters & Sinks
+  - **JsonSemanticFormatter**: Outputs structured JSON containing both raw data and semantic metadata for programmatic analysis
+  - **MarkdownFormatter**: Generates beautifully structured Markdown with support for headers, code blocks, and nested lists
+  - **HTMLFormatter & HTMLSink**: Dedicated system for producing semantic HTML logs with customizable CSS mapping for browser visualization
+- ### Visual Enhancements
+  - **Advanced Header Wrapping**: `StructuredFormatter` now intelligently wraps long headers (logger names, levels, timestamps) while preserving fine-grained semantic tags where possible
+  - **Expanded Color System**: Refined `ColorScheme` and `ColorConfig` to leverage semantic tags for precise, multi-layered coloring
+- ### Developer Experience
+  - **Logd Theatre Showcase**: A new flagship example (`example/log_theatre.dart`) providing an interactive, "dashboard-style" demonstration of the entire library capability
+  - **Test Rationalization**: Consolidated the fragmented edge-case test suite from 16 files into 5 high-impact safety suites, improving test speed and maintainability
+- ### Maintenance & Fixes
+  - **Version Correction**: Unified versioning across documentation and package metadata
+  - **General Stability**: Fixed several edge-case wrapping bugs in `StructuredFormatter` and `BoxDecorator`
 
 ## 0.4.1: Handler Robustness & Stability
 - ### Critical Bug Fixes
@@ -29,8 +61,8 @@
   - **Full Context Access:** `LogDecorator.decorate()` now accepts the full `LogEntry` object, granting decorators access to metadata like `hierarchyDepth`, `tags`, and `loggerName` for smarter transformations.
   - **Automatic Composition Control:** The `Handler` automatically sorts decorators by type (Transform → Visual → Structural) to ensure correct visual composition, with deduplication to prevent redundant processing.
 - ### Visual Refinements
-  - **Independent Coloring:** `BoxDecorator` now supports its own `useColors` parameter, allowing the structural border to be colored independently of the content. `AnsiColorDecorator` can now be focused purely on content styling.
-  - **Header Highlights:** `AnsiColorDecorator` adds a `colorHeaderBackground` option to apply bold background colors specifically to log headers, improving scannability in dense logs without bleeding into structural elements.
+  - **Independent Coloring:** `BoxDecorator` now supports its own `useColors` parameter, allowing the structural border to be colored independently of the content. `ColorDecorator` can now be focused purely on content styling.
+  - **Header Highlights:** `ColorDecorator` adds a `colorHeaderBackground` option to apply bold background colors specifically to log headers, improving scannability in dense logs without bleeding into structural elements.
   - **Hierarchy Visualization:** Introduced `HierarchyDepthPrefixDecorator` (formerly experimented as `TreeDecorator`). It adds visual indentation (defaulting to `│ `) based on the logger's hierarchy depth, creating a clear tree-like structure in the terminal.
 - ### API & Robustness
   - **Simplified BoxDecorator:** Removed internal complexity from `BoxDecorator`, making it a pure `StructuralDecorator` focused on layout.

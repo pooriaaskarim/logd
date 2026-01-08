@@ -13,16 +13,15 @@ import 'package:logd/logd.dart';
 void main() async {
   // Handler that wraps colored content
   final handler = Handler(
-    formatter: StructuredFormatter(lineLength: 50),
+    formatter: const StructuredFormatter(),
     decorators: [
-      const AnsiColorDecorator(useColors: true),
+      const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 50,
-        useColors: true,
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 50,
   );
 
   Logger.configure('example.ansi', handlers: [handler]);

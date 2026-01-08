@@ -1,6 +1,6 @@
 library;
 
-export 'src/handler/ansi_colors.dart';
+export 'src/core/log_level.dart';
 export 'src/handler/handler.dart';
 export 'src/logger/logger.dart'
     hide InternalLogger, LogBuffer, LoggerCache, LoggerConfig;

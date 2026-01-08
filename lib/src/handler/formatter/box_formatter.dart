@@ -10,41 +10,24 @@ part of '../handler.dart';
   'Example: Handler(formatter: StructuredFormatter(),'
   ' decorators: [BoxDecorator(),],)',
 )
+@Deprecated(
+  'Use StructuredFormatter with BoxDecorator instead. '
+  'Example: Handler(formatter: StructuredFormatter(),'
+  ' decorators: [BoxDecorator(),],)',
+)
 class BoxFormatter implements LogFormatter {
-  /// Creates a [BoxFormatter] with customizable styling and constraints.
-  ///
-  /// - [useColors]: Whether to use ANSI colors
-  /// (attempts auto-detection if null).
-  /// - [lineLength]: The maximum width of the box.
-  /// Auto-wraps content if exceeded.
-  /// - [borderStyle]: The visual style of the box borders
-  /// (rounded, sharp, double).
   BoxFormatter({
     this.useColors,
-    this.lineLength,
     this.borderStyle = BorderStyle.rounded,
-  }) {
-    if (lineLength != null && lineLength! <= 0) {
-      throw ArgumentError('Invalid lineLength: $lineLength. Must be positive.');
-    }
-  }
+  });
 
   /// Explicit control over ANSI color usage.
   ///
   /// If `null`, colors are enabled only if the stdout supports ANSI escapes.
   final bool? useColors;
 
-  /// The maximum line length for wrapping.
-  ///
-  /// If `null`, it will attempt to detect the terminal width at runtime.
-  final int? lineLength;
-
   /// The visual style of the box borders.
   final BorderStyle borderStyle;
-
-  late final bool _useColors = useColors ?? io.stdout.supportsAnsiEscapes;
-  late final int _lineLength = lineLength ??
-      (io.stdout.hasTerminal ? io.stdout.terminalColumns - 4 : 80);
 
   static const _ansiReset = '\x1B[0m';
   static final _levelColors = {
@@ -56,26 +39,30 @@ class BoxFormatter implements LogFormatter {
   };
 
   @override
-  Iterable<LogLine> format(final LogEntry entry) {
-    final innerWidth = _lineLength - 4;
+  Iterable<LogLine> format(final LogEntry entry, final LogContext context) {
+    final effectiveLength = context.availableWidth;
+    final effectiveUseColors = useColors ?? false;
+
+    final innerWidth = effectiveLength - 4;
     final content = <String>[
-      ..._buildHeader(entry),
+      ..._buildHeader(entry, effectiveLength),
       ..._buildOrigin(entry.origin, innerWidth),
       ..._buildMessage(entry.message, innerWidth),
       if (entry.error != null) ..._buildError(entry.error!, innerWidth),
       if (entry.stackFrames != null)
         ..._buildStackTrace(entry.stackFrames!, innerWidth),
     ];
-    return _box(content, entry.level).map(LogLine.plain);
+    return _box(content, entry.level, effectiveLength, effectiveUseColors)
+        .map((final s) => LogLine([LogSegment(s)]));
   }
 
-  List<String> _buildHeader(final LogEntry entry) {
+  List<String> _buildHeader(final LogEntry entry, final int lineLength) {
     final logger = '[${entry.loggerName}]';
     final level = '[${entry.level.name.toUpperCase()}]';
     final ts = entry.timestamp;
     final header = '$logger$level\n$ts';
     const prefix = '____';
-    final wrapWidth = _lineLength - prefix.length;
+    final wrapWidth = lineLength - prefix.length;
     final raw =
         header.split('\n').where((final l) => l.trim().isNotEmpty).toList();
     final out = <String>[];
@@ -159,8 +146,13 @@ class BoxFormatter implements LogFormatter {
     return lines;
   }
 
-  List<String> _box(final List<String> content, final LogLevel level) {
-    final color = _useColors ? _levelColors[level] ?? '' : '';
+  List<String> _box(
+    final List<String> content,
+    final LogLevel level,
+    final int lineLength,
+    final bool useColors,
+  ) {
+    final color = useColors ? _levelColors[level] ?? '' : '';
     String topLeft, topRight, bottomLeft, bottomRight, horizontal, vertical;
     switch (borderStyle) {
       case BorderStyle.rounded:
@@ -188,12 +180,12 @@ class BoxFormatter implements LogFormatter {
         vertical = '║';
         break;
     }
-    final top = '$color$topLeft${horizontal * _lineLength}$topRight$_ansiReset';
+    final top = '$color$topLeft${horizontal * lineLength}$topRight$_ansiReset';
     final bottom =
-        '$color$bottomLeft${horizontal * _lineLength}$bottomRight$_ansiReset';
+        '$color$bottomLeft${horizontal * lineLength}$bottomRight$_ansiReset';
     final boxed = <String>[top];
     for (final line in content) {
-      final padded = line.padRight(_lineLength);
+      final padded = line.padRight(lineLength);
       boxed.add('$color$vertical$_ansiReset$padded$color$vertical$_ansiReset');
     }
     boxed.add(bottom);

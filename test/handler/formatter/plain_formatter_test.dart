@@ -1,5 +1,6 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('PlainFormatter', () {
@@ -14,11 +15,11 @@ void main() {
 
     test('formats basic entry correctly', () {
       const formatter = PlainFormatter();
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, equals(1));
       expect(
-        lines.first.text,
+        lines.first.toString(),
         equals('[INFO] 2025-01-01 12:00:00 [test.logger] Hello World'),
       );
     });
@@ -29,9 +30,9 @@ void main() {
         includeTimestamp: false,
         includeLoggerName: true,
       );
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
 
-      expect(lines.first.text, equals('[test.logger] Hello World'));
+      expect(lines.first.toString(), equals('[test.logger] Hello World'));
     });
 
     test('includes error and stack trace', () {
@@ -47,11 +48,11 @@ void main() {
       );
 
       const formatter = PlainFormatter();
-      final lines = formatter.format(errorEntry).toList();
+      final lines = formatter.format(errorEntry, mockContext).toList();
 
       expect(lines.length, equals(3));
-      expect(lines[1].text, equals('Error: Some error'));
-      expect(lines[2].text, contains('stack line 1'));
+      expect(lines[1].toString(), equals('Error: Some error'));
+      expect(lines[2].toString(), contains('stack line 1'));
     });
   });
 }

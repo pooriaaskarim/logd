@@ -123,7 +123,7 @@ class JsonFormatter implements LogFormatter {
 - Public API documentation strings
 - Examples in `README.md` if applicable
 
-See [docs/CONTRIBUTING_DOCS.md](docs/CONTRIBUTING_DOCS.md) for documentation-specific guidelines.
+See [docs/CONTRIBUTING_DOCS.md](doc/CONTRIBUTING_DOCS.md) for documentation-specific guidelines.
 
 ### Testing
 
@@ -209,8 +209,8 @@ Before adding a dependency:
 ## Documentation Contributions
 
 Documentation improvements are highly valued. See:
-- [docs/CONTRIBUTING_DOCS.md](docs/CONTRIBUTING_DOCS.md) for documentation standards
-- [docs/README.md](docs/README.md) for documentation structure
+- [docs/CONTRIBUTING_DOCS.md](doc/CONTRIBUTING_DOCS.md) for documentation standards
+- [docs/README.md](doc/README.md) for documentation structure
 
 ---
 

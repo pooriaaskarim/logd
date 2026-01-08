@@ -16,6 +16,7 @@ sealed class LogDecorator {
   Iterable<LogLine> decorate(
     final Iterable<LogLine> lines,
     final LogEntry entry,
+    final LogContext context,
   );
 }
 
@@ -34,7 +35,7 @@ abstract class StructuralDecorator extends LogDecorator {
 }
 
 /// A decorator that modifies the visual appearance of characters.
-/// Examples: [AnsiColorDecorator], bolding, or italics.
+/// Examples: [ColorDecorator], bolding, or italics.
 abstract class VisualDecorator extends LogDecorator {
   /// Constant constructor for subclasses.
   const VisualDecorator();
