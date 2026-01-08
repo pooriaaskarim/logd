@@ -1,6 +1,7 @@
 // Tests for Unicode and special character handling.
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('Unicode and Special Character Handling', () {
@@ -25,10 +26,10 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();
@@ -54,7 +55,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry).toList();
+      final formatted = handler.formatter.format(entry, mockContext).toList();
       // Should not crash
       expect(formatted, isNotEmpty);
     });
@@ -74,7 +75,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry).toList();
+      final formatted = handler.formatter.format(entry, mockContext).toList();
       expect(formatted, isNotEmpty);
     });
 
@@ -82,7 +83,7 @@ void main() {
       final handler = Handler(
         formatter: StructuredFormatter(lineLength: 60),
         decorators: const [
-          AnsiColorDecorator(useColors: true),
+          ColorDecorator(),
         ],
         sink: const ConsoleSink(),
       );
@@ -96,10 +97,10 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();
@@ -127,10 +128,10 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();

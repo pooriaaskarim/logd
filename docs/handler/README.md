@@ -19,20 +19,20 @@ A `Handler` encapsulates two distinct operations:
 ### Decorators
 Decorators now have full access to the `LogEntry` object, including metadata like `hierarchyDepth`, `tags`, and `loggerName`, enabling more context-aware transformations.
 - `BoxDecorator`: Adds ASCII borders around formatted lines. Supports independent coloring via its `useColors` parameter.
-- `AnsiColorDecorator`: Adds level-based coloring with customizable color schemes and color application options. Includes a `colorHeaderBackground` option for bold header highlights.
+- `ColorDecorator`: Adds level-based coloring with customizable color schemes and color application options. Includes a `colorHeaderBackground` option for bold header highlights.
 - `HierarchyDepthPrefixDecorator`: Adds visual indentation (defaulting to `│ `) based on the logger's hierarchy depth, creating a clear tree-like structure in the terminal.
 
 #### ANSI Color Customization
 
-Both `AnsiColorDecorator` and `BoxDecorator` support customizable color schemes:
+Both `ColorDecorator` and `BoxDecorator` support customizable color schemes:
 
 ```dart
 // Use predefined color schemes
 final darkHandler = Handler(
   formatter: StructuredFormatter(),
   decorators: [
-    AnsiColorDecorator(colorScheme: AnsiColorScheme.darkScheme),
-    BoxDecorator(colorScheme: AnsiColorScheme.darkScheme),
+    ColorDecorator(
+    BoxDecorator(
   ],
   sink: ConsoleSink(),
 );
@@ -49,7 +49,7 @@ final customScheme = AnsiColorScheme(
 final customHandler = Handler(
   formatter: StructuredFormatter(),
   decorators: [
-    AnsiColorDecorator(colorScheme: customScheme),
+    ColorDecorator(
   ],
   sink: ConsoleSink(),
 );
@@ -57,24 +57,24 @@ final customHandler = Handler(
 
 #### Fine-Grained Color Control
 
-`AnsiColorDecorator` supports granular control over which log elements to color, including options for header background highlights:
+`ColorDecorator` supports granular control over which log elements to color, including options for header background highlights:
 
 ```dart
 // Color only headers
-const headerOnly = AnsiColorDecorator(
-  useColors: true,
+const headerOnly = ColorDecorator(
+  
   config: AnsiColorConfig.headerOnly,
 );
 
 // Color everything except borders
-const noBorders = AnsiColorDecorator(
-  useColors: true,
+const noBorders = ColorDecorator(
+  
   config: AnsiColorConfig.noBorders,
 );
 
 // Custom configuration
-const custom = AnsiColorDecorator(
-  useColors: true,
+const custom = ColorDecorator(
+  
   config: AnsiColorConfig(
     colorHeader: true,
     colorBody: true,
@@ -110,7 +110,7 @@ Handler(
   formatter: StructuredFormatter(),
   decorators: [
     BoxDecorator(borderStyle: BorderStyle.double),
-    AnsiColorDecorator(),
+    ColorDecorator(),
   ],
   sink: ConsoleSink(),
 )

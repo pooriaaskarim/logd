@@ -1,7 +1,7 @@
-// Tests for ANSI code preservation during wrapping and processing.
 import 'package:logd/logd.dart';
 import 'package:logd/src/core/utils.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('ANSI Code Preservation', () {
@@ -10,7 +10,7 @@ void main() {
       const handler = Handler(
         formatter: formatter,
         decorators: [
-          AnsiColorDecorator(useColors: true),
+          const ColorDecorator(),
         ],
         sink: ConsoleSink(),
       );
@@ -26,27 +26,27 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = formatter.format(entry).toList();
+      final formatted = formatter.format(entry, mockContext).toList();
       expect(formatted.length, greaterThanOrEqualTo(1));
 
       // Apply decorator
-      final decorated =
-          handler.decorators.first.decorate(formatted, entry).toList();
+      final decorated = handler.decorators.first
+          .decorate(formatted, entry, mockContext)
+          .toList();
 
       // Check that all wrapped lines have ANSI codes
-      // Note: PlainFormatter doesn't add ANSI codes, AnsiColorDecorator
-      // applies them
-      // So we check that ANSI codes are present in the decorated output
-      for (final line in decorated) {
+      // renderLines simulates the Sink rendering with ANSI enabled
+      final rendered = renderLines(decorated);
+
+      for (final line in rendered) {
         // All non-empty lines should have ANSI codes (blue = \x1B[34m)
-        if (line.text.isNotEmpty) {
-          expect(line.text, contains('\x1B[34m'));
+        if (line.isNotEmpty) {
+          expect(line, contains('\x1B[34m'));
         }
         // Last non-empty line should end with reset
-        final lastNonEmpty =
-            decorated.lastWhere((final l) => l.text.isNotEmpty);
-        if (line == lastNonEmpty && line.text.isNotEmpty) {
-          expect(line.text, endsWith('\x1B[0m'));
+        final lastNonEmpty = rendered.lastWhere((final l) => l.isNotEmpty);
+        if (line == lastNonEmpty && line.isNotEmpty) {
+          expect(line, endsWith('\x1B[0m'));
         }
       }
     });
@@ -55,11 +55,10 @@ void main() {
       final handler = Handler(
         formatter: StructuredFormatter(lineLength: 40),
         decorators: [
-          const AnsiColorDecorator(useColors: true),
+          const ColorDecorator(),
           BoxDecorator(
             borderStyle: BorderStyle.rounded,
             lineLength: 40,
-            useColors: false,
           ),
         ],
         sink: const ConsoleSink(),
@@ -75,25 +74,27 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();
+      final rendered = renderLines(result);
+
       // Find content lines (not borders)
-      final contentLines = result.where(
+      final contentLines = rendered.where(
         (final line) =>
-            line.text.contains('│') &&
-            !line.text.startsWith('╭') &&
-            !line.text.startsWith('╰'),
+            line.contains('│') &&
+            !line.startsWith('╭') &&
+            !line.startsWith('╰'),
       );
 
       // Content lines should preserve ANSI codes
       for (final line in contentLines) {
         // Should contain ANSI code for warning (yellow = \x1B[33m)
-        expect(line.text, contains('\x1B[33m'));
+        expect(line, contains('\x1B[33m'));
       }
     });
 

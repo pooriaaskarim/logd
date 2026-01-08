@@ -2,6 +2,7 @@
 
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('Empty and Null Message Handling', () {
@@ -20,7 +21,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry).toList();
+      final formatted = handler.formatter.format(entry, mockContext).toList();
       // Should not crash, may produce empty or minimal output
       expect(formatted, isA<List<LogLine>>());
     });
@@ -40,7 +41,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry).toList();
+      final formatted = handler.formatter.format(entry, mockContext).toList();
       expect(formatted, isA<List<LogLine>>());
     });
 
@@ -65,10 +66,10 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();
@@ -91,7 +92,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry).toList();
+      final formatted = handler.formatter.format(entry, mockContext).toList();
       // Should handle gracefully
       expect(formatted, isA<List<LogLine>>());
     });
@@ -100,7 +101,7 @@ void main() {
       final handler = Handler(
         formatter: StructuredFormatter(lineLength: 80),
         decorators: const [
-          AnsiColorDecorator(useColors: true),
+          const ColorDecorator(),
         ],
         sink: const ConsoleSink(),
       );
@@ -114,10 +115,10 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();

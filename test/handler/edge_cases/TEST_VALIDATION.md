@@ -140,7 +140,7 @@ dart test test/handler/edge_cases/ --reporter expanded
 When a line already has the `boxed` tag, BoxDecorator yields it directly without processing. This prevents nested boxes.
 
 ### ANSI Decorator Idempotency
-When a line already has the `ansiColored` tag, AnsiColorDecorator yields it directly without re-applying colors.
+When a line already has the `ansiColored` tag, ColorDecorator yields it directly without re-applying colors.
 
 ### Decorator Auto-Sorting
 Decorators are automatically sorted by type:

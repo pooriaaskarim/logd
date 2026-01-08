@@ -1,6 +1,6 @@
-// Tests for negative width handling in formatters and decorators.
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('Negative Width Handling', () {
@@ -17,7 +17,7 @@ void main() {
       );
 
       // Should not crash with negative width
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
       expect(lines, isNotEmpty);
     });
 
@@ -33,9 +33,10 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = [LogLine.plain('x')];
+      final formatted = [LogLine.text('x')];
       // Should not crash
-      expect(() => box.decorate(formatted, entry).toList(), returnsNormally);
+      expect(() => box.decorate(formatted, entry, mockContext).toList(),
+          returnsNormally);
     });
 
     test('BoxDecorator rejects lineLength less than 3', () {

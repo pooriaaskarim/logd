@@ -1,4 +1,4 @@
-// Example: AnsiColorDecorator
+// Example: ColorDecorator
 //
 // Demonstrates:
 // - Level-based coloring
@@ -15,56 +15,56 @@ void main() async {
   final defaultHandler = Handler(
     formatter: StructuredFormatter(lineLength: 80),
     decorators: const [
-      AnsiColorDecorator(useColors: true),
+      ColorDecorator(useColors: true),
     ],
     sink: const ConsoleSink(),
   );
 
-  // Custom color scheme
-  final customScheme = AnsiColorScheme(
-    trace: AnsiColor.cyan,
-    debug: AnsiColor.white,
-    info: AnsiColor.brightBlue,
-    warning: AnsiColor.brightYellow,
-    error: AnsiColor.brightRed,
+  // 1. Custom Color Scheme
+  final customColors = ColorDecorator(
+    colorScheme: ColorScheme(
+      trace: LogColor.cyan,
+      debug: LogColor.white,
+      info: LogColor.brightBlue,
+      warning: LogColor.yellow,
+      error: LogColor.brightRed,
+    ),
   );
-
   final customHandler = Handler(
     formatter: StructuredFormatter(lineLength: 80),
     decorators: [
-      AnsiColorDecorator(
-        useColors: true,
-        colorScheme: customScheme,
-      ),
+      customColors,
     ],
     sink: const ConsoleSink(),
   );
 
-  // Header background
+  // 3. Header Background (Reverse Video)
+  final headerHighlight = ColorDecorator(
+    config: ColorConfig(
+      headerBackground: true,
+    ),
+  );
   final headerBgHandler = Handler(
     formatter: StructuredFormatter(lineLength: 80),
-    decorators: const [
-      AnsiColorDecorator(
-        useColors: true,
-        config: AnsiColorConfig(headerBackground: true),
-      ),
+    decorators: [
+      headerHighlight,
     ],
     sink: const ConsoleSink(),
   );
 
-  // Selective coloring
+  // 2. High Contrast (Header Only)
+  final highContrast = ColorDecorator(
+    config: ColorConfig(
+      colorHeader: true,
+      colorBody: false,
+      colorBorder: false,
+      colorStackFrame: false,
+    ),
+  );
   final selectiveHandler = Handler(
     formatter: StructuredFormatter(lineLength: 80),
-    decorators: const [
-      AnsiColorDecorator(
-        useColors: true,
-        config: AnsiColorConfig(
-          colorHeader: true,
-          colorBody: true,
-          colorBorder: false,
-          colorStackFrame: true,
-        ),
-      ),
+    decorators: [
+      highContrast,
     ],
     sink: const ConsoleSink(),
   );

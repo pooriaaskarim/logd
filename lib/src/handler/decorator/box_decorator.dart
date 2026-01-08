@@ -13,7 +13,7 @@ part of '../handler.dart';
 ///   decorators: [
 ///     BoxDecorator(
 ///       borderStyle: BorderStyle.rounded,
-///       colorScheme: AnsiColorScheme.defaultScheme,
+///
 ///     ),
 ///   ],
 ///   sink: ConsoleSink(),
@@ -23,20 +23,14 @@ part of '../handler.dart';
 final class BoxDecorator extends StructuralDecorator {
   /// Creates a [BoxDecorator] with customizable styling.
   ///
-  /// - [useColors]: Whether to use ANSI colors for borders
-  /// (attempts auto-detection if null).
   /// - [lineLength]: The total width of the box including borders.
   /// If `null`, attempts to detect terminal width or defaults to 80.
   /// Must be at least 3 to accommodate borders and content.
   /// - [borderStyle]: The visual style of the box borders
   /// (rounded, sharp, double).
-  /// - [colorScheme]: Defines which colors to use for different log levels.
-  /// Defaults to [AnsiColorScheme.defaultScheme].
   BoxDecorator({
-    this.useColors,
     this.lineLength,
     this.borderStyle = BorderStyle.rounded,
-    this.colorScheme = AnsiColorScheme.defaultScheme,
   }) {
     if (lineLength != null && lineLength! < 3) {
       throw ArgumentError(
@@ -52,110 +46,93 @@ final class BoxDecorator extends StructuralDecorator {
   /// The maximum max width of the box.
   final int? lineLength;
 
-  /// Whether to apply colors to the border.
-  final bool? useColors;
-
-  /// Color scheme for border coloring.
-  final AnsiColorScheme colorScheme;
-
   late final int _lineLength = (lineLength ??
           (io.stdout.hasTerminal ? io.stdout.terminalColumns - 4 : 80))
       .clamp(3, double.infinity)
       .toInt();
 
-  static const _ansiReset = '\x1B[0m';
-
   @override
   Iterable<LogLine> decorate(
     final Iterable<LogLine> lines,
     final LogEntry entry,
+    final LogContext context,
   ) sync* {
-    final enabled = useColors ?? io.stdout.supportsAnsiEscapes;
-    final color =
-        enabled ? colorScheme.colorForLevel(entry.level).foreground : '';
-    final reset = enabled ? _ansiReset : '';
-    final String topLeft,
-        topRight,
-        bottomLeft,
-        bottomRight,
-        horizontal,
-        vertical;
-    switch (borderStyle) {
-      case BorderStyle.rounded:
-        topLeft = '╭';
-        topRight = '╮';
-        bottomLeft = '╰';
-        bottomRight = '╯';
-        horizontal = '─';
-        vertical = '│';
-        break;
-      case BorderStyle.sharp:
-        topLeft = '┌';
-        topRight = '┐';
-        bottomLeft = '└';
-        bottomRight = '┘';
-        horizontal = '─';
-        vertical = '│';
-        break;
-      case BorderStyle.double:
-        topLeft = '╔';
-        topRight = '╗';
-        bottomLeft = '╚';
-        bottomRight = '╝';
-        horizontal = '═';
-        vertical = '║';
-        break;
+    final topLeft = _char(borderStyle, 0);
+    final topRight = _char(borderStyle, 1);
+    final bottomLeft = _char(borderStyle, 2);
+    final bottomRight = _char(borderStyle, 3);
+    final horizontal = _char(borderStyle, 4);
+    final vertical = _char(borderStyle, 5);
+
+    if (lines.isNotEmpty) {
+      final firstLine = lines.first;
+      if (firstLine.segments.isNotEmpty &&
+          firstLine.segments.first.tags.contains(LogTag.border)) {
+        yield* lines;
+        return;
+      }
     }
 
-    // Idempotency: If all input lines are already boxed, yield as-is
-    final linesList = lines.toList();
-    if (linesList.isNotEmpty &&
-        linesList.every((final line) => line.tags.contains(LogLineTag.boxed))) {
-      yield* linesList;
-      return;
-    }
-
-    final borderTags = {
-      LogLineTag.border,
-      LogLineTag.boxed,
-      if (enabled) LogLineTag.ansiColored,
-    };
-
-    final top = LogLine(
-      '$color$topLeft${horizontal * _lineLength}$topRight$reset',
-      tags: borderTags,
-    );
-    final bottom = LogLine(
-      '$color$bottomLeft${horizontal * _lineLength}$bottomRight$reset',
-      tags: borderTags,
-    );
-
-    final boxed = <LogLine>[top];
+    // Calculate dynamic width based on content
+    int maxContentWidth = 0;
     for (final line in lines) {
-      // Idempotency: Skip already-boxed lines
-      if (line.tags.contains(LogLineTag.boxed)) {
-        yield line;
-        continue;
-      }
-
-      // Robustness: Split by newline in case line.text has them
-      final textLines = line.text.split('\n');
-      for (final textLine in textLines) {
-        for (final wrapped in textLine.wrapVisiblePreserveAnsi(_lineLength)) {
-          // Use ANSI-aware padding to style padding within the line's ANSI
-          final padded = wrapped.padRightVisiblePreserveAnsi(_lineLength);
-          boxed.add(
-            LogLine(
-              '$color$vertical$reset$padded$color$vertical$reset',
-              tags: {...line.tags, ...borderTags},
-            ),
-          );
-        }
+      final len = line.visibleLength;
+      if (len > maxContentWidth) {
+        maxContentWidth = len;
       }
     }
-    boxed.add(bottom);
 
-    yield* boxed;
+    // Ensure box wraps content if it's wider than configured lineLength
+    // lineLength includes borders (2 chars).
+    // So available for content = lineLength - 2.
+    // We want width to be at least lineLength.
+    // If content is wider, expand width.
+    final minWidth = _lineLength;
+    final contentWidthIfNeeded = maxContentWidth + 2;
+    final width =
+        contentWidthIfNeeded > minWidth ? contentWidthIfNeeded : minWidth;
+    final effectiveContentWidth = width - 2;
+
+    final topBorderSegment = LogSegment(
+      '$topLeft${horizontal * (width - 2)}$topRight',
+      tags: const {LogTag.border},
+    );
+    yield LogLine([topBorderSegment]);
+
+    for (final line in lines) {
+      final contentLen = line.visibleLength;
+      final paddingLen =
+          (effectiveContentWidth - contentLen).clamp(0, effectiveContentWidth);
+      String paddingFn(final int p) => ' ' * p;
+
+      yield LogLine([
+        LogSegment(vertical, tags: const {LogTag.border}),
+        ...line.segments,
+        LogSegment(paddingFn(paddingLen), tags: const {}),
+        LogSegment(vertical, tags: const {LogTag.border}),
+      ]);
+    }
+
+    final bottomBorderSegment = LogSegment(
+      '$bottomLeft${horizontal * (width - 2)}$bottomRight',
+      tags: const {LogTag.border},
+    );
+    yield LogLine([bottomBorderSegment]);
+  }
+
+  String _char(final BorderStyle style, final int index) {
+    const rounded = ['╭', '╮', '╰', '╯', '─', '│'];
+    const sharp = ['┌', '┐', '└', '┘', '─', '│'];
+    const doubleStyle = ['╔', '╗', '╚', '╝', '═', '║'];
+
+    switch (style) {
+      case BorderStyle.rounded:
+        return rounded[index];
+      case BorderStyle.sharp:
+        return sharp[index];
+      case BorderStyle.double:
+        return doubleStyle[index];
+    }
   }
 
   @override
@@ -163,17 +140,11 @@ final class BoxDecorator extends StructuralDecorator {
       identical(this, other) ||
       other is BoxDecorator &&
           runtimeType == other.runtimeType &&
-          useColors == other.useColors &&
           lineLength == other.lineLength &&
-          borderStyle == other.borderStyle &&
-          colorScheme == other.colorScheme;
+          borderStyle == other.borderStyle;
 
   @override
-  int get hashCode =>
-      useColors.hashCode ^
-      lineLength.hashCode ^
-      borderStyle.hashCode ^
-      colorScheme.hashCode;
+  int get hashCode => lineLength.hashCode ^ borderStyle.hashCode;
 }
 
 /// Visual styles for box borders.

@@ -18,7 +18,7 @@ void main() async {
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 80,
-        useColors: false,
+        
       ),
     ],
     sink: FileSink('logs/concurrent.log'),

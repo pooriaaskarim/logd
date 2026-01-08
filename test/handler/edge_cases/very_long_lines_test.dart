@@ -1,6 +1,6 @@
-// Tests for handling very long lines and wrapping edge cases.
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('Very Long Lines Handling', () {
@@ -20,7 +20,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry).toList();
+      final formatted = handler.formatter.format(entry, mockContext).toList();
       // Should wrap into multiple lines
       expect(formatted.length, greaterThan(1));
       // All lines should respect line length
@@ -51,10 +51,10 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();
@@ -69,7 +69,7 @@ void main() {
       final handler = Handler(
         formatter: StructuredFormatter(lineLength: 30),
         decorators: const [
-          AnsiColorDecorator(useColors: true),
+          ColorDecorator(),
         ],
         sink: const ConsoleSink(),
       );
@@ -84,21 +84,23 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();
+      final rendered = renderLines(result);
+
       // Find message lines (those with '----|')
-      final messageLines = result.where(
-        (final line) => line.text.contains('----|'),
+      final messageLines = rendered.where(
+        (final line) => line.contains('----|'),
       );
 
       // All message lines should have ANSI codes (error = red = \x1B[31m)
       for (final line in messageLines) {
-        expect(line.text, contains('\x1B[31m'));
+        expect(line, contains('\x1B[31m'));
       }
     });
 
@@ -124,7 +126,7 @@ Another very long fourth line that also needs wrapping because it exceeds the ma
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry).toList();
+      final formatted = handler.formatter.format(entry, mockContext).toList();
       // Should handle all lines
       expect(formatted.length, greaterThan(4));
       // All lines should respect line length
@@ -155,10 +157,10 @@ Another very long fourth line that also needs wrapping because it exceeds the ma
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, mockContext);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry);
+        lines = decorator.decorate(lines, entry, mockContext);
       }
 
       final result = lines.toList();

@@ -143,8 +143,8 @@ Send logs to multiple destinations simultaneously:
 final consoleHandler = Handler(
   formatter: StructuredFormatter(),
   decorators: [
-    BoxDecorator(useColors: true),
-    AnsiColorDecorator(),
+    BoxDecorator(
+    ColorDecorator(),
   ],
   sink: ConsoleSink(),
 );
@@ -273,13 +273,13 @@ Logger.configure('global', handlers: [
     formatter: StructuredFormatter(),
     decorators: [
       // Auto-sorted by type: Visual -> Structural (Box -> Hierarchy)
-      const AnsiColorDecorator(
-        useColors: true,
+      const ColorDecorator(
+        
         colorHeaderBackground: true,
       ),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        useColors: true,
+        
       ),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],

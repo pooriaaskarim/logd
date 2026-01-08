@@ -414,7 +414,7 @@ base class FileSink extends LogSink {
     if (linesList.isEmpty) {
       return;
     }
-    final newData = '${linesList.map((final l) => l.text).join('\n')}\n';
+    final newData = '${linesList.map((final l) => l.toString()).join('\n')}\n';
 
     File targetFile = file;
     if (fileRotation != null &&

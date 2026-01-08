@@ -1,5 +1,6 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import 'mock_context.dart';
 
 void main() {
   group('BoxDecorator Robustness', () {
@@ -20,20 +21,20 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = formatter.format(entry);
-      final boxed = box.decorate(formatted, entry).toList();
+      final formatted = formatter.format(entry, mockContext);
+      final boxed = box.decorate(formatted, entry, mockContext).toList();
 
       // Check top/bottom border length
       final topWidth = boxed[0].visibleLength;
 
       for (int i = 0; i < boxed.length; i++) {
         final line = boxed[i];
-        print('Line $i: ${line.visibleLength} chars | ${line.text}');
+        print('Line $i: ${line.visibleLength} chars | $line');
         expect(
           line.visibleLength,
           equals(topWidth),
-          reason: 'Line $i has inconsistent width: ${line.visibleLength}'
-              ' vs $topWidth',
+          reason: 'Line \$i has inconsistent width: \${line.visibleLength}'
+              ' vs \$topWidth',
         );
       }
     });
@@ -53,8 +54,8 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = formatter.format(entry);
-      final boxed = box.decorate(formatted, entry).toList();
+      final formatted = formatter.format(entry, mockContext);
+      final boxed = box.decorate(formatted, entry, mockContext).toList();
 
       for (int i = 0; i < boxed.length; i++) {
         final line = boxed[i];

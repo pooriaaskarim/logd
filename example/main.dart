@@ -34,15 +34,12 @@ void _runDemo() {
     // StructuredFormatter handles the layout (origin, metadata, wrapping)
     formatter: StructuredFormatter(lineLength: 80),
     decorators: [
-      // AnsiColorDecorator adds level-based coloring to the content (before boxing)
-      const AnsiColorDecorator(
-        useColors: true,
-      ),
+      // ColorDecorator adds level-based coloring to the content (before boxing)
+      const ColorDecorator(),
       // BoxDecorator adds the visual frame (border color is handled internally)
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 80,
-        useColors: true,
       ),
     ],
     sink: const ConsoleSink(),
@@ -71,7 +68,7 @@ void _runDemo() {
         borderStyle: BorderStyle.double,
         lineLength: 50, // Narrow box for JSON
       ),
-      const AnsiColorDecorator(),
+      const ColorDecorator(),
     ],
     sink: const ConsoleSink(),
   );
@@ -91,14 +88,15 @@ void _runDemo() {
   final hierarchicalHandler = Handler(
     formatter: StructuredFormatter(lineLength: 80),
     decorators: [
-      const AnsiColorDecorator(
-        useColors: true,
-        config: AnsiColorConfig(headerBackground: true),
+      const ColorDecorator(
+        config: ColorConfig(
+          colorHeader: true,
+          colorBody: false, // Don't color message body
+        ),
       ),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
         lineLength: 80,
-        useColors: true,
       ),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],

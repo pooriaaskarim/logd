@@ -38,13 +38,13 @@ Each decorator receives an `Iterable<String>` (the lines to decorate) and produc
 
 Decorators must be prepared to handle `Iterable<String>` containing multiple lines. 
 
-- **Line-by-line decorators** (e.g., `AnsiColorDecorator`): Usually iterate over each line and apply a transformation to each.
+- **Line-by-line decorators** (e.g., `ColorDecorator`): Usually iterate over each line and apply a transformation to each.
 - **Structural decorators** (e.g., `BoxDecorator`): Collect all lines first to determine dimensions, then wrap them in a collective structure (adding new lines for the border).
 
 ## Common Chaining Patterns
 ### 1. Colored Content in Colored Box
-**Order**: `[AnsiColorDecorator(), BoxDecorator()]`
-- `AnsiColorDecorator` colors the **content** (because it runs first).
+**Order**: `[ColorDecorator(), BoxDecorator()]`
+- `ColorDecorator` colors the **content** (because it runs first).
 - `BoxDecorator` wraps the content and colors the **border** (using its own `useColors: true`).
 - **Result**: Perfectly distinct content and border colors without bleeding.
 

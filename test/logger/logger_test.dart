@@ -279,6 +279,6 @@ base class LogCollector extends LogSink {
     final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
-    logs.addAll(lines.map((final l) => l.text));
+    logs.addAll(lines.map((final l) => l.toString()));
   }
 }

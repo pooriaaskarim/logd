@@ -1,6 +1,7 @@
 // Tests for formatter null safety and edge cases.
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('Formatter Null Safety', () {
@@ -18,7 +19,7 @@ void main() {
       );
 
       // Should not crash
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
       expect(lines, isNotEmpty);
     });
 
@@ -33,7 +34,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
       expect(lines, isNotEmpty);
       // Should wrap properly
       for (final line in lines) {
@@ -52,7 +53,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
       expect(lines, isNotEmpty);
     });
 
@@ -68,7 +69,7 @@ void main() {
         stackFrames: [], // Empty stack frames
       );
 
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
       expect(lines, isNotEmpty);
     });
 
@@ -85,7 +86,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
       expect(lines, isNotEmpty);
     });
   });

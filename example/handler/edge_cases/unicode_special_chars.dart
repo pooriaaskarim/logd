@@ -17,7 +17,7 @@ void main() async {
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 60,
-        useColors: false,
+        
       ),
     ],
     sink: const ConsoleSink(),

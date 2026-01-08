@@ -18,7 +18,7 @@ void main() async {
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 60,
-        useColors: true,
+        
       ),
     ],
     sink: const ConsoleSink(),
@@ -31,7 +31,7 @@ void main() async {
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
         lineLength: 60,
-        useColors: true,
+        
       ),
     ],
     sink: const ConsoleSink(),
@@ -44,7 +44,7 @@ void main() async {
       BoxDecorator(
         borderStyle: BorderStyle.double,
         lineLength: 60,
-        useColors: true,
+        
       ),
     ],
     sink: const ConsoleSink(),
@@ -57,7 +57,7 @@ void main() async {
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 40,
-        useColors: false,
+        
       ),
     ],
     sink: const ConsoleSink(),

@@ -23,7 +23,7 @@ final handler = Handler(
   formatter: BoxFormatter(
     borderStyle: BorderStyle.rounded,
     lineLength: 80,
-    useColors: true,
+    
   ),
   sink: ConsoleSink(),
 );
@@ -37,16 +37,16 @@ final handler = Handler(
     BoxDecorator(
       borderStyle: BorderStyle.rounded,
       lineLength: 80,
-      useColors: false, // Recommended: use AnsiColorDecorator instead
+       // Recommended: use ColorDecorator instead
     ),
-    AnsiColorDecorator(), // Handles coloring for both content and borders
+    ColorDecorator(), // Handles coloring for both content and borders
   ],
   sink: ConsoleSink(),
 );
 ```
 
 > [!TIP]
-> **Recommended Pattern**: We recommend disabling `useColors` in `BoxDecorator` and adding `AnsiColorDecorator` at the end of the `decorators` list. This ensures consistent coloring across the entire output.
+> **Recommended Pattern**: We recommend disabling `useColors` in `BoxDecorator` and adding `ColorDecorator` at the end of the `decorators` list. This ensures consistent coloring across the entire output.
 
 ### Plain Layout (No Box)
 
@@ -67,7 +67,7 @@ final handler = Handler(
 |-------------------|---------------|
 | `lineLength` | `StructuredFormatter(lineLength: ...)` AND `BoxDecorator(lineLength: ...)` |
 | `borderStyle` | `BoxDecorator(borderStyle: ...)` |
-| `useColors` | `AnsiColorDecorator()` (Preferred) or `BoxDecorator(useColors: ...)` |
+| `useColors` | `ColorDecorator()` (Preferred) or `BoxDecorator(useColors: ...)` |
 
 ### Color Customization (New in v0.5.0)
 
@@ -78,8 +78,8 @@ With the new ANSI color infrastructure, you can customize colors for different u
 final darkHandler = Handler(
   formatter: StructuredFormatter(),
   decorators: [
-    AnsiColorDecorator(colorScheme: AnsiColorScheme.darkScheme),
-    BoxDecorator(colorScheme: AnsiColorScheme.darkScheme),
+    ColorDecorator(
+    BoxDecorator(
   ],
   sink: ConsoleSink(),
 );
@@ -94,8 +94,8 @@ final customScheme = AnsiColorScheme(
 final customHandler = Handler(
   formatter: StructuredFormatter(),
   decorators: [
-    AnsiColorDecorator(colorScheme: customScheme),
-    BoxDecorator(colorScheme: customScheme),
+    ColorDecorator(
+    BoxDecorator(
   ],
   sink: ConsoleSink(),
 );
@@ -104,7 +104,7 @@ final customHandler = Handler(
 final selectiveHandler = Handler(
   formatter: StructuredFormatter(),
   decorators: [
-    AnsiColorDecorator(
+    ColorDecorator(
       config: AnsiColorConfig(
         colorHeader: true,
         colorBody: true,
@@ -119,20 +119,20 @@ final selectiveHandler = Handler(
 
 #### Header Background Migration
 
-Old `AnsiColorDecorator(colorHeaderBackground: true)`:
+Old `ColorDecorator(colorHeaderBackground: true)`:
 
 ```dart
 // Old (deprecated)
-AnsiColorDecorator(
-  useColors: true,
+ColorDecorator(
+  
   colorHeaderBackground: true,  // Removed in v0.5.0
 );
 ```
 
 ```dart
 // New
-AnsiColorDecorator(
-  useColors: true,
+ColorDecorator(
+  
   config: AnsiColorConfig(headerBackground: true),
 );
 ```
@@ -140,4 +140,4 @@ AnsiColorDecorator(
 ## Troubleshooting
 
 ### Box Alignment Issues
-If your box borders look "shaggy" or misaligned, ensure that any decorator that significantly changes line length (like `AnsiColorDecorator`) is placed **AFTER** `BoxDecorator` in the list. `BoxDecorator` now handles existing ANSI codes correctly, but it's still best practice to color the final structure.
+If your box borders look "shaggy" or misaligned, ensure that any decorator that significantly changes line length (like `ColorDecorator`) is placed **AFTER** `BoxDecorator` in the list. `BoxDecorator` now handles existing ANSI codes correctly, but it's still best practice to color the final structure.

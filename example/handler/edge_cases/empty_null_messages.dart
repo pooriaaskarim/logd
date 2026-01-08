@@ -13,7 +13,7 @@ void main() async {
   final handler = Handler(
     formatter: StructuredFormatter(lineLength: 80),
     decorators: const [
-      AnsiColorDecorator(useColors: true),
+      ColorDecorator(useColors: true),
     ],
     sink: const ConsoleSink(),
   );

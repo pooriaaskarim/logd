@@ -23,12 +23,17 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
   Iterable<LogLine> decorate(
     final Iterable<LogLine> lines,
     final LogEntry entry,
+    final LogContext context,
   ) {
+    if (entry.hierarchyDepth <= 0 && prefix.isEmpty) {
+      return lines;
+    }
+
     final depthStr = indent * entry.hierarchyDepth;
     final fullPrefix = '$prefix$depthStr';
+    final prefixSegment = LogSegment(fullPrefix, tags: {LogTag.border});
 
-    return lines
-        .map((final l) => LogLine('$fullPrefix${l.text}', tags: l.tags));
+    return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
   }
 
   @override

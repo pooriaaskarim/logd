@@ -15,7 +15,7 @@ void main() async {
   final wrappedHandler = Handler(
     formatter: StructuredFormatter(lineLength: 40),
     decorators: const [
-      AnsiColorDecorator(useColors: true),
+      const ColorDecorator(),
     ],
     sink: const ConsoleSink(),
   );
@@ -24,11 +24,10 @@ void main() async {
   final boxedHandler = Handler(
     formatter: StructuredFormatter(lineLength: 40),
     decorators: [
-      const AnsiColorDecorator(useColors: true),
+      const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 40,
-        useColors: false,
       ),
     ],
     sink: const ConsoleSink(),

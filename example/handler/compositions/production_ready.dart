@@ -16,11 +16,10 @@ void main() async {
   final consoleHandler = Handler(
     formatter: StructuredFormatter(lineLength: 100),
     decorators: [
-      const AnsiColorDecorator(useColors: true),
+      const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 100,
-        useColors: false,
       ),
     ],
     sink: const ConsoleSink(),

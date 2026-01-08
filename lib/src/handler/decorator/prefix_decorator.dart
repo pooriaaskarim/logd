@@ -13,8 +13,11 @@ final class PrefixDecorator extends TransformDecorator {
   Iterable<LogLine> decorate(
     final Iterable<LogLine> lines,
     final LogEntry entry,
-  ) =>
-      lines.map((final l) => LogLine('$prefix${l.text}', tags: l.tags));
+    final LogContext context,
+  ) {
+    final prefixSegment = LogSegment(prefix, tags: {LogTag.header});
+    return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
+  }
 
   @override
   bool operator ==(final Object other) =>

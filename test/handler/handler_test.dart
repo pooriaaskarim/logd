@@ -5,7 +5,8 @@ class MockFormatter implements LogFormatter {
   MockFormatter(this.formatFn);
   final Iterable<LogLine> Function(LogEntry) formatFn;
   @override
-  Iterable<LogLine> format(final LogEntry entry) => formatFn(entry);
+  Iterable<LogLine> format(final LogEntry entry, final LogContext context) =>
+      formatFn(entry);
 }
 
 final class MockSink extends LogSink {
@@ -38,7 +39,7 @@ void main() {
     setUp(() {
       sink = MockSink();
       formatter = MockFormatter(
-        (final entry) => [LogLine.plain('formatted: ${entry.message}')],
+        (final entry) => [LogLine.text('formatted: ${entry.message}')],
       );
       testEntry = LogEntry(
         loggerName: 'test',
@@ -55,7 +56,7 @@ void main() {
       await handler.log(testEntry);
 
       expect(sink.outputs.length, equals(1));
-      expect(sink.outputs.first.first.text, equals('formatted: hello'));
+      expect(sink.outputs.first.first.toString(), equals('formatted: hello'));
       expect(sink.levels.first, equals(LogLevel.info));
     });
 

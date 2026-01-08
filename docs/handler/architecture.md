@@ -52,7 +52,7 @@ The formatter transforms the structured log entry into a list of strings.
 
 Decorators apply post-formatting transformations. They are composable and execute in the order they appear in the `decorators` list.
 - **BoxDecorator**: Adds ASCII borders around the lines. It is now decoupled from the layout logic.
-- **AnsiColorDecorator**: Adds level-based coloring.
+- **ColorDecorator**: Adds level-based coloring.
 
 For a deep dive into how decorators interact, see [Decorator Composition](decorator_composition.md).
 

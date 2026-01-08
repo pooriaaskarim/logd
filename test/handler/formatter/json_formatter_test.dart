@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('JsonFormatter', () {
@@ -16,10 +17,10 @@ void main() {
 
     test('outputs compact JSON', () {
       const formatter = JsonFormatter();
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, equals(1));
-      final json = lines.first.text;
+      final json = lines.first.toString();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['timestamp'], equals('2025-01-01 10:00:00'));
@@ -44,10 +45,10 @@ void main() {
       );
 
       const formatter = JsonFormatter();
-      final lines = formatter.format(errorEntry).toList();
+      final lines = formatter.format(errorEntry, mockContext).toList();
 
       expect(lines.length, equals(1));
-      final json = lines.first.text;
+      final json = lines.first.toString();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['error'], equals('Connection failed'));
@@ -66,10 +67,10 @@ void main() {
       );
 
       const formatter = JsonFormatter();
-      final lines = formatter.format(stackEntry).toList();
+      final lines = formatter.format(stackEntry, mockContext).toList();
 
       expect(lines.length, equals(1));
-      final json = lines.first.text;
+      final json = lines.first.toString();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['stackTrace'], equals('stack line 1'));
@@ -89,10 +90,10 @@ void main() {
 
     test('outputs formatted JSON with indentation', () {
       const formatter = JsonPrettyFormatter();
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, greaterThan(1));
-      final output = lines.map((final l) => l.text).join('\n');
+      final output = lines.map((final l) => l.toString()).join('\n');
 
       expect(output, contains('  "timestamp": '));
       expect(output, contains('  "level": '));
@@ -118,10 +119,10 @@ void main() {
       );
 
       const formatter = JsonFormatter();
-      final lines = formatter.format(entry).toList();
+      final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, equals(1));
-      final json = lines.first.text;
+      final json = lines.first.toString();
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['timestamp'], equals('2025-01-01 14:30:15.123'));

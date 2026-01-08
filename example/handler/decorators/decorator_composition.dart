@@ -16,13 +16,10 @@ void main() async {
   final colorThenBox = Handler(
     formatter: PlainFormatter(),
     decorators: [
-      const AnsiColorDecorator(
-        useColors: true,
-      ),
+      const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
         lineLength: 60,
-        useColors: false, // Explicitly disable colors to prevent auto-detection
       ),
     ],
     sink: const ConsoleSink(),
@@ -36,10 +33,13 @@ void main() async {
         borderStyle: BorderStyle.rounded,
         lineLength: 60,
       ),
-      // Note: useColors defaults to null (auto-detect), which may color borders
-      // BoxDecorator's useColors: false setting only applies to border coloring
-      // ANSI ColorDecorator will handle content coloring independently
-      const AnsiColorDecorator(useColors: true),
+      const ColorDecorator(
+          config: ColorConfig(
+        colorBorder: false,
+        colorHeader: true,
+        colorBody: false,
+        headerBackground: true,
+      )),
     ],
     sink: const ConsoleSink(),
   );
@@ -50,11 +50,10 @@ void main() async {
   final fullComposition = Handler(
     formatter: PlainFormatter(),
     decorators: [
-      const AnsiColorDecorator(useColors: true),
+      const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
         lineLength: 60,
-        useColors: false,
       ),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
@@ -65,9 +64,9 @@ void main() async {
   final duplicateColors = Handler(
     formatter: PlainFormatter(),
     decorators: const [
-      AnsiColorDecorator(useColors: true),
-      AnsiColorDecorator(useColors: true), // Duplicate
-      AnsiColorDecorator(useColors: true), // Duplicate
+      ColorDecorator(),
+      ColorDecorator(), // Duplicate
+      ColorDecorator(), // Duplicate
     ],
     sink: const ConsoleSink(),
   );

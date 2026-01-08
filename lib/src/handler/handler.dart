@@ -12,9 +12,10 @@ import '../core/utils.dart';
 import '../logger/logger.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
-import 'ansi_colors.dart';
 
-part 'decorator/ansi_color_decorator.dart';
+part 'ansi.dart';
+part 'colors.dart';
+part 'decorator/color_decorator.dart';
 part 'decorator/box_decorator.dart';
 part 'decorator/decorator.dart';
 part 'decorator/hierarchy_depth_prefix_decorator.dart';
@@ -68,12 +69,18 @@ class Handler {
     if (filters.any((final filter) => !filter.shouldLog(entry))) {
       return;
     }
-    Iterable<LogLine> lines = formatter.format(entry);
+
+    /// Context for the pipeline, merging handler config and sink capabilities.
+    const context = LogContext(
+      availableWidth: 80, // Todo: auto-detect from sink/terminal
+    );
+
+    Iterable<LogLine> lines = formatter.format(entry, context);
 
     /// Auto-sort to ensure correct visual composition:
     /// 1. TransformDecorator (Content mutation)
-    /// 2. VisualDecorator (Content styling, e.g. ANSI colors)
-    /// 3. StructuralDecorator (Outer wrapping, e.g. Box, then Indentation)
+    /// 2. StructuralDecorator (Outer wrapping, e.g. Box, then Indentation)
+    /// 3. VisualDecorator (Content styling, e.g. AnsiColors)
     ///
     /// Using a Set for deduplication to prevent redundant decorators.
     final sortedDecorators = decorators.toSet().toList()
@@ -82,19 +89,19 @@ class Handler {
           if (decorator is TransformDecorator) {
             return 0;
           }
-          if (decorator is VisualDecorator) {
-            return 1;
-          }
           if (decorator is StructuralDecorator) {
             // Within Structural, Box comes before Hierarchy (Indentation).
             // Box wraps content, Hierarchy indents the wrapped box.
             if (decorator is BoxDecorator) {
-              return 2;
+              return 1;
             }
             if (decorator is HierarchyDepthPrefixDecorator) {
-              return 3;
+              return 2;
             }
-            return 4; // Unknown structural decorators last
+            return 3; // Unknown structural decorators
+          }
+          if (decorator is VisualDecorator) {
+            return 4;
           }
           return 5; // Unknown other decorators
         }
@@ -103,7 +110,7 @@ class Handler {
       });
 
     for (final decorator in sortedDecorators) {
-      lines = decorator.decorate(lines, entry);
+      lines = decorator.decorate(lines, entry, context);
     }
 
     if (lines.isNotEmpty) {
@@ -129,37 +136,76 @@ class Handler {
       Object.hashAll(decorators);
 }
 
-/// Represents a single line in a log output, annotated with semantic tags.
+/// Shared context passed through the logging pipeline.
+///
+/// Contains configuration and capabilities relevant to formatting and decorating.
+@immutable
+class LogContext {
+  /// Creates a [LogContext].
+  const LogContext({
+    required this.availableWidth,
+    this.arbitraryData = const {},
+  });
+
+  /// The width available for log lines (e.g. terminal width).
+  final int availableWidth;
+
+  /// Additional arbitrary data for extensibility.
+  final Map<String, Object?> arbitraryData;
+}
+
+/// Represents a single line in a log output, composed of semantic segments.
 @immutable
 class LogLine {
-  /// Creates a [LogLine].
-  const LogLine(this.text, {this.tags = const {}});
+  /// Creates a [LogLine] from a list of segments.
+  const LogLine(this.segments);
 
-  /// Creates a [LogLine] from a string without any tags.
-  factory LogLine.plain(final String text) => LogLine(text);
+  /// Creates a [LogLine] with a single plain text segment.
+  factory LogLine.text(final String text) => LogLine([LogSegment(text)]);
 
-  /// The textual content of the line.
-  final String text;
+  /// The semantic segments that make up this line.
+  final List<LogSegment> segments;
 
-  /// Semantic tags describing the content of the line.
-  final Set<LogLineTag> tags;
-
-  /// The visible width of the line, excluding ANSI escape sequences.
-  int get visibleLength => text.visibleLength;
+  /// The visible width of the line.
+  int get visibleLength =>
+      segments.fold(0, (final sum, final s) => sum + s.text.visibleLength);
 
   @override
-  String toString() => text;
+  String toString() => segments.map((final s) => s.text).join();
+}
+
+/// A semantic segment of a log line.
+///
+/// Holds the textual content and metadata (tags) describing it.
+@immutable
+class LogSegment {
+  /// Creates a [LogSegment].
+  const LogSegment(
+    this.text, {
+    this.tags = const {},
+    this.style,
+  });
+
+  /// The textual content.
+  final String text;
+
+  /// Semantic tags describing this segment.
+  final Set<LogTag> tags;
+
+  /// Optional visual style suggestion.
+  final TextStyle? style;
 
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
-      other is LogLine &&
+      other is LogSegment &&
           runtimeType == other.runtimeType &&
           text == other.text &&
+          style == other.style &&
           _setEquals(tags, other.tags);
 
   @override
-  int get hashCode => text.hashCode ^ Object.hashAll(tags);
+  int get hashCode => text.hashCode ^ style.hashCode ^ Object.hashAll(tags);
 
   bool _setEquals<T>(final Set<T> a, final Set<T> b) {
     if (a.length != b.length) {
@@ -169,8 +215,51 @@ class LogLine {
   }
 }
 
-// LogLineTag stays here
-enum LogLineTag {
+/// Visual style suggestion for a log segment.
+@immutable
+@immutable
+class TextStyle {
+  /// Creates a [TextStyle].
+  const TextStyle({
+    this.color,
+    this.bold,
+    this.dim,
+    this.italic,
+    this.inverse,
+  });
+
+  /// The suggested foreground color.
+  final LogColor? color;
+
+  /// Whether the text should be bold.
+  final bool? bold;
+
+  /// Whether the text should be dimmed (faint).
+  final bool? dim;
+
+  /// Whether the text should be italic.
+  final bool? italic;
+
+  /// Whether the text should be inverted (reverse video).
+  final bool? inverse;
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is TextStyle &&
+          runtimeType == other.runtimeType &&
+          color == other.color &&
+          bold == other.bold &&
+          dim == other.dim &&
+          italic == other.italic &&
+          inverse == other.inverse;
+
+  @override
+  int get hashCode => Object.hash(color, bold, dim, italic, inverse);
+}
+
+/// Semantic tags describing the content of a [LogSegment].
+enum LogTag {
   /// General metadata like timestamp, level, or logger name.
   header,
 
@@ -186,12 +275,15 @@ enum LogLineTag {
   /// Individual frame in a stack trace.
   stackFrame,
 
+  /// Content related to the log level (e.g. the "[[INFO]]" text).
+  level,
+
+  /// Content related to the timestamp.
+  timestamp,
+
+  /// Content related to the logger name.
+  loggerName,
+
   /// Structural lines like box borders or dividers.
   border,
-
-  /// Indicates the line already contains ANSI color/style codes.
-  ansiColored,
-
-  /// Indicates the line is already enclosed in a box.
-  boxed,
 }
