@@ -16,33 +16,15 @@ part of '../handler.dart';
   ' decorators: [BoxDecorator(),],)',
 )
 class BoxFormatter implements LogFormatter {
-  /// Creates a [BoxFormatter] with customizable styling and constraints.
-  ///
-  /// - [useColors]: Whether to use ANSI colors
-  /// (attempts auto-detection if null).
-  /// - [lineLength]: The maximum width of the box.
-  /// Auto-wraps content if exceeded.
-  /// - [borderStyle]: The visual style of the box borders
-  /// (rounded, sharp, double).
   BoxFormatter({
     this.useColors,
-    this.lineLength,
     this.borderStyle = BorderStyle.rounded,
-  }) {
-    if (lineLength != null && lineLength! <= 0) {
-      throw ArgumentError('Invalid lineLength: $lineLength. Must be positive.');
-    }
-  }
+  });
 
   /// Explicit control over ANSI color usage.
   ///
   /// If `null`, colors are enabled only if the stdout supports ANSI escapes.
   final bool? useColors;
-
-  /// The maximum line length for wrapping.
-  ///
-  /// If `null`, it will attempt to detect the terminal width at runtime.
-  final int? lineLength;
 
   /// The visual style of the box borders.
   final BorderStyle borderStyle;
@@ -58,7 +40,7 @@ class BoxFormatter implements LogFormatter {
 
   @override
   Iterable<LogLine> format(final LogEntry entry, final LogContext context) {
-    final effectiveLength = lineLength ?? context.availableWidth;
+    final effectiveLength = context.availableWidth;
     final effectiveUseColors = useColors ?? false;
 
     final innerWidth = effectiveLength - 4;

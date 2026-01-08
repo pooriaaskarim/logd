@@ -54,6 +54,7 @@ class Handler {
     required this.sink,
     this.filters = const [],
     this.decorators = const [],
+    this.lineLength,
   });
 
   /// The formatter used to transform a [LogEntry] into a sequence of lines.
@@ -70,6 +71,11 @@ class Handler {
   /// A list of decorators applied to the formatted lines in order.
   final List<LogDecorator> decorators;
 
+  /// The maximum line length for the output.
+  ///
+  /// If provided, this overrides [LogSink.preferredWidth].
+  final int? lineLength;
+
   /// Process the entry: filter, format, decorate, output.
   Future<void> log(final LogEntry entry) async {
     if (filters.any((final filter) => !filter.shouldLog(entry))) {
@@ -77,8 +83,8 @@ class Handler {
     }
 
     /// Context for the pipeline, merging handler config and sink capabilities.
-    const context = LogContext(
-      availableWidth: 80, // Todo: auto-detect from sink/terminal
+    final context = LogContext(
+      availableWidth: lineLength ?? sink.preferredWidth,
     );
 
     Iterable<LogLine> lines = formatter.format(entry, context);
@@ -144,8 +150,9 @@ class Handler {
 
 /// Shared context passed through the logging pipeline.
 ///
-/// Contains configuration and capabilities relevant to formatting
-/// and decorating.
+/// The [LogContext] acts as the authoritative source of truth for layout and
+/// presentation constraints (e.g., [availableWidth]) during the formatting
+/// and decoration stages.
 @immutable
 class LogContext {
   /// Creates a [LogContext].
@@ -154,7 +161,10 @@ class LogContext {
     this.arbitraryData = const {},
   });
 
-  /// The width available for log lines (e.g. terminal width).
+  /// The maximum horizontal space available for log content, in terminal cells.
+  ///
+  /// Formatters and decorators SHOULD strictly respect this width to ensure
+  /// consistent alignment and prevent overflow.
   final int availableWidth;
 
   /// Additional arbitrary data for extensibility.

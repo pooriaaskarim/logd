@@ -10,21 +10,12 @@ part of '../handler.dart';
 /// [LogTag.loggerName]) within headers to enable tag-specific color overrides.
 @immutable
 final class StructuredFormatter implements LogFormatter {
-  /// Creates a [StructuredFormatter] with customizable constraints.
-  ///
-  /// - [lineLength]: The maximum width for content wrapping.
-  /// If provided, overrides [LogContext.availableWidth].
-  const StructuredFormatter({
-    this.lineLength,
-  });
-
-  /// The maximum line length for wrapping.
-  final int? lineLength;
+  const StructuredFormatter();
 
   @override
   Iterable<LogLine> format(final LogEntry entry, final LogContext context) {
-    // Determine effective width: Config -> Context -> Default(80)
-    final width = lineLength ?? context.availableWidth;
+    // Rely strictly on context provided width
+    final width = context.availableWidth;
     final innerWidth = (width - 4).clamp(1, double.infinity).toInt();
 
     return <LogLine>[
@@ -227,10 +218,8 @@ final class StructuredFormatter implements LogFormatter {
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
-      other is StructuredFormatter &&
-          runtimeType == other.runtimeType &&
-          lineLength == other.lineLength;
+      other is StructuredFormatter && runtimeType == other.runtimeType;
 
   @override
-  int get hashCode => lineLength.hashCode;
+  int get hashCode => runtimeType.hashCode;
 }

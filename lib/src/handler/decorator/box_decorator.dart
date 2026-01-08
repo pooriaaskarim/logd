@@ -23,33 +23,14 @@ part of '../handler.dart';
 final class BoxDecorator extends StructuralDecorator {
   /// Creates a [BoxDecorator] with customizable styling.
   ///
-  /// - [lineLength]: The total width of the box including borders.
-  /// If `null`, attempts to detect terminal width or defaults to 80.
-  /// Must be at least 3 to accommodate borders and content.
   /// - [borderStyle]: The visual style of the box borders
   /// (rounded, sharp, double).
-  BoxDecorator({
-    this.lineLength,
+  const BoxDecorator({
     this.borderStyle = BorderStyle.rounded,
-  }) {
-    if (lineLength != null && lineLength! < 3) {
-      throw ArgumentError(
-        'Invalid lineLength: $lineLength.'
-        ' Must be at least 3 to accommodate borders.',
-      );
-    }
-  }
+  });
 
   /// The visual style of the box borders.
   final BorderStyle borderStyle;
-
-  /// The maximum max width of the box.
-  final int? lineLength;
-
-  late final int _lineLength = (lineLength ??
-          (io.stdout.hasTerminal ? io.stdout.terminalColumns - 4 : 80))
-      .clamp(3, double.infinity)
-      .toInt();
 
   @override
   Iterable<LogLine> decorate(
@@ -82,12 +63,10 @@ final class BoxDecorator extends StructuralDecorator {
       }
     }
 
-    // Ensure box wraps content if it's wider than configured lineLength
-    // lineLength includes borders (2 chars).
-    // So available for content = lineLength - 2.
-    // We want width to be at least lineLength.
-    // If content is wider, expand width.
-    final minWidth = _lineLength;
+    // Ensure box wraps content if it's wider than configured availableWidth
+    // availableWidth includes borders (2 chars).
+    // width to be at least context.availableWidth.
+    final minWidth = context.availableWidth;
     final contentWidthIfNeeded = maxContentWidth + 2;
     final width =
         contentWidthIfNeeded > minWidth ? contentWidthIfNeeded : minWidth;
@@ -140,11 +119,10 @@ final class BoxDecorator extends StructuralDecorator {
       identical(this, other) ||
       other is BoxDecorator &&
           runtimeType == other.runtimeType &&
-          lineLength == other.lineLength &&
           borderStyle == other.borderStyle;
 
   @override
-  int get hashCode => lineLength.hashCode ^ borderStyle.hashCode;
+  int get hashCode => borderStyle.hashCode;
 }
 
 /// Visual styles for box borders.

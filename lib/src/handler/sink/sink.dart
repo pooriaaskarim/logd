@@ -16,6 +16,12 @@ abstract base class LogSink {
   /// Whether this sink is currently active.
   final bool enabled;
 
+  /// The width this sink prefers for its output.
+  ///
+  /// This is used by the [Handler] to initialize the [LogContext] and manage
+  /// layout constraints automatically.
+  int get preferredWidth;
+
   /// Outputs the [lines] to the destination.
   ///
   /// The [level] indicates the severity of the log entry that produced these

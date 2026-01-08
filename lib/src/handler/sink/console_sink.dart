@@ -6,6 +6,10 @@ base class ConsoleSink extends LogSink {
   const ConsoleSink({super.enabled});
 
   @override
+  int get preferredWidth =>
+      io.stdout.hasTerminal ? io.stdout.terminalColumns : 80;
+
+  @override
   Future<void> output(
     final Iterable<LogLine> lines,
     final LogLevel level,

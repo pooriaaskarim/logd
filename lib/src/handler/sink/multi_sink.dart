@@ -26,6 +26,12 @@ base class MultiSink extends LogSink {
     }
   }
 
+  @override
+  int get preferredWidth => sinks.fold(
+        1000,
+        (final min, final s) => s.preferredWidth < min ? s.preferredWidth : min,
+      );
+
   /// The list of child sinks to which log lines are broadcast.
   final List<LogSink> sinks;
 

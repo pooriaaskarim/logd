@@ -18,15 +18,19 @@ part of '../handler.dart';
 /// // ... log entries ...
 /// await sink.close(); // Write footer and close file
 /// ```
+@immutable
 final class HTMLSink extends LogSink {
   /// Creates an [HTMLSink].
   ///
   /// - [filePath]: Path to the HTML file to write to.
   /// - [darkMode]: Whether to use dark mode color scheme (default: true).
-  HTMLSink({
+  const HTMLSink({
     required this.filePath,
     this.darkMode = true,
   });
+
+  @override
+  int get preferredWidth => 100;
 
   /// Path to the HTML file.
   final String filePath;
@@ -34,73 +38,83 @@ final class HTMLSink extends LogSink {
   /// Whether to use dark mode styling.
   final bool darkMode;
 
-  bool _headerWritten = false;
-  bool _closed = false;
+  static final Map<String, _HTMLSession> _sessions = {};
+
+  _HTMLSession _getSession() =>
+      _sessions.putIfAbsent(filePath, _HTMLSession.new);
 
   @override
   Future<void> output(
     final Iterable<LogLine> lines,
     final LogLevel level,
   ) async {
-    if (_closed) {
-      InternalLogger.log(
-        LogLevel.warning,
-        'HTMLSink is closed, cannot write logs',
-      );
-      return;
-    }
+    final session = _getSession();
 
-    try {
-      final file = io.File(filePath);
-
-      // Write HTML header on first write
-      if (!_headerWritten) {
-        await file.writeAsString(_htmlHeader(), mode: io.FileMode.write);
-        _headerWritten = true;
+    await session.enqueue(() async {
+      if (session.closed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          'HTMLSink is closed for $filePath, cannot write logs',
+        );
+        return;
       }
 
-      // Append log entries
-      final buffer = StringBuffer();
-      for (final line in lines) {
-        for (final segment in line.segments) {
-          buffer.write(segment.text);
+      try {
+        final file = io.File(filePath);
+
+        // Write HTML header on first write
+        if (!session.headerWritten) {
+          await file.writeAsString(_htmlHeader(), mode: io.FileMode.write);
+          session.headerWritten = true;
         }
-        buffer.writeln();
-      }
 
-      await file.writeAsString(buffer.toString(), mode: io.FileMode.append);
-    } catch (e, s) {
-      InternalLogger.log(
-        LogLevel.error,
-        'HTMLSink error writing to $filePath',
-        error: e,
-        stackTrace: s,
-      );
-    }
+        // Append log entries
+        final buffer = StringBuffer();
+        for (final line in lines) {
+          for (final segment in line.segments) {
+            buffer.write(segment.text);
+          }
+          buffer.writeln();
+        }
+
+        await file.writeAsString(buffer.toString(), mode: io.FileMode.append);
+      } catch (e, s) {
+        InternalLogger.log(
+          LogLevel.error,
+          'HTMLSink error writing to $filePath',
+          error: e,
+          stackTrace: s,
+        );
+      }
+    });
   }
 
   /// Closes the sink and writes the HTML footer.
   ///
   /// Should be called when done logging to complete the HTML document.
   Future<void> close() async {
-    if (_closed) {
-      return;
-    }
+    final session = _getSession();
 
-    try {
-      if (_headerWritten) {
-        final file = io.File(filePath);
-        await file.writeAsString(_htmlFooter(), mode: io.FileMode.append);
+    await session.enqueue(() async {
+      if (session.closed) {
+        return;
       }
-      _closed = true;
-    } catch (e, s) {
-      InternalLogger.log(
-        LogLevel.error,
-        'HTMLSink error closing $filePath',
-        error: e,
-        stackTrace: s,
-      );
-    }
+
+      try {
+        if (session.headerWritten) {
+          final file = io.File(filePath);
+          await file.writeAsString(_htmlFooter(), mode: io.FileMode.append);
+        }
+        session.closed = true;
+      } catch (e, s) {
+        InternalLogger.log(
+          LogLevel.error,
+          'HTMLSink error closing $filePath',
+          error: e,
+          stackTrace: s,
+        );
+      }
+    });
   }
 
   String _htmlHeader() => '''
@@ -176,8 +190,8 @@ ${_css()}
       font-weight: bold;
       color: ${darkMode ? '#000' : '#fff'};
     }
-   .log-entry.log-trace .log-level { background-color: $borderTrace; }
-    .log-entry.log-debug .log-level { background- $borderDebug; }
+    .log-entry.log-trace .log-level { background-color: $borderTrace; }
+    .log-entry.log-debug .log-level { background-color: $borderDebug; }
     .log-entry.log-info .log-level { background-color: $borderInfo; }
     .log-entry.log-warning .log-level { background-color: $borderWarning; }
     .log-entry.log-error .log-level { background-color: $borderError; }
@@ -229,4 +243,27 @@ ${_css()}
 
   @override
   int get hashCode => Object.hash(filePath, darkMode);
+}
+
+class _HTMLSession {
+  bool headerWritten = false;
+  bool closed = false;
+
+  /// A simple task queue to ensure sequential file access.
+  Future<void> _taskQueue = Future.value();
+
+  /// Enqueues a task and returns a future that completes when the task
+  /// finishes.
+  Future<void> enqueue(final Future<void> Function() task) =>
+      _taskQueue = _taskQueue.then(
+        (final _) => task(),
+        onError: (final Object e, final StackTrace s) {
+          InternalLogger.log(
+            LogLevel.error,
+            'HTMLSink session task error',
+            error: e,
+            stackTrace: s,
+          );
+        },
+      );
 }

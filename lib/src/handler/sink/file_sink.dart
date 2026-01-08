@@ -332,6 +332,9 @@ base class FileSink extends LogSink {
     _validateBasePath(basePath);
   }
 
+  @override
+  int get preferredWidth => 120;
+
   /// The path to the active log file (e.g., 'logs/app.log').
   final String basePath;
 
