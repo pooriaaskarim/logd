@@ -36,10 +36,11 @@ Filters are deeply efficient checks run before any string manipulation occurs. I
 
 ### Stage 2: Formatting
 **Component**: `LogFormatter`
-**Input**: `LogEntry`
+**Input**: `LogEntry`, `LogContext`
 **Output**: `Iterable<LogLine>`
-
-The formatter transforms the structured log entry into a list of semantic lines (`LogLine`). Each line is composed of colored or tagged segments.
+ 
+The formatter transforms the structured log entry into a list of semantic lines (`LogLine`).
+- **Layout Alignment**: Formatters now strictly rely on `context.availableWidth` provided by the handler to perform internal wrapping and alignment.
 - **StructuredFormatter**: Detailed layout (header, origin, message) with fine-grained semantic tagging. **(Preferred)**
 - **MarkdownFormatter**: Generates structured Markdown output.
 - **JsonSemanticFormatter**: precise JSON serialization with embedded tags.
@@ -51,7 +52,7 @@ The formatter transforms the structured log entry into a list of semantic lines 
 **Input**: `Iterable<LogLine>`
 **Output**: `Iterable<LogLine>`
 
-Decorators apply post-formatting transformations. They are composable and execute in the order they appear in the `decorators` list (auto-sorted by type).
+Decorators apply post-formatting transformations, often leveraging `LogContext.availableWidth` for dynamic adjustments. They are composable and execute in the order they appear in the `decorators` list (auto-sorted by type).
 - **BoxDecorator**: Adds ASCII borders around the lines. It is now decoupled from the layout logic.
 - **ColorDecorator**: Adds level-based coloring.
 
@@ -59,11 +60,12 @@ For a deep dive into how decorators interact, see [Decorator Composition](decora
 
 ### Stage 4: Output (Sinking)
 **Component**: `LogSink`
-**Input**: `Iterable<LogLine>`
+**Input**: `Iterable<LogLine>`, `LogLevel`
 **Output**: `Future<void>` (I/O Side Effect)
-
+ 
 The sink handles the physical write operation. Sinks are designed to be non-blocking where possible.
-- **ConsoleSink**: Wraps `print` / `stdout`.
+- **Preferred Width**: Each sink reports its `preferredWidth` (e.g., terminal width or default 80), which the `Handler` uses to initialize the `LogContext` if a manual `lineLength` isn't provided.
+- **ConsoleSink**: Wraps `print` / `stdout`. Detects terminal width dynamically.
 - **FileSink**: Manages file streams, locking, and rotation.
 
 ## Class Diagram

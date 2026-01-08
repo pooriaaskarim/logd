@@ -141,12 +141,13 @@ Send logs to multiple destinations simultaneously:
 
 ```dart
 final consoleHandler = Handler(
-  formatter: StructuredFormatter(),
-  decorators: [
-    BoxDecorator(
+  formatter: const StructuredFormatter(),
+  decorators: const [
+    BoxDecorator(),
     ColorDecorator(),
   ],
-  sink: ConsoleSink(),
+  sink: const ConsoleSink(),
+  lineLength: 80,
 );
 // Note: Decorators are auto-sorted by type for optimal composition
 
@@ -269,21 +270,20 @@ Logger.get('app').freezeInheritance();
 ```dart
 // Hierarchy-aware, colored, and boxed output for terminal
 Logger.configure('global', handlers: [
-  Handler(
+  const Handler(
     formatter: StructuredFormatter(),
     decorators: [
       // Auto-sorted by type: Visual -> Structural (Box -> Hierarchy)
-      const ColorDecorator(
-        
-        colorHeaderBackground: true,
+      ColorDecorator(
+        config: ColorConfig(headerBackground: true),
       ),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        
       ),
-      const HierarchyDepthPrefixDecorator(indent: '│ '),
+      HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
     sink: ConsoleSink(),
+    lineLength: 80,
   ),
 ]);
 ```
@@ -327,12 +327,12 @@ Logger.configure('auth', handlers: [
 
 Comprehensive technical documentation is available in the `docs/` directory:
 
-- **[Documentation Index](docs/README.md)** - Overview and navigation
-- **[Logger Philosophy](docs/logger/philosophy.md)** - Design principles and rationale
-- **[Logger Architecture](docs/logger/architecture.md)** - Implementation details
-- **[Handler Guide](docs/handler/architecture.md)** - Pipeline customization
-- **[Time Module](docs/time/architecture.md)** - Timestamp and timezone handling
-- **[Roadmap](docs/logger/roadmap.md)** - Planned features and known limitations
+- **[Documentation Index](doc/README.md)** - Overview and navigation
+- **[Logger Philosophy](doc/logger/philosophy.md)** - Design principles and rationale
+- **[Logger Architecture](doc/logger/architecture.md)** - Implementation details
+- **[Handler Guide](doc/handler/architecture.md)** - Pipeline customization
+- **[Time Module](doc/time/architecture.md)** - Timestamp and timezone handling
+- **[Roadmap](doc/logger/roadmap.md)** - Planned features and known limitations
 
 ---
 
@@ -350,7 +350,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
 - PR submission process
 - Documentation updates
 
-For documentation contributions specifically, see [docs/CONTRIBUTING_DOCS.md](docs/CONTRIBUTING_DOCS.md).
+For documentation contributions specifically, see [docs/CONTRIBUTING_DOCS.md](doc/CONTRIBUTING_DOCS.md).
 
 ---
 

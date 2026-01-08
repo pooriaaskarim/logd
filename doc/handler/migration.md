@@ -1,6 +1,6 @@
 # Migration Guide
 
-The `logd` library has evolved from a simple logging utility to a high-performance, segment-based pipeline. This guide helps you migrate from legacy patterns to the modern architecture introduced in v0.4.2.
+The `logd` library has evolved from a simple logging utility to a high-performance, segment-based pipeline. This guide helps you migrate from legacy patterns to the modern architecture introduced in v0.5.0.
 
 ## Key Transitions
 
@@ -21,12 +21,13 @@ final handler = Handler(
 **Modern (StructuredFormatter + BoxDecorator)**:
 ```dart
 final handler = Handler(
-  formatter: StructuredFormatter(lineLength: 80),
-  decorators: [
-    BoxDecorator(borderStyle: BorderStyle.rounded, lineLength: 80),
-    const ColorDecorator(), // Recommended: Add color after structural decorators
+  formatter: const StructuredFormatter(),
+  decorators: const [
+    BoxDecorator(borderStyle: BorderStyle.rounded),
+    ColorDecorator(), // Recommended: Add color after structural decorators
   ],
   sink: const ConsoleSink(),
+  lineLength: 80, // Centralized layout control
 );
 ```
 
@@ -54,14 +55,17 @@ ColorDecorator(
 ```
 
 ## Parameter Mapping
-
+ 
 | Old Parameter | New Component / Parameter |
 |---------------|---------------------------|
-| `lineLength`  | `StructuredFormatter(lineLength: ...)` AND `BoxDecorator(lineLength: ...)` |
+| `lineLength`  | `Handler(lineLength: ...)` |
 | `borderStyle` | `BoxDecorator(borderStyle: ...)` |
 | `useColors`   | `ColorDecorator()` (Preferred) |
 
-## Breaking Changes in v0.4.2
+## Breaking Changes in v0.5.0
+- **Centralized Layout**: `lineLength` parameter removed from `StructuredFormatter`, `BoxDecorator`, and `BoxFormatter`. It is now exclusively managed by `Handler`.
+- **`LogContext` Authoritative Width**: Formatters and decorators now strictly rely on `context.availableWidth`.
+- **`const` Constructors**: Many core components now prefer `const` initialization.
 - `LogFormatter.format` return type changed from `Iterable<String>` to `Iterable<LogLine>`.
 - `LogDecorator.decorate` parameter and return type changed to `Iterable<LogLine>`.
 - `LogSink.output` parameter changed to `Iterable<LogLine>`.

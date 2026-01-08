@@ -19,12 +19,20 @@
 - [x] Add `JsonSemanticFormatter` for metadata-rich output
 - [x] Add `MarkdownFormatter` and `HTMLFormatter`
 
-### ✅ P0: Visual Showcase (Logd Theatre)
+### ✅ ✅ P0: Visual Showcase (Logd Theatre)
 **Goal**: Demonstrate complex capabilities in a single interactive dashboard.
 **Result**: Created `example/log_theatre.dart`.
 - [x] Implement mock dashboard UI in terminal
 - [x] Showcase real-time multi-handler processing
 - [x] Demonstrate all border styles and coloring configurations
+
+### ✅ P0: Centralized Layout Management
+**Goal**: Consolidate layout constraints and remove redundant parameters.
+**Result**: Moved `lineLength` to `Handler` and added `preferredWidth` to `LogSink`.
+- [x] Remove `lineLength` from `StructuredFormatter` and `BoxDecorator`
+- [x] Implement `LogSink.preferredWidth` across all sink types
+- [x] Update `LogContext` to provide `availableWidth`
+- [x] Migrate all examples and tests to the new model
 
 ### ✅ P1: ANSI Leakage in PainFormatter
 - [*]

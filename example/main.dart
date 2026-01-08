@@ -139,7 +139,7 @@ void _runDemo() {
 
   final buffer = logger.infoBuffer;
   buffer?.writeln('Deployment Report:');
-  buffer?.writeln(' - Artifact: logd_v0.4.2.aot');
+  buffer?.writeln(' - Artifact: logd_v0.5.0.aot');
   buffer?.writeln(' - Target: production-us-east');
   buffer?.writeln(' - Status: SUCCESS');
   buffer?.sink();
