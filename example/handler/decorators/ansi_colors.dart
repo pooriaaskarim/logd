@@ -13,11 +13,12 @@ import 'package:logd/logd.dart';
 void main() async {
   // Default color scheme
   final defaultHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: const [
       ColorDecorator(useColors: true),
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   // 1. Custom Color Scheme
@@ -31,11 +32,12 @@ void main() async {
     ),
   );
   final customHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
       customColors,
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   // 3. Header Background (Reverse Video)
@@ -45,11 +47,12 @@ void main() async {
     ),
   );
   final headerBgHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
       headerHighlight,
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   // 2. High Contrast (Header Only)
@@ -64,11 +67,12 @@ void main() async {
     ),
   );
   final selectiveHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
       highContrast,
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure('example.default', handlers: [defaultHandler]);

@@ -8,7 +8,7 @@ void main() {
   group('Null Safety & Empty Handling', () {
     test('StructuredFormatter handles null error and stackTrace gracefully',
         () {
-      const formatter = StructuredFormatter(lineLength: 80);
+      const formatter = StructuredFormatter();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -27,7 +27,8 @@ void main() {
 
     test('StructuredFormatter handles very long logger name by wrapping header',
         () {
-      const formatter = StructuredFormatter(lineLength: 20);
+      const formatter = StructuredFormatter();
+      const context = LogContext(availableWidth: 20);
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_exceeds_line_length',
         origin: 'test',
@@ -37,7 +38,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final lines = formatter.format(entry, mockContext).toList();
+      final lines = formatter.format(entry, context).toList();
       expect(lines, isNotEmpty);
       for (final line in lines) {
         expect(line.visibleLength, lessThanOrEqualTo(20));
@@ -49,7 +50,7 @@ void main() {
     });
 
     test('StructuredFormatter handles empty/whitespace messages', () {
-      const formatter = StructuredFormatter(lineLength: 80);
+      const formatter = StructuredFormatter();
       const entries = [
         LogEntry(
           loggerName: 'test',
@@ -77,12 +78,13 @@ void main() {
 
     test('BoxDecorator handles single-character or empty message gracefully',
         () {
-      final handler = Handler(
-        formatter: const StructuredFormatter(lineLength: 40),
+      const handler = Handler(
+        formatter: StructuredFormatter(),
         decorators: [
-          BoxDecorator(borderStyle: BorderStyle.rounded, lineLength: 40),
+          BoxDecorator(borderStyle: BorderStyle.rounded),
         ],
-        sink: const ConsoleSink(),
+        sink: ConsoleSink(),
+        lineLength: 40,
       );
 
       const entry = LogEntry(
@@ -94,10 +96,11 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final formatted = handler.formatter.format(entry, mockContext);
+      const context = LogContext(availableWidth: 40);
+      final formatted = handler.formatter.format(entry, context);
       var lines = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry, mockContext);
+        lines = decorator.decorate(lines, entry, context);
       }
 
       final result = resultLines(lines);

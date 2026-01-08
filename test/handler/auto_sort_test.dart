@@ -10,6 +10,9 @@ final class MemorySink extends LogSink {
   bool get enabled => true;
 
   @override
+  int get preferredWidth => 80;
+
+  @override
   Future<void> output(
     final Iterable<LogLine> lines,
     final LogLevel level,
@@ -26,11 +29,12 @@ void main() {
       final handler = Handler(
         sink: sink,
         formatter: const StructuredFormatter(),
-        decorators: [
-          const HierarchyDepthPrefixDecorator(indent: '>> '),
-          BoxDecorator(lineLength: 20),
-          const ColorDecorator(),
+        decorators: const [
+          HierarchyDepthPrefixDecorator(indent: '>> '),
+          BoxDecorator(borderStyle: BorderStyle.rounded),
+          ColorDecorator(),
         ],
+        lineLength: 20,
       );
 
       // We need to bypass Logger and call handler direct or use a logger

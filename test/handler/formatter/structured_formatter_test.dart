@@ -14,7 +14,7 @@ void main() {
     );
 
     test('formats header with correct prefix', () {
-      const formatter = StructuredFormatter(lineLength: 80);
+      const formatter = StructuredFormatter();
       final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines[0].toString(), startsWith('____'));
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('wraps long message', () {
-      const formatter = StructuredFormatter(lineLength: 20);
+      const formatter = StructuredFormatter();
       const longEntry = LogEntry(
         loggerName: 't',
         origin: 'o',
@@ -32,7 +32,9 @@ void main() {
         timestamp: 'ts',
         hierarchyDepth: 0,
       );
-      final lines = formatter.format(longEntry, mockContext).toList();
+      final lines = formatter
+          .format(longEntry, const LogContext(availableWidth: 20))
+          .toList();
 
       final msgStartIndex =
           lines.indexWhere((final l) => l.toString().startsWith('----|'));

@@ -15,7 +15,7 @@ void main() {
     );
 
     test('Order: BoxDecorator then ColorDecorator colors the borders', () {
-      final box = BoxDecorator(lineLength: 20);
+      const box = BoxDecorator();
       const color = ColorDecorator(useColors: true);
 
       final boxed = box.decorate(lines, entry, mockContext);
@@ -40,7 +40,7 @@ void main() {
 
     test('Order: ColorDecorator then BoxDecorator keeps borders plain', () {
       const color = ColorDecorator(useColors: true);
-      final box = BoxDecorator(lineLength: 20);
+      const box = BoxDecorator();
 
       final colored = color.decorate(lines, entry, mockContext);
       final boxed = box.decorate(colored, entry, mockContext).toList();
@@ -52,7 +52,7 @@ void main() {
       expect(rendered[0], isNot(startsWith('\x1B[2m\x1B[34m')));
       expect(rendered[0], startsWith('╭'));
 
-      // Content line should contain color codes INSIDE the box vertical bars
+      // Content line should contain_color codes INSIDE the box vertical bars
       expect(rendered[1], startsWith('│'));
       // Info level now defaults to blue (was green)
       // Padding is OUTSIDE the ANSI block now
@@ -87,7 +87,7 @@ void main() {
 
     test('BoxDecorator handles already colored lines using padVisible', () {
       const color = ColorDecorator(useColors: true);
-      final box = BoxDecorator(lineLength: 20);
+      const box = BoxDecorator();
 
       final colored =
           color.decorate([LogLine.text('abc')], entry, mockContext).toList();
@@ -98,30 +98,24 @@ void main() {
       // visibleLength should be 3 ('abc'). ANSI is style, not text.
       expect(
         middleLine.visibleLength,
-        equals(3 + 15 + 2),
-      ); // abc + pad + borders(2) = 20
+        equals(3 + 75 + 2),
+      ); // abc + pad + borders(2) = 80 (mockContext default)
 
       final renderedMiddle = rendered[1];
       // Info level now defaults to blue (was green)
       expect(
-        renderedMiddle.contains('\x1B[34mabc\x1B[0m               '),
+        renderedMiddle.contains('\x1B[34mabc\x1B[0m'),
         isTrue,
       );
       expect(renderedMiddle, startsWith('│'));
       expect(renderedMiddle, endsWith('│'));
     });
-    // Skipped: BoxDecorator no longer handles internal newlines (expects
-    // formatter to split).
-    // test(
-    //    'BoxDecorator handles internal newlines in input strings',
-    //    () { ... },
-    // );
 
     test('Best Practice Order: Box -> Ansi -> Hierarchy', () {
       // 1. Color Content
       const ansi = ColorDecorator(useColors: true);
       // 2. Box it (with its own border color)
-      final box = BoxDecorator(lineLength: 20);
+      const box = BoxDecorator();
       // 3. Indent it
       const hierarchy = HierarchyDepthPrefixDecorator(indent: '>> ');
       const deepEntry = LogEntry(

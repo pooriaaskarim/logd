@@ -14,16 +14,16 @@ import 'package:logd/logd.dart';
 void main() async {
   // Console handler: Structured, colored, boxed
   final consoleHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 100),
+    formatter: const StructuredFormatter(),
     decorators: [
       const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 100,
       ),
-      HierarchyDepthPrefixDecorator()
+      const HierarchyDepthPrefixDecorator()
     ],
     sink: const ConsoleSink(),
+    lineLength: 100,
   );
 
   // File handler: Plain format, all levels

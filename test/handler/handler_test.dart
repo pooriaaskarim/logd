@@ -14,6 +14,9 @@ final class MockSink extends LogSink {
   final List<LogLevel> levels = [];
 
   @override
+  int get preferredWidth => 80;
+
+  @override
   Future<void> output(
     final Iterable<LogLine> lines,
     final LogLevel level,

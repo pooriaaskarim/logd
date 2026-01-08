@@ -12,8 +12,9 @@ import 'package:logd/logd.dart';
 
 void main() async {
   final handler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure('example.structured', handlers: [handler]);

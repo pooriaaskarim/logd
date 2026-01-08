@@ -13,54 +13,50 @@ import 'package:logd/logd.dart';
 void main() async {
   // Rounded borders
   final roundedHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 60),
+    formatter: const StructuredFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 60,
-        
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Sharp borders
   final sharpHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 60),
+    formatter: const StructuredFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
-        lineLength: 60,
-        
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Double borders
   final doubleHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 60),
+    formatter: const StructuredFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.double,
-        lineLength: 60,
-        
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Narrow box (tests wrapping)
   final narrowHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 40),
+    formatter: const StructuredFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 40,
-        
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 40,
   );
 
   Logger.configure('example.rounded', handlers: [roundedHandler]);

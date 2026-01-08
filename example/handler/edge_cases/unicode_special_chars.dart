@@ -12,15 +12,14 @@ import 'package:logd/logd.dart';
 
 void main() async {
   final handler = Handler(
-    formatter: StructuredFormatter(lineLength: 60),
+    formatter: const StructuredFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 60,
-        
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   Logger.configure('example.unicode', handlers: [handler]);

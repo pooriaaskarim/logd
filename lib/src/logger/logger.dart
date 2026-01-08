@@ -31,9 +31,9 @@ const _defaultStackTraceParser = StackTraceParser(
   ignorePackages: ['logd', 'flutter'],
 );
 final _defaultHandlers = <Handler>[
-  Handler(
-    formatter: const StructuredFormatter(),
-    sink: const ConsoleSink(),
+  const Handler(
+    formatter: StructuredFormatter(),
+    sink: ConsoleSink(),
     decorators: [BoxDecorator()],
   ),
 ];

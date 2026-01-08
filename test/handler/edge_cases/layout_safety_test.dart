@@ -1,12 +1,11 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
-import '../decorator/mock_context.dart';
 
 void main() {
   group('Layout & Encoding Safety', () {
     test('Unicode and Emoji handle widths correctly in BoxDecorator', () {
-      final box =
-          BoxDecorator(borderStyle: BorderStyle.rounded, lineLength: 40);
+      const box = BoxDecorator(borderStyle: BorderStyle.rounded);
+      const context = LogContext(availableWidth: 40);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -17,7 +16,7 @@ void main() {
       );
 
       final lines = [LogLine.text('你好世界 🌍'), LogLine.text('ASCII Test')];
-      final result = box.decorate(lines, entry, mockContext).toList();
+      final result = box.decorate(lines, entry, context).toList();
 
       final topWidth = result[0].visibleLength;
       for (final line in result) {
@@ -30,7 +29,8 @@ void main() {
     });
 
     test('ANSI preservation across wrapping in BoxDecorator', () {
-      final box = BoxDecorator(borderStyle: BorderStyle.double, lineLength: 20);
+      const box = BoxDecorator(borderStyle: BorderStyle.double);
+      const context = LogContext(availableWidth: 20);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -42,7 +42,7 @@ void main() {
 
       // Colored message
       final lines = [LogLine.text('\x1B[31mThis is red\x1B[0m')];
-      final result = box.decorate(lines, entry, mockContext).toList();
+      final result = box.decorate(lines, entry, context).toList();
 
       expect(result.length, equals(3));
       // Each wrapped line should start with red color (if preserved)
@@ -51,7 +51,8 @@ void main() {
     });
 
     test('Very long words without spaces are forced to wrap', () {
-      const formatter = StructuredFormatter(lineLength: 20);
+      const formatter = StructuredFormatter();
+      const context = LogContext(availableWidth: 20);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -61,7 +62,7 @@ void main() {
         hierarchyDepth: 0,
       );
 
-      final lines = formatter.format(entry, mockContext).toList();
+      final lines = formatter.format(entry, context).toList();
       for (final line in lines) {
         expect(line.visibleLength, lessThanOrEqualTo(20));
       }

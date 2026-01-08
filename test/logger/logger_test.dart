@@ -212,10 +212,7 @@ void main() {
 
       buffer.sink();
 
-      expect(logCollector.logs, isNotEmpty);
-      // PlainFormatter normalizes newlines to spaces, so we expect spaces
-      // instead
-      expect(logCollector.logs.first, equals('line 1 line 2 '));
+      expect(logCollector.logs, containsAll(['line 1', 'line 2']));
     });
   });
 
@@ -263,6 +260,9 @@ class LoggerHierarchyEdgeCases {}
 
 base class FailingSink extends LogSink {
   @override
+  int get preferredWidth => 80;
+
+  @override
   Future<void> output(
     final Iterable<LogLine> lines,
     final LogLevel level,
@@ -273,6 +273,9 @@ base class FailingSink extends LogSink {
 
 base class LogCollector extends LogSink {
   final List<String> logs = [];
+
+  @override
+  int get preferredWidth => 80;
 
   @override
   Future<void> output(

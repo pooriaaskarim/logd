@@ -13,8 +13,9 @@ void main() async {
   // Configure a simple handler
 
   final handler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure(

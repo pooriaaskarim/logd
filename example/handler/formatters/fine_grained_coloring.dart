@@ -17,7 +17,6 @@ void main() {
         formatter: const StructuredFormatter(),
         decorators: [
           BoxDecorator(
-            lineLength: 100,
             borderStyle: BorderStyle.rounded,
           ),
           ColorDecorator(

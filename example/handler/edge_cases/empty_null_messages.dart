@@ -11,11 +11,12 @@ import 'package:logd/logd.dart';
 
 void main() async {
   final handler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: const [
       ColorDecorator(useColors: true),
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure('example.edge', handlers: [handler]);

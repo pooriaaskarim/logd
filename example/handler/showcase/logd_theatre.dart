@@ -19,7 +19,7 @@ void main() async {
 
   // 1. Setup the Multi-Backend Theatre
   final consoleHandler = Handler(
-    formatter: const StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
       const ColorDecorator(
         config: ColorConfig(
@@ -28,10 +28,10 @@ void main() async {
       ),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 80,
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   final htmlSink =
@@ -47,7 +47,7 @@ void main() async {
   );
 
   final semanticHandler = Handler(
-    formatter: const JsonSemanticFormatter(prettyPrint: true),
+    formatter: const JsonPrettyFormatter(),
     sink: FileSink('$basePath/telemetry.json'),
   );
 
@@ -97,8 +97,13 @@ void main() async {
   buffer?.writeln('  💾 Available Memory: 12.4 GB');
   buffer?.sink();
 
-  // Scene 5: Closing down
-  print('\n🎬 Scene 5: Curtain Call');
+  // Scene 5: Hierarchy Isolation
+  print('\n🎬 Scene 5: Hierarchy Isolation');
+  final subLogger = Logger.get('theatre.sub.deep');
+  subLogger.info('This prefix should not be colored even if level is colored.');
+
+  // Scene 6: Closing down
+  print('\n🎬 Scene 6: Curtain Call');
   logger.info('Theatre closing... Writing all logs.');
 
   // Give some time for async loggers to finish

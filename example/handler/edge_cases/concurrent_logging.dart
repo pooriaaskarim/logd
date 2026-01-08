@@ -13,15 +13,14 @@ import 'package:logd/logd.dart';
 
 void main() async {
   final handler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 80,
-        
       ),
     ],
     sink: FileSink('logs/concurrent.log'),
+    lineLength: 80,
   );
 
   Logger.configure('example.concurrent', handlers: [handler]);

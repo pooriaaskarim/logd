@@ -29,6 +29,21 @@ enum LogTag {
 
   /// Structural lines like box borders or dividers.
   border,
+
+  /// Key in a JSON object.
+  jsonKey,
+
+  /// Value in a JSON object (string, number, boolean).
+  jsonValue,
+
+  /// Punctuation in JSON (braces, brackets, commas, colons).
+  jsonPunctuation,
+
+  /// Tree-like hierarchy prefix.
+  hierarchy,
+
+  /// Content Prefix
+  prefix,
 }
 
 /// Visual style suggestion for a log segment.
@@ -112,6 +127,9 @@ class ColorScheme {
     this.levelColor,
     this.borderColor,
     this.stackFrameColor,
+    this.jsonKeyColor,
+    this.jsonValueColor,
+    this.jsonPunctuationColor,
   });
 
   // Base colors per level
@@ -137,6 +155,15 @@ class ColorScheme {
   /// Color for stack frame segments. If null, uses base level color.
   final LogColor? stackFrameColor;
 
+  /// Color for JSON key segments. If null, uses base level color.
+  final LogColor? jsonKeyColor;
+
+  /// Color for JSON value segments. If null, uses base level color.
+  final LogColor? jsonValueColor;
+
+  /// Color for JSON punctuation segments. If null, uses base level color.
+  final LogColor? jsonPunctuationColor;
+
   /// Get color for a specific tag set at a given level.
   ///
   /// Priority: specific tag overrides > base level color.
@@ -156,6 +183,15 @@ class ColorScheme {
     }
     if (tags.contains(LogTag.stackFrame) && stackFrameColor != null) {
       return stackFrameColor!;
+    }
+    if (tags.contains(LogTag.jsonKey) && jsonKeyColor != null) {
+      return jsonKeyColor!;
+    }
+    if (tags.contains(LogTag.jsonValue) && jsonValueColor != null) {
+      return jsonValueColor!;
+    }
+    if (tags.contains(LogTag.jsonPunctuation) && jsonPunctuationColor != null) {
+      return jsonPunctuationColor!;
     }
 
     // Fallback to base level color
@@ -184,15 +220,20 @@ class ColorScheme {
     info: LogColor.blue,
     warning: LogColor.yellow,
     error: LogColor.red,
+    jsonKeyColor: LogColor.brightBlue,
+    jsonValueColor: LogColor.brightGreen,
+    jsonPunctuationColor: LogColor.white,
   );
 
-  /// Dark theme scheme with brighter colors for better visibility.
   static const darkScheme = ColorScheme(
     trace: LogColor.brightGreen,
     debug: LogColor.brightWhite,
     info: LogColor.brightBlue,
     warning: LogColor.brightYellow,
     error: LogColor.brightRed,
+    jsonKeyColor: LogColor.brightCyan,
+    jsonValueColor: LogColor.brightGreen,
+    jsonPunctuationColor: LogColor.brightWhite,
   );
 
   /// Pastel theme scheme with softer colors.
@@ -202,6 +243,9 @@ class ColorScheme {
     info: LogColor.brightCyan,
     warning: LogColor.brightYellow,
     error: LogColor.brightRed,
+    jsonKeyColor: LogColor.cyan,
+    jsonValueColor: LogColor.green,
+    jsonPunctuationColor: LogColor.white,
   );
 
   @override
@@ -217,7 +261,10 @@ class ColorScheme {
           loggerNameColor == other.loggerNameColor &&
           levelColor == other.levelColor &&
           borderColor == other.borderColor &&
-          stackFrameColor == other.stackFrameColor;
+          stackFrameColor == other.stackFrameColor &&
+          jsonKeyColor == other.jsonKeyColor &&
+          jsonValueColor == other.jsonValueColor &&
+          jsonPunctuationColor == other.jsonPunctuationColor;
 
   @override
   int get hashCode => Object.hash(
@@ -231,6 +278,9 @@ class ColorScheme {
         levelColor,
         borderColor,
         stackFrameColor,
+        jsonKeyColor,
+        jsonValueColor,
+        jsonPunctuationColor,
       );
 }
 
@@ -246,6 +296,8 @@ class ColorConfig {
     this.colorBorder = true,
     this.colorStackFrame = true,
     this.colorError = true,
+    this.colorJson = true,
+    this.colorHierarchy = false,
     this.headerBackground = false,
   });
 
@@ -269,6 +321,12 @@ class ColorConfig {
 
   /// Whether to color error information segments.
   final bool colorError;
+
+  /// Whether to color JSON-specific segments.
+  final bool colorJson;
+
+  /// Whether to color hierarchical prefixes.
+  final bool colorHierarchy;
 
   /// Whether to use inverse video (background color) for headers.
   final bool headerBackground;
@@ -295,6 +353,14 @@ class ColorConfig {
     }
     if (tags.contains(LogTag.error)) {
       return colorError;
+    }
+    if (tags.contains(LogTag.jsonKey) ||
+        tags.contains(LogTag.jsonValue) ||
+        tags.contains(LogTag.jsonPunctuation)) {
+      return colorJson;
+    }
+    if (tags.contains(LogTag.hierarchy)) {
+      return colorHierarchy;
     }
     return true; // Default: color everything
   }
@@ -336,6 +402,8 @@ Will be dropped in v0.5.0''')
           colorBorder == other.colorBorder &&
           colorStackFrame == other.colorStackFrame &&
           colorError == other.colorError &&
+          colorJson == other.colorJson &&
+          colorHierarchy == other.colorHierarchy &&
           headerBackground == other.headerBackground;
 
   @override
@@ -347,6 +415,8 @@ Will be dropped in v0.5.0''')
         colorBorder,
         colorStackFrame,
         colorError,
+        colorJson,
+        colorHierarchy,
         headerBackground,
       );
 }

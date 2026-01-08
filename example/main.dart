@@ -32,17 +32,17 @@ void _runDemo() {
 
   final composableHandler = Handler(
     // StructuredFormatter handles the layout (origin, metadata, wrapping)
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
       // ColorDecorator adds level-based coloring to the content (before boxing)
       const ColorDecorator(),
       // BoxDecorator adds the visual frame (border color is handled internally)
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 80,
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure(
@@ -66,11 +66,11 @@ void _runDemo() {
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.double,
-        lineLength: 50, // Narrow box for JSON
       ),
       const ColorDecorator(),
     ],
     sink: const ConsoleSink(),
+    lineLength: 50, // Narrow box for JSON
   );
 
   Logger.configure('example.json', handlers: [jsonBoxedHandler]);
@@ -86,7 +86,7 @@ void _runDemo() {
   print('\n--- 3. Hierarchical Indentation ---');
 
   final hierarchicalHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 80),
+    formatter: const StructuredFormatter(),
     decorators: [
       const ColorDecorator(
         config: ColorConfig(
@@ -98,11 +98,11 @@ void _runDemo() {
       ),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
-        lineLength: 80,
       ),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
     sink: const ConsoleSink(),
+    lineLength: 80,
   );
 
   Logger.configure(
@@ -119,19 +119,19 @@ void _runDemo() {
   dbService.debug('Database query initiated...');
   cacheService.trace('Cache hit for key: user_123');
 
-  // 4. Semantic Logging
-  // JsonSemanticFormatter preserves tags for machine analysis.
-  print('\n--- 4. Semantic JSON Logging ---');
+  // 4. Styled JSON Logging (Vibrant JSON)
+  // JsonPrettyFormatter enables vibrant, styled JSON in the terminal.
+  print('\n--- 4. Styled JSON Logging ---');
 
-  final semanticHandler = Handler(
-    formatter: const JsonSemanticFormatter(prettyPrint: true),
+  final prettyHandler = Handler(
+    formatter: const JsonPrettyFormatter(),
     sink: const ConsoleSink(),
   );
 
-  Logger.configure('example.semantic', handlers: [semanticHandler]);
-  final semanticLogger = Logger.get('example.semantic');
+  Logger.configure('example.pretty', handlers: [prettyHandler]);
+  final prettyLogger = Logger.get('example.pretty');
 
-  semanticLogger.info('Task completed successfully.');
+  prettyLogger.info('Task completed successfully.');
 
   // 5. Atomic Multi-line Buffers
   // Send atomic multi-line logs without interleaving.

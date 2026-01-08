@@ -1,18 +1,18 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
-import '../decorator/mock_context.dart';
 
 void main() {
   group('Decorator Safety & Composition', () {
     test('handles duplicate decorators (deduplication)', () async {
       final sink = _MemorySink();
       final handler = Handler(
-        formatter: const StructuredFormatter(lineLength: 80),
+        formatter: const StructuredFormatter(),
         decorators: const [
           ColorDecorator(),
           ColorDecorator(), // Duplicate
         ],
         sink: sink,
+        lineLength: 80,
       );
 
       const entry = LogEntry(
@@ -31,14 +31,15 @@ void main() {
     test('handles auto-sorting of decorators', () async {
       final sink = _MemorySink();
       final handler = Handler(
-        formatter: const StructuredFormatter(lineLength: 60),
-        decorators: [
+        formatter: const StructuredFormatter(),
+        decorators: const [
           // Mixed order
-          const HierarchyDepthPrefixDecorator(indent: '>> '),
-          BoxDecorator(borderStyle: BorderStyle.rounded, lineLength: 60),
-          const ColorDecorator(),
+          HierarchyDepthPrefixDecorator(indent: '>> '),
+          BoxDecorator(borderStyle: BorderStyle.rounded),
+          ColorDecorator(),
         ],
         sink: sink,
+        lineLength: 60,
       );
 
       const entry = LogEntry(
@@ -57,7 +58,8 @@ void main() {
     });
 
     test('BoxDecorator handles very small lineLength', () {
-      final box = BoxDecorator(lineLength: 5);
+      const box = BoxDecorator();
+      const context = LogContext(availableWidth: 5);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -68,7 +70,7 @@ void main() {
       );
 
       final lines = [LogLine.text('very long message that exceeds 5 chars')];
-      final boxed = box.decorate(lines, entry, mockContext).toList();
+      final boxed = box.decorate(lines, entry, context).toList();
 
       expect(boxed, isNotEmpty);
       final topWidth = boxed[0].visibleLength;
@@ -78,7 +80,8 @@ void main() {
     });
 
     test('BoxDecorator handles lines with only ANSI codes', () {
-      final box = BoxDecorator(lineLength: 20);
+      const box = BoxDecorator();
+      const context = LogContext(availableWidth: 20);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -89,7 +92,7 @@ void main() {
       );
 
       final lines = [LogLine.text('\x1B[31m\x1B[0m')]; // Red color then reset
-      final boxed = box.decorate(lines, entry, mockContext).toList();
+      final boxed = box.decorate(lines, entry, context).toList();
       expect(boxed, isNotEmpty);
     });
   });
@@ -97,6 +100,9 @@ void main() {
 
 final class _MemorySink extends LogSink {
   final List<List<LogLine>> outputs = [];
+
+  @override
+  int get preferredWidth => 80;
 
   @override
   Future<void> output(

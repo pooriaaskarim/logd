@@ -13,24 +13,25 @@ import 'package:logd/logd.dart';
 void main() async {
   // Handler with wrapping
   final wrappedHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 40),
+    formatter: const StructuredFormatter(),
     decorators: const [
       ColorDecorator(),
     ],
     sink: const ConsoleSink(),
+    lineLength: 40,
   );
 
   // Handler with box and wrapping
   final boxedHandler = Handler(
-    formatter: StructuredFormatter(lineLength: 40),
+    formatter: const StructuredFormatter(),
     decorators: [
       const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 40,
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 40,
   );
 
   Logger.configure('example.wrapped', handlers: [wrappedHandler]);

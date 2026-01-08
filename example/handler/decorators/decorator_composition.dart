@@ -14,24 +14,23 @@ import 'package:logd/logd.dart';
 void main() async {
   // Color then Box (correct order)
   final colorThenBox = Handler(
-    formatter: PlainFormatter(),
+    formatter: const PlainFormatter(),
     decorators: [
       const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 60,
       ),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Box then Color (auto-sorted)
   final boxThenColor = Handler(
-    formatter: PlainFormatter(),
+    formatter: const PlainFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
-        lineLength: 60,
       ),
       const ColorDecorator(
           config: ColorConfig(
@@ -44,27 +43,28 @@ void main() async {
       )),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Box then Color (auto-sorted)
 
   // Color + Box + Hierarchy
   final fullComposition = Handler(
-    formatter: PlainFormatter(),
+    formatter: const PlainFormatter(),
     decorators: [
       const ColorDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
-        lineLength: 60,
       ),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
     sink: const ConsoleSink(),
+    lineLength: 60,
   );
 
   // Multiple color decorators (should deduplicate)
   final duplicateColors = Handler(
-    formatter: PlainFormatter(),
+    formatter: const PlainFormatter(),
     decorators: const [
       ColorDecorator(),
       ColorDecorator(), // Duplicate
