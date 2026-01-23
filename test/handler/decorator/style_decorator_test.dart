@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 import 'mock_context.dart';
 
 void main() {
-  group('ColorDecorator', () {
+  group('StyleDecorator', () {
     final lines = [LogLine.text('line 1'), LogLine.text('line 2')];
     const infoEntry = LogEntry(
       loggerName: 'test',
@@ -15,7 +15,7 @@ void main() {
     );
 
     test('adds colors when enabled', () {
-      const decorator = ColorDecorator(useColors: true);
+      const decorator = StyleDecorator();
       final decorated =
           decorator.decorate(lines, infoEntry, mockContext).toList();
       final rendered = renderLines(decorated);
@@ -29,13 +29,15 @@ void main() {
     });
 
     test('different levels have different colors', () {
-      const decorator = ColorDecorator(
-        colorScheme: ColorScheme(
-          trace: LogColor.green,
-          debug: LogColor.white,
-          info: LogColor.blue,
-          warning: LogColor.yellow,
-          error: LogColor.red,
+      const decorator = StyleDecorator(
+        theme: LogTheme(
+          colorScheme: LogColorScheme(
+            trace: LogColor.green,
+            debug: LogColor.white,
+            info: LogColor.blue,
+            warning: LogColor.yellow,
+            error: LogColor.red,
+          ),
         ),
       );
 
@@ -78,25 +80,9 @@ void main() {
       expect(warning, contains('\x1B[33m')); // Yellow
     });
 
-    test('skips coloring when disabled', () {
-      const decorator = ColorDecorator(useColors: false);
-      final decorated =
-          decorator.decorate(lines, infoEntry, mockContext).toList();
-
-      expect(decorated, equals(lines));
-    });
-
-    test('respects config (colorBody: false)', () {
-      const decorator = ColorDecorator(
-        config: ColorConfig(
-          colorMessage: false,
-          colorTimestamp: true,
-          colorLevel: true,
-          colorLoggerName: true,
-          colorBorder: true,
-          colorStackFrame: true,
-          headerBackground: true,
-        ),
+    test('respects custom theme (no message coloring)', () {
+      const decorator = StyleDecorator(
+        theme: NoMessageTheme(),
       );
       final headerLines = [
         const LogLine([
@@ -111,13 +97,39 @@ void main() {
           decorator.decorate(headerLines, infoEntry, mockContext).toList();
       final rendered = renderLines(decorated);
 
-      // Header line should have inverted color code (\x1B[7m)
+      // Header line should have inverted color code (\x1B[7m) - defined in NoMessageTheme
       expect(rendered[0], contains('\x1B[7m'));
       expect(rendered[0], contains('Header 1'));
 
-      // Message line should NOT have inverted color code
+      // Message line should NOT have inverted color code AND no color at all
+      // (if theme says so)
+      // NoMessageTheme doesn't apply base color to message.
       expect(rendered[1], isNot(contains('\x1B[7m')));
+      expect(rendered[1], isNot(contains('\x1B[34m'))); // Check no blue either
       expect(rendered[1], contains('Message 1'));
     });
   });
+}
+
+class NoMessageTheme extends LogTheme {
+  const NoMessageTheme() : super(colorScheme: LogColorScheme.defaultScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    if (tags.contains(LogTag.message)) {
+      return const LogStyle(); // No style, no color
+    }
+
+    // For others, behave "normally" but let's just minimal implementation for
+    // test
+    var style = LogStyle(color: colorScheme.colorForLevel(level));
+
+    if (tags.contains(LogTag.header)) {
+      style = LogStyle(
+        color: style.color, bold: true, inverse: true, // Test expects inverse
+      );
+    }
+
+    return style;
+  }
 }

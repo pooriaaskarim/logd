@@ -16,8 +16,21 @@
 - [x] Implement `LogSegment` with `Set<LogTag>` support
 - [x] Update all formatters to emit `LogLine`
 - [x] Implement fine-grained tagging in `StructuredFormatter`
-- [x] Add `JsonSemanticFormatter` for metadata-rich output
+- [x] Add `JsonPrettyFormatter` with semantic styling and customizable fields
 - [x] Add `MarkdownFormatter` and `HTMLFormatter`
+
+### ✅ P0: LLM-Optimized Logging (TOON)
+**Goal**: Create a format that is "native" to AI agents.
+**Result**: Introduced `ToonFormatter`.
+- [x] Implement Token-Oriented Object Notation (TOON) spec
+- [x] Efficient header-first streaming logic
+- [x] Optional semantic tagging for colorized TOON output
+
+### ✅ P1: Shared LogField System
+**Goal**: Unify data access across all formatters.
+**Result**: Created `LogField` enum and extension.
+- [x] Decouple field extraction from JSON/TOON formatters
+- [x] Allow dynamic field selection in any supported formatter
 
 ### ✅ ✅ P0: Visual Showcase (Logd Theatre)
 **Goal**: Demonstrate complex capabilities in a single interactive dashboard.
@@ -63,28 +76,45 @@
 
 ---
 
-### 🟢 P2: Batched Output
-**Context**: Per-log I/O is inefficient for high-volume logging.
+### 🟡 P1: Gradual Field Customization
+**Context**: Following the success of `LogField` in JSON and TOON, users want similar control in other formatters.
 
-**Implementation**:
-- [ ] Create `BufferedSink` decorator
-- [ ] Configuration: buffer size (count) or time window (duration)
-- [ ] Flush policy: on buffer full, on timer, or explicit flush()
-- [ ] Thread-safety for concurrent log writes
+**Proposal**:
+- [ ] Implement `LogField` support in `StructuredFormatter`
+- [ ] Implement `LogField` support in `PlainFormatter`
+- [ ] Create a shared `FieldFormatter` mixin to reduce duplication
 
+---
+
+### 🟡 P1: Structured Context Support
+**Context**: Modern apps need to log semi-structured data (maps, objects) per log entry.
+
+**Proposal**:
+- [ ] Add `Map<String, dynamic> context` to `LogEntry` / `Logger` methods
+- [ ] Update `JsonFormatter` and `ToonFormatter` to incorporate arbitrary context keys
+- [ ] Allow filtering based on context values (e.g., `ContextFilter('userId', '123')`)
+
+---
+
+### 🟢 P2: Web-Based Log Viewer (Logd Dashboard)
+**Context**: Terminal output is great, but remote debugging needs more.
+
+**Proposal**:
+- [ ] Implement `HttpServerSink` that serves a small Vite/React dashboard
+- [ ] Real-time log streaming via WebSockets
+- [ ] Browser-side filtering and search across all attached handlers
+
+
+### 🟡 P1: HTML Logging Consolidation & Simplification
+**Context**: We currently have both `HtmlFormatter` and `HtmlSink`. With the planned `HttpServerSink` (Dashboard), we need to evaluate if both are necessary or if they can be unified.
+
+**Research Tasks**:
+- [ ] Evaluate if `HtmlFormatter` should be simplified to only emit structured semantic tags (like `JSON`).
+- [ ] Determine if `HtmlSink` CSS should be moved to a shared theme system.
+- [ ] Consider if a single `WebLogHandler` could manage both static file generation and future server-side streaming.
+
+---
 
 ## Fixes
 
 ---
-
-## Known Issues
-
-### ANSI Color Palette Limitation
-**Current**: Only 16 basic colors supported.
-**Impact**: Limited visual differentiation in terminals.
-**Future**: Add 256-color and true-color support with capability detection.
-
-### FileSink Rotation Timing
-**Current**: Rotation check is synchronous but file operations are async.
-**Impact**: Minor inconsistency in rotation boundary timing.
-**Mitigation**: Document behavior; consider making check async in v2.0.

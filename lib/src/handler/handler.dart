@@ -6,23 +6,20 @@ import 'dart:io' as io;
 
 import 'package:meta/meta.dart';
 
-import '../core/coloring/ansi.dart';
-import '../core/coloring/colors.dart';
 import '../core/context/context.dart';
 import '../core/context/io/file_system.dart';
+import '../core/theme/ansi_adapter.dart';
+import '../core/theme/log_theme.dart';
 import '../core/utils/utils.dart';
 import '../logger/logger.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
 
-export '../core/coloring/ansi.dart';
-export '../core/coloring/colors.dart';
-
-part 'decorator/color_decorator.dart';
 part 'decorator/box_decorator.dart';
 part 'decorator/decorator.dart';
 part 'decorator/hierarchy_depth_prefix_decorator.dart';
 part 'decorator/prefix_decorator.dart';
+part 'decorator/style_decorator.dart';
 part 'filter/filter.dart';
 part 'filter/level_filter.dart';
 part 'filter/regex_filter.dart';
@@ -30,9 +27,11 @@ part 'formatter/box_formatter.dart';
 part 'formatter/formatter.dart';
 part 'formatter/html_formatter.dart';
 part 'formatter/json_formatter.dart';
+part 'formatter/log_field.dart';
 part 'formatter/markdown_formatter.dart';
 part 'formatter/plain_formatter.dart';
 part 'formatter/structured_formatter.dart';
+part 'formatter/toon_formatter.dart';
 part 'sink/console_sink.dart';
 part 'sink/file_sink.dart';
 part 'sink/html_sink.dart';
@@ -210,7 +209,7 @@ class LogSegment {
   final Set<LogTag> tags;
 
   /// Optional visual style suggestion.
-  final TextStyle? style;
+  final LogStyle? style;
 
   @override
   bool operator ==(final Object other) =>

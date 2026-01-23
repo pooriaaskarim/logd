@@ -10,11 +10,6 @@ part of '../handler.dart';
   'Example: Handler(formatter: StructuredFormatter(),'
   ' decorators: [BoxDecorator(),],)',
 )
-@Deprecated(
-  'Use StructuredFormatter with BoxDecorator instead. '
-  'Example: Handler(formatter: StructuredFormatter(),'
-  ' decorators: [BoxDecorator(),],)',
-)
 class BoxFormatter implements LogFormatter {
   BoxFormatter({
     this.useColors,

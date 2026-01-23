@@ -16,7 +16,7 @@ void main() async {
   final consoleHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      const ColorDecorator(),
+      const StyleDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),

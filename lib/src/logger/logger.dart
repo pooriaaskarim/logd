@@ -149,8 +149,7 @@ class LoggerCache {
     // to prevent external mutation.
     final resolved = _ResolvedConfig(
       version: config._version,
-      enabled:
-          resolvedEnabled ?? !const bool.fromEnvironment('dart.vm.product'),
+      enabled: resolvedEnabled ?? true,
       logLevel: resolvedLogLevel ?? LogLevel.debug,
       includeFileLineInHeader: resolvedIncludeFileLineInHeader ?? false,
       stackMethodCount: Map.unmodifiable(
@@ -218,6 +217,7 @@ class Logger {
   /// Logger's unique name
   ///
   /// Names are Dot-separated, case-insensitive, normalized to lowercase.
+  /// Valid names must match `^[a-z0-9_]+(\.[a-z0-9_]+)*$`.
   final String name;
 
   /// Internal: Registry of all available logger configs.
@@ -342,6 +342,9 @@ class Logger {
   bool get includeFileLineInHeader => LoggerCache.includeFileLineInHeader(name);
 
   /// Map of how many stack frames to include per log level.
+  ///
+  /// **Note**: Returns an **unmodifiable** map.
+  @pragma('vm:prefer-inline')
   Map<LogLevel, int> get stackMethodCount => LoggerCache.stackMethodCount(name);
 
   /// The timestamp formatter configuration.
@@ -351,6 +354,9 @@ class Logger {
   StackTraceParser get stackTraceParser => LoggerCache.stackTraceParser(name);
 
   /// List of handlers to process log entries.
+  ///
+  /// **Note**: Returns an **unmodifiable** list.
+  @pragma('vm:prefer-inline')
   List<Handler> get handlers => LoggerCache.handlers(name);
 
   /// Freezes the current inherited configurations into descendant loggers.
@@ -393,9 +399,9 @@ class Logger {
   /// How to use:
   /// - Get the buffer: final buf = logger.traceBuffer;
   /// - Write lines: buf?.writeln('Line 1'); buf?.writeln('Line 2');
-  /// - Sync to log: buf?.sync();
+  /// - Sink to log: buf?.sink();
   ///
-  /// Example: logger.traceBuffer?..writeln('Trace start')..sync();
+  /// Example: logger.traceBuffer?..writeln('Trace start')..sink();
   LogBuffer? get traceBuffer =>
       enabled ? LogBuffer._(this, LogLevel.trace) : null;
 
@@ -404,7 +410,7 @@ class Logger {
   /// Intentions: Similar to traceBuffer, but for debug messages. Helps in
   /// constructing detailed debug output without interleaving.
   ///
-  /// Example: logger.debugBuffer?..writeln('Debug start')..sync();
+  /// Example: logger.debugBuffer?..writeln('Debug start')..sink();
   LogBuffer? get debugBuffer =>
       enabled ? LogBuffer._(this, LogLevel.debug) : null;
 
@@ -412,7 +418,7 @@ class Logger {
   ///
   /// Intentions: For informational messages that may span multiple lines.
   ///
-  /// Example: logger.infoBuffer?..writeln('Info start')..sync();
+  /// Example: logger.infoBuffer?..writeln('Info start')..sink();
   LogBuffer? get infoBuffer =>
       enabled ? LogBuffer._(this, LogLevel.info) : null;
 
@@ -420,7 +426,7 @@ class Logger {
   ///
   /// Intentions: For warnings that require detailed, multi-line descriptions.
   ///
-  /// Example: logger.warningBuffer?..writeln('Warning start')..sync();
+  /// Example: logger.warningBuffer?..writeln('Warning start')..sink();
   LogBuffer? get warningBuffer =>
       enabled ? LogBuffer._(this, LogLevel.warning) : null;
 
@@ -428,14 +434,14 @@ class Logger {
   ///
   /// Intentions: For errors with stack traces or multi-line details.
   ///
-  /// Example: logger.errorBuffer?..writeln('Error start')..sync();
+  /// Example: logger.errorBuffer?..writeln('Error start')..sink();
   LogBuffer? get errorBuffer =>
       enabled ? LogBuffer._(this, LogLevel.error) : null;
 
   /// Logs a trace-level message.
   ///
-  /// Intentions: For fine-grained diagnostic information, typically disabled
-  /// in production. Optional error and stackTrace for context.
+  /// Intentions: For fine-grained diagnostic information.
+  /// Optional error and stackTrace for context.
   ///
   /// Parameters:
   /// - [message]: The log message (converted to string).
@@ -631,8 +637,22 @@ class Logger {
   /// Resolves null, empty strings and any form of 'global' to 'global'.
   static String _normalizeName([final String? name]) {
     final lower = name?.toLowerCase() ?? 'global';
-    return lower.isEmpty ? 'global' : lower;
+    final normalized = lower.isEmpty ? 'global' : lower;
+
+    if (!_nameRegex.hasMatch(normalized)) {
+      throw ArgumentError.value(
+        name,
+        'name',
+        'Logger name must be strictly alphanumeric (with underscores) '
+            'and separated by dots (e.g. "app.ui.widget"). '
+            'Invalid name: "$normalized"',
+      );
+    }
+
+    return normalized;
   }
+
+  static final _nameRegex = RegExp(r'^[a-z0-9_]+(\.[a-z0-9_]+)*$');
 
   /// Attach to Flutter errors.
   static void attachToFlutterErrors() {

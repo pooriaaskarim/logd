@@ -259,6 +259,16 @@ void freezeInheritance() {
 
 ## Feature Additions
 
+### 🟡 P1: Inheritance System Maturation
+**Context**: The current inheritance system is powerful but lacks visibility and certain control mechanisms for advanced users.
+
+**TODO**:
+- [ ] **Runtime Hierarchy Overview**: Implement an API to visualize or traverse the current logger tree configuration at runtime.
+- [ ] **Unfreeze Support**: Implement `unfreezeInheritance()` to restore dynamic inheritance (see details in P1 item below).
+- [ ] **Architecture & Philosophy Refinement**: Further document the nuances of hierarchical overrides vs. freezing.
+
+---
+
 ### 🟡 P1: Add `unfreezeInheritance()`
 
 **Issue**: Once frozen, can't restore dynamic inheritance.

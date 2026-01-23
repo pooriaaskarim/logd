@@ -1,3 +1,4 @@
+import 'package:logd/src/core/theme/ansi_adapter.dart';
 import 'package:logd/src/handler/handler.dart';
 
 const mockContext = LogContext(availableWidth: 80);

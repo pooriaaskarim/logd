@@ -14,9 +14,9 @@ void main() {
       hierarchyDepth: 0,
     );
 
-    test('Order: BoxDecorator then ColorDecorator colors the borders', () {
+    test('Order: BoxDecorator then StyleDecorator colors the borders', () {
       const box = BoxDecorator();
-      const color = ColorDecorator(useColors: true);
+      const color = StyleDecorator();
 
       final boxed = box.decorate(lines, entry, mockContext);
       final colored = color.decorate(boxed, entry, mockContext).toList();
@@ -27,19 +27,19 @@ void main() {
 
       // Top border should be colored and dimmed
       // Info level now defaults to blue (was green)
-      expect(rendered[0], startsWith('\x1B[2m\x1B[34m')); // Dim + Blue
+      expect(rendered[0], startsWith('\x1B[34m')); // Dim + Blue
       expect(rendered[0], contains('╭'));
       expect(rendered[0], endsWith('\x1B[0m'));
 
       // Content lines should be colored and dimmed (borders)
       // box vertical bars)
-      expect(rendered[1], startsWith('\x1B[2m\x1B[34m')); // Dim + Blue
+      expect(rendered[1], startsWith('\x1B[34m')); // Dim + Blue
       expect(rendered[1], contains('│'));
       expect(rendered[1], endsWith('\x1B[0m'));
     });
 
-    test('Order: ColorDecorator then BoxDecorator keeps borders plain', () {
-      const color = ColorDecorator(useColors: true);
+    test('Order: StyleDecorator then BoxDecorator keeps borders plain', () {
+      const color = StyleDecorator();
       const box = BoxDecorator();
 
       final colored = color.decorate(lines, entry, mockContext);
@@ -49,7 +49,7 @@ void main() {
       expect(rendered.length, equals(4));
 
       // Top border should NOT be colored (because box was applied AFTER color)
-      expect(rendered[0], isNot(startsWith('\x1B[2m\x1B[34m')));
+      expect(rendered[0], isNot(startsWith('\x1B[34m')));
       expect(rendered[0], startsWith('╭'));
 
       // Content line should contain_color codes INSIDE the box vertical bars
@@ -77,16 +77,16 @@ void main() {
       // them.
       // renderLines also joins them.
       // If mockContext.supportsAnsi is true, and header is colored?
-      // PrefixDecorator uses `LogTag.header`. ColorDecorator is NOT involved
+      // PrefixDecorator uses `LogTag.header`. StyleDecorator is NOT involved
       // here?
       // Wait, PrefixDecorator assigns `tags: {LogTag.header}`.
-      // IF we used ColorDecorator it would color it. But here we don't.
+      // IF we used StyleDecorator it would color it. But here we don't.
       // So renderLines output is plain.
       expect(result.toString(), equals('P2: P1: msg'));
     });
 
     test('BoxDecorator handles already colored lines using padVisible', () {
-      const color = ColorDecorator(useColors: true);
+      const color = StyleDecorator();
       const box = BoxDecorator();
 
       final colored =
@@ -113,7 +113,7 @@ void main() {
 
     test('Best Practice Order: Box -> Ansi -> Hierarchy', () {
       // 1. Color Content
-      const ansi = ColorDecorator(useColors: true);
+      const ansi = StyleDecorator();
       // 2. Box it (with its own border color)
       const box = BoxDecorator();
       // 3. Indent it
@@ -146,8 +146,8 @@ void main() {
       // Check top border: Indent -> Color -> TopLeft
       // Note: BoxDecorator applies color to the border characters.
       final top = rendered[0];
-      // Info level now defaults to blue (was green), borders are dimmed
-      expect(top, contains('\x1B[2m\x1B[34m'));
+      // Info level now defaults to blue (was green), hierarchy is plain
+      expect(top, startsWith('>> \x1B[34m'));
       expect(top, contains('╭'));
 
       // Check content line: Indent -> BorderColor -> Vertical -> Reset

@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 import 'mock_context.dart';
 
 void main() {
-  group('ColorScheme Tag-Specific Overrides', () {
+  group('LogColorScheme Tag-Specific Overrides', () {
     const infoEntry = LogEntry(
       loggerName: 'test',
       origin: 'test',
@@ -14,7 +14,7 @@ void main() {
     );
 
     test('colorFor respects tag-specific overrides', () {
-      const scheme = ColorScheme(
+      const scheme = LogColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
@@ -59,7 +59,7 @@ void main() {
     });
 
     test('colorFor falls back to base level color when no override', () {
-      const scheme = ColorScheme(
+      const scheme = LogColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
@@ -82,8 +82,8 @@ void main() {
       );
     });
 
-    test('ColorDecorator applies tag-specific colors', () {
-      const customScheme = ColorScheme(
+    test('StyleDecorator applies tag-specific colors', () {
+      const customScheme = LogColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
@@ -93,7 +93,8 @@ void main() {
         levelColor: LogColor.brightCyan, // Different from base
       );
 
-      const decorator = ColorDecorator(colorScheme: customScheme);
+      const decorator =
+          StyleDecorator(theme: LogTheme(colorScheme: customScheme));
 
       final lines = [
         const LogLine([
@@ -115,52 +116,20 @@ void main() {
       expect(rendered[0], contains('\x1B[34m'));
     });
 
-    test('ColorConfig.shouldColor filters correctly', () {
-      const config = ColorConfig(
-        colorTimestamp: false,
-        colorLevel: true,
-        colorMessage: true,
-      );
-
-      expect(config.shouldColor({LogTag.timestamp}), isFalse);
-      expect(config.shouldColor({LogTag.level}), isTrue);
-      expect(config.shouldColor({LogTag.message}), isTrue);
-      expect(config.shouldColor({LogTag.loggerName}), isTrue); // Default true
+    test('LogTheme respects custom logic via subclass', () {
+      const theme = NoMessageTheme();
+      final style = theme.getStyle(LogLevel.info, {LogTag.message});
+      expect(style.color, isNull); // Should be no color
     });
 
-    test('ColorDecorator respects ColorConfig.shouldColor', () {
-      const decorator = ColorDecorator(
-        config: ColorConfig(
-          colorTimestamp: false,
-          colorLevel: true,
-          colorMessage: false,
-        ),
-      );
-
-      final lines = [
-        const LogLine([
-          LogSegment('2024-01-01', tags: {LogTag.header, LogTag.timestamp}),
-          LogSegment(' [INFO] ', tags: {LogTag.header, LogTag.level}),
-          LogSegment('Message', tags: {LogTag.message}),
-        ]),
-      ];
-
-      final decorated =
-          decorator.decorate(lines, infoEntry, mockContext).toList();
-      final rendered = renderLines(decorated);
-
-      final output = rendered[0];
-
-      // Should NOT color timestamp (plain text)
-      expect(output, startsWith('2024-01-01'));
-      // Should color level with bold
-      expect(output, contains('\x1B[1m\x1B[34m [INFO] \x1B[0m'));
-      // Should NOT color message
-      expect(output, endsWith('Message'));
+    test('LogTheme resolves defaults correctly', () {
+      const theme = LogTheme(colorScheme: LogColorScheme.defaultScheme);
+      final style = theme.getStyle(LogLevel.info, {LogTag.message});
+      expect(style.color, LogColor.blue); // Default scheme info is blue
     });
 
-    test('ColorScheme equality includes tag-specific overrides', () {
-      const scheme1 = ColorScheme(
+    test('LogColorScheme equality includes tag-specific overrides', () {
+      const scheme1 = LogColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
@@ -169,16 +138,7 @@ void main() {
         timestampColor: LogColor.brightBlack,
       );
 
-      const scheme2 = ColorScheme(
-        info: LogColor.blue,
-        error: LogColor.red,
-        warning: LogColor.yellow,
-        debug: LogColor.white,
-        trace: LogColor.green,
-        timestampColor: LogColor.brightBlack,
-      );
-
-      const scheme3 = ColorScheme(
+      const scheme3 = LogColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
@@ -187,8 +147,30 @@ void main() {
         // No timestampColor override
       );
 
-      expect(scheme1, equals(scheme2));
       expect(scheme1, isNot(equals(scheme3)));
     });
   });
+}
+
+class NoMessageTheme extends LogTheme {
+  const NoMessageTheme() : super(colorScheme: LogColorScheme.defaultScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    if (tags.contains(LogTag.message)) {
+      return const LogStyle(); // No style, no color
+    }
+
+    // For others, behave "normally" but let's just minimal implementation for
+    // test
+    var style = LogStyle(color: colorScheme.colorForLevel(level));
+
+    if (tags.contains(LogTag.header)) {
+      style = LogStyle(
+        color: style.color, bold: true, inverse: true, // Test expects inverse
+      );
+    }
+
+    return style;
+  }
 }

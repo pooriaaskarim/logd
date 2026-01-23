@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:logd/src/core/context/clock/clock.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('SystemClock', () {

@@ -42,6 +42,11 @@ base class ConsoleSink extends LogSink {
               final ansiCode = AnsiColorCode.fromLogColor(style.color!);
               buffer.write(ansiCode.foreground);
             }
+            if (style.backgroundColor != null) {
+              final ansiCode =
+                  AnsiColorCode.fromLogColor(style.backgroundColor!);
+              buffer.write(ansiCode.background);
+            }
 
             buffer
               ..write(segment.text)

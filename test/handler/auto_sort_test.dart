@@ -32,7 +32,7 @@ void main() {
         decorators: const [
           HierarchyDepthPrefixDecorator(indent: '>> '),
           BoxDecorator(borderStyle: BorderStyle.rounded),
-          ColorDecorator(),
+          StyleDecorator(),
         ],
         lineLength: 20,
       );
@@ -77,13 +77,13 @@ void main() {
 
     test('Dedupes decorators', () async {
       final sink = MemorySink();
-      // Input: Two identical ColorDecorators
+      // Input: Two identical StyleDecorators
       final handler = Handler(
         sink: sink,
         formatter: const StructuredFormatter(),
         decorators: const [
-          ColorDecorator(),
-          ColorDecorator(),
+          StyleDecorator(),
+          StyleDecorator(),
         ],
       );
 
@@ -102,7 +102,7 @@ void main() {
       final line = lines.firstWhere((final l) => l.contains('msg'));
 
       // If applied twice, we might see double codes or just one if idempotent.
-      // ColorDecorator IS idempotent check tags.
+      // StyleDecorator IS idempotent check tags.
       // But verify strictly that `decorate` wasn't called redundant times?
       // Actually, idempotency inside decorator handles it, but deduping in
       // handler prevents the loop entirely.

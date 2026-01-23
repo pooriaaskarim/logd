@@ -188,10 +188,10 @@ void main() {
 
   group('Logger.infoBuffer', () {
     test('LogBuffer stores lines and sinks to logger', () async {
-      final logger = Logger.get('buffer-test');
+      final logger = Logger.get('buffer_test');
       final logCollector = LogCollector();
       Logger.configure(
-        'buffer-test',
+        'buffer_test',
         handlers: [
           Handler(
             formatter: const PlainFormatter(

@@ -21,7 +21,8 @@ sealed class LogDecorator {
 }
 
 /// A decorator that modifies the content or metadata of log lines.
-/// Examples: masking PII, adding prefixes, or stripping ANSI codes.
+/// Examples: masking PII, adding prefixes [HierarchyDepthPrefixDecorator],
+/// [PrefixDecorator].
 abstract class TransformDecorator extends LogDecorator {
   /// Constant constructor for subclasses.
   const TransformDecorator();
@@ -35,7 +36,7 @@ abstract class StructuralDecorator extends LogDecorator {
 }
 
 /// A decorator that modifies the visual appearance of characters.
-/// Examples: [ColorDecorator], bolding, or italics.
+/// Examples: [StyleDecorator], bolding, or italics.
 abstract class VisualDecorator extends LogDecorator {
   /// Constant constructor for subclasses.
   const VisualDecorator();

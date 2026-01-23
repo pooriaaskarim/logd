@@ -34,8 +34,8 @@ void _runDemo() {
     // StructuredFormatter handles the layout (origin, metadata, wrapping)
     formatter: const StructuredFormatter(),
     decorators: [
-      // ColorDecorator adds level-based coloring to the content (before boxing)
-      const ColorDecorator(),
+      // StyleDecorator adds level-based coloring to the content (before boxing)
+      const StyleDecorator(),
       // BoxDecorator adds the visual frame (border color is handled internally)
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
@@ -67,7 +67,7 @@ void _runDemo() {
       BoxDecorator(
         borderStyle: BorderStyle.double,
       ),
-      const ColorDecorator(),
+      const StyleDecorator(),
     ],
     sink: const ConsoleSink(),
     lineLength: 50, // Narrow box for JSON
@@ -88,13 +88,8 @@ void _runDemo() {
   final hierarchicalHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      const ColorDecorator(
-        config: ColorConfig(
-          colorTimestamp: true,
-          colorLevel: true,
-          colorLoggerName: true,
-          colorMessage: false, // Don't color message body
-        ),
+      const StyleDecorator(
+        theme: _HierarchicalTheme(),
       ),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
@@ -189,4 +184,16 @@ void _runDemo() {
 
 void _simulateError() {
   throw Exception('A simulated error for demonstration purposes.');
+}
+
+class _HierarchicalTheme extends LogTheme {
+  const _HierarchicalTheme() : super(colorScheme: LogColorScheme.defaultScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    if (tags.contains(LogTag.message)) {
+      return const LogStyle(); // Don't color message body
+    }
+    return super.getStyle(level, tags);
+  }
 }

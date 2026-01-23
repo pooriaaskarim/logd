@@ -13,7 +13,6 @@ part of '../handler.dart';
 ///   decorators: [
 ///     BoxDecorator(
 ///       borderStyle: BorderStyle.rounded,
-///
 ///     ),
 ///   ],
 ///   sink: ConsoleSink(),
