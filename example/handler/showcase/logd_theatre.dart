@@ -21,10 +21,8 @@ void main() async {
   final consoleHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      const ColorDecorator(
-        config: ColorConfig(
-          headerBackground: true, // Eye-catching header background!
-        ),
+      const StyleDecorator(
+        theme: _HeaderBackgroundTheme(),
       ),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
@@ -51,6 +49,11 @@ void main() async {
     sink: FileSink('$basePath/telemetry.json'),
   );
 
+  final toonHandler = Handler(
+    formatter: ToonFormatter(),
+    sink: FileSink('$basePath/llm_context.toon'),
+  );
+
   // Configure everything
   Logger.configure(
     'theatre',
@@ -59,6 +62,7 @@ void main() async {
       htmlHandler,
       markdownHandler,
       semanticHandler,
+      toonHandler,
     ],
     logLevel: LogLevel.trace,
   );
@@ -119,6 +123,7 @@ void main() async {
   print('  🌐  HTML Dashboard: $basePath/dashboard.html');
   print('  📝  Markdown Report: $basePath/report.md');
   print('  🧬  JSON Telemetry: $basePath/telemetry.json');
+  print('  🤖  LLM Context:    $basePath/llm_context.toon');
   print('-----------------------------------------');
 }
 
@@ -131,4 +136,23 @@ void _prepareDirectories(String path) {
 
 void _performInvalidDatabaseOperation() {
   throw io.FileSystemException('Permission denied', '/var/db/actors.db');
+}
+
+class _HeaderBackgroundTheme extends LogTheme {
+  const _HeaderBackgroundTheme()
+      : super(colorScheme: LogColorScheme.defaultScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    var style = super.getStyle(level, tags);
+    if (tags.contains(LogTag.header)) {
+      style = LogStyle(
+        color: style.color,
+        bold: style.bold,
+        dim: style.dim,
+        inverse: true, // Force inverse
+      );
+    }
+    return style;
+  }
 }

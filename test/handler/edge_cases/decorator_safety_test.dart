@@ -8,8 +8,8 @@ void main() {
       final handler = Handler(
         formatter: const StructuredFormatter(),
         decorators: const [
-          ColorDecorator(),
-          ColorDecorator(), // Duplicate
+          StyleDecorator(),
+          StyleDecorator(), // Duplicate
         ],
         sink: sink,
         lineLength: 80,
@@ -36,7 +36,7 @@ void main() {
           // Mixed order
           HierarchyDepthPrefixDecorator(indent: '>> '),
           BoxDecorator(borderStyle: BorderStyle.rounded),
-          ColorDecorator(),
+          StyleDecorator(),
         ],
         sink: sink,
         lineLength: 60,

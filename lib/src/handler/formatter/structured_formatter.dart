@@ -52,15 +52,11 @@ final class StructuredFormatter implements LogFormatter {
         final totalUnderscores = width - prefix.length - lineText.visibleLength;
         final segments = <LogSegment>[
           const LogSegment(prefix, tags: {LogTag.header}),
-          const LogSegment('[', tags: {LogTag.header}),
           LogSegment(
-            loggerText,
+            '[$loggerText]',
             tags: const <LogTag>{LogTag.header, LogTag.loggerName},
           ),
-          const LogSegment(']', tags: {LogTag.header}),
-          const LogSegment('[', tags: {LogTag.header}),
-          LogSegment(levelName, tags: const {LogTag.header, LogTag.level}),
-          const LogSegment(']', tags: {LogTag.header}),
+          LogSegment('[$levelName]', tags: const {LogTag.header, LogTag.level}),
         ];
         if (totalUnderscores > 0) {
           segments.add(

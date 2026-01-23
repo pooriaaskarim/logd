@@ -16,7 +16,7 @@ void main() async {
   final colorThenBox = Handler(
     formatter: const PlainFormatter(),
     decorators: [
-      const ColorDecorator(),
+      const StyleDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),
@@ -32,15 +32,9 @@ void main() async {
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),
-      const ColorDecorator(
-          config: ColorConfig(
-        colorBorder: false,
-        colorTimestamp: true,
-        colorLevel: true,
-        colorLoggerName: true,
-        colorMessage: false,
-        headerBackground: true,
-      )),
+      const StyleDecorator(
+        theme: _CustomTheme(),
+      ),
     ],
     sink: const ConsoleSink(),
     lineLength: 60,
@@ -52,7 +46,7 @@ void main() async {
   final fullComposition = Handler(
     formatter: const PlainFormatter(),
     decorators: [
-      const ColorDecorator(),
+      const StyleDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
       ),
@@ -66,9 +60,9 @@ void main() async {
   final duplicateColors = Handler(
     formatter: const PlainFormatter(),
     decorators: const [
-      ColorDecorator(),
-      ColorDecorator(), // Duplicate
-      ColorDecorator(), // Duplicate
+      StyleDecorator(),
+      StyleDecorator(), // Duplicate
+      StyleDecorator(), // Duplicate
     ],
     sink: const ConsoleSink(),
   );
@@ -96,4 +90,25 @@ void main() async {
 
   print('\n=== Duplicate Decorators (Should Deduplicate) ===');
   logger4.info('Message with duplicate color decorators');
+}
+
+class _CustomTheme extends LogTheme {
+  const _CustomTheme() : super(colorScheme: LogColorScheme.defaultScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    if (tags.contains(LogTag.border) || tags.contains(LogTag.message)) {
+      return const LogStyle(); // No style
+    }
+    var style = super.getStyle(level, tags);
+    if (tags.contains(LogTag.header)) {
+      style = LogStyle(
+        color: style.color,
+        bold: style.bold,
+        dim: style.dim,
+        inverse: true,
+      );
+    }
+    return style;
+  }
 }

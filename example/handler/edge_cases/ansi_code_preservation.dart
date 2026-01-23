@@ -15,7 +15,7 @@ void main() async {
   final handler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      const ColorDecorator(),
+      const StyleDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),

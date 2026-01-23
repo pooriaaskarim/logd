@@ -32,13 +32,12 @@ void main() {
       expect(rendered.first, equals('│ │ msg'));
     });
 
-    test('respects custom prefix and indent', () {
-      const decorator =
-          HierarchyDepthPrefixDecorator(prefix: '> ', indent: '-');
+    test('respects custom indent', () {
+      const decorator = HierarchyDepthPrefixDecorator(indent: '-');
       final decorated =
           decorator.decorate(lines, createEntry(3), mockContext).toList();
       final rendered = renderLines(decorated);
-      expect(rendered.first, equals('> ---msg'));
+      expect(rendered.first, equals('---msg'));
     });
 
     test('preserves tags', () {

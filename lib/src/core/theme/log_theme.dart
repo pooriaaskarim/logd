@@ -30,15 +30,6 @@ enum LogTag {
   /// Structural lines like box borders or dividers.
   border,
 
-  /// Key in a JSON object.
-  jsonKey,
-
-  /// Value in a JSON object (string, number, boolean).
-  jsonValue,
-
-  /// Punctuation in JSON (braces, brackets, commas, colons).
-  jsonPunctuation,
-
   /// Tree-like hierarchy prefix.
   hierarchy,
 
@@ -48,10 +39,11 @@ enum LogTag {
 
 /// Visual style suggestion for a log segment.
 @immutable
-class TextStyle {
-  /// Creates a [TextStyle].
-  const TextStyle({
+class LogStyle {
+  /// Creates a [LogStyle].
+  const LogStyle({
     this.color,
+    this.backgroundColor,
     this.bold,
     this.dim,
     this.italic,
@@ -60,6 +52,9 @@ class TextStyle {
 
   /// The suggested foreground color.
   final LogColor? color;
+
+  /// The suggested background color.
+  final LogColor? backgroundColor;
 
   /// Whether the text should be bold.
   final bool? bold;
@@ -76,16 +71,18 @@ class TextStyle {
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
-      other is TextStyle &&
+      other is LogStyle &&
           runtimeType == other.runtimeType &&
           color == other.color &&
+          backgroundColor == other.backgroundColor &&
           bold == other.bold &&
           dim == other.dim &&
           italic == other.italic &&
           inverse == other.inverse;
 
   @override
-  int get hashCode => Object.hash(color, bold, dim, italic, inverse);
+  int get hashCode =>
+      Object.hash(color, backgroundColor, bold, dim, italic, inverse);
 }
 
 /// Abstract color definitions for log rendering.
@@ -114,9 +111,9 @@ enum LogColor {
 
 /// Configuration for color schemes based on log levels.
 @immutable
-class ColorScheme {
+class LogColorScheme {
   /// Creates a color scheme.
-  const ColorScheme({
+  const LogColorScheme({
     required this.trace,
     required this.debug,
     required this.info,
@@ -127,9 +124,7 @@ class ColorScheme {
     this.levelColor,
     this.borderColor,
     this.stackFrameColor,
-    this.jsonKeyColor,
-    this.jsonValueColor,
-    this.jsonPunctuationColor,
+    this.hierarchyColor,
   });
 
   // Base colors per level
@@ -155,14 +150,8 @@ class ColorScheme {
   /// Color for stack frame segments. If null, uses base level color.
   final LogColor? stackFrameColor;
 
-  /// Color for JSON key segments. If null, uses base level color.
-  final LogColor? jsonKeyColor;
-
-  /// Color for JSON value segments. If null, uses base level color.
-  final LogColor? jsonValueColor;
-
-  /// Color for JSON punctuation segments. If null, uses base level color.
-  final LogColor? jsonPunctuationColor;
+  /// Color for hierarchy lines. If null, defaults to null (no color).
+  final LogColor? hierarchyColor;
 
   /// Get color for a specific tag set at a given level.
   ///
@@ -184,14 +173,8 @@ class ColorScheme {
     if (tags.contains(LogTag.stackFrame) && stackFrameColor != null) {
       return stackFrameColor!;
     }
-    if (tags.contains(LogTag.jsonKey) && jsonKeyColor != null) {
-      return jsonKeyColor!;
-    }
-    if (tags.contains(LogTag.jsonValue) && jsonValueColor != null) {
-      return jsonValueColor!;
-    }
-    if (tags.contains(LogTag.jsonPunctuation) && jsonPunctuationColor != null) {
-      return jsonPunctuationColor!;
+    if (tags.contains(LogTag.hierarchy) && hierarchyColor != null) {
+      return hierarchyColor!;
     }
 
     // Fallback to base level color
@@ -213,45 +196,34 @@ class ColorScheme {
     }
   }
 
-  /// Default color scheme.
-  static const defaultScheme = ColorScheme(
+  static const defaultScheme = LogColorScheme(
     trace: LogColor.green,
     debug: LogColor.white,
     info: LogColor.blue,
     warning: LogColor.yellow,
     error: LogColor.red,
-    jsonKeyColor: LogColor.brightBlue,
-    jsonValueColor: LogColor.brightGreen,
-    jsonPunctuationColor: LogColor.white,
   );
 
-  static const darkScheme = ColorScheme(
+  static const darkScheme = LogColorScheme(
     trace: LogColor.brightGreen,
     debug: LogColor.brightWhite,
     info: LogColor.brightBlue,
     warning: LogColor.brightYellow,
     error: LogColor.brightRed,
-    jsonKeyColor: LogColor.brightCyan,
-    jsonValueColor: LogColor.brightGreen,
-    jsonPunctuationColor: LogColor.brightWhite,
   );
 
-  /// Pastel theme scheme with softer colors.
-  static const pastelScheme = ColorScheme(
+  static const pastelScheme = LogColorScheme(
     trace: LogColor.green,
     debug: LogColor.cyan,
     info: LogColor.brightCyan,
     warning: LogColor.brightYellow,
     error: LogColor.brightRed,
-    jsonKeyColor: LogColor.cyan,
-    jsonValueColor: LogColor.green,
-    jsonPunctuationColor: LogColor.white,
   );
 
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
-      other is ColorScheme &&
+      other is LogColorScheme &&
           trace == other.trace &&
           debug == other.debug &&
           info == other.info &&
@@ -262,9 +234,7 @@ class ColorScheme {
           levelColor == other.levelColor &&
           borderColor == other.borderColor &&
           stackFrameColor == other.stackFrameColor &&
-          jsonKeyColor == other.jsonKeyColor &&
-          jsonValueColor == other.jsonValueColor &&
-          jsonPunctuationColor == other.jsonPunctuationColor;
+          hierarchyColor == other.hierarchyColor;
 
   @override
   int get hashCode => Object.hash(
@@ -278,145 +248,157 @@ class ColorScheme {
         levelColor,
         borderColor,
         stackFrameColor,
-        jsonKeyColor,
-        jsonValueColor,
-        jsonPunctuationColor,
+        hierarchyColor,
       );
 }
 
-/// Configuration for fine-grained color application in [ColorDecorator].
+/// Defines a theme for logging, mapping semantic concepts to [LogStyle]s.
 @immutable
-class ColorConfig {
-  /// Creates a color application configuration.
-  const ColorConfig({
-    this.colorTimestamp = true,
-    this.colorLevel = true,
-    this.colorLoggerName = true,
-    this.colorMessage = true,
-    this.colorBorder = true,
-    this.colorStackFrame = true,
-    this.colorError = true,
-    this.colorJson = true,
-    this.colorHierarchy = false,
-    this.headerBackground = false,
+class LogTheme {
+  /// Creates a [LogTheme].
+  ///
+  /// [colorScheme] is required and defines the base palette.
+  /// Optional style parameters allow overriding specific semantic segments.
+  const LogTheme({
+    required this.colorScheme,
+    this.timestampStyle,
+    this.loggerNameStyle,
+    this.levelStyle,
+    this.messageStyle,
+    this.borderStyle,
+    this.stackFrameStyle,
+    this.errorStyle,
+    this.hierarchyStyle,
   });
 
-  /// Whether to color timestamp segments.
-  final bool colorTimestamp;
+  /// The base color scheme for log levels.
+  final LogColorScheme colorScheme;
 
-  /// Whether to color level indicator segments.
-  final bool colorLevel;
+  /// Style for timestamps.
+  final LogStyle? timestampStyle;
 
-  /// Whether to color logger name segments.
-  final bool colorLoggerName;
+  /// Style for logger names.
+  final LogStyle? loggerNameStyle;
 
-  /// Whether to color message body segments.
-  final bool colorMessage;
+  /// Style for level indicators.
+  final LogStyle? levelStyle;
 
-  /// Whether to color structural borders (e.g., box borders).
-  final bool colorBorder;
+  /// Style for the main message.
+  final LogStyle? messageStyle;
 
-  /// Whether to color stack trace frame segments.
-  final bool colorStackFrame;
+  /// Style for borders/dividers.
+  final LogStyle? borderStyle;
 
-  /// Whether to color error information segments.
-  final bool colorError;
+  /// Style for stack trace frames.
+  final LogStyle? stackFrameStyle;
 
-  /// Whether to color JSON-specific segments.
-  final bool colorJson;
+  /// Style for error messages.
+  final LogStyle? errorStyle;
 
-  /// Whether to color hierarchical prefixes.
-  final bool colorHierarchy;
+  /// Style for hierarchy lines.
+  final LogStyle? hierarchyStyle;
 
-  /// Whether to use inverse video (background color) for headers.
-  final bool headerBackground;
+  /// Resolves the style for a given segment based on level and tags.
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    // 1. Start with base color for the level
+    // Exception: Hierarchy lines should NOT take level color by default.
+    final baseColor = tags.contains(LogTag.hierarchy)
+        ? null
+        : colorScheme.colorForLevel(level);
 
-  /// Determines if a segment with given tags should be colored.
-  bool shouldColor(final Set<LogTag> tags) {
-    if (tags.contains(LogTag.timestamp)) {
-      return colorTimestamp;
-    }
+    var style = LogStyle(color: baseColor);
+
+    // 2. Apply default semantic styles
     if (tags.contains(LogTag.level)) {
-      return colorLevel;
+      style = _merge(style, const LogStyle(bold: true));
+    } else if (tags.contains(LogTag.timestamp) ||
+        tags.contains(LogTag.loggerName)) {
+      style = _merge(style, const LogStyle(dim: true));
+    } else if (tags.contains(LogTag.header)) {
+      style = _merge(style, const LogStyle(bold: true));
     }
-    if (tags.contains(LogTag.loggerName)) {
-      return colorLoggerName;
+
+    // 3. Apply tag-specific overrides/merges
+    if (tags.contains(LogTag.level)) {
+      style = _merge(style, levelStyle);
+      // Ensure level color override from scheme
+      // is respected if theme style doesn't enforce one
+      if (colorScheme.levelColor != null) {
+        style = _merge(style, LogStyle(color: colorScheme.levelColor));
+      }
+    } else if (tags.contains(LogTag.timestamp)) {
+      style = _merge(style, timestampStyle);
+      if (colorScheme.timestampColor != null) {
+        style = _merge(style, LogStyle(color: colorScheme.timestampColor));
+      }
+    } else if (tags.contains(LogTag.loggerName)) {
+      style = _merge(style, loggerNameStyle);
+      if (colorScheme.loggerNameColor != null) {
+        style = _merge(style, LogStyle(color: colorScheme.loggerNameColor));
+      }
+    } else if (tags.contains(LogTag.message)) {
+      style = _merge(style, messageStyle);
+    } else if (tags.contains(LogTag.border)) {
+      style = _merge(style, borderStyle);
+      if (colorScheme.borderColor != null) {
+        style = _merge(style, LogStyle(color: colorScheme.borderColor));
+      }
+    } else if (tags.contains(LogTag.stackFrame)) {
+      style = _merge(style, stackFrameStyle);
+      if (colorScheme.stackFrameColor != null) {
+        style = _merge(style, LogStyle(color: colorScheme.stackFrameColor));
+      }
+    } else if (tags.contains(LogTag.error)) {
+      style = _merge(style, errorStyle);
+    } else if (tags.contains(LogTag.hierarchy)) {
+      style = _merge(style, hierarchyStyle);
+      if (colorScheme.hierarchyColor != null) {
+        style = _merge(style, LogStyle(color: colorScheme.hierarchyColor));
+      }
     }
-    if (tags.contains(LogTag.message)) {
-      return colorMessage;
-    }
-    if (tags.contains(LogTag.border)) {
-      return colorBorder;
-    }
-    if (tags.contains(LogTag.stackFrame)) {
-      return colorStackFrame;
-    }
-    if (tags.contains(LogTag.error)) {
-      return colorError;
-    }
-    if (tags.contains(LogTag.jsonKey) ||
-        tags.contains(LogTag.jsonValue) ||
-        tags.contains(LogTag.jsonPunctuation)) {
-      return colorJson;
-    }
-    if (tags.contains(LogTag.hierarchy)) {
-      return colorHierarchy;
-    }
-    return true; // Default: color everything
+
+    return style;
   }
 
-  /// Default configuration: color everything, no header background.
-  static const all = ColorConfig();
-
-  /// Minimal configuration: only color essential parts.
-  static const minimal = ColorConfig(
-    colorTimestamp: false,
-    colorLoggerName: false,
-    colorBorder: false,
-  );
-
-  /// Color everything except borders.
-  static const noBorders = ColorConfig(
-    colorBorder: false,
-  );
-
-  // Legacy compatibility methods
-  @Deprecated('''
-Use tag-specific controls instead.
-Will be dropped in v0.5.0''')
-  bool get colorHeader => colorTimestamp || colorLevel || colorLoggerName;
-
-  @Deprecated('''
-Use [colorMessage] instead.
-Will be dropped in v0.5.0''')
-  bool get colorBody => colorMessage;
+  LogStyle _merge(final LogStyle base, final LogStyle? override) {
+    if (override == null) {
+      return base;
+    }
+    return LogStyle(
+      color: override.color ?? base.color,
+      backgroundColor: override.backgroundColor ?? base.backgroundColor,
+      bold: override.bold ?? base.bold,
+      dim: override.dim ?? base.dim,
+      italic: override.italic ?? base.italic,
+      inverse: override.inverse ?? base.inverse,
+    );
+  }
 
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
-      other is ColorConfig &&
-          colorTimestamp == other.colorTimestamp &&
-          colorLevel == other.colorLevel &&
-          colorLoggerName == other.colorLoggerName &&
-          colorMessage == other.colorMessage &&
-          colorBorder == other.colorBorder &&
-          colorStackFrame == other.colorStackFrame &&
-          colorError == other.colorError &&
-          colorJson == other.colorJson &&
-          colorHierarchy == other.colorHierarchy &&
-          headerBackground == other.headerBackground;
+      other is LogTheme &&
+          runtimeType == other.runtimeType &&
+          colorScheme == other.colorScheme &&
+          timestampStyle == other.timestampStyle &&
+          loggerNameStyle == other.loggerNameStyle &&
+          levelStyle == other.levelStyle &&
+          messageStyle == other.messageStyle &&
+          borderStyle == other.borderStyle &&
+          stackFrameStyle == other.stackFrameStyle &&
+          errorStyle == other.errorStyle &&
+          hierarchyStyle == other.hierarchyStyle;
 
   @override
   int get hashCode => Object.hash(
-        colorTimestamp,
-        colorLevel,
-        colorLoggerName,
-        colorMessage,
-        colorBorder,
-        colorStackFrame,
-        colorError,
-        colorJson,
-        colorHierarchy,
-        headerBackground,
+        colorScheme,
+        timestampStyle,
+        loggerNameStyle,
+        levelStyle,
+        messageStyle,
+        borderStyle,
+        stackFrameStyle,
+        errorStyle,
+        hierarchyStyle,
       );
 }

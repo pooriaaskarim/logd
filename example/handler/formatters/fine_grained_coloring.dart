@@ -7,7 +7,7 @@ import 'package:logd/logd.dart';
 /// - Level indicator (LogTag.level)
 /// - Timestamp (LogTag.timestamp)
 ///
-/// This allows ColorScheme to apply different colors to each part.
+/// This allows LogColorScheme to apply different colors to each part.
 void main() {
   // Configure logger with tag-specific coloring
   Logger.configure(
@@ -19,19 +19,20 @@ void main() {
           BoxDecorator(
             borderStyle: BorderStyle.rounded,
           ),
-          ColorDecorator(
-            colorScheme: ColorScheme(
-              trace: LogColor.green,
-              debug: LogColor.white,
-              info: LogColor.blue,
-              warning: LogColor.yellow,
-              error: LogColor.red,
-              // Tag-specific color overrides
-              timestampColor: LogColor.brightBlack, // Dimmed timestamps
-              loggerNameColor: LogColor.cyan, // Cyan logger names
-              levelColor: LogColor.brightBlue, // Bright blue level indicators
+          StyleDecorator(
+            theme: LogTheme(
+              colorScheme: LogColorScheme(
+                trace: LogColor.green,
+                debug: LogColor.white,
+                info: LogColor.blue,
+                warning: LogColor.yellow,
+                error: LogColor.red,
+                // Tag-specific color overrides
+                timestampColor: LogColor.brightBlack, // Dimmed timestamps
+                loggerNameColor: LogColor.cyan, // Cyan logger names
+                levelColor: LogColor.brightBlue, // Bright blue level indicators
+              ),
             ),
-            config: ColorConfig.all,
           ),
         ],
         sink: const ConsoleSink(),

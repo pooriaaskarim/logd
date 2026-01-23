@@ -1,4 +1,4 @@
-// Example: ColorDecorator
+// Example: StyleDecorator
 //
 // Demonstrates:
 // - Level-based coloring
@@ -15,20 +15,22 @@ void main() async {
   final defaultHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: const [
-      ColorDecorator(useColors: true),
+      StyleDecorator(),
     ],
     sink: const ConsoleSink(),
     lineLength: 80,
   );
 
   // 1. Custom Color Scheme
-  final customColors = ColorDecorator(
-    colorScheme: ColorScheme(
-      trace: LogColor.cyan,
-      debug: LogColor.white,
-      info: LogColor.brightBlue,
-      warning: LogColor.yellow,
-      error: LogColor.brightRed,
+  final customColors = StyleDecorator(
+    theme: LogTheme(
+      colorScheme: LogColorScheme(
+        trace: LogColor.cyan,
+        debug: LogColor.white,
+        info: LogColor.brightBlue,
+        warning: LogColor.yellow,
+        error: LogColor.brightRed,
+      ),
     ),
   );
   final customHandler = Handler(
@@ -41,10 +43,8 @@ void main() async {
   );
 
   // 3. Header Background (Reverse Video)
-  final headerHighlight = ColorDecorator(
-    config: ColorConfig(
-      headerBackground: true,
-    ),
+  final headerHighlight = StyleDecorator(
+    theme: _HeaderBackgroundTheme(),
   );
   final headerBgHandler = Handler(
     formatter: const StructuredFormatter(),
@@ -56,15 +56,8 @@ void main() async {
   );
 
   // 2. High Contrast (Header Only)
-  final highContrast = ColorDecorator(
-    config: ColorConfig(
-      colorTimestamp: true,
-      colorLevel: true,
-      colorLoggerName: true,
-      colorMessage: false,
-      colorBorder: false,
-      colorStackFrame: false,
-    ),
+  final highContrast = StyleDecorator(
+    theme: _HeaderOnlyTheme(),
   );
   final selectiveHandler = Handler(
     formatter: const StructuredFormatter(),
@@ -113,5 +106,38 @@ void main() async {
       error: e,
       stackTrace: stack,
     );
+  }
+}
+
+class _HeaderBackgroundTheme extends LogTheme {
+  const _HeaderBackgroundTheme()
+      : super(colorScheme: LogColorScheme.defaultScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    var style = super.getStyle(level, tags);
+    if (tags.contains(LogTag.header)) {
+      style = LogStyle(
+        color: style.color,
+        bold: style.bold,
+        dim: style.dim,
+        inverse: true, // Force inverse
+      );
+    }
+    return style;
+  }
+}
+
+class _HeaderOnlyTheme extends LogTheme {
+  const _HeaderOnlyTheme() : super(colorScheme: LogColorScheme.defaultScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    if (tags.contains(LogTag.message) ||
+        tags.contains(LogTag.stackFrame) ||
+        tags.contains(LogTag.border)) {
+      return const LogStyle(); // No style
+    }
+    return super.getStyle(level, tags);
   }
 }

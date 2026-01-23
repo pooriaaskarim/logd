@@ -7,22 +7,39 @@ part of '../handler.dart';
 /// backends.
 final class JsonFormatter implements LogFormatter {
   /// Creates a [JsonFormatter].
-  const JsonFormatter();
+  ///
+  /// - [fields]: Optional list of [LogField]s to include in the output.
+  ///   If null (default), all available fields are included.
+  const JsonFormatter({this.fields});
+
+  /// Optional list of fields to include. If null, includes all fields.
+  final List<LogField>? fields;
 
   @override
   Iterable<LogLine> format(
     final LogEntry entry,
     final LogContext context,
   ) sync* {
-    final map = {
-      'timestamp': entry.timestamp,
-      'level': entry.level.name,
-      'logger': entry.loggerName,
-      'origin': entry.origin,
-      'message': entry.message,
-      if (entry.error != null) 'error': entry.error.toString(),
-      if (entry.stackTrace != null) 'stackTrace': entry.stackTrace.toString(),
-    };
+    // Build map from selected fields (or all if fields is null)
+    final selectedFields = fields ??
+        [
+          LogField.timestamp,
+          LogField.level,
+          LogField.logger,
+          LogField.origin,
+          LogField.message,
+          LogField.error,
+          LogField.stackTrace,
+        ];
+
+    final map = <String, dynamic>{};
+    for (final field in selectedFields) {
+      final value = field.getValue(entry);
+      // Only include non-empty values
+      if (value.isNotEmpty) {
+        map[field.name] = value;
+      }
+    }
     yield LogLine(
       [
         LogSegment(jsonEncode(map), tags: const {LogTag.message}),
@@ -35,15 +52,21 @@ final class JsonFormatter implements LogFormatter {
 /// into a pretty-printed, optionally styled JSON string.
 ///
 /// Each part of the JSON (keys, values, punctuation) is tagged with semantic
-/// tags like [LogTag.jsonKey], [LogTag.jsonValue], and [LogTag.jsonPunctuation]
-/// when [color] is enabled. This allows decorators like [ColorDecorator]
+/// tags like [LogTag.header], [LogTag.timestamp], [LogTag.level], etc.
+/// when [color] is enabled. This allows decorators like [StyleDecorator]
 /// to style the JSON output.
 @immutable
 final class JsonPrettyFormatter implements LogFormatter {
   /// Creates a [JsonPrettyFormatter].
+  ///
+  /// - [indent]: Indentation string (default: two spaces).
+  /// - [color]: Whether to emit semantic tags for coloring.
+  /// - [fields]: Optional list of [LogField]s to include in the output.
+  ///   If null (default), all available fields are included.
   const JsonPrettyFormatter({
     this.indent = '  ',
     this.color = true,
+    this.fields,
   });
 
   /// Indentation string (default: two spaces).
@@ -52,34 +75,72 @@ final class JsonPrettyFormatter implements LogFormatter {
   /// Whether to emit semantic tags for coloring.
   final bool color;
 
+  /// Optional list of fields to include. If null, includes all fields.
+  final List<LogField>? fields;
+
   @override
   Iterable<LogLine> format(
     final LogEntry entry,
     final LogContext context,
   ) sync* {
-    final map = {
-      'timestamp': entry.timestamp,
-      'level': entry.level.name,
-      'logger': entry.loggerName,
-      'origin': entry.origin,
-      'message': entry.message,
-      if (entry.error != null) 'error': entry.error.toString(),
-      if (entry.stackTrace != null) 'stackTrace': entry.stackTrace.toString(),
-    };
+    // Build map from selected fields (or all if fields is null)
+    final selectedFields = fields ??
+        [
+          LogField.timestamp,
+          LogField.level,
+          LogField.logger,
+          LogField.origin,
+          LogField.message,
+          LogField.error,
+          LogField.stackTrace,
+        ];
 
-    yield* _formatValue(map, 0);
+    final map = <String, dynamic>{};
+    final fieldTags = <String, LogTag>{};
+    for (final field in selectedFields) {
+      final value = field.getValue(entry);
+      // Only include non-empty values
+      if (value.isNotEmpty) {
+        final key = field.name;
+        map[key] = value;
+        fieldTags[key] = _tagForField(field);
+      }
+    }
+
+    yield* _formatValue(map, 0, tags: fieldTags);
   }
 
-  Iterable<LogLine> _formatValue(final Object? value, final int depth) sync* {
+  LogTag _tagForField(final LogField field) {
+    switch (field) {
+      case LogField.timestamp:
+        return LogTag.timestamp;
+      case LogField.level:
+        return LogTag.level;
+      case LogField.logger:
+        return LogTag.loggerName;
+      case LogField.origin:
+        return LogTag.origin;
+      case LogField.message:
+        return LogTag.message;
+      case LogField.error:
+        return LogTag.error;
+      case LogField.stackTrace:
+        return LogTag.stackFrame;
+    }
+  }
+
+  Iterable<LogLine> _formatValue(
+    final Object? value,
+    final int depth, {
+    final Map<String, LogTag>? tags,
+  }) sync* {
     final prefix = indent * depth;
 
     if (value is Map) {
       yield LogLine([
         LogSegment(
           '{',
-          tags: color
-              ? const {LogTag.jsonPunctuation, LogTag.message}
-              : const {LogTag.message},
+          tags: color ? const {LogTag.border} : const {},
         ),
       ]);
 
@@ -91,21 +152,15 @@ final class JsonPrettyFormatter implements LogFormatter {
         final segments = <LogSegment>[
           LogSegment(
             '$prefix$indent"',
-            tags: color
-                ? const {LogTag.jsonPunctuation, LogTag.message}
-                : const {LogTag.message},
+            tags: color ? const {LogTag.border} : const {},
           ),
           LogSegment(
             entry.key.toString(),
-            tags: color
-                ? const {LogTag.jsonKey, LogTag.message}
-                : const {LogTag.message},
+            tags: color ? const {LogTag.header} : const {},
           ),
           LogSegment(
             '": ',
-            tags: color
-                ? const {LogTag.jsonPunctuation, LogTag.message}
-                : const {LogTag.message},
+            tags: color ? const {LogTag.border} : const {},
           ),
         ];
 
@@ -113,20 +168,13 @@ final class JsonPrettyFormatter implements LogFormatter {
         if (val is Map || val is List) {
           yield LogLine(segments);
           yield* _formatValue(val, depth + 1);
-          if (!isLast) {
-            // Need to append a comma to the last line of the recursive call.
-            // This is tricky with sync*.
-            // For now, let's just emit the closing brace/bracket with a comma if needed.
-          }
         } else {
-          segments.add(_valueSegment(val));
+          segments.add(_valueSegment(val, tags?[entry.key]));
           if (!isLast) {
             segments.add(
               LogSegment(
                 ',',
-                tags: color
-                    ? const {LogTag.jsonPunctuation, LogTag.message}
-                    : const {LogTag.message},
+                tags: color ? const {LogTag.border} : const {},
               ),
             );
           }
@@ -137,18 +185,14 @@ final class JsonPrettyFormatter implements LogFormatter {
       yield LogLine([
         LogSegment(
           '$prefix}',
-          tags: color
-              ? const {LogTag.jsonPunctuation, LogTag.message}
-              : const {LogTag.message},
+          tags: color ? const {LogTag.border} : const {},
         ),
       ]);
     } else if (value is List) {
       yield LogLine([
         LogSegment(
           '[',
-          tags: color
-              ? const {LogTag.jsonPunctuation, LogTag.message}
-              : const {LogTag.message},
+          tags: color ? const {LogTag.border} : const {},
         ),
       ]);
       for (int i = 0; i < value.length; i++) {
@@ -160,7 +204,7 @@ final class JsonPrettyFormatter implements LogFormatter {
           final segments = [
             LogSegment(
               '$prefix$indent',
-              tags: const {LogTag.message},
+              tags: const {},
             ),
             _valueSegment(val),
           ];
@@ -168,9 +212,7 @@ final class JsonPrettyFormatter implements LogFormatter {
             segments.add(
               LogSegment(
                 ',',
-                tags: color
-                    ? const {LogTag.jsonPunctuation, LogTag.message}
-                    : const {LogTag.message},
+                tags: color ? const {LogTag.border} : const {},
               ),
             );
           }
@@ -180,36 +222,33 @@ final class JsonPrettyFormatter implements LogFormatter {
       yield LogLine([
         LogSegment(
           '$prefix]',
-          tags: color
-              ? const {LogTag.jsonPunctuation, LogTag.message}
-              : const {LogTag.message},
+          tags: color ? const {LogTag.border} : const {},
         ),
       ]);
     }
   }
 
-  LogSegment _valueSegment(final Object? value) {
+  LogSegment _valueSegment(final Object? value, [final LogTag? tag]) {
+    final tags = <LogTag>{};
+    if (color && tag != null) {
+      tags.add(tag);
+    }
+
     if (value == null) {
       return LogSegment(
         'null',
-        tags: color
-            ? const {LogTag.jsonValue, LogTag.message}
-            : const {LogTag.message},
+        tags: tags,
       );
     }
     if (value is String) {
       return LogSegment(
         '"$value"',
-        tags: color
-            ? const {LogTag.jsonValue, LogTag.message}
-            : const {LogTag.message},
+        tags: tags,
       );
     }
     return LogSegment(
       value.toString(),
-      tags: color
-          ? const {LogTag.jsonValue, LogTag.message}
-          : const {LogTag.message},
+      tags: tags,
     );
   }
 
@@ -219,8 +258,9 @@ final class JsonPrettyFormatter implements LogFormatter {
       other is JsonPrettyFormatter &&
           runtimeType == other.runtimeType &&
           indent == other.indent &&
-          color == other.color;
+          color == other.color &&
+          listEquals(fields, other.fields);
 
   @override
-  int get hashCode => Object.hash(indent, color);
+  int get hashCode => Object.hash(indent, color, Object.hashAll(fields ?? []));
 }
