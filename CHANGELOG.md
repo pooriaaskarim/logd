@@ -1,4 +1,29 @@
 # Changelog
+
+## 0.6.0: LLM-Optimized Logging & Shared Data Model
+
+### ⚠️ Breaking Changes
+- **Styling Engine Overhaul**: Replaced the terminal-bound `AnsiColorConfig` and `AnsiColorScheme` with a platform-agnostic **`LogTheme`** system. Visual intent is now decoupled from platform representation.
+- **Unified Formatter API**: Standardized metadata extraction via the **`LogField`** enum. 
+  - **Removed**: Individual boolean flags (e.g., `showLevel`, `includeTime`) in `JsonFormatter` and `ToonFormatter`.
+  - **Note**: Customizable field support for legacy formatters is planned for future versions.
+- **Strict Logger Naming**: Enforced deterministic hierarchy traversal via name validation (regex: `^[a-z0-9_]+(\.[a-z0-9_]+)*$`) and automatic normalization to lowercase. This prevents "Ghost Hierarchies" caused by case sensitivity or invalid characters.
+- **Decorator Migration**: `ColorDecorator` is now a deprecated alias for **`StyleDecorator`**. All visual transformations now flow through the `LogTheme` resolution logic.
+
+### 🚀 Major Overhauls & Features
+- **ToonFormatter (LLM-Native)**: Introduced **Token-Oriented Object Notation (TOON)**, a header-first streaming format optimized for AI agent context efficiency.
+- **Semantic Styling Pipeline**: The internal pipeline now emits rich **`LogStyle`** metadata. Sinks are now responsible for final rendering (e.g., translating `Bold` and `Dim` into ANSI codes or CSS classes).
+- **Style Resolution Precision**: Enhanced `JsonPrettyFormatter` to correctly tag and style nested JSON values by mapping them to their corresponding `LogField` types.
+- **Shared Field Logic**: Core log metadata (Timestamp, Level, Logger, Message, Error, StackTrace) is now extracted via a centralized, type-safe provider used by all modern formatters.
+
+### 📚 Documentation Suite
+- **Technical Manuals**: Completely rebuilt the `doc/` module with high-precision architectural guides:
+  - **[Architecture](doc/handler/architecture.md)**: Details the 4-stage pipeline and operational context (`LogContext`).
+  - **[Migration Guide](doc/handler/migration.md)**: Outlines the transition from monolithic "God Components" to decentralized behaviors.
+  - **[Philosophy](doc/logger/philosophy.md)**: Documents foundational principles like Hierarchical Inheritance and Lazy Resolution.
+  - **[Decorator Composition](doc/handler/decorator_compositions.md)**: Explains execution priority and data-model flow.
+- **Roadmap Pivot**: Updated future priorities to include **Structured Context Support** and a **Web-Based Logd Dashboard**.
+
  
 ## 0.5.0: Centralized Layout & Rigid Alignment
 - ### Core Architecture & Layout
