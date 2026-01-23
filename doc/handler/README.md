@@ -11,79 +11,66 @@ A `Handler` encapsulates two distinct operations:
 ## Components
 
 ### Formatters
-- `StructuredFormatter`: Detailed layout (header, origin, message) without borders. **(Preferred)**
-- `BoxFormatter`: Wraps logs in a visual box. **(Deprecated - use StructuredFormatter + BoxDecorator)**
-- `JsonFormatter`: Serializes logs to JSON for machine parsing.
+- `StructuredFormatter`: Detailed layout (header, origin, message) without borders. **(Preferred for humans)**
+- `ToonFormatter`: Token-Oriented Object Notation. Designed for LLM token efficiency. **(Preferred for AI)**
+- `JsonFormatter`: Serializes logs to JSON. Supports field selection.
+- `JsonPrettyFormatter`: Human-readable JSON with semantic styling.
 - `PlainFormatter`: Simple text output.
 
 ### Decorators
 Decorators now have full access to the `LogEntry` object, including metadata like `hierarchyDepth`, `tags`, and `loggerName`, enabling more context-aware transformations.
 - `BoxDecorator`: Adds ASCII borders around formatted lines.
-- `ColorDecorator`: Adds level-based coloring with customizable color schemes and color application options. Includes a `headerBackground` option for bold header highlights.
-- `HierarchyDepthPrefixDecorator`: Adds visual indentation (defaulting to `│ `) based on the logger's hierarchy depth, creating a clear tree-like structure in the terminal.
+- `StyleDecorator`: Applies semantic styles (colors, bold, dim, etc.) to log segments using a `LogTheme`. It is the central engine for platform-agnostic visual presentation.
+- `HierarchyDepthPrefixDecorator`: Adds visual indentation based on the logger's hierarchy depth, creating a clear tree-like structure.
 
-#### ANSI Color Customization
+#### Style Customization
 
-Both `ColorDecorator` and `BoxDecorator` support customizable color schemes:
+`StyleDecorator` leverages the `LogTheme` system to map semantic tags to visual styles:
 
 ```dart
-// Use predefined color schemes
+// Use predefined schemes
 final darkHandler = Handler(
   formatter: const StructuredFormatter(),
   decorators: const [
     BoxDecorator(),
-    ColorDecorator(),
+    StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
   ],
   sink: const ConsoleSink(),
-  lineLength: 80,
 );
 
-// Or create custom color scheme
-final customScheme = AnsiColorScheme(
-  trace: AnsiColor.cyan,
-  debug: AnsiColor.white,
-  info: AnsiColor.brightBlue,
-  warning: AnsiColor.brightYellow,
-  error: AnsiColor.brightRed,
+// Or create a custom theme with specific segment overrides
+final customTheme = LogTheme(
+  colorScheme: LogColorScheme.defaultScheme,
+  levelStyle: const LogStyle(bold: true, inverse: true), // Bold & Inverted levels
+  timestampStyle: const LogStyle(dim: true, italic: true), // Dim & Italic timestamps
+  borderStyle: const LogStyle(color: LogColor.white), // Always white borders
 );
 
 final customHandler = Handler(
   formatter: const StructuredFormatter(),
-  decorators: const [
-    ColorDecorator(),
+  decorators: [
+    StyleDecorator(theme: customTheme),
   ],
   sink: const ConsoleSink(),
-  lineLength: 80,
 );
 ```
 
-#### Fine-Grained Color Control
+#### Fine-Grained Segment Styling
 
-`ColorDecorator` supports granular control over which log elements to color, including options for header background highlights:
+`LogTheme` allows you to override styles for specific semantic segments (`LogTag`). Every segment starts with the base level color (info=blue, error=red) and merges with your overrides:
 
 ```dart
-// Color only headers
-const headerOnly = ColorDecorator(
-  
-  config: AnsiColorConfig.headerOnly,
+// Highlight only the message
+final messageHighlight = LogTheme(
+  colorScheme: LogColorScheme.defaultScheme,
+  messageStyle: const LogStyle(bold: true, backgroundColor: LogColor.blue),
 );
 
-// Color everything except borders
-const noBorders = ColorDecorator(
-  
-  config: AnsiColorConfig.noBorders,
-);
-
-// Custom configuration
-const custom = ColorDecorator(
-  
-  config: AnsiColorConfig(
-    colorHeader: true,
-    colorBody: true,
-    colorBorder: false,  // Don't color borders
-    colorStackFrame: true,
-    headerBackground: true,  // Use background color for headers
-  ),
+// Dim everything except headers
+final minimalTheme = LogTheme(
+  colorScheme: LogColorScheme.defaultScheme,
+  messageStyle: const LogStyle(dim: true),
+  borderStyle: const LogStyle(dim: true),
 );
 ```
 
@@ -97,6 +84,9 @@ The default color scheme provides good visibility in most terminals:
 - **error**: Red
 
 For dark terminals, use `AnsiColorScheme.darkScheme` which uses brighter variants.
+
+#### Semantic Styling
+Even complex formats like JSON or TOON use semantic tags (`LogTag.timestamp`, `LogTag.level`, `LogTag.header`, etc.) rather than implementation-specific tags. This ensures your color scheme remains consistent across different formatters. For instance, `StyleDecorator` will dim the timestamp in both a `StructuredFormatter` and a `JsonPrettyFormatter` automatically if `timestampStyle` is set.
 
 ### Sinks
 - `ConsoleSink`: Writes to standard output (`stdout`).
@@ -112,14 +102,14 @@ Handler(
   formatter: const StructuredFormatter(),
   decorators: const [
     BoxDecorator(borderStyle: BorderStyle.double),
-    ColorDecorator(),
+    StyleDecorator(),
   ],
   sink: const ConsoleSink(),
   lineLength: 80,
 )
 ```
 
-For detailed rules on how decorators interact, see [Decorator Composition](decorator_composition.md).
+For detailed rules on how decorators interact, see [Decorator Composition](decorator_compositions.md).
 
 ## Edge Cases and Robustness
 
@@ -158,6 +148,90 @@ The Handler module is designed to handle various edge cases gracefully:
 - Idempotency: applying decorators multiple times is safe
 
 For comprehensive edge case tests, see `test/handler/edge_cases/`.
+
+## Layout Resolution
+
+A handler's output width is determined by a strict priority chain:
+1. **Explicit `lineLength`**: If you pass `lineLength` to the `Handler` constructor, it is used as the absolute limit.
+2. **Sink `preferredWidth`**: If `lineLength` is null, the handler queries the sink.
+   - `ConsoleSink`: Dynamically detects terminal width (e.g., 80 or 120).
+   - `FileSink`: Default to 80 (configurable).
+3. **Fallback**: Default to 80 if neither can provide a value.
+
+All formatters and decorators receive this calculated width via `LogContext.availableWidth`. 
+
+> [!NOTE]
+> Structural decorators like `BoxDecorator` use `availableWidth` as a minimum target. If content exceeds this width, the box will expand to fit the content, potentially exceeding the `lineLength`. Most formatters automatically wrap to `availableWidth` to prevent this.
+
+---
+
+## Common Patterns (Recipes)
+
+### 1. Production Rotating JSON
+Optimized for ELK/Splunk consumption with daily rotation and compression.
+
+```dart
+final prodHandler = Handler(
+  formatter: const JsonFormatter(
+    fields: [LogField.timestamp, LogField.level, LogField.message, LogField.error],
+  ),
+  sink: FileSink(
+    'logs/app.log',
+    fileRotation: TimeRotation(
+      interval: Duration(days: 1),
+      compress: true,
+    ),
+  ),
+);
+```
+
+### 2. Developer's Dashboard
+High-visual-fidelity output with hierarchy tracking and refined styling.
+
+```dart
+final devHandler = Handler(
+  formatter: const StructuredFormatter(),
+  decorators: [
+    const HierarchyDepthPrefixDecorator(),
+    const BoxDecorator(borderStyle: BorderStyle.rounded),
+    StyleDecorator(
+      theme: LogTheme(
+        colorScheme: LogColorScheme.darkScheme,
+        levelStyle: const LogStyle(bold: true, inverse: true),
+      ),
+    ),
+  ],
+  sink: const ConsoleSink(),
+);
+```
+
+### 3. LLM-Native Agent Stream
+Minimal tokens, maximum structure for AI agent consumption.
+
+```dart
+final aiHandler = Handler(
+  formatter: const ToonFormatter(
+    arrayName: 'context',
+    keys: [LogField.timestamp, LogField.level, LogField.message],
+  ),
+  sink: FileSink('logs/agent.toon'),
+);
+```
+
+### 4. Hybrid (Multi-Sink)
+Log to console and file simultaneously with the same formatting.
+
+```dart
+final hybridHandler = Handler(
+  formatter: const PlainFormatter(),
+  sink: MultiSink(sinks: [
+    const ConsoleSink(),
+    FileSink('logs/backup.log'),
+  ]),
+);
+```
+
+---
 
 ## Contribution
 Documentation for independent Formatters and Sinks is currently being expanded. Please refer to the source code in `lib/src/handler/` for implementation details.

@@ -11,7 +11,8 @@ A **high‑performance** hierarchical logger for Dart and Flutter. Build structu
 - **Hierarchical configuration** – Loggers are named with dot‑separated paths (`app.network.http`). Settings propagate from parents to children unless overridden.
 - **Zero‑boilerplate** – Simple `Logger.get('app')` gives a fully‑configured logger.
 - **Performance‑first** – Lazy resolution, aggressive caching, and optional inheritance freezing keep the cost of a disabled logger essentially zero.
-- **Flexible output** – Choose between console, file, network, or any custom sink; format logs as plain text, boxed, or structured JSON.
+- **Flexible output** – Choose between console, file, network, or any custom sink; format logs as plain text, boxed, structured JSON, or **LLM‑optimized TOON**.
+- **Platform‑agnostic styling** – Decouple visual intent from representation using the semantic `LogTheme` system.
 
 ## Getting Started
 
@@ -48,12 +49,12 @@ void main() {
 **Typical console output**
 
 ```
-[app][INFO] 2025-01-03 00:15:23.456
-  --app_main.dart:5
+[app][INFO] 2025-01-23 05:30:12.456
+  --example/main.dart:12 (main)
   ----Application started
 ```
 
-> *Tip*: Use `Logger.configure` to set global log‑level, handlers, or timestamps once in `main()`.
+> *Tip*: Use `Logger.configure` to set global log‑levels, handlers, or timestamps. `logd` uses **Deep Equality** to ensure that re-configuring with identical values results in zero performance overhead.
 
 ## Core Concepts
 
@@ -130,7 +131,7 @@ final consoleHandler = Handler(
   formatter: StructuredFormatter(),
   decorators: const [
     BoxDecorator(),
-    ColorDecorator(),
+    StyleDecorator(),
   ],
   sink: const ConsoleSink(),
   lineLength: 80,
@@ -213,7 +214,7 @@ Logger.configure('global', handlers: [
     decorators: [
       HierarchyDepthPrefixDecorator(indent: '│ '),
       BoxDecorator(borderStyle: BorderStyle.rounded),
-      ColorDecorator(config: ColorConfig(headerBackground: true)),
+      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
     ],
     sink: ConsoleSink(),
     lineLength: 80,
@@ -231,6 +232,24 @@ Logger.configure('global', handlers: [
     ),
 ]);
 ```
+
+### LLM-Native Logging (TOON)
+
+Optimize logs for consumption by AI agents by using the Token-Oriented Object Notation:
+
+```dart
+Logger.configure('ai.agent', handlers: [
+  Handler(
+    formatter: ToonFormatter(
+      arrayName: 'context',
+      keys: [LogField.timestamp, LogField.message],
+    ),
+    sink: FileSink('logs/ai_feed.toon'),
+  ),
+]);
+```
+
+**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead.
 
 ### Microservice Logging
 
@@ -278,9 +297,11 @@ void main() {
 - **[Documentation Index](doc/README.md)** - Overview and navigation
 - **[Logger Philosophy](doc/logger/philosophy.md)** - Design principles and rationale
 - **[Logger Architecture](doc/logger/architecture.md)** - Implementation details
-- **[Handler Guide](doc/handler/architecture.md)** - Pipeline customization
+- **[Handler Guide](doc/handler/architecture.md)** - Pipeline and sink customization
+- **[Migration Guide](doc/handler/migration.md)** - Upgrading from legacy components
+- **[Decorator Composition](doc/handler/decorator_compositions.md)** - Execution priority and flow
 - **[Time Module](doc/time/architecture.md)** - Timestamp and timezone handling
-- **[Roadmap](doc/logger/roadmap.md)** - Planned features and known limitations
+- **[Roadmap](doc/logger/roadmap.md)** - Planned features and vision
 
 ---
 
