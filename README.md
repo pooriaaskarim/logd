@@ -11,7 +11,8 @@ A **high‑performance** hierarchical logger for Dart and Flutter. Build structu
 - **Hierarchical configuration** – Loggers are named with dot‑separated paths (`app.network.http`). Settings propagate from parents to children unless overridden.
 - **Zero‑boilerplate** – Simple `Logger.get('app')` gives a fully‑configured logger.
 - **Performance‑first** – Lazy resolution, aggressive caching, and optional inheritance freezing keep the cost of a disabled logger essentially zero.
-- **Flexible output** – Choose between console, file, network, or any custom sink; format logs as plain text, boxed, structured JSON, or **LLM‑optimized TOON**.
+- **Flexible output** – Choose between console, file, network, HTML, or any custom sink; format logs as text, structured JSON, HTML, Markdown or **LLM‑optimized TOON**.
+- **Layout Sovereignty** – A centralized engine guarantees structural integrity (e.g., perfect boxes) across all terminal widths.
 - **Platform‑agnostic styling** – Decouple visual intent from representation using the semantic `LogTheme` system.
 
 ## Getting Started
@@ -92,7 +93,9 @@ Create complex pipelines of formatters and sinks:
 
 ```dart
 final jsonHandler = Handler(
-  formatter: JsonFormatter(),
+  formatter: const JsonFormatter(
+    metadata: {LogMetadata.timestamp, LogMetadata.logger},
+  ),
   sink: FileSink(
     'logs/app.log',
     fileRotation: TimeRotation(
@@ -102,13 +105,15 @@ final jsonHandler = Handler(
       compress: true,
     ),
   ),
-  filters: [LevelFilter(LogLevel.info)],  // Only info and above
+  filters: [LevelFilter(LogLevel.info)],
 );
 
 Logger.configure('app', handlers: [jsonHandler]);
 ```
 
-**Result**: JSON logs written to `logs/app.log`, rotated daily, keeping 7 compressed backups.
+**Result**: JSON logs written to `logs/app.log`, rotated daily, keeping 7 compressed backups.  
+> [!NOTE]  
+> Modern formatters (v0.6.1+) automatically include mandatory data like `level`, `message`, `error`, and `stackTrace`. The `metadata` parameter is used only for additional context like timestamps or logger names.
 
 ### Atomic multi‑line logs
 
@@ -128,17 +133,21 @@ buffer?.sink(); // writes atomically
 You can either use multiple handlers:
 ```dart
 final consoleHandler = Handler(
-  formatter: StructuredFormatter(),
+  formatter: const StructuredFormatter(),
   decorators: const [
     BoxDecorator(),
     StyleDecorator(),
+    SuffixDecorator(
+      label: '[v1.0.2]',
+      alignment: SuffixAlignment.right,
+    ),
   ],
   sink: const ConsoleSink(),
   lineLength: 80,
 );
 
 final fileHandler = Handler(
-  formatter: PlainFormatter(),
+  formatter: const PlainFormatter(),
   sink: FileSink('logs/app.log'),
 );
 
@@ -240,16 +249,16 @@ Optimize logs for consumption by AI agents by using the Token-Oriented Object No
 ```dart
 Logger.configure('ai.agent', handlers: [
   Handler(
-    formatter: ToonFormatter(
+    formatter: const ToonFormatter(
       arrayName: 'context',
-      keys: [LogField.timestamp, LogField.message],
+      metadata: {LogMetadata.timestamp},
     ),
     sink: FileSink('logs/ai_feed.toon'),
   ),
 ]);
 ```
 
-**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead.
+**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. The header is emitted only when the configuration changes.
 
 ### Microservice Logging
 
