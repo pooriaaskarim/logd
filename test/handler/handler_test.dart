@@ -2,7 +2,11 @@ import 'package:logd/logd.dart';
 import 'package:test/test.dart';
 
 class MockFormatter implements LogFormatter {
-  MockFormatter(this.formatFn);
+  const MockFormatter(this.formatFn, {this.metadata = const {}});
+
+  @override
+  final Set<LogMetadata> metadata;
+
   final Iterable<LogLine> Function(LogEntry) formatFn;
   @override
   Iterable<LogLine> format(final LogEntry entry, final LogContext context) =>
@@ -47,7 +51,7 @@ void main() {
       testEntry = LogEntry(
         loggerName: 'test',
         origin: 'main',
-        hierarchyDepth: 0,
+        
         level: LogLevel.info,
         message: 'hello',
         timestamp: Timestamp.iso8601().timestamp!,
@@ -107,7 +111,7 @@ void main() {
     const entryInfo = LogEntry(
       loggerName: 'app.ui',
       origin: 'Widget.build',
-      hierarchyDepth: 1,
+      
       level: LogLevel.info,
       message: 'info msg',
       timestamp: '2025-01-01 12:00:00',
@@ -115,7 +119,7 @@ void main() {
     const entryError = LogEntry(
       loggerName: 'app.service',
       origin: 'Service.run',
-      hierarchyDepth: 1,
+      
       level: LogLevel.error,
       message: 'error msg',
       timestamp: '2025-01-01 12:00:01',

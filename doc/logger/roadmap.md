@@ -15,88 +15,6 @@ This document tracks planned improvements, known issues, and TODO items for the 
 
 ## Documentation & DX
 
-### 🔴 P0: Document Default `enabled` Behavior
-
-**Issue**: In release builds (`dart.vm.product = true`), loggers are disabled by default. This is buried in code and surprises users.
-
-**Location**: [`logger.dart:149-150`](../../lib/src/logger/logger.dart#L149-L150)
-
-**TODO**:
-- [ ] Add warning in `Logger` class documentation
-- [ ] Add example in README showing how to enable in production
-- [ ] Consider adding runtime warning on first disabled log in production
-
-**Example to add**:
-```dart
-/// ## Default Behavior
-/// 
-/// In **debug builds**, loggers are **enabled** by default.
-/// In **release builds** (`dart.vm.product`), loggers are **disabled** by default.
-/// 
-/// To enable logging in production:
-/// ```dart
-/// Logger.configure('global', enabled: true);
-/// ```
-```
-
----
-
-### 🟡 P1: Fix `sink()` vs `sync()` Documentation Mismatch
-
-**Issue**: `LogBuffer` method is named `sink()`, but docs say `sync()`.
-
-**Location**: 
-- [`log_buffer.dart:21`](../../lib/src/logger/log_buffer.dart#L21) (implementation: `sink()`)
-- [`logger.dart:393`](../../lib/src/logger/logger.dart#L393) (docs: `sync()`)
-
-**TODO**:
-- [ ] **Decision**: Rename `sink()` → `flush()` (clearer) OR fix docs to say `sink()`
-- [ ] Update all documentation
-- [ ] Add migration note if renaming
-
-**Recommendation**: Rename to `flush()` - more standard term for this operation.
-
-```dart
-// Proposed
-void flush() {
-  if (isNotEmpty) {
-    _logger._log(logLevel, toString(), null, StackTrace.current);
-    clear();
-  }
-}
-```
-
----
-
-### 🟡 P1: Document Unmodifiable Collections
-
-**Issue**: Getters return unmodifiable collections, but this isn't clear from API.
-
-**Location**: [`logger.dart:342-351`](../../lib/src/logger/logger.dart#L342-L351)
-
-**TODO**:
-- [ ] Add `@pragma('vm:prefer-inline')` or similar hint
-- [ ] Document in getter doc comments
-- [ ] Add example of correct way to modify (via `configure()`)
-
-**Example to add**:
-```dart
-/// List of handlers to process log entries.
-/// 
-/// **Note**: Returns an **unmodifiable list**. To change handlers:
-/// ```dart
-/// Logger.configure('name', handlers: [newHandler1, newHandler2]);
-/// ```
-/// 
-/// Attempting to modify directly will throw:
-/// ```dart
-/// logger.handlers.add(h);  // ❌ UnsupportedError
-/// ```
-List<Handler> get handlers => LoggerCache.handlers(name);
-```
-
----
-
 ### 🟢 P2: Add Architecture Decision Records (ADRs)
 
 **Issue**: Design decisions (sparse storage, version-based invalidation, etc.) not formally documented.
@@ -415,7 +333,11 @@ void freezeInheritance() {
 
 ## Completed ✅
 
-_(Empty for now - track completed items here)_
+- **v0.6.1: Layout & Stability Refinement**
+  - Implemented dynamic `hierarchyDepth` in `LogEntry` for guaranteed tree consistency.
+  - Enforced internal security boundaries by marking `LogEntry` constructor and `Handler.log` as `@internal`.
+  - Optimized `Logger.configure` with deep collection equality to prevent redundant cache clears.
+  - Refined `InternalLogger` to ensure fail-safe error reporting during layout collapses.
 
 ---
 
@@ -427,39 +349,40 @@ _(Track rejected ideas here with rationale)_
 
 ## How to Contribute
 
-When working on TODOs:
-
-1. **Claim**: Comment on GitHub issue or update this file with your name
-2. **Branch**: Create feature branch `feat/logger-<todo-name>`
-3. **Test**: Add tests before implementation
-4. **Document**: Update docs alongside code
-5. **Review**: Request review with link to this roadmap item
-6. **Update**: Check off item and move to "Completed" section
+1. **Claim**: Comment on GitHub issue.
+2. **Branch**: `feat/logger-<todo-name>`.
+3. **Test**: Add tests before implementation.
+4. **Document**: Update docs alongside code.
+5. **Update**: Check off item and move to "Completed" section.
 
 ---
 
-## Version Milestones
-
 ### v0.x (Current)
+- [x] Hierarchical inheritance with version-based caching.
+- [x] Zero-cost disabled logging and inheritance freezing.
+- [x] Deep equality configuration optimization.
+- [x] @internal protection for core data models.
 
-- [x] Basic hierarchy and inheritance
-- [x] Caching with version-based invalidation
-- [x] Freezing mechanism
-- [x] Deep equality for collections
-- [ ] Complete P0 documentation items
-- [ ] Complete P1 testing items
-
-### v1.0 (Stable Release)
-
-- [ ] All P0 items complete
-- [ ] All P1 items complete
-- [ ] 95%+ test coverage
-- [ ] Comprehensive documentation
-- [ ] Performance benchmarks established
-- [ ] Migration guide for breaking changes (if any)
+### v1.0 (Stable)
+- [ ] 95%+ test coverage and performance benchmarks.
+- [ ] Comprehensive documentation (Logger + Handler integration).
+- [ ] Refined ADRs for all major design decisions.
 
 ### v2.0 (Future)
+- [ ] Trie-based cache for massive hierarchies.
+- [ ] Cross-isolate configuration synchronization.
 
-- [ ] Consider breaking changes (immutable config, defaults, naming)
-- [ ] Advanced features (import/export, merge semantics)
-- [ ] Performance optimizations (trie-based cache)
+---
+
+## Completed ✅
+
+- **v0.6.1: Stability & Safety**
+  - **Dynamic Depth**: `LogEntry.hierarchyDepth` is now computed from logger names.
+  - **API Shielding**: Enforced `@internal` guards on `LogEntry` and `Handler.log`.
+  - **Deep Equality**: Optimized `Logger.configure` to skip redundant invalidations.
+  - **Fail-Safe**: Refined `InternalLogger` for robust terminal error reporting.
+
+---
+
+## Rejected ❌
+*(No rejected items at this stage)*

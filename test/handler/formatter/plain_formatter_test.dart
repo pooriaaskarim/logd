@@ -7,39 +7,43 @@ void main() {
     const entry = LogEntry(
       loggerName: 'test.logger',
       origin: 'main.dart:10:5',
-      hierarchyDepth: 1,
+      
       level: LogLevel.info,
       message: 'Hello World',
       timestamp: '2025-01-01 12:00:00',
     );
 
-    test('formats basic entry correctly', () {
+    test('formats basic entry correctly with default metadata', () {
       const formatter = PlainFormatter();
       final lines = formatter.format(entry, mockContext).toList();
 
       expect(lines.length, equals(1));
       expect(
         lines.first.toString(),
-        equals('[INFO] 2025-01-01 12:00:00 [test.logger] Hello World'),
+        equals(
+          '[INFO] 2025-01-01 12:00:00 [test.logger] Hello World',
+        ),
       );
     });
 
-    test('can toggle components', () {
+    test('can select metadata', () {
       const formatter = PlainFormatter(
-        includeLevel: false,
-        includeTimestamp: false,
-        includeLoggerName: true,
+        metadata: {LogMetadata.logger},
       );
       final lines = formatter.format(entry, mockContext).toList();
 
-      expect(lines.first.toString(), equals('[test.logger] Hello World'));
+      // [INFO] is mandatory
+      expect(
+        lines.first.toString(),
+        equals('[INFO] [test.logger] Hello World'),
+      );
     });
 
     test('includes error and stack trace', () {
       final errorEntry = LogEntry(
         loggerName: 'test',
         origin: 'main',
-        hierarchyDepth: 0,
+        
         level: LogLevel.error,
         message: 'Kaboom',
         timestamp: 'now',

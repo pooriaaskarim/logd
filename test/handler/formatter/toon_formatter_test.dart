@@ -11,34 +11,36 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: '2025-01-01T10:00:00Z',
-      hierarchyDepth: 0,
+      
     );
 
     test('Output header once then rows with TAB delimiter (default)', () {
-      final formatter = ToonFormatter();
+      const formatter = ToonFormatter();
 
       final lines = formatter
           .format(entry, mockContext)
           .map((final l) => l.toString())
           .toList();
 
-      expect(lines.length, equals(2)); // Header + Row
+      // Header includes: timestamp,logger,origin,level,message,error,stackTrace
+      expect(lines.length, equals(2));
       expect(
         lines[0],
-        equals('logs[]{timestamp,level,logger,message,error}:'),
+        equals(
+          'logs[]{timestamp,logger,origin,level,message,error,stackTrace}:',
+        ),
       );
-      // Default: Tab delimiter
+
+      // Row
       expect(
         lines[1],
-        equals('"2025-01-01T10:00:00Z"\tinfo\ttest\tmsg\t'),
+        equals('"2025-01-01T10:00:00Z"\ttest\ttest\tinfo\tmsg\t\t'),
       );
     });
 
-    test('Respects custom delimiter and keys (normalized Enum)', () {
-      final formatter = ToonFormatter(
-        delimiter: ',',
-        arrayName: 'events',
-        keys: [LogField.level, LogField.message],
+    test('Respects custom metadata selection', () {
+      const formatter = ToonFormatter(
+        metadata: {LogMetadata.logger},
       );
       final lines = formatter
           .format(entry, mockContext)
@@ -47,58 +49,53 @@ void main() {
 
       expect(
         lines[0],
-        equals('events[]{level,message}:'),
+        equals('logs[]{logger,level,message,error,stackTrace}:'),
       );
-      expect(lines[1], equals('info,msg'));
+      expect(lines[1], equals('test\tinfo\tmsg\t\t'));
     });
 
-    test('Colorize=true emits semantic tags', () {
-      final formatter = ToonFormatter(
-        keys: [LogField.level, LogField.message],
-        colorize: true,
+    test('Color=true emits semantic tags including metadata tags', () {
+      const formatter = ToonFormatter(
+        metadata: {LogMetadata.logger},
+        color: true,
       );
       final lines = formatter.format(entry, mockContext).toList();
 
-      // Header should have header tags
-      final headerSegs = lines[0].segments;
-      expect(headerSegs.length, equals(1));
-      expect(headerSegs[0].tags, contains(LogTag.header));
+      // Row is index 1
+      final row = lines[1];
+      final rowSegs = row.segments;
 
-      // Row should be segmented
-      // [Level, Delimiter, Message]
-      final rowSegs = lines[1].segments;
-      expect(rowSegs.length, equals(3)); // Level, Delimiter, Message
+      // Delimiter \t is at index 1
+      expect(rowSegs[0].text, equals('test'));
+      expect(rowSegs[0].tags, contains(LogTag.loggerName));
 
-      // Level segment
-      expect(rowSegs[0].text, equals('info'));
-      expect(rowSegs[0].tags, contains(LogTag.level));
-
-      // Delimiter segment
-      expect(rowSegs[1].text, equals('\t'));
-      expect(rowSegs[1].tags, contains(LogTag.border));
-
-      // Message segment
-      expect(rowSegs[2].text, equals('msg'));
-      expect(rowSegs[2].tags, contains(LogTag.message));
+      expect(rowSegs[2].text, equals('info'));
+      expect(rowSegs[2].tags, contains(LogTag.level));
     });
 
-    test('Quotes values containing delimiter', () {
-      final formatter = ToonFormatter(delimiter: ',');
-      const entryWithComma = LogEntry(
+    test('Respects availableWidth by truncating row', () {
+      const formatter = ToonFormatter(
+        metadata: {}, // Only crucial content
+      );
+      const entryLong = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
-        message: 'Hello, World', // Has comma
+        message: 'This is a very long message',
         timestamp: 'now',
-        hierarchyDepth: 0,
+        
       );
 
-      final lines = formatter
-          .format(entryWithComma, mockContext)
-          .map((final l) => l.toString())
-          .toList();
-      // "Hello, World" should be quoted
-      expect(lines[1], contains(',"Hello, World",'));
+      // We use a width that allows breaking at the TAB.
+      // info (4) + \t (4) = 8.
+      const context = LogContext(availableWidth: 8);
+      final lines = formatter.format(entryLong, context).toList();
+
+      // The row line should have visibleLength 8
+      final row =
+          lines.firstWhere((final l) => l.toString().startsWith('info'));
+      expect(row.visibleLength, equals(8));
+      expect(row.toString(), equals('info\t'));
     });
   });
 }

@@ -54,6 +54,17 @@ By using `LogStyle` objects instead of raw color codes, we enable **Platform Ind
 
 This ensures that your formatting logic remains pure and your presentation logic remains flexible. Switching from a `StructuredFormatter` to a `ToonFormatter` won't break your visual cues because both use the same semantic tags.
 
+## Unified Layout Sovereignty
+
+Log layout is notoriously fragile, especially when mixing structural framing (like ASCII boxes) with content-aware styling (like ANSI escape codes). To guarantee visual stability, `logd` adheres to **Unified Layout Sovereignty**.
+
+**The Principle**: The orchestration layer (the `Handler`) owns the authoritative layout constraints.
+
+- **The Problem with Decentralized Wrapping**: If formatters or decorators wrap content independently, they lack global context. This inevitably leads to line-length overflows, corrupted borders, and inconsistent indentation.
+- **The Solution**: The `Handler` calculates the exact spatial capacity (the "Content Slot") once per entry. It performs a high-fidelity wrap *before* any decoration occurs.
+
+By centralizing strictly defined constraints (`availableWidth`, `contentLimit`), we ensure that whether you are logging a simple string or a deeply nested JSON object, the output remains structurally sound and visually aligned across all terminal environments.
+
 ## Atomic Processing
 
 Handlers process log entries as complete units rather than streaming characters. The `Iterable<LogLine>` output from formatters represents complete lines, ensuring multi-line logs (stack traces, boxed messages) remain grouped during concurrent logging. This prevents "log interleaving" where lines from different loggers mix together in the output sink.

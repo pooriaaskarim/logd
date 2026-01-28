@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.6.1: Unified Formatter Configuration & Layout Stability
+
+### ⚠️ Breaking Changes
+- **Removed `BoxFormatter`**: Finalized the removal of the deprecated `BoxFormatter` in favor of the more flexible `StructuredFormatter` + `BoxDecorator` composition.
+- **`LogMetadata` Transition**: Replaced the `LogField` enum with a more focused `LogMetadata` enum (`timestamp`, `logger`, `origin`). 
+- **Internal API Shields**: Marked `Handler.log` and the `LogEntry` constructor as **`@internal`** to protect the internal data model while promoting the high-level `Logger` API.
+
+### 🚀 Enhancements & Features
+- **Unified Formatter API**: All formatters now accept a `Set<LogMetadata>` in their constructors, providing a consistent interface for controlling contextual data output while preserving core content (`message`, `level`, `error`).
+- **Introducing `SuffixDecorator`**: A new decorator for appending text to log lines, featuring an **aligned mode** to right-justify suffixes against the terminal or box edge.
+- **Intelligent JSON Inspection**: `JsonPrettyFormatter` now features recursive detection and pretty-printing of stringified JSON objects nested within messages.
+- **Markdown Redesign**: `MarkdownFormatter` now produces high-fidelity output with a single h1 heading, blockquotes for messages, and collapsible (`<details>`) sections for stack traces.
+- **Toon & Plain Enhancements**:
+  - `ToonFormatter`: Now supports multiline content and separate metadata/field streams.
+  - `PlainFormatter`: Reworked with a flow-based layout that correctly wraps long messages and errors containing metadata.
+- **Styled Decorators**: `PrefixDecorator` and `HierarchyDepthPrefixDecorator` now support applying a `LogStyle` for high-fidelity semantic coloring.
+
+### 🏗 Layout & Architecture
+- **Centralized Layout Logic**: Text wrapping is now handled implicitly by the `Handler` pipeline, ensuring structural decorators like `BoxDecorator` never receive overflowing lines.
+- **Decorator `paddingWidth`**: Decorators can now declare their visual footprint, allowing the `Handler` to calculate precisely how much space is available for the primary log content.
+- **Expanded `LogContext`**: Added `totalWidth` and `contentLimit` properties to provide decorators with definitive spatial constraints for precise alignment.
+- **Dynamic Hierarchy Depth**: `LogEntry` now computes its `hierarchyDepth` dynamically from the `loggerName`, guaranteeing that visual indentation always reflects the actual logger tree.
+
+### 🛠 Stability & Fixes
+- **Robust ANSI Utilities**: Significant improvements to `visibleLength` (including tab expansion) and a new `wrapWithData` utility that preserves semantic segments across line breaks.
+- **Pure-Dart Compatibility**: Eliminated leaked `package:flutter_test` dependencies from the core library.
+- **Layout Artifact Removal**: Fixed redundant ANSI reset sequences that caused "phantom" empty lines in narrow terminal widths.
+
 ## 0.6.0: LLM-Optimized Logging & Shared Data Model
 
 ### ⚠️ Breaking Changes
@@ -36,7 +64,6 @@
   - **PlainFormatter Refinement**: Improved multi-line message handling in `PlainFormatter` to yield distinct segments, preventing structural breaks during decoration
 - ### Quality & Safety
   - **Width Clamping**: Consistent width clamping across the pipeline ensures stability even with extremely narrow terminal configurations
-  - **Zero-Lint State**: Resolved all lingering linting warnings related to the layout API transition across the entire core library, examples, and test suite
   - **Comprehensive Test Migration**: Full coverage of the new layout model in `null_safety_test.dart`, `layout_safety_test.dart`, and `decorator_composition_test.dart`
 
 ## 0.4.2: Semantic Segments & Visual Overhaul

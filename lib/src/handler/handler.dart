@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' as io;
 
+import 'package:characters/characters.dart';
 import 'package:meta/meta.dart';
 
 import '../core/context/context.dart';
@@ -19,15 +20,15 @@ part 'decorator/box_decorator.dart';
 part 'decorator/decorator.dart';
 part 'decorator/hierarchy_depth_prefix_decorator.dart';
 part 'decorator/prefix_decorator.dart';
+part 'decorator/suffix_decorator.dart';
 part 'decorator/style_decorator.dart';
 part 'filter/filter.dart';
 part 'filter/level_filter.dart';
 part 'filter/regex_filter.dart';
-part 'formatter/box_formatter.dart';
 part 'formatter/formatter.dart';
 part 'formatter/html_formatter.dart';
+part 'formatter/metadata/log_metadata.dart';
 part 'formatter/json_formatter.dart';
-part 'formatter/log_field.dart';
 part 'formatter/markdown_formatter.dart';
 part 'formatter/plain_formatter.dart';
 part 'formatter/structured_formatter.dart';
@@ -76,20 +77,42 @@ class Handler {
   final int? lineLength;
 
   /// Process the entry: filter, format, decorate, output.
+  @internal
   Future<void> log(final LogEntry entry) async {
     if (filters.any((final filter) => !filter.shouldLog(entry))) {
       return;
     }
 
     /// Context for the pipeline, merging handler config and sink capabilities.
+    final totalWidth = lineLength ?? sink.preferredWidth;
+
+    // Calculate total width consumed by ALL decorators per line.
+    var totalPadding = 0;
+    var structuralPadding = 0;
+
+    for (final decorator in decorators) {
+      final padding = decorator.paddingWidth(entry);
+      totalPadding += padding;
+      if (decorator is StructuralDecorator) {
+        structuralPadding += padding;
+      }
+    }
+
     final context = LogContext(
-      availableWidth: lineLength ?? sink.preferredWidth,
+      availableWidth: (totalWidth - totalPadding).clamp(1, totalWidth),
+      totalWidth: totalWidth,
+      contentLimit: (totalWidth - structuralPadding).clamp(1, totalWidth),
     );
 
-    Iterable<LogLine> lines = formatter.format(entry, context);
+    // Wrap all content to the available width (Content Slot).
+    // This normalize formatters (Active or Passive) to ensure they fit within
+    // the layout reserved for them, preventing conflicts with decorators.
+    Iterable<LogLine> lines = formatter
+        .format(entry, context)
+        .expand((final line) => line.wrap(context.availableWidth));
 
     /// Auto-sort to ensure correct visual composition:
-    /// 1. TransformDecorator (Content mutation)
+    /// 1. ContentDecorator (Content mutation)
     /// 2. StructuralDecorator (Outer wrapping, e.g. Box, then Indentation)
     /// 3. VisualDecorator (Content styling, e.g. AnsiColors)
     ///
@@ -97,7 +120,7 @@ class Handler {
     final sortedDecorators = decorators.toSet().toList()
       ..sort((final a, final b) {
         int priority(final LogDecorator decorator) {
-          if (decorator is TransformDecorator) {
+          if (decorator is ContentDecorator) {
             return 0;
           }
           if (decorator is StructuralDecorator) {
@@ -157,14 +180,26 @@ class LogContext {
   /// Creates a [LogContext].
   const LogContext({
     required this.availableWidth,
+    final int? totalWidth,
+    final int? contentLimit,
     this.arbitraryData = const {},
-  });
+  })  : totalWidth = totalWidth ?? availableWidth,
+        contentLimit = contentLimit ?? (totalWidth ?? availableWidth);
 
-  /// The maximum horizontal space available for log content, in terminal cells.
-  ///
-  /// Formatters and decorators SHOULD strictly respect this width to ensure
-  /// consistent alignment and prevent overflow.
+  /// The width available for the initial formatting of the content.
   final int availableWidth;
+
+  /// The total terminal/configured width for the log entry.
+  final int totalWidth;
+
+  /// The layout width limit derived from [totalWidth] minus structural
+  /// overheads
+  /// (e.g. Box borders).
+  ///
+  /// Decorators that align content (like Suffix) or wrap structure (like Box)
+  /// should respect this limit to ensure the final composition fits the
+  /// display.
+  final int contentLimit;
 
   /// Additional arbitrary data for extensibility.
   final Map<String, Object?> arbitraryData;
@@ -183,8 +218,84 @@ class LogLine {
   final List<LogSegment> segments;
 
   /// The visible width of the line.
-  int get visibleLength =>
-      segments.fold(0, (final sum, final s) => sum + s.text.visibleLength);
+  ///
+  /// Calculates the maximum terminal width across all physical lines generated
+  /// by the segments, correctly accounting for TAB stops (8 cells) across
+  /// segment boundaries.
+  int get visibleLength {
+    if (segments.isEmpty) {
+      return 0;
+    }
+
+    var maxWidth = 0;
+    var currentX = 0;
+
+    for (final segment in segments) {
+      final text = segment.text;
+      if (text.isEmpty) {
+        continue;
+      }
+
+      // Handle segments that might contain physical newlines
+      final physicalLines = text.split(RegExp(r'\r?\n'));
+
+      for (int i = 0; i < physicalLines.length; i++) {
+        if (i > 0) {
+          // New physical line within a segment
+          if (currentX > maxWidth) {
+            maxWidth = currentX;
+          }
+          currentX = 0;
+        }
+
+        final linePart = physicalLines[i].stripAnsi;
+        for (final char in linePart.characters) {
+          if (char == '\t') {
+            currentX += 8 - (currentX % 8);
+          } else {
+            currentX += isWide(char) ? 2 : 1;
+          }
+        }
+      }
+    }
+
+    return currentX > maxWidth ? currentX : maxWidth;
+  }
+
+  /// Wraps this line into multiple lines, preserving semantic segments.
+  Iterable<LogLine> wrap(final int width, {final String indent = ''}) sync* {
+    // If indent is provided, we need to wrap tighter so indented lines
+    // don't exceed the width
+    final indentWidth = indent.visibleLength;
+    final wrapWidth =
+        indentWidth > 0 ? (width - indentWidth).clamp(1, width) : width;
+
+    final parts = segments.map((final s) => (s.text, (s.tags, s.style)));
+    final wrapped = wrapWithData(
+      parts,
+      wrapWidth,
+    );
+
+    var isFirst = true;
+    for (final lineParts in wrapped) {
+      final lineSegments = lineParts
+          .map(
+            (final p) => LogSegment(
+              p.$1,
+              tags: p.$2.$1,
+              style: p.$2.$2,
+            ),
+          )
+          .toList();
+
+      if (!isFirst && indent.isNotEmpty) {
+        lineSegments.insert(0, LogSegment(indent));
+      }
+
+      yield LogLine(lineSegments);
+      isFirst = false;
+    }
+  }
 
   @override
   String toString() => segments.map((final s) => s.text).join();

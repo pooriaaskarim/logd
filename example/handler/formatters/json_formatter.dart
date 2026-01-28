@@ -1,98 +1,105 @@
-// Example: JsonFormatter
+// Example: JsonFormatter - Exhaustive Combinatorial Stress Matrix
 //
-// Demonstrates:
-// - JSON serialization of log entries
-// - Machine-readable format
-// - Customizable fields for compact output
-// - Suitable for log aggregation systems
+// Purpose:
+// Demonstrates how machine-parseable data can be transformed into human-friendly
+// visual "Inspections" using the Logd pipeline. We combine JSON output
+// with sharp borders, semantic styling, and multi-line wrapping.
 //
-// Expected: Valid JSON output for each log entry
+// Key Benchmarks:
+// 1. Raw Data Stream (Standard JSON for ingestors)
+// 2. JSON Boxed (Pretty-print + Semantic Style + Sharp Box + 50 Width)
 
 import 'package:logd/logd.dart';
 
 void main() async {
-  print('--- JSON Formatter Example ---\n');
+  print('=== Logd / JSON: Extreme Combinations ===\n');
 
-  // Example 1: Default (all fields)
-  print('Scenario 1: Default JSON (All Fields)');
-  final defaultHandler = Handler(
-    formatter: const JsonFormatter(),
-    sink: const ConsoleSink(),
-  );
-
-  Logger.configure('example.json.default', handlers: [defaultHandler]);
-  final defaultLogger = Logger.get('example.json.default');
-
-  defaultLogger.info('User logged in');
-
-  print('\n------------------------------------------------\n');
-
-  // Example 2: Minimal fields for compact output
-  print('Scenario 2: Minimal JSON (Compact for Storage)');
-  final minimalHandler = Handler(
+  // ---------------------------------------------------------------------------
+  // SCENARIO A: The "Production Pipe" (Raw JSON)
+  // Goal: Baseline test for single-line, machine-readable output.
+  // ---------------------------------------------------------------------------
+  final rawHandler = Handler(
     formatter: const JsonFormatter(
-      fields: [LogField.timestamp, LogField.level, LogField.message],
+      metadata: {LogMetadata.timestamp},
     ),
     sink: const ConsoleSink(),
+    lineLength: 100,
   );
 
-  Logger.configure('example.json.minimal', handlers: [minimalHandler]);
-  final minimalLogger = Logger.get('example.json.minimal');
-
-  minimalLogger.info('User logged in');
-  minimalLogger.warning('High memory usage');
-
-  print('\n------------------------------------------------\n');
-
-  // Example 3: Error tracking (message + error + stackTrace)
-  print('Scenario 3: Error Tracking (Errors Only)');
-  final errorHandler = Handler(
-    formatter: const JsonFormatter(
-      fields: [
-        LogField.timestamp,
-        LogField.logger,
-        LogField.message,
-        LogField.error,
-        LogField.stackTrace,
-      ],
-    ),
-    sink: const ConsoleSink(),
-  );
-
-  Logger.configure('example.json.errors', handlers: [errorHandler]);
-  final errorLogger = Logger.get('example.json.errors');
-
-  try {
-    throw FormatException('Invalid input');
-  } catch (e, stack) {
-    errorLogger.error(
-      'Processing failed',
-      error: e,
-      stackTrace: stack,
-    );
-  }
-
-  print('\n------------------------------------------------\n');
-
-  // Example 4: Pretty-printed JSON with custom fields
-  print('Scenario 4: Colorized Pretty JSON (Human-Readable Debug)');
-  final prettyHandler = Handler(
+  // ---------------------------------------------------------------------------
+  // SCENARIO B: "JSON Boxed" (The Inspector)
+  // Goal: Use JsonPrettyFormatter (with colors enabled) inside a Sharp Box
+  // to create a "Technical Property Inspector" feel.
+  // Constraints: 50-char width + customized punctuation colors.
+  // ---------------------------------------------------------------------------
+  final inspectorHandler = Handler(
     formatter: const JsonPrettyFormatter(
-      fields: [LogField.level, LogField.logger, LogField.message],
-      color: true, // Enable coloring support in the formatter
+      color: true, // Enable semantic tagging for StyleDecorator
+      metadata: {...LogMetadata.values},
+      indent: '  ',
     ),
     decorators: [
-      StyleDecorator(
-          theme: LogTheme(colorScheme: LogColorScheme.defaultScheme)),
+      const StyleDecorator(theme: _JsonInspectorTheme()),
+      const HierarchyDepthPrefixDecorator(indent: '│ '),
+      const PrefixDecorator(
+        ' [AUDIT]',
+      ),
+      const SuffixDecorator(' [AUDIT]', aligned: true),
+      BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
     sink: const ConsoleSink(),
+    lineLength: 50, // Narrow enough to force internal wrapping of values
   );
 
-  Logger.configure('example.json.pretty', handlers: [prettyHandler]);
-  final prettyLogger = Logger.get('example.json.pretty');
+  // Configure Global Loggers
+  Logger.configure('data.raw', handlers: [rawHandler]);
+  Logger.configure('data.inspect', handlers: [inspectorHandler]);
 
-  prettyLogger.debug('Debugging information');
-  prettyLogger.info('Normal information');
-  prettyLogger.warning('Warning message');
-  prettyLogger.error('Error occurred');
+  // --- Run Scenario A: Raw Stream ---
+  print('TEST A: Raw JSON Data Stream (100 Width)');
+  final raw = Logger.get('data.raw');
+  raw.info('Event: transaction_complete | id=TX-5512 | state=success');
+  print('-' * 40);
+
+  print('\nTEST B: JSON Boxed (Sharp Box + Hierarchy + Suffix)');
+  final inspector = Logger.get('data.inspect.service.v1');
+  inspector.warning('Sub-optimal performance detected in cache layer.', error: {
+    'cache_type': 'DistributedRedis',
+    'hit_rate': 0.72,
+    'latency_ms': 54.2,
+    'nodes_failing': ['eu-west-1a', 'eu-west-1c'],
+    'remediation': 'Scaling cluster size to 5 nodes.'
+  });
+
+  print('\nTEST C: Stringified JSON Auto-expansion');
+  inspector.info('{"system_status": "yellow", "load_avg": [1.5, 2.3, 2.1],'
+      ' "details": {"source": "background_worker", "pid": 12345}}');
+
+  print('\n=== JSON Combinatorial Matrix Complete ===');
+}
+
+/// A specialized theme for the JSON Inspector that makes keys and values pop.
+class _JsonInspectorTheme extends LogTheme {
+  const _JsonInspectorTheme() : super(colorScheme: LogColorScheme.darkScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    // Make JSON keys bold/magenta
+    if (tags.contains(LogTag.key)) {
+      return const LogStyle(color: LogColor.magenta, bold: true);
+    }
+    // Make JSON punctuation (brackets, colons) blue and dim
+    if (tags.contains(LogTag.punctuation)) {
+      return const LogStyle(color: LogColor.blue, dim: true);
+    }
+    // Make JSON values (strings/nums) cyan
+    if (tags.contains(LogTag.value)) {
+      return const LogStyle(color: LogColor.cyan);
+    }
+    // Keep borders dim blue
+    if (tags.contains(LogTag.border)) {
+      return const LogStyle(color: LogColor.blue, dim: true);
+    }
+    return super.getStyle(level, tags);
+  }
 }

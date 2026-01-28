@@ -1,114 +1,120 @@
-// Example: Decorator Composition
+// Example: Advanced Decorator Ensembles & Global Orchestration
 //
-// Demonstrates:
-// - Multiple decorators working together
-// - Auto-sorting behavior
-// - Color + Box composition
-// - Hierarchy indentation
-// - Order independence (auto-sort)
+// Purpose:
+// Demonstrates logd's "Composition over Configuration" philosophy by creating
+// distinct, complex logging pipelines for real-world scenarios.
 //
-// Expected: Decorators compose correctly regardless of order
+// Scenarios:
+// 1. Service Orchestrator: Human-readable, structured, boxed, and styled for terminal dashboards.
+// 2. Security Audit: JSON output for machine ingestion, tagged with strict suffixes.
+// 3. Raw Debug Stream: Unboxed, high-speed TOON format for grep/regex analysis.
 
 import 'package:logd/logd.dart';
 
 void main() async {
-  // Color then Box (correct order)
-  final colorThenBox = Handler(
-    formatter: const PlainFormatter(),
-    decorators: [
-      const StyleDecorator(),
-      BoxDecorator(
-        borderStyle: BorderStyle.rounded,
-      ),
-    ],
-    sink: const ConsoleSink(),
-    lineLength: 60,
-  );
+  print('=== Logd / Advanced Decorator Composition ===\n');
 
-  // Box then Color (auto-sorted)
-  final boxThenColor = Handler(
-    formatter: const PlainFormatter(),
+  // ---------------------------------------------------------------------------
+  // SCENARIO 1: The Service Orchestrator
+  // Goal: Beautiful, highly visible dashboard logs.
+  // Composition:
+  //   StructuredFormatter -> Prefix -> Box -> Hierarchy -> Style
+  // ---------------------------------------------------------------------------
+  final dashboardHandler = Handler(
+    formatter: const StructuredFormatter(),
     decorators: [
-      BoxDecorator(
-        borderStyle: BorderStyle.rounded,
-      ),
+      // Content Decoration
+      const PrefixDecorator(' [SVC] '),
+
+      // Structural Decoration (Inner)
+      const BoxDecorator(borderStyle: BorderStyle.rounded),
+
+      // Structural Decoration (Outer)
+      const HierarchyDepthPrefixDecorator(indent: '  '),
+
+      // Visual Decoration
       const StyleDecorator(
-        theme: _CustomTheme(),
+        theme: LogTheme(
+          colorScheme: LogColorScheme.pastelScheme,
+        ),
       ),
     ],
     sink: const ConsoleSink(),
-    lineLength: 60,
+    lineLength: 70,
   );
 
-  // Box then Color (auto-sorted)
+  Logger.configure('orchestrator', handlers: [dashboardHandler]);
+  await _simulateMicroservice();
 
-  // Color + Box + Hierarchy
-  final fullComposition = Handler(
-    formatter: const PlainFormatter(),
+  print('\n${'=' * 60}\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 2: The Security Audit Trail
+  // Goal: Machine-parseable JSON, guaranteed integrity suffix.
+  // Composition:
+  //   JsonFormatter -> Suffix -> Box (Sharp borders for serious look)
+  // ---------------------------------------------------------------------------
+  final auditHandler = Handler(
+    formatter: const JsonFormatter(),
     decorators: [
-      const StyleDecorator(),
-      BoxDecorator(
-        borderStyle: BorderStyle.sharp,
-      ),
-      const HierarchyDepthPrefixDecorator(indent: '│ '),
+      // Tag every line to ensure if file is concatenated, boundaries are clear
+      const SuffixDecorator(' <AUDIT-END>', aligned: true),
+      BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
     sink: const ConsoleSink(),
     lineLength: 60,
   );
 
-  // Multiple color decorators (should deduplicate)
-  final duplicateColors = Handler(
-    formatter: const PlainFormatter(),
-    decorators: const [
-      StyleDecorator(),
-      StyleDecorator(), // Duplicate
-      StyleDecorator(), // Duplicate
+  Logger.configure('auth.service', handlers: [auditHandler]);
+  print('--- Security Audit Trail (JSON) ---');
+  Logger.get('auth.service').warning(
+    'User authentication failed',
+    error: 'Invalid credentials',
+  );
+
+  print('\n${'=' * 60}\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 3: The machine-readable Stream
+  // Goal: High-density, grep-friendly output (TOON format).
+  // Composition:
+  //   ToonFormatter -> Prefix (Machine ID)
+  // ---------------------------------------------------------------------------
+  final debugHandler = Handler(
+    formatter: const ToonFormatter(),
+    decorators: [
+      const PrefixDecorator('worker-01|'),
     ],
     sink: const ConsoleSink(),
   );
 
-  Logger.configure('example.colorthenbox', handlers: [colorThenBox]);
-  Logger.configure('example.boxthencolor', handlers: [boxThenColor]);
-  Logger.configure('example.full', handlers: [fullComposition]);
-  Logger.configure('example.duplicate', handlers: [duplicateColors]);
+  Logger.configure('worker', handlers: [debugHandler]);
+  print('--- Worker Debug Stream (TOON) ---');
+  Logger.get('worker').debug('Processing batch #402');
 
-  final logger1 = Logger.get('example.colorthenbox');
-  final logger2 = Logger.get('example.boxthencolor');
-  final logger3 = Logger.get('example.full');
-  final logger4 = Logger.get('example.duplicate');
-
-  print('=== Color Then Box (Explicit Order) ===');
-  logger1.info('Message with color then box');
-
-  print('\n=== Box Then Color (Auto-Sorted) ===');
-  logger2.info('Message with box then color (should be same as above)');
-
-  print('\n=== Full Composition (Color + Box + Hierarchy) ===');
-  logger3.info('Root level message');
-  final childLogger = Logger.get('example.full.child');
-  childLogger.info('Child level message (should be indented)');
-
-  print('\n=== Duplicate Decorators (Should Deduplicate) ===');
-  logger4.info('Message with duplicate color decorators');
+  print('\n=== Advanced Composition Complete ===');
 }
 
-class _CustomTheme extends LogTheme {
-  const _CustomTheme() : super(colorScheme: LogColorScheme.defaultScheme);
+Future<void> _simulateMicroservice() async {
+  print('--- Service Orchestrator (Dashboard Style) ---');
 
-  @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
-    if (tags.contains(LogTag.border) || tags.contains(LogTag.message)) {
-      return const LogStyle(); // No style
-    }
-    var style = super.getStyle(level, tags);
-    if (tags.contains(LogTag.header)) {
-      style = LogStyle(
-        color: style.color,
-        bold: style.bold,
-        dim: style.dim,
-        inverse: true,
-      );
-    }
-    return style;
-  }
+  // Root level
+  Logger.get('orchestrator').info('System Initialization');
+
+  // Depth 1: Subsystem
+  final gateway = Logger.get('orchestrator.gateway');
+  gateway.info('Booting Gateway...');
+  gateway.info('Gateway Ready on :8080');
+
+  // Depth 1: Database
+  final db = Logger.get('orchestrator.database');
+  db.info('Connecting to Postgres...');
+
+  // Depth 2: DB Details
+  final dbMigrations = Logger.get('orchestrator.database.migrations');
+  dbMigrations.info('Applying Migrations [12/12]');
+  dbMigrations.info('Indexing "users" table');
+
+  // Back to Root
+  Logger.get('orchestrator').info('All Systems Go.');
 }

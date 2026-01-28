@@ -8,13 +8,9 @@ To prevent visual artifacts (like uncolored borders or wrapped ANSI codes), the 
 
 **Execution Priority (Lower runs first):**
 
-1.  **TransformDecorator (0)**: Mutates the semantic content (e.g., masking secrets, truncating long messages).
-2.  **StructuralDecorator (1-3)**: Changes the layout or adds structural segments.
-    *   **BoxDecorator (1)**: Wraps the lines in an ASCII box.
-    *   **HierarchyDepthPrefixDecorator (2)**: Adds indentation prefixes *outside* the box.
-    *   **Other (3)**: Custom structural components.
-3.  **VisualDecorator (4)**: Applies final presentation styles (e.g. `StyleDecorator` using ANSI codes or CSS).
-4.  **Unknown types (5)**: Processed last.
+1.  **ContentDecorator (0)**: Mutates content or adds/aligns segments (e.g., `SuffixDecorator`, `PrefixDecorator`).
+2.  **StructuralDecorator (1-3)**: Adds frames or indentation (e.g., `BoxDecorator`, `HierarchyDepthDecorator`). These decorators must implement `paddingWidth` to participate in layout calculation.
+3.  **VisualDecorator (4)**: Applies final presentation styles (e.g., `StyleDecorator`).
 
 > [!IMPORTANT]
 > **VisualDecorator** runs AFTER **StructuralDecorator**. This ensures that borders added by the `BoxDecorator` receive the correct level-based colors.
@@ -57,7 +53,14 @@ One of the primary benefits of this composition model is **Platform Independence
 -   **Step 2**: `StyleDecorator` sees the borders and the content, applies the `LogTheme`, and colors both according to the `LogLevel`.
 -   **Result**: A fully colored box where borders and text share a cohesive visual identity.
 
-### 2. Hierarchical Indentation
+### 2. Dashboard with Alignment (The DevOps Recipe)
+**Configuration**: `[PrefixDecorator(), SuffixDecorator(), BoxDecorator(), StyleDecorator()]`
+-   **Step 1**: `PrefixDecorator` adds an icon at the start.
+-   **Step 2**: `SuffixDecorator` appends a status label. It uses `context.contentLimit` to calculate right-alignment, ensuring the label is pushed to the far right of the content area.
+-   **Step 3**: `BoxDecorator` wraps the entire line (including suffix) in a border.
+-   **Result**: A professional dashboard-style log entry where metadata is perfectly justified against the box edge.
+
+### 3. Hierarchical Indentation
 **Configuration**: `[BoxDecorator(), HierarchyDepthPrefixDecorator()]`
 -   **Step 1**: `BoxDecorator` creates the frame.
 -   **Step 2**: `HierarchyDepthPrefixDecorator` adds markers (`│ `) to the start of every line.

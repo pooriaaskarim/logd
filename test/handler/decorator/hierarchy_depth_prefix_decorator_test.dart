@@ -6,14 +6,18 @@ void main() {
   group('HierarchyDepthPrefixDecorator', () {
     final lines = [LogLine.text('msg')];
 
-    LogEntry createEntry(final int depth) => LogEntry(
-          loggerName: 'test',
-          origin: 'test',
-          level: LogLevel.info,
-          message: 'msg',
-          timestamp: 'now',
-          hierarchyDepth: depth,
-        );
+    LogEntry createEntry(final int depth) {
+      final name = depth == 0
+          ? 'global'
+          : List.generate(depth, (final i) => 'node$i').join('.');
+      return LogEntry(
+        loggerName: name,
+        origin: 'test',
+        level: LogLevel.info,
+        message: 'msg',
+        timestamp: 'now',
+      );
+    }
 
     test('adds no indentation at depth 0', () {
       const decorator = HierarchyDepthPrefixDecorator();

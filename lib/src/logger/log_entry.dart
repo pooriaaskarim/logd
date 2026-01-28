@@ -5,13 +5,13 @@ part of 'logger.dart';
 /// Single source of truth for all log data. Handlers receive
 /// this object and decide how to format and where to output.
 class LogEntry {
+  @internal
   const LogEntry({
     required this.loggerName,
     required this.origin,
     required this.level,
     required this.message,
     required this.timestamp,
-    required this.hierarchyDepth,
     this.stackFrames,
     this.error,
     this.stackTrace,
@@ -32,8 +32,17 @@ class LogEntry {
   /// Formatted timestamp.
   final String timestamp;
 
-  /// Hierarchy depth (0 for global).
-  final int hierarchyDepth;
+  /// Hierarchy depth calculated from [loggerName].
+  ///
+  /// 'global' -> 0
+  /// 'a' -> 1
+  /// 'a.b' -> 2
+  int get hierarchyDepth {
+    if (loggerName == 'global') {
+      return 0;
+    }
+    return loggerName.split('.').length;
+  }
 
   /// Parsed stack frames if included.
   final List<CallbackInfo>? stackFrames;

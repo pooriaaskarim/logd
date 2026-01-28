@@ -20,9 +20,17 @@ final class MarkdownFormatter implements LogFormatter {
   /// (default: true).
   /// - [headingLevel]: Heading level for log entries (1-6, default: 3).
   const MarkdownFormatter({
+    this.metadata = const {
+      LogMetadata.logger,
+      LogMetadata.timestamp,
+      LogMetadata.origin,
+    },
     this.useCodeBlocks = true,
     this.headingLevel = 3,
   });
+
+  @override
+  final Set<LogMetadata> metadata;
 
   /// Whether to wrap log messages in code blocks.
   final bool useCodeBlocks;
@@ -38,87 +46,70 @@ final class MarkdownFormatter implements LogFormatter {
     final h = '#' * headingLevel.clamp(1, 6);
     final levelIcon = _getLevelIcon(entry.level);
 
-    // Heading: Level + Logger
+    // 1. Identity Header: [Icon] LEVEL | Logger | Timestamp
+    final headerParts = <String>[
+      '$levelIcon ${entry.level.name.toUpperCase()}',
+      if (metadata.contains(LogMetadata.logger)) entry.loggerName,
+      if (metadata.contains(LogMetadata.timestamp)) entry.timestamp,
+    ];
+
     yield LogLine([
       LogSegment(
-        '$h $levelIcon ${entry.level.name.toUpperCase()} - ${entry.loggerName}',
-        tags: const {LogTag.header, LogTag.level, LogTag.loggerName},
+        '$h ${headerParts.join(' | ')}',
+        tags: const {LogTag.header, LogTag.level},
       ),
     ]);
 
-    yield const LogLine([LogSegment('', tags: {})]);
-
-    // Metadata table
-    yield const LogLine([
-      LogSegment('| Field | Value |', tags: {LogTag.header}),
-    ]);
-    yield const LogLine([
-      LogSegment('|-------|-------|', tags: {LogTag.header}),
-    ]);
-    yield LogLine([
-      LogSegment(
-        '| **Timestamp** | `${entry.timestamp}` |',
-        tags: const {LogTag.header, LogTag.timestamp},
-      ),
-    ]);
-    yield LogLine([
-      LogSegment(
-        '| **Origin** | `${entry.origin}` |',
-        tags: const {LogTag.origin},
-      ),
-    ]);
-
-    yield const LogLine([LogSegment('', tags: {})]);
-
-    // Message
-    if (useCodeBlocks) {
-      yield const LogLine([
-        LogSegment('```', tags: {LogTag.message}),
-      ]);
-    }
-
-    // Split message into lines for proper markdown
-    final messageLines = entry.message.split('\n');
-    for (final line in messageLines) {
+    // 2. Origin (Italicized on its own line if selected)
+    if (metadata.contains(LogMetadata.origin)) {
       yield LogLine([
-        LogSegment(line, tags: const {LogTag.message}),
+        LogSegment(
+          '*Origin: ${entry.origin}*',
+          tags: const {LogTag.origin},
+        ),
       ]);
     }
 
-    if (useCodeBlocks) {
-      yield const LogLine([
-        LogSegment('```', tags: {LogTag.message}),
+    yield const LogLine([LogSegment('', tags: {})]);
+
+    // 3. Message (Blockquoted for impact)
+    final messageLines = entry.message.split('\n');
+    for (int i = 0; i < messageLines.length; i++) {
+      yield LogLine([
+        LogSegment(
+          '> ${messageLines[i]}',
+          tags: const {LogTag.message},
+        ),
       ]);
     }
 
-    // Error
+    // 4. Error (Bolded blockquote)
     if (entry.error != null) {
       yield const LogLine([LogSegment('', tags: {})]);
-      yield const LogLine([
-        LogSegment('**Error:**', tags: {LogTag.error}),
-      ]);
-      yield const LogLine([
-        LogSegment('```', tags: {LogTag.error}),
-      ]);
-
       final errorLines = entry.error.toString().split('\n');
       for (final line in errorLines) {
         yield LogLine([
-          LogSegment(line, tags: const {LogTag.error}),
+          LogSegment(
+            '> **Error:** $line',
+            tags: const {LogTag.error},
+          ),
         ]);
       }
-
-      yield const LogLine([
-        LogSegment('```', tags: {LogTag.error}),
-      ]);
     }
 
-    // Stack trace
+    // 5. Stack trace (Collapsible for cleanliness)
     if (entry.stackFrames != null && entry.stackFrames!.isNotEmpty) {
       yield const LogLine([LogSegment('', tags: {})]);
       yield const LogLine([
-        LogSegment('**Stack Trace:**', tags: {LogTag.stackFrame}),
+        LogSegment('<details>', tags: {LogTag.stackFrame}),
       ]);
+      yield const LogLine([
+        LogSegment(
+          '<summary>Stack Trace</summary>',
+          tags: {LogTag.stackFrame},
+        ),
+      ]);
+      yield const LogLine([LogSegment('', tags: {})]);
       yield const LogLine([
         LogSegment('```', tags: {LogTag.stackFrame}),
       ]);
@@ -134,14 +125,16 @@ final class MarkdownFormatter implements LogFormatter {
       yield const LogLine([
         LogSegment('```', tags: {LogTag.stackFrame}),
       ]);
+      yield const LogLine([
+        LogSegment('</details>', tags: {LogTag.stackFrame}),
+      ]);
     }
 
-    // Separator
+    // 6. Separator
     yield const LogLine([LogSegment('', tags: {})]);
     yield const LogLine([
       LogSegment('---', tags: {LogTag.border}),
     ]);
-    yield const LogLine([LogSegment('', tags: {})]);
   }
 
   /// Gets an emoji icon for the log level.
@@ -166,7 +159,11 @@ final class MarkdownFormatter implements LogFormatter {
       other is MarkdownFormatter &&
           runtimeType == other.runtimeType &&
           useCodeBlocks == other.useCodeBlocks &&
-          headingLevel == other.headingLevel;
+          headingLevel == other.headingLevel &&
+          setEquals(
+            metadata,
+            other.metadata,
+          );
 
   @override
   int get hashCode => Object.hash(useCodeBlocks, headingLevel);

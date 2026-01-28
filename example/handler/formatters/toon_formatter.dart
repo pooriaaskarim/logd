@@ -1,62 +1,112 @@
+// Example: ToonFormatter - Exhaustive Combinatorial Stress Matrix
+//
+// Purpose:
+// Demonstrates the ToonFormatter's character-based personality under
+// extreme structural pressure. We combine Toon layouts with Boxes,
+// Hierarchy Indentation, ANSI Styling, and narrow terminal limits.
+//
+// Key Benchmarks:
+// 1. Comic Relay (Toon + Style + Deep Hierarchy)
+// 2. Toon Boxed (Toon + Rounded Box + 40 Width + Custom Tag Style)
+
 import 'package:logd/logd.dart';
 
 void main() async {
-  print('--- TOON Formatter Example ---\n');
+  print('=== Logd / ToonFormatter: Extreme Combinations ===\n');
 
-  // Example 1: Standard TOON (best for LLMs)
-  // - Tab delimited (default)
-  // - Minimal quoting
-  // - No color tags
-  final llmHandler = Handler(
-    formatter: ToonFormatter(), // Default: keys=std, delimiter=TAB
-    sink: ConsoleSink(),
-  );
-
-  print('Scenario 1: Feeding to an LLM (Standard)');
-  // Configure 'llm_feed' logger
-  Logger.configure('llm_feed', handlers: [llmHandler]);
-  final llmLogger = Logger.get('llm_feed');
-
-  llmLogger.info('User logged in');
-  llmLogger.warning('Database high latency: "db_primary"');
-  llmLogger.error(
-    'Transaction failed',
-    error: 'ConnectionTimeout',
-    stackTrace: StackTrace.current,
-  );
-
-  print('\n------------------------------------------------\n');
-
-  // Example 2: Colorized TOON (for human debugging)
-  // - Comma delimited
-  // - Colorized tags enabled
-  // - Processed by StyleDecorator
-  final debugHandler = Handler(
-    formatter: ToonFormatter(
-      delimiter: ', ', // Readable usage
-      keys: [LogField.timestamp, LogField.level, LogField.message],
-      colorize: true, // Enable tags for styling
+  // ---------------------------------------------------------------------------
+  // SCENARIO A: The "Comic Relay"
+  // Goal: Demonstrate multi-level narrative indentation with toon characters.
+  // ---------------------------------------------------------------------------
+  final relayHandler = Handler(
+    formatter: const ToonFormatter(
+      metadata: {LogMetadata.logger},
     ),
     decorators: [
-      StyleDecorator(
-        theme: LogTheme(
-          colorScheme: LogColorScheme.defaultScheme,
-          // Custom style for TOON punctuation
-          hierarchyStyle: const LogStyle(color: LogColor.brightBlack),
-        ),
-      ),
+      const StyleDecorator(
+          theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      const HierarchyDepthPrefixDecorator(indent: '┃ '),
+      const SuffixDecorator(' [v8]', aligned: true),
     ],
-    sink: ConsoleSink(),
+    sink: const ConsoleSink(),
+    lineLength: 75,
   );
 
-  print('Scenario 2: Debugging Context (Colorized)');
-  // Configure 'debug_feed' logger
-  Logger.configure('debug_feed', handlers: [debugHandler]);
-  final debugLogger = Logger.get('debug_feed');
+  // ---------------------------------------------------------------------------
+  // SCENARIO B: "Toon Boxed" (The Action Panel)
+  // Goal: The ultimate layout stress test. We force a complex character layout
+  // (Toon) inside a Rounded Box at an aggressively narrow 40-char width.
+  // ---------------------------------------------------------------------------
+  final panelHandler = Handler(
+    formatter: const ToonFormatter(
+      metadata: {LogMetadata.timestamp, LogMetadata.logger},
+      multiline: true, // Allow real newlines for high-detail visuals
+    ),
+    decorators: [
+      const StyleDecorator(theme: _ToonPanelTheme()),
+      BoxDecorator(borderStyle: BorderStyle.rounded),
+    ],
+    sink: const ConsoleSink(),
+    lineLength: 40, // Aggressively narrow for Toon + Box
+  );
 
-  debugLogger.trace('Loading configuration from env');
-  debugLogger.info('System initialization started');
-  debugLogger.debug('Database connection established');
-  debugLogger.warning('Optional config missing');
-  debugLogger.error('Fatal error occurred');
+  // Configure Global Loggers
+  Logger.configure('relay.narration', handlers: [relayHandler]);
+  Logger.configure('panel.alert', handlers: [panelHandler]);
+
+  // --- Run Scenario A: Comic Relay ---
+  print('TEST A: Comic Relay (Style + Deep Hierarchy)');
+  final relay = Logger.get('relay.narration');
+  relay.info('Chapter 1: The Server Awakens.');
+
+  final subRelay = Logger.get('relay.narration.engine.v8');
+  subRelay.debug('JIT compiler warming up: optimization level 4.');
+  subRelay.warning('Speculative execution threshold reached (80%).');
+  print('〰' * 40);
+
+  // --- Run Scenario B: Toon Boxed ---
+  print('\nTEST B: Toon Boxed (Action Panel: Box + Style + 40 Width)');
+  final alert = Logger.get('panel.alert');
+  alert.info('Establishing secure uplink to cluster-primary-alpha.');
+
+  try {
+    _detonate();
+  } catch (e, s) {
+    alert.error('CAPSULE BREACHED!', error: e, stackTrace: s);
+  }
+
+  print('\n=== Toon Combinatorial Matrix Complete ===');
+}
+
+void _detonate() {
+  throw StateError('Simulated reactor meltdown in test environment.');
+}
+
+/// A custom theme for the Action Panel to make the Level and Borders pop.
+class _ToonPanelTheme extends LogTheme {
+  const _ToonPanelTheme() : super(colorScheme: LogColorScheme.darkScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    // Make Toon borders/frames bright white for the "Action" feel
+    if (tags.contains(LogTag.border)) {
+      return const LogStyle(color: LogColor.white, bold: true);
+    }
+    // Make levels inverse for high-impact status
+    if (tags.contains(LogTag.level)) {
+      return LogStyle(color: _levelColor(level), bold: true, inverse: true);
+    }
+    return super.getStyle(level, tags);
+  }
+
+  LogColor _levelColor(final LogLevel level) {
+    switch (level) {
+      case LogLevel.error:
+        return LogColor.red;
+      case LogLevel.warning:
+        return LogColor.yellow;
+      default:
+        return LogColor.blue;
+    }
+  }
 }

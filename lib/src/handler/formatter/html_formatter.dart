@@ -11,7 +11,19 @@ part of '../handler.dart';
 @immutable
 final class HTMLFormatter implements LogFormatter {
   /// Creates an [HTMLFormatter].
-  const HTMLFormatter();
+  ///
+  /// - [metadata]: List of [LogMetadata] to include in the output.
+  const HTMLFormatter({
+    this.metadata = const {
+      LogMetadata.timestamp,
+      LogMetadata.logger,
+      LogMetadata.origin,
+    },
+  });
+
+  /// The contextual metadata to include.
+  @override
+  final Set<LogMetadata> metadata;
 
   @override
   Iterable<LogLine> format(
@@ -32,12 +44,14 @@ final class HTMLFormatter implements LogFormatter {
     ]);
 
     // Timestamp
-    yield LogLine([
-      LogSegment(
-        '    <span class="log-timestamp">${_escapeHtml(entry.timestamp)}</span>',
-        tags: const {LogTag.header, LogTag.timestamp},
-      ),
-    ]);
+    if (metadata.contains(LogMetadata.timestamp)) {
+      yield LogLine([
+        LogSegment(
+          '    <span class="log-timestamp">${_escapeHtml(entry.timestamp)}</span>',
+          tags: const {LogTag.header, LogTag.timestamp},
+        ),
+      ]);
+    }
 
     // Level
     yield LogLine([
@@ -48,24 +62,28 @@ final class HTMLFormatter implements LogFormatter {
     ]);
 
     // Logger name
-    yield LogLine([
-      LogSegment(
-        '    <span class="log-logger">[${_escapeHtml(entry.loggerName)}]</span>',
-        tags: const {LogTag.header, LogTag.loggerName},
-      ),
-    ]);
+    if (metadata.contains(LogMetadata.logger)) {
+      yield LogLine([
+        LogSegment(
+          '    <span class="log-logger">[${_escapeHtml(entry.loggerName)}]</span>',
+          tags: const {LogTag.header, LogTag.loggerName},
+        ),
+      ]);
+    }
 
     yield const LogLine([
       LogSegment('  </div>', tags: {LogTag.header}),
     ]);
 
     // Origin
-    yield LogLine([
-      LogSegment(
-        '  <div class="log-origin">${_escapeHtml(entry.origin)}</div>',
-        tags: const {LogTag.origin},
-      ),
-    ]);
+    if (metadata.contains(LogMetadata.origin)) {
+      yield LogLine([
+        LogSegment(
+          '  <div class="log-origin">${_escapeHtml(entry.origin)}</div>',
+          tags: const {LogTag.origin},
+        ),
+      ]);
+    }
 
     // Message
     yield LogLine([
@@ -79,7 +97,8 @@ final class HTMLFormatter implements LogFormatter {
     if (entry.error != null) {
       yield LogLine([
         LogSegment(
-          '  <div class="log-error">Error: ${_escapeHtml(entry.error.toString())}</div>',
+          '  <div class="log-error">Error: '
+          '${_escapeHtml(entry.error.toString())}</div>',
           tags: const {LogTag.error},
         ),
       ]);
@@ -105,6 +124,25 @@ final class HTMLFormatter implements LogFormatter {
       yield const LogLine([
         LogSegment('  </div>', tags: {LogTag.stackFrame}),
       ]);
+    } else if (entry.stackTrace != null) {
+      yield const LogLine([
+        LogSegment('  <div class="log-stacktrace">', tags: {LogTag.stackFrame}),
+      ]);
+      final traceLines = entry.stackTrace.toString().split('\n');
+      for (final line in traceLines) {
+        if (line.trim().isEmpty) {
+          continue;
+        }
+        yield LogLine([
+          LogSegment(
+            '    <div class="stack-frame">${_escapeHtml(line)}</div>',
+            tags: const {LogTag.stackFrame},
+          ),
+        ]);
+      }
+      yield const LogLine([
+        LogSegment('  </div>', tags: {LogTag.stackFrame}),
+      ]);
     }
 
     // Close entry container
@@ -120,4 +158,14 @@ final class HTMLFormatter implements LogFormatter {
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is HTMLFormatter &&
+          runtimeType == other.runtimeType &&
+          setEquals(metadata, other.metadata);
+
+  @override
+  int get hashCode => Object.hash(runtimeType, Object.hashAll(metadata));
 }

@@ -1,86 +1,85 @@
-// Example: BoxDecorator
+// Example: BoxDecorator - Structural Framing & Pressure Testing
 //
-// Demonstrates:
-// - Different border styles (rounded, sharp, double)
-// - Line length configuration
-// - Color support
-// - Wrapping long content
-//
-// Expected: Logs wrapped in ASCII boxes
+// Purpose:
+// Demonstrates how the BoxDecorator provides highly visual boundaries for logs.
+// It exercises border style selection and tests how the box adapts to
+// internal wrapping (from formatters) and external indentation (from hierarchy).
 
 import 'package:logd/logd.dart';
 
 void main() async {
-  // Rounded borders
-  final roundedHandler = Handler(
+  print('=== Logd / BoxDecorator Structural Matrix ===\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 1: Style Matrix
+  // Goal: Quick comparison of available boundary characters.
+  // ---------------------------------------------------------------------------
+  print('TEST 1: Border Style Matrix');
+
+  await _showBorder(BorderStyle.rounded, 'Rounded (Modern)');
+  await _showBorder(BorderStyle.sharp, 'Sharp (Classic)');
+  await _showBorder(BorderStyle.double, 'Double (Emphasis)');
+
+  print('=' * 60);
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 2: The "Full Stack" (Indented Box)
+  // Goal: Verify that Box and Hierarchy indents play nicely without collision.
+  // ---------------------------------------------------------------------------
+  print('\nTEST 2: The Full Stack (Depth 2 Indentation)');
+
+  final fullStackHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      BoxDecorator(
-        borderStyle: BorderStyle.rounded,
-      ),
+      const StyleDecorator(),
+      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      const HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],
     sink: const ConsoleSink(),
     lineLength: 60,
   );
 
-  // Sharp borders
-  final sharpHandler = Handler(
-    formatter: const StructuredFormatter(),
+  Logger.configure('box.full', handlers: [fullStackHandler]);
+  // ---------------------------------------------------------------------------
+
+  Logger.get('box.full.sub.feature').info('Feature initialization starting...');
+
+  print('=' * 60);
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 3: Pressure Test (Narrow Wrapping)
+  // Goal: Force internal wrapping inside the box to test width calculation.
+  // ---------------------------------------------------------------------------
+  print('\nTEST 3: Pressure Test (35 chars + Boxes)');
+
+  final pressureHandler = Handler(
+    formatter: const PlainFormatter(
+        metadata: {LogMetadata.timestamp, LogMetadata.logger}),
     decorators: [
-      BoxDecorator(
-        borderStyle: BorderStyle.sharp,
-      ),
+      const StyleDecorator(),
+      const BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
-    lineLength: 60,
+    lineLength: 35, // Very tight for metadata + box
   );
 
-  // Double borders
-  final doubleHandler = Handler(
-    formatter: const StructuredFormatter(),
-    decorators: [
-      BoxDecorator(
-        borderStyle: BorderStyle.double,
-      ),
-    ],
+  Logger.configure('box.pressure', handlers: [pressureHandler]);
+  final pressure = Logger.get('box.pressure');
+  pressure.info(
+      'This message is long enough to force internal wrapping inside the rounded box borders.');
+
+  print('\n=== BoxDecorator Matrix Complete ===');
+}
+
+Future<void> _showBorder(BorderStyle style, String label) async {
+  final handler = Handler(
+    formatter: const PlainFormatter(metadata: {}),
+    decorators: [BoxDecorator(borderStyle: style)],
     sink: const ConsoleSink(),
-    lineLength: 60,
+    lineLength: 50,
   );
-
-  // Narrow box (tests wrapping)
-  final narrowHandler = Handler(
-    formatter: const StructuredFormatter(),
-    decorators: [
-      BoxDecorator(
-        borderStyle: BorderStyle.rounded,
-      ),
-    ],
-    sink: const ConsoleSink(),
-    lineLength: 40,
-  );
-
-  Logger.configure('example.rounded', handlers: [roundedHandler]);
-  Logger.configure('example.sharp', handlers: [sharpHandler]);
-  Logger.configure('example.double', handlers: [doubleHandler]);
-  Logger.configure('example.narrow', handlers: [narrowHandler]);
-
-  final roundedLogger = Logger.get('example.rounded');
-  final sharpLogger = Logger.get('example.sharp');
-  final doubleLogger = Logger.get('example.double');
-  final narrowLogger = Logger.get('example.narrow');
-
-  print('=== Rounded Borders ===');
-  roundedLogger.info('This is a message in a rounded box');
-
-  print('\n=== Sharp Borders ===');
-  sharpLogger.warning('This is a warning in a sharp box');
-
-  print('\n=== Double Borders ===');
-  doubleLogger.error('This is an error in a double box');
-
-  print('\n=== Narrow Box (Wrapping Test) ===');
-  narrowLogger.info(
-    'This is a very long message that will definitely wrap '
-    'across multiple lines inside the box',
-  );
+  // Using a unique logger for style matrix comparison
+  final name = 'style.${style.name}';
+  Logger.configure(name, handlers: [handler]);
+  Logger.get(name).info('Testing $label');
 }

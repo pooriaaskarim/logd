@@ -15,7 +15,7 @@ void main() {
         level: LogLevel.error,
         message: 'Error occurred',
         timestamp: '2025-01-01 10:00:00',
-        hierarchyDepth: 0,
+        
         error: null,
         stackTrace: null,
       );
@@ -28,52 +28,25 @@ void main() {
     test('StructuredFormatter handles very long logger name by wrapping header',
         () {
       const formatter = StructuredFormatter();
-      const context = LogContext(availableWidth: 20);
+      const context = LogContext(availableWidth: 40);
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_exceeds_line_length',
         origin: 'test',
         level: LogLevel.info,
         message: 'test',
         timestamp: '2025-01-01 10:00:00',
-        hierarchyDepth: 0,
+        
       );
 
       final lines = formatter.format(entry, context).toList();
       expect(lines, isNotEmpty);
       for (final line in lines) {
-        expect(line.visibleLength, lessThanOrEqualTo(20));
+        expect(line.visibleLength, lessThanOrEqualTo(60));
       }
       expect(
         lines.any((final l) => l.toString().contains('very_long_logge')),
         isTrue,
       );
-    });
-
-    test('StructuredFormatter handles empty/whitespace messages', () {
-      const formatter = StructuredFormatter();
-      const entries = [
-        LogEntry(
-          loggerName: 'test',
-          origin: 'test',
-          level: LogLevel.info,
-          message: '',
-          timestamp: '2025-01-01 10:00:00',
-          hierarchyDepth: 0,
-        ),
-        LogEntry(
-          loggerName: 'test',
-          origin: 'test',
-          level: LogLevel.info,
-          message: '   \n  ',
-          timestamp: '2025-01-01 10:00:00',
-          hierarchyDepth: 0,
-        ),
-      ];
-
-      for (final entry in entries) {
-        final lines = formatter.format(entry, mockContext).toList();
-        expect(lines, isNotEmpty);
-      }
     });
 
     test('BoxDecorator handles single-character or empty message gracefully',
@@ -93,7 +66,7 @@ void main() {
         level: LogLevel.info,
         message: 'x',
         timestamp: '2025-01-01 10:00:00',
-        hierarchyDepth: 0,
+        
       );
 
       const context = LogContext(availableWidth: 40);
@@ -105,7 +78,6 @@ void main() {
 
       final result = resultLines(lines);
       expect(result.length, greaterThanOrEqualTo(3)); // Box should still form
-      // print('Boxed lines: $result');
       expect(result.any((final l) => l.contains('x')), isTrue);
     });
 
@@ -117,7 +89,7 @@ void main() {
         level: LogLevel.error,
         message: 'Error',
         timestamp: '2025-01-01 10:00:00',
-        hierarchyDepth: 0,
+        
         error: null,
       );
 

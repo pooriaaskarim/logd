@@ -554,7 +554,6 @@ class Logger {
       message: message?.toString() ?? '',
       timestamp: timestamp.timestamp ?? '',
       origin: _buildOrigin(caller),
-      hierarchyDepth: name == 'global' ? 0 : name.split('.').length,
       stackFrames: _extractStackFrames(level, stackTrace ?? StackTrace.current),
       error: error,
       stackTrace: stackTrace,
