@@ -18,14 +18,16 @@ sealed class LogDecorator {
     final LogEntry entry,
     final LogContext context,
   );
+
+  /// Returns the width in terminal cells this decorator adds to each line.
+  int paddingWidth(final LogEntry entry) => 0;
 }
 
 /// A decorator that modifies the content or metadata of log lines.
-/// Examples: masking PII, adding prefixes [HierarchyDepthPrefixDecorator],
-/// [PrefixDecorator].
-abstract class TransformDecorator extends LogDecorator {
+/// Examples: masking PII, adding prefixes [PrefixDecorator].
+abstract class ContentDecorator extends LogDecorator {
   /// Constant constructor for subclasses.
-  const TransformDecorator();
+  const ContentDecorator();
 }
 
 /// A decorator that modifies the layout or structure of log output.

@@ -2,117 +2,93 @@ part of '../handler.dart';
 
 /// A lightweight formatter that outputs log entries as simple, readable text.
 ///
-/// By default, it includes the log level, timestamp, logger name, and the
-/// message. These components can be toggled via constructor parameters.
-///
-/// Example output:
-/// `[INFO] 2025-01-01 10:00:00 [main] Hello, World!`
+/// It strictly includes crucial log content (level, message, error, stackTrace)
+/// and allows customization of contextual [metadata] (timestamp, logger,
+/// origin).
 @immutable
 final class PlainFormatter implements LogFormatter {
-  /// Creates a [PlainFormatter] with customizable output components.
+  /// Creates a [PlainFormatter].
+  ///
+  /// - [metadata]: Contextual metadata to include.
+  ///   Crucial fields (level, message, etc.) are always included.
   const PlainFormatter({
-    this.includeLevel = true,
-    this.includeTimestamp = true,
-    this.includeLoggerName = true,
+    this.metadata = const {
+      LogMetadata.timestamp,
+      LogMetadata.logger,
+    },
   });
 
-  /// Whether to include the uppercase [LogLevel] name (e.g., `[INFO]`).
-  final bool includeLevel;
-
-  /// Whether to include the formatted timestamp from the [LogEntry].
-  final bool includeTimestamp;
-
-  /// Whether to include the name of the logger (e.g., `[main]`).
-  final bool includeLoggerName;
+  /// The contextual metadata to include in the output.
+  @override
+  final Set<LogMetadata> metadata;
 
   @override
   Iterable<LogLine> format(
     final LogEntry entry,
     final LogContext context,
   ) sync* {
-    final segments = <LogSegment>[];
+    final width = context.availableWidth;
 
-    if (includeLevel) {
-      segments
-        ..add(
-          LogSegment(
-            '[${entry.level.name.toUpperCase()}]',
-            tags: const {LogTag.header, LogTag.level},
-          ),
-        )
-        ..add(
-          const LogSegment(
-            ' ',
-          ),
-        );
-    }
+    // 1. Collect all entry segments (Level, Metadata, Message)
+    final parts = <(String text, LogTag? tag)>[
+      ('[${entry.level.name.toUpperCase()}]', LogTag.level),
+    ];
 
-    if (includeTimestamp) {
-      segments
-        ..add(
-          LogSegment(
-            entry.timestamp,
-            tags: const {LogTag.header, LogTag.timestamp},
-          ),
-        )
-        ..add(
-          const LogSegment(
-            ' ',
-          ),
-        );
-    }
-
-    if (includeLoggerName) {
-      segments
-        ..add(
-          LogSegment(
-            '[${entry.loggerName}]',
-            tags: const {LogTag.header, LogTag.loggerName},
-          ),
-        )
-        ..add(
-          const LogSegment(
-            ' ',
-          ),
-        );
-    }
-
-    final messageLines = entry.message.split('\n');
-    if (messageLines.isNotEmpty) {
-      final firstLineSegments = [
-        ...segments,
-        LogSegment(
-          messageLines.first,
-          tags: const {LogTag.message},
-        ),
-      ];
-      yield LogLine(firstLineSegments);
-
-      for (int i = 1; i < messageLines.length; i++) {
-        yield LogLine([
-          LogSegment(messageLines[i], tags: const {LogTag.message}),
-        ]);
+    for (final meta in metadata) {
+      final value = meta.getValue(entry);
+      if (value.isNotEmpty) {
+        final text = meta != LogMetadata.timestamp ? '[$value]' : value;
+        parts
+          ..add((' ', null))
+          ..add((text, meta.tag));
       }
-    } else {
-      yield LogLine(segments);
     }
 
+    parts
+      ..add((' ', null))
+      ..add((entry.message, LogTag.message));
+
+    // 2. Emit the entry flow
+    yield* _wrapFlow(parts, width);
+
+    // 3. Handle Error if present
     if (entry.error != null) {
-      yield LogLine([
-        LogSegment('Error: ${entry.error}', tags: const {LogTag.error}),
-      ]);
+      const errorPrefix = 'Error: ';
+      final errorContent = entry.error.toString();
+      yield* _wrapFlow(
+        [(errorPrefix + errorContent, LogTag.error)],
+        width,
+      );
     }
 
-    if (entry.stackTrace != null) {
-      final traceLines = entry.stackTrace.toString().split('\n');
-      for (final line in traceLines) {
+    // 4. Handle Stack Trace if present
+    if (entry.stackFrames != null && entry.stackFrames!.isNotEmpty) {
+      for (final frame in entry.stackFrames!) {
+        final text =
+            'at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
+        yield* _wrapFlow([(text, LogTag.stackFrame)], width);
+      }
+    } else if (entry.stackTrace != null) {
+      final lines = entry.stackTrace.toString().split('\n');
+      for (final line in lines) {
         if (line.trim().isNotEmpty) {
-          yield LogLine([
-            LogSegment(line, tags: const {LogTag.stackFrame}),
-          ]);
+          yield* _wrapFlow([(line, LogTag.stackFrame)], width);
         }
       }
     }
+  }
+
+  Iterable<LogLine> _wrapFlow(
+    final List<(String text, LogTag? tag)> parts,
+    final int width,
+  ) sync* {
+    final line = LogLine(
+      parts
+          .map((final p) => LogSegment(p.$1, tags: {if (p.$2 != null) p.$2!}))
+          .toList(),
+    );
+
+    yield* line.wrap(width);
   }
 
   @override
@@ -120,11 +96,8 @@ final class PlainFormatter implements LogFormatter {
       identical(this, other) ||
       other is PlainFormatter &&
           runtimeType == other.runtimeType &&
-          includeLevel == other.includeLevel &&
-          includeTimestamp == other.includeTimestamp &&
-          includeLoggerName == other.includeLoggerName;
+          setEquals(metadata, other.metadata);
 
   @override
-  int get hashCode =>
-      Object.hash(includeLevel, includeTimestamp, includeLoggerName);
+  int get hashCode => runtimeType.hashCode;
 }

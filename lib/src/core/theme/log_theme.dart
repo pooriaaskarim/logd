@@ -35,6 +35,18 @@ enum LogTag {
 
   /// Content Prefix
   prefix,
+
+  /// Content Suffix
+  suffix,
+
+  /// Semantic key (e.g. JSON key, TOON field name).
+  key,
+
+  /// Generic data value.
+  value,
+
+  /// Structural punctuation (e.g. braces, commas, delimiters).
+  punctuation,
 }
 
 /// Visual style suggestion for a log segment.
@@ -65,7 +77,7 @@ class LogStyle {
   /// Whether the text should be italic.
   final bool? italic;
 
-  /// Whether the text should be inverted (reverse video).
+  /// Whether the text/background color should be inverted.
   final bool? inverse;
 
   @override
