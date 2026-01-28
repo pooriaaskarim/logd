@@ -13,7 +13,7 @@ void main() {
         level: LogLevel.info,
         message: 'HELLO',
         timestamp: '10:00:00',
-        hierarchyDepth: 0,
+        
       );
 
       expect(filter.shouldLog(entry), isTrue);
@@ -31,7 +31,7 @@ void main() {
         level: LogLevel.info,
         message: 'danger',
         timestamp: '10:00:00',
-        hierarchyDepth: 0,
+        
       );
       const entry2 = LogEntry(
         loggerName: 'test',
@@ -39,7 +39,7 @@ void main() {
         level: LogLevel.warning,
         message: 'safe',
         timestamp: '10:00:00',
-        hierarchyDepth: 0,
+        
       );
       const entry3 = LogEntry(
         loggerName: 'test',
@@ -47,7 +47,7 @@ void main() {
         level: LogLevel.error,
         message: 'danger zone',
         timestamp: '10:00:00',
-        hierarchyDepth: 0,
+        
       );
 
       expect(
@@ -75,7 +75,7 @@ void main() {
         level: LogLevel.info,
         message: '',
         timestamp: '10:00:00',
-        hierarchyDepth: 0,
+        
       );
       expect(filter.shouldLog(entry), isFalse);
     });

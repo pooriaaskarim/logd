@@ -29,9 +29,7 @@ void main() {
 
       final handler = Handler(
         formatter: const PlainFormatter(
-          includeLevel: false,
-          includeTimestamp: false,
-          includeLoggerName: false,
+          metadata: {},
         ),
         decorators: const [
           BoxDecorator(),
@@ -42,11 +40,11 @@ void main() {
 
       const entry = LogEntry(
         level: LogLevel.info,
-        message: 'Hello 🚀 World', // 13 visible chars
+        message: 'Hello 🚀', // 8 visible chars
         loggerName: 'test',
         origin: 'main',
         timestamp: '10:00:00',
-        hierarchyDepth: 0,
+        
       );
 
       await handler.log(entry);

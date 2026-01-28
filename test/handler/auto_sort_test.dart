@@ -49,7 +49,7 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        hierarchyDepth: 1,
+        
       );
 
       await handler.log(entry);
@@ -93,7 +93,7 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        hierarchyDepth: 0,
+        
       );
 
       await handler.log(entry);

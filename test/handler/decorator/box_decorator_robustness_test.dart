@@ -18,7 +18,6 @@ void main() {
             '40 characters limit of the box decorator and should '
             'be handled gracefully.',
         timestamp: '2025-01-01 10:00:00',
-        hierarchyDepth: 0,
       );
 
       final formatted = formatter.format(entry, context);
@@ -52,15 +51,20 @@ void main() {
         level: LogLevel.error,
         message: 'Status 500: Database connection failed unexpectedly.',
         timestamp: '2025-01-01 10:00:00',
-        hierarchyDepth: 0,
       );
 
       final formatted = formatter.format(entry, context);
       final boxed = box.decorate(formatted, entry, context).toList();
 
+      // Box should have consistent width across all lines
+      final boxWidth = boxed[0].visibleLength;
       for (int i = 0; i < boxed.length; i++) {
         final line = boxed[i];
-        expect(line.visibleLength, equals(boxed[0].visibleLength));
+        expect(
+          line.visibleLength,
+          equals(boxWidth),
+          reason: 'All box lines should have the same width',
+        );
       }
     });
   });

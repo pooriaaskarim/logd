@@ -195,9 +195,7 @@ void main() {
         handlers: [
           Handler(
             formatter: const PlainFormatter(
-              includeTimestamp: false,
-              includeLevel: false,
-              includeLoggerName: false,
+              metadata: {},
             ),
             sink: logCollector,
           ),
@@ -212,7 +210,7 @@ void main() {
 
       buffer.sink();
 
-      expect(logCollector.logs, containsAll(['line 1', 'line 2']));
+      expect(logCollector.logs, containsAll(['[INFO] line 1', 'line 2']));
     });
   });
 

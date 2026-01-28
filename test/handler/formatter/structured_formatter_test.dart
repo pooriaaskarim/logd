@@ -10,16 +10,25 @@ void main() {
       level: LogLevel.info,
       message: 'Hello World',
       timestamp: '2025-01-01 10:00:00',
-      hierarchyDepth: 0,
+      
     );
 
-    test('formats header with correct prefix', () {
+    test('formats header with correct sequence', () {
       const formatter = StructuredFormatter();
       final lines = formatter.format(entry, mockContext).toList();
 
+      // Line 0: Timestamp
       expect(lines[0].toString(), startsWith('____'));
-      expect(lines[0].toString(), contains('[test]'));
-      expect(lines[0].toString(), contains('[INFO]'));
+      expect(lines[0].toString(), contains('2025-01-01 10:00:00'));
+
+      // Line 1: Level + Logger
+      expect(lines[1].toString(), startsWith('____'));
+      expect(lines[1].toString(), contains('[INFO]'));
+      expect(lines[1].toString(), contains('[test]'));
+
+      // Line 2: Origin
+      expect(lines[2].toString(), startsWith('____'));
+      expect(lines[2].toString(), contains('[main.dart]'));
     });
 
     test('wraps long message', () {
@@ -30,7 +39,7 @@ void main() {
         level: LogLevel.info,
         message: 'This is a very long message that should be wrapped.',
         timestamp: 'ts',
-        hierarchyDepth: 0,
+        
       );
       final lines = formatter
           .format(longEntry, const LogContext(availableWidth: 20))

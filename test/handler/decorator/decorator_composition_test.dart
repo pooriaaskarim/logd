@@ -11,7 +11,7 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      hierarchyDepth: 0,
+      
     );
 
     test('Order: BoxDecorator then StyleDecorator colors the borders', () {
@@ -95,11 +95,11 @@ void main() {
       final rendered = renderLines(boxed);
 
       final middleLine = boxed[1];
-      // visibleLength should be 3 ('abc'). ANSI is style, not text.
+      // visibleLength should be 80 (availableWidth) + 2 borders = 82.
       expect(
         middleLine.visibleLength,
-        equals(3 + 75 + 2),
-      ); // abc + pad + borders(2) = 80 (mockContext default)
+        equals(82),
+      );
 
       final renderedMiddle = rendered[1];
       // Info level now defaults to blue (was green)
@@ -124,7 +124,7 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        hierarchyDepth: 1,
+        
       );
 
       // Pipeline execution

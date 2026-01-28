@@ -10,7 +10,7 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      hierarchyDepth: 0,
+      
     );
 
     test('colorFor respects tag-specific overrides', () {
