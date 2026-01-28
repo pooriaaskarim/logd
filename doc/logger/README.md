@@ -4,35 +4,27 @@ The Logger module is the core of `logd`, implementing the hierarchical logger sy
 
 ## Responsibilities
 
-1. **Logger Instantiation**: Factory pattern via `Logger.get(name)` for retrieving loggers
-2. **Hierarchical Configuration**: Dot-separated naming with parent-child inheritance
-3. **Configuration Resolution**: Lazy resolution and caching of effective settings
-4. **Log Dispatch**: Processing log calls and routing entries to handlers
+- **Hierarchy Management**: Factory pattern via `Logger.get(name)` with dot-separated inheritance.
+- **Lazy Resolution**: Sparse configuration storage with version-based cache invalidation (O(1) access).
+- **Log Dispatch**: Implicit `LogEntry` generation and routing to the `Handler` pipeline.
 
 ## Core Concepts
 
-### Hierarchy
-Loggers form a tree structure where children inherit configuration from parents:
-```
-global
-└── app
-    ├── app.network
-    │   └── app.network.http
-    └── app.ui
-```
+### Sparse Hierarchy
+Only explicit overrides are stored. `null` values signal inheritance from the nearest configured ancestor, terminating at the `"global"` root.
 
-### Sparse Configuration
-Only explicitly set values are stored. `null` indicates inheritance from parent.
-
-### Caching
-Resolved configurations are cached for O(1) access. Cache invalidation uses version-based tracking.
+### Data Model Protection
+The construction of `LogEntry` objects is an automated internal concern. The `LogEntry` constructor is marked **`@internal`** to preserve pipeline integrity and allow for future backend optimizations.
 
 ## API Overview
 
 - `Logger.get(name)`: Retrieve or create logger
 - `Logger.configure(name, ...)`: Set configuration for a logger and its descendants
-- `logger.info()`, `logger.error()`, etc.: Log methods
-- `logger.freezeInheritance()`: Lock configuration for performance optimization
+- `logger.info()`, `logger.error()`, etc.: Primary logging interface
+- `logger.freezeInheritance()`: Optimized for high-performance static configurations
+
+> [!IMPORTANT]
+> **Data Model Protection**: The construction of `LogEntry` objects is an automated internal process. The `LogEntry` constructor is marked as **`@internal`** to preserve the integrity of the logging pipeline and allow for future backend optimizations without affecting user code.
 
 ## Documentation
 

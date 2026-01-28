@@ -8,22 +8,7 @@ The `Handler` class acts as an orchestrator. When `handler.log(entry)` is called
 
 ```mermaid
 flowchart LR
-    Entry[LogEntry] --> Filter{Filter?}
-    Filter -- No --> Drop[Stop]
-    Filter -- Yes --> Format[Formatter]
-    Format --> Dec[Decorator]
-    Dec --> Sink[Sink]
-    Sink --> IO[Output]
-    
-    classDef inputStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
-    classDef processStyle fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
-    classDef outputStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef stopStyle fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#000
-    
-    class Entry inputStyle
-    class Format,Dec,Sink processStyle
-    class IO outputStyle
-    class Drop stopStyle
+    Entry --> Filter --> Format --> Wrap --> Dec --> Sink --> IO
 ```
 
 ### The Life of a Log entry (Sequence)
@@ -41,6 +26,7 @@ sequenceDiagram
     alt Should remain?
         H->>F: format(entry, context)
         F-->>H: Iterable<LogLine>
+        H->>H: wrap(availableWidth)
         loop Each Decorator
             H->>D: decorate(lines, entry, context)
             D-->>H: Iterable<LogLine>
@@ -50,13 +36,13 @@ sequenceDiagram
     end
 ```
 
-### Operational Context (`LogContext`)
+The `Handler` initializes a `LogContext` for every entry, ensuring **Unified Layout Sovereignty**:
+- **totalWidth**: The authoritative spatial limit (from sink or user).
+- **paddingWidth**: Calculated as the sum of all structural decorator footprints.
+- **availableWidth**: The remaining slot for initial content (`totalWidth - paddingWidth`).
+- **contentLimit**: The boundary for aligned metadata (e.g. suffixes).
 
-To avoid redundant calculations across the pipeline, the `Handler` initializes a `LogContext` object for every log entry. This context carries:
-- **Available Width**: Calculated once based on `handler.lineLength` or `sink.preferredWidth`.
-- **Metadata**: Temporary state required for formatters and decorators to remain stateless.
-
-Formatters and decorators are strictly required to use `context.availableWidth` for all layout decisions (wrapping, padding, borders). This ensures that a decorator added at the end of the chain doesn't break the layout established by a formatter at the start.
+Formatters wrap content to `availableWidth` *before* decorators run, eliminating layout conflicts.
 
 ### Stage 1: Filtering
 **Component**: `LogFilter`
@@ -87,16 +73,17 @@ The formatter transforms the structured log entry into a list of semantic lines 
 
 The bridge between Stage 2 (Formatting) and Stage 3 (Decoration) is the `LogTag`. Formatters do not emit raw strings; they emit `LogSegment`s tagged with semantic metadata.
 
-| Tag | Purpose | Example Component |
-|---|---|---|
-| `header` | General structural metadata | `ToonFormatter` keys |
-| `timestamp` | Time of entry | `StructuredFormatter` |
-| `level` | Log severity (e.g. `[INFO]`) | `StructuredFormatter` |
-| `message` | The primary content | `JsonFormatter` |
+| Tag | Purpose | Example Component                     |
+|---|---|---------------------------------------|
+| `header` | General structural metadata | `ToonFormatter` fields                |
+| `timestamp` | Time of entry | `StructuredFormatter`                 |
+| `level` | Log severity (e.g. `[INFO]`) | `StructuredFormatter`                 |
+| `message` | The primary content | `JsonFormatter`                       |
 | `border` | Visual framing characters | `BoxDecorator`, `JsonPrettyFormatter` |
-| `origin` | File/Line source info | `StructuredFormatter` |
-| `error` | Exception details | `LogField.error` extraction |
-| `hierarchy` | Tree prefixes | `HierarchyDepthPrefixDecorator` |
+| `origin` | File/Line source info | `StructuredFormatter`                 |
+| `error` | Exception details | `LogField.error` extraction           |
+| `hierarchy` | Tree prefixes | `HierarchyDepthPrefixDecorator`       |
+| `suffix` | Trailing metadata | `SuffixDecorator`                     |
 
 **Why this matters**: A decorator can selectively target segments. For example, `StyleDecorator` might make `border` segments dim while making `level` segments bold and colored. This decoupling allows you to swap formatters without losing your high-fidelity terminal styling.
 
@@ -128,47 +115,22 @@ The sink handles the physical write operation. Sinks are designed to be robust a
 
 ## Class Diagram
 
-```mermaid
-classDiagram
-    class Handler {
-        +Formatter formatter
-        +Sink sink
-        +List~Filter~ filters
-        +List~Decorator~ decorators
-        +log(LogEntry)
-    }
-    
-    class LogFilter {
-        <<interface>>
-        +shouldLog(LogEntry): bool
-    }
-    
-    class LogFormatter {
-        <<interface>>
-        +format(LogEntry, LogContext): Iterable~LogLine~
-    }
-    
-    class LogDecorator {
-        <<interface>>
-        +decorate(Iterable~LogLine~, LogEntry, LogContext): Iterable~LogLine~
-    }
-    
-    class LogSink {
-        <<abstract>>
-        +output(lines)
-    }
+## The Data Model: LogEntry
 
-    Handler --> LogFilter
-    Handler --> LogFormatter
-    Handler --> LogDecorator
-    Handler --> LogSink
-    
-    style Handler fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
-    style LogFilter fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    style LogFormatter fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style LogDecorator fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
-    style LogSink fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000
-```
+The `LogEntry` is the immutable data snapshot passed through the pipeline.
+
+### API Protection
+> [!IMPORTANT]
+> The `LogEntry` constructor and `Handler.log` method are marked as **`@internal`**. 
+> Developers should always interface with the logging system via the `Logger` API (e.g., `logger.info()`). This preserves the integrity of the data model and allows for future pipeline optimizations without breaking user code.
+
+### Dynamic Hierarchy
+To ensure performance and consistency, `LogEntry` does not store a manual depth value. Instead, `hierarchyDepth` is computed dynamically from the `loggerName`:
+- `global` -> 0
+- `app` -> 1
+- `app.services.db` -> 3
+
+This ensures that indentation always perfectly mirrors the actual logger hierarchy, regardless of how the entry was created.
 
 ## Standard Implementations
 

@@ -47,8 +47,21 @@
 - [x] Update `LogContext` to provide `availableWidth`
 - [x] Migrate all examples and tests to the new model
 
-### ✅ P1: ANSI Leakage in PainFormatter
-- [*]
+### ✅ P0: Unified Layout Pipeline (v0.6.1)
+**Goal**: Eliminate scattered output and redundant wrapping logic.
+**Result**: Centralized all wrapping into the `Handler` pipeline.
+- [x] Implement implicit wrapping in `Handler.log`
+- [x] Add `totalWidth` and `contentLimit` to `LogContext`
+- [x] Port `SuffixDecorator` to the new layout model
+- [x] Fix ANSI fragment sanitation and "phantom line" bugs
+
+### ✅ P1: Responsive Metadata Alignment
+- [x] Add `alignToEnd` support to `SuffixDecorator`
+- [x] Ensure suffixes respect structural (box) boundaries
+
+### ✅ P1: Recursive JSON Inspection
+- [x] Implement recursive detection in `JsonPrettyFormatter`
+- [x] Add tab-to-space normalization for environmental stability
 ---
 
 ## Active Development
@@ -73,16 +86,6 @@
 - [ ] `SqliteSink`: Persist logs to local database with schema
 - [ ] `SentrySink`: Direct integration with error tracking
 - [ ] `MemorySink`: In-memory buffer for testing/debugging
-
----
-
-### 🟡 P1: Gradual Field Customization
-**Context**: Following the success of `LogField` in JSON and TOON, users want similar control in other formatters.
-
-**Proposal**:
-- [ ] Implement `LogField` support in `StructuredFormatter`
-- [ ] Implement `LogField` support in `PlainFormatter`
-- [ ] Create a shared `FieldFormatter` mixin to reduce duplication
 
 ---
 

@@ -1,34 +1,37 @@
 # Handler Module
 
-The Handler module is responsible for the final stage of the logging pipeline: processing, formatting, and outputting log entries.
+The Handler module orchestrates the final stage of the logging pipeline: processing, formatting, and outputting log entries with precision and flexibility.
 
 ## Responsibilities
 
-A `Handler` encapsulates two distinct operations:
-1. **Formatting**: Transforming a structured `LogEntry` into a serialized format (String, JSON, etc.).
+A `Handler` encapsulates two core operations:
+1. **Formatting**: Transforming a structured `LogEntry` into a serialized format (String, JSON, TOON, etc.).
 2. **Output**: Writing the serialized data to a destination (Console, File, Network).
 
 ## Components
 
 ### Formatters
-- `StructuredFormatter`: Detailed layout (header, origin, message) without borders. **(Preferred for humans)**
-- `ToonFormatter`: Token-Oriented Object Notation. Designed for LLM token efficiency. **(Preferred for AI)**
-- `JsonFormatter`: Serializes logs to JSON. Supports field selection.
-- `JsonPrettyFormatter`: Human-readable JSON with semantic styling.
-- `PlainFormatter`: Simple text output.
+- `StructuredFormatter`: Modern flow-based layout with semantic tagging.
+- `JsonPrettyFormatter`: High-fidelity, recursive JSON inspection for nested payloads.
+- `MarkdownFormatter`: Readability-first layout with collapsible stack traces.
+- `ToonFormatter`: Token-efficient header-first format optimized for AI agents.
+- `PlainFormatter`: Minimal, flow-aware text output.
+
+#### Unified Metadata Configuration
+All modern formatters accept a `Set<LogMetadata>` (`timestamp`, `logger`, `origin`), providing a consistent API for selecting contextual data.
 
 ### Decorators
-Decorators now have full access to the `LogEntry` object, including metadata like `hierarchyDepth`, `tags`, and `loggerName`, enabling more context-aware transformations.
-- `BoxDecorator`: Adds ASCII borders around formatted lines.
-- `StyleDecorator`: Applies semantic styles (colors, bold, dim, etc.) to log segments using a `LogTheme`. It is the central engine for platform-agnostic visual presentation.
-- `HierarchyDepthPrefixDecorator`: Adds visual indentation based on the logger's hierarchy depth, creating a clear tree-like structure.
+- `BoxDecorator`: ASCII borders for structural clarity.
+- `PrefixDecorator` / `SuffixDecorator`: Prepends/Appends semantic strings (supports alignment and styles).
+- `StyleDecorator`: Platform-agnostic visual presentation via `LogTheme`.
+- `HierarchyDepthPrefixDecorator`: Visual indentation based on computed logger depth.
 
 #### Style Customization
 
-`StyleDecorator` leverages the `LogTheme` system to map semantic tags to visual styles:
+`StyleDecorator` uses the `LogTheme` system to map semantic tags to visual styles, decoupling intent from platform representation:
 
 ```dart
-// Use predefined schemes
+// Use predefined color schemes
 final darkHandler = Handler(
   formatter: const StructuredFormatter(),
   decorators: const [
@@ -38,7 +41,7 @@ final darkHandler = Handler(
   sink: const ConsoleSink(),
 );
 
-// Or create a custom theme with specific segment overrides
+// Create custom themes with segment-specific overrides
 final customTheme = LogTheme(
   colorScheme: LogColorScheme.defaultScheme,
   levelStyle: const LogStyle(bold: true, inverse: true), // Bold & Inverted levels
@@ -57,16 +60,16 @@ final customHandler = Handler(
 
 #### Fine-Grained Segment Styling
 
-`LogTheme` allows you to override styles for specific semantic segments (`LogTag`). Every segment starts with the base level color (info=blue, error=red) and merges with your overrides:
+`LogTheme` enables overrides for specific semantic segments (`LogTag`). Segments inherit base level colors (info=blue, error=red) and merge with custom styles:
 
 ```dart
-// Highlight only the message
+// Highlight messages exclusively
 final messageHighlight = LogTheme(
   colorScheme: LogColorScheme.defaultScheme,
   messageStyle: const LogStyle(bold: true, backgroundColor: LogColor.blue),
 );
 
-// Dim everything except headers
+// Dim content while preserving headers
 final minimalTheme = LogTheme(
   colorScheme: LogColorScheme.defaultScheme,
   messageStyle: const LogStyle(dim: true),
@@ -76,26 +79,26 @@ final minimalTheme = LogTheme(
 
 #### Default Colors
 
-The default color scheme provides good visibility in most terminals:
+The default color scheme ensures optimal visibility across terminals:
 - **trace**: Green
 - **debug**: White
 - **info**: Blue
 - **warning**: Yellow
 - **error**: Red
 
-For dark terminals, use `AnsiColorScheme.darkScheme` which uses brighter variants.
+For dark terminals, use `LogColorScheme.darkScheme` with brighter variants.
 
 #### Semantic Styling
-Even complex formats like JSON or TOON use semantic tags (`LogTag.timestamp`, `LogTag.level`, `LogTag.header`, etc.) rather than implementation-specific tags. This ensures your color scheme remains consistent across different formatters. For instance, `StyleDecorator` will dim the timestamp in both a `StructuredFormatter` and a `JsonPrettyFormatter` automatically if `timestampStyle` is set.
+Complex formats like JSON and TOON use semantic tags (`LogTag.timestamp`, `LogTag.level`, `LogTag.header`, etc.) for consistency. This allows `StyleDecorator` to apply uniform styling across formatters - e.g., dimming timestamps in both `StructuredFormatter` and `JsonPrettyFormatter` when `timestampStyle` is configured.
 
 ### Sinks
-- `ConsoleSink`: Writes to standard output (`stdout`).
-- `FileSink`: Writes to the local filesystem. Supports rotation strategies.
-- `MultiSink`: multiplexes output to multiple sinks.
+- `ConsoleSink`: Outputs to standard output (`stdout`), dynamically detecting terminal width.
+- `FileSink`: Writes to the local filesystem with support for advanced rotation strategies (size-based, time-based) and compression.
+- `MultiSink`: Distributes output to multiple sinks concurrently, ensuring resilient logging.
 
 ## Composition
 
-The power of the Handler module lies in its composability. You can chain decorators to achieve complex output. The `Handler` automatically sorts decorators by type (Transform → Visual → Structural) and deduplicates them to ensure correct visual composition:
+The Handler module's strength is its composability. Chain decorators for sophisticated output; `Handler` automatically sorts them by type (Transform → Visual → Structural) and deduplicates for precise visual composition:
 
 ```dart
 Handler(
@@ -109,129 +112,126 @@ Handler(
 )
 ```
 
-For detailed rules on how decorators interact, see [Decorator Composition](decorator_compositions.md).
+For in-depth rules on decorator interactions, refer to [Decorator Composition](decorator_compositions.md).
 
 ## Edge Cases and Robustness
 
-The Handler module is designed to handle various edge cases gracefully:
+The Handler module handles edge cases robustly, ensuring reliable operation under diverse conditions:
 
 ### Empty and Null Messages
-- Empty strings are handled without crashing
-- Whitespace-only messages are processed correctly
-- Very short messages (single character) work with all decorators
+- Empty strings process without failure
+- Whitespace-only messages handled correctly
+- Single-character messages compatible with all decorators
 
 ### Very Long Lines
-- Text wrapping preserves ANSI codes correctly
-- Box decorator maintains consistent width with long content
-- Very long words (no spaces) are handled appropriately
+- Text wrapping preserves ANSI codes intact
+- BoxDecorator maintains width consistency with extended content
+- Long unbroken words managed effectively
 
-### Unicode and Special Characters
-- Unicode characters (Chinese, Japanese, etc.) are supported
-- Emoji characters work correctly
-- Special ASCII characters are handled properly
-- Mixed Unicode and ASCII content is supported
+### Tab Normalization
+- `BoxDecorator` automatically expands tabs to spaces (default 8 cells).
+- Ensures border integrity across different shell environments and tab-stop interpretations.
 
 ### ANSI Code Preservation
-- ANSI codes are preserved during text wrapping
-- Multiple ANSI codes in sequence are handled correctly
-- Colors work correctly with box decorators
+- ANSI codes maintained during wrapping.
+- Sequential ANSI codes handled accurately.
+- Colors integrate correctly with box decorators.
 
 ### Error Handling
-- Formatter exceptions propagate correctly
-- Decorator exceptions are handled appropriately
-- Sink failures are reported properly
-- Filter exceptions don't crash the pipeline
+- Formatter exceptions propagate as expected
+- Decorator exceptions managed appropriately
+- Sink failures logged via InternalLogger
+- Filter exceptions prevent pipeline crashes
 
 ### Decorator Composition
-- Duplicate decorators are automatically deduplicated
-- Decorators are auto-sorted for correct composition
-- Idempotency: applying decorators multiple times is safe
+- Duplicate decorators automatically deduplicated
+- Auto-sorting ensures correct composition order
+- Idempotent: multiple applications are safe
 
-For comprehensive edge case tests, see `test/handler/edge_cases/`.
+Comprehensive edge case validation available in `test/handler/edge_cases/`.
 
 ## Layout Resolution
 
-A handler's output width is determined by a strict priority chain:
-1. **Explicit `lineLength`**: If you pass `lineLength` to the `Handler` constructor, it is used as the absolute limit.
-2. **Sink `preferredWidth`**: If `lineLength` is null, the handler queries the sink.
-   - `ConsoleSink`: Dynamically detects terminal width (e.g., 80 or 120).
-   - `FileSink`: Default to 80 (configurable).
-3. **Fallback**: Default to 80 if neither can provide a value.
+Handler output width follows a strict priority hierarchy:
+1. **Explicit `lineLength`**: Overrides all when provided to `Handler` constructor.
+2. **Sink `preferredWidth`**: Queried when `lineLength` is null.
+    - `ConsoleSink`: Dynamically detects terminal width (e.g., 80 or 120).
+    - `FileSink`: Defaults to 80 (configurable).
+3. **Fallback**: 80 characters if no value available.
 
-All formatters and decorators receive this calculated width via `LogContext.availableWidth`. 
+Formatters and decorators access this width via `LogContext.availableWidth`.
 
 > [!NOTE]
-> Structural decorators like `BoxDecorator` use `availableWidth` as a minimum target. If content exceeds this width, the box will expand to fit the content, potentially exceeding the `lineLength`. Most formatters automatically wrap to `availableWidth` to prevent this.
+> Structural decorators like `BoxDecorator` treat `availableWidth` as a minimum. Content exceeding this expands the box, potentially surpassing `lineLength`. Formatters typically wrap to `availableWidth` to mitigate this.
 
 ---
 
 ## Common Patterns (Recipes)
 
 ### 1. Production Rotating JSON
-Optimized for ELK/Splunk consumption with daily rotation and compression.
+Optimized for high-volume logs with automated rotation and compression.
 
 ```dart
-final prodHandler = Handler(
-  formatter: const JsonFormatter(
-    fields: [LogField.timestamp, LogField.level, LogField.message, LogField.error],
-  ),
-  sink: FileSink(
-    'logs/app.log',
-    fileRotation: TimeRotation(
-      interval: Duration(days: 1),
-      compress: true,
-    ),
-  ),
-);
-```
-
-### 2. Developer's Dashboard
-High-visual-fidelity output with hierarchy tracking and refined styling.
-
-```dart
-final devHandler = Handler(
-  formatter: const StructuredFormatter(),
-  decorators: [
-    const HierarchyDepthPrefixDecorator(),
-    const BoxDecorator(borderStyle: BorderStyle.rounded),
-    StyleDecorator(
-      theme: LogTheme(
-        colorScheme: LogColorScheme.darkScheme,
-        levelStyle: const LogStyle(bold: true, inverse: true),
+final logger = Logger.get('app.api');
+logger.configure(
+  handlers: [
+    Handler(
+      formatter: const JsonFormatter(
+        metadata: [LogMetadata.timestamp, LogMetadata.origin],
+      ),
+      sink: FileSink(
+        'logs/production.log',
+        fileRotation: TimeRotation(
+          interval: Duration(days: 1),
+          compress: true,
+        ),
       ),
     ),
   ],
-  sink: const ConsoleSink(),
 );
 ```
 
-### 3. LLM-Native Agent Stream
-Minimal tokens, maximum structure for AI agent consumption.
+### 2. The DevOps Dashboard
+High-fidelity console output with semantic prefix/suffix signaling and hierarchy visualization.
 
 ```dart
-final aiHandler = Handler(
-  formatter: const ToonFormatter(
-    arrayName: 'context',
-    keys: [LogField.timestamp, LogField.level, LogField.message],
-  ),
-  sink: FileSink('logs/agent.toon'),
+final logger = Logger.get('infra.k8s.pod');
+logger.configure(
+  handlers: [
+    Handler(
+      formatter: const StructuredFormatter(),
+      decorators: [
+        const PrefixDecorator('📦', tags: {LogTag.header}),
+        const SuffixDecorator('[ONLINE]', style: LogStyle(color: LogColor.green)),
+        const HierarchyDepthPrefixDecorator(),
+        const BoxDecorator(borderStyle: BorderStyle.rounded),
+        StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
+      ],
+      sink: const ConsoleSink(),
+    ),
+  ],
 );
 ```
 
-### 4. Hybrid (Multi-Sink)
-Log to console and file simultaneously with the same formatting.
+### 3. Recursive JSON Inspection
+Deep-data visibility for highly structured logs containing nested JSON strings.
 
 ```dart
-final hybridHandler = Handler(
-  formatter: const PlainFormatter(),
-  sink: MultiSink(sinks: [
-    const ConsoleSink(),
-    FileSink('logs/backup.log'),
-  ]),
+final logger = Logger.get('app.service');
+logger.configure(
+  handlers: [
+    Handler(
+      formatter: const JsonPrettyFormatter(
+        // Automatically detects and expands nested JSON strings
+        recursive: true, 
+      ),
+      sink: const ConsoleSink(),
+    ),
+  ],
 );
 ```
 
 ---
 
 ## Contribution
-Documentation for independent Formatters and Sinks is currently being expanded. Please refer to the source code in `lib/src/handler/` for implementation details.
+Documentation for individual Formatters and Sinks continues to expand. Refer to source code in `lib/src/handler/` for implementation details.

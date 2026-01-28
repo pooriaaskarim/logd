@@ -1,94 +1,39 @@
 # Migration Guide
 
-The `logd` library has evolved from a simple logging utility into a high-performance, segment-based pipeline. This guide details the technical "why" behind major architectural shifts and provides a roadmap for modernizing legacy implementations.
+## v0.6.0 to v0.6.1 (Layout Stability)
+
+### 1. Unified Formatter Configuration
+**Breaking**: `LogField` is replaced by `LogMetadata`. All modern formatters now use a unified constructor API.
+- **Migration**: Pass `Set<LogMetadata>` (e.g., `{LogMetadata.timestamp}`) to your formatter. Core fields like `level` and `message` are now automatic.
+
+### 2. Implicit Layout Management
+**Change**: The `Handler` framework now owns the wrapping logic (Unified Layout Sovereignty).
+- **Benefit**: Decorators no longer implement wrapping. They receive lines pre-cut to the available content slot.
+- **New API**: Custom structural decorators must implement `paddingWidth` to declare their footprint.
+
+### 3. API Protection
+**Breaking**: `Handler.log` and the `LogEntry` constructor are now **`@internal`**.
+- **Migration**: Always interface with the system via the `Logger` API (e.g., `logger.info()`).
 
 ---
 
-## 🏗 Architectural Evolution
+## v0.5.0 to v0.6.0 (Semantic Data)
 
-### 1. Decentralization: From "God Components" to Pipelines
-**Problem**: In early versions, `BoxFormatter` handled both layout (fields, wrapping) and framing (ASCII borders). This violated the **Single Responsibility Principle (SRP)**, leading to "Prop Explosion" (dozens of configuration flags) and making it impossible to compose behaviors.
+### 1. Platform-Agnostic Styling
+**Change**: `ColorDecorator` is deprecated in favor of `StyleDecorator` and the `LogTheme` system. Styles are now instructions (Bold, Dim) rather than hardcoded ANSI codes.
 
-**Modern Fix**: Handlers now utilize a 4-stage pipeline (Filter → Formatter → Decorator → Sink). Responsibilities are strictly decoupled:
-- **Layout** is handled by the **Formatter** (e.g., `StructuredFormatter`).
-- **Framing** is handled by **Structural Decorators** (e.g., `BoxDecorator`).
-
-**Legacy Pattern (v0.4.x)**:
-```dart
-final handler = Handler(
-  formatter: BoxFormatter(borderStyle: BorderStyle.rounded, lineLength: 80),
-  sink: const ConsoleSink(),
-);
-```
-
-**Modern Pattern (v0.6.0+)**:
-```dart
-final handler = Handler(
-  formatter: const StructuredFormatter(),
-  decorators: const [
-    BoxDecorator(borderStyle: BorderStyle.rounded),
-    StyleDecorator(), // Recommended: Apply visual styles last
-  ],
-  sink: const ConsoleSink(),
-  lineLength: 80, // Centralized layout control
-);
-```
-
-### 2. Semantic Data vs. Monolithic Strings
-**Problem**: Passing raw strings through the pipeline forced decorators to use fragile, expensive Regex to identify headers or timestamps for styling. This was slow and prone to breaking when formatters changed.
-
-**Modern Fix**: The pipeline now communicates via `Iterable<LogLine>`. Every line contains multiple `LogSegment`s tagged with **semantic metadata** (`LogTag`).
-- **Precision**: Decorators can target `LogTag.timestamp` or `LogTag.level` with 100% accuracy.
-- **Zero Overhead**: No string parsing is required during decoration.
-
----
-
-## 🎨 Visual System Shift
-
-### Platform-Agnostic Styling
-**Problem**: `ColorDecorator` was hardcoded to emit ANSI terminal codes, making logs unusable in web dashboards or structured JSON files.
-
-**Modern Fix**: `StyleDecorator` (and its underlying `LogTheme`) emits platform-independent `LogStyle` metadata.
-- **Visual Instructions**: Styles are treated as "instructions" (Bold, Dim) rather than "visuals" (Terminal Code).
-- **Sink Responsibility**: The **Sink** (e.g., `ConsoleSink` or `HTMLSink`) determines how to render these instructions based on its target platform.
-
-> [!IMPORTANT]
-> `ColorDecorator` is now a deprecated alias for `StyleDecorator`. While it still works for backward compatibility, you should upgrade to leverage `LogTheme` and `LogColorScheme`.
-
----
-
-## 🛠 API & Configuration Refining
-
-### 1. Unified Field Selection (`LogField`)
-To combat "Prop Explosion," individual boolean flags in formatters (e.g., `showLevel`, `includeTime`) have been replaced by the `LogField` enum.
-
-```dart
-// v0.6.0+
-const JsonFormatter(
-  fields: [LogField.timestamp, LogField.level, LogField.message],
-)
-```
-
-### 2. Deterministic Cache Invalidation
-The `Logger.configure` system now performs **Deep Equality** checks.
-- **Efficiency**: If the new configuration matches the existing one, the library skips the O(N) tree-walk for cache invalidation.
-- **Requirement**: Custom formatters, filters, or sinks **must** implement `operator ==` and `hashCode` to benefit from this optimization.
-
----
-
-## ⚠️ Common Pitfalls
-
-### Isolate Serialization
-While formatters and decorators are stateless, **Sinks** are not. 
-- If you use `FileSink` across multiple isolates, ensure they reference the same physical path through a coordinated file system. `logd` handles internal mutexing, but standard file-system locks still apply.
+### 2. Semantic Pipeline
+**Change**: The pipeline now passes `Iterable<LogLine>` containing tagged `LogSegment`s.
+- **Benefit**: 100% accurate styling of timestamps, levels, and borders without Regex.
 
 ---
 
 ## 🗺 Breaking Changes Map
 
-| Version | Feature | Impact |
+| Version | Feature | Technical Impact |
 |---|---|---|
-| **v0.5.0** | Centralized Layout | `lineLength` moved from components to the `Handler` constructor. |
-| **v0.5.0** | Pipeline Type-Safety | `format()` and `decorate()` signatures changed to `Iterable<LogLine>`. |
-| **v0.6.0** | Semantic System | Formatting flags replaced by `LogField` enums. |
-| **v0.6.0** | Style Refactor | `AnsiColorConfig` replaced by `LogTheme` and `LogColorScheme`. |
+| **v0.5.0** | Centralized Layout | `lineLength` moved from formatters to `Handler`. |
+| **v0.6.0** | Metadata System | `LogField` → `LogMetadata`. |
+| **v0.6.1** | Internal Guards | `Handler.log` and `LogEntry` marked as `@internal`. |
+| **v0.6.1** | Unified Layout | Explicit wrapping phase moved to `Handler`. |
+| **v0.6.1** | Deprecation | `BoxFormatter` removed; `ColorDecorator` deprecated. |
