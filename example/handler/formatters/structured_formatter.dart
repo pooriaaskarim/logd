@@ -1,56 +1,112 @@
-// Example: StructuredFormatter
+// Example: StructuredFormatter - Exhaustive Combinatorial Stress Matrix
 //
-// Demonstrates:
-// - Structured layout with headers, origin, message
-// - Multi-line message handling
-// - Error and stack trace formatting
-// - Line wrapping
+// Purpose:
+// Demonstrates the StructuredFormatter's tiered framing layout under
+// extreme combinatorial pressure. We combine multi-stage headers with
+// Boxes, Hierarchy, and fine-grained LogTag color overrides.
 //
-// Expected: Well-formatted structured output
+// Key Benchmarks:
+// 1. Dashboard Elite (Structured + Custom Tag Theme + Rounded Box + 80 Width)
+// 2. The Framing Squeeze (Structured + Style + Box + Hierarchy + 40 Width)
 
 import 'package:logd/logd.dart';
 
 void main() async {
-  final handler = Handler(
+  print('=== Logd / StructuredFormatter: Extreme Combinations ===\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO A: "Dashboard Elite"
+  // Goal: Create a high-impact developer dashboard with unique semantic visual
+  // identities for metadata.
+  // ---------------------------------------------------------------------------
+  final dashboardHandler = Handler(
     formatter: const StructuredFormatter(),
+    decorators: [
+      const StyleDecorator(theme: _EliteDashboardTheme()),
+      BoxDecorator(borderStyle: BorderStyle.rounded),
+    ],
     sink: const ConsoleSink(),
     lineLength: 80,
   );
 
-  Logger.configure('example.structured', handlers: [handler]);
-  final logger = Logger.get('example.structured');
-
-  // Simple message
-  logger.info('Simple log message');
-
-  // Multi-line message
-  logger.info('''
-This is a multi-line message
-that spans several lines
-and should be formatted nicely
-  ''');
-
-  // Long message that needs wrapping
-  logger.warning(
-    'This is a very long message that will definitely exceed the line length '
-    'limit and should be wrapped properly across multiple lines in the output',
+  // ---------------------------------------------------------------------------
+  // SCENARIO B: "The Framing Squeeze"
+  // Goal: The absolute stress test for tiered framing. We stack Hierarchy depth,
+  // rounded boxes, and styled metadata into a tiny 40-char window.
+  // ---------------------------------------------------------------------------
+  final squeezeHandler = Handler(
+    formatter: const StructuredFormatter(
+      metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
+    ),
+    decorators: [
+      const StyleDecorator(
+          theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      BoxDecorator(borderStyle: BorderStyle.rounded),
+      const HierarchyDepthPrefixDecorator(indent: '┃ '),
+    ],
+    sink: const ConsoleSink(),
+    lineLength: 40, // Extreme squeeze for Framed Header + Box + Indent
   );
 
-  // With error
-  try {
-    throw FormatException('Invalid format detected');
-  } catch (e, stack) {
-    logger.error(
-      'Failed to process data',
-      error: e,
-      stackTrace: stack,
-    );
+  // Configure loggers
+  Logger.configure('ui.elite', handlers: [dashboardHandler]);
+  Logger.configure('ui.squeeze', handlers: [squeezeHandler]);
+
+  // --- Run Scenario A: Dashboard Elite ---
+  print('TEST A: Dashboard Elite (80 Width + Custom Tag Styling)');
+  final elite = Logger.get('ui.elite');
+  elite.info('Service cluster "Athena" reporting nominal performance.');
+  elite.warning('Throughput at soft-limit for node-west-4.');
+  print('=' * 40);
+
+  // --- Run Scenario B: Framing Squeeze ---
+  print('\nTEST B: The Framing Squeeze (40 Width + Box + Indent + Style)');
+  final topSqueeze = Logger.get('ui.squeeze');
+  topSqueeze.info('Top level activity.');
+
+  final deepSqueeze = Logger.get('ui.squeeze.sub.module.feature');
+  deepSqueeze.debug('Checking state...');
+  deepSqueeze.error('Resource Fault!',
+      error: 'OutOfMemoryError: Heap limit exceeded in GarbageCollector.');
+
+  print('\n=== Structured Combinatorial Matrix Complete ===');
+}
+
+/// A specialized theme that uses [LogTag] to create a "Dashboard" visual layout.
+class _EliteDashboardTheme extends LogTheme {
+  const _EliteDashboardTheme() : super(colorScheme: LogColorScheme.darkScheme);
+
+  @override
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+    // Make headers stand out with bold/yellow
+    if (tags.contains(LogTag.header) && !tags.contains(LogTag.level)) {
+      return const LogStyle(color: LogColor.yellow, bold: true);
+    }
+    // Make Level names inverse for a "Status Indicator" feel
+    if (tags.contains(LogTag.level)) {
+      return LogStyle(color: _levelColor(level), inverse: true, bold: true);
+    }
+    // Make specific logger names magenta
+    if (tags.contains(LogTag.loggerName)) {
+      return const LogStyle(color: LogColor.magenta);
+    }
+    // Dimmish borders
+    if (tags.contains(LogTag.border)) {
+      return const LogStyle(color: LogColor.blue, dim: true);
+    }
+    return super.getStyle(level, tags);
   }
 
-  // Different log levels
-  logger.trace('Trace level message');
-  logger.debug('Debug level message');
-  logger.info('Info level message');
-  logger.warning('Warning level message');
-  logger.error('Error level message');
+  LogColor _levelColor(final LogLevel level) {
+    switch (level) {
+      case LogLevel.error:
+        return LogColor.red;
+      case LogLevel.warning:
+        return LogColor.yellow;
+      case LogLevel.info:
+        return LogColor.blue;
+      default:
+        return LogColor.cyan;
+    }
+  }
 }

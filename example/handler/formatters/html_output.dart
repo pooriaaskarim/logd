@@ -1,57 +1,81 @@
+// Example: HTMLFormatter - Profound Web-Based Reporting
+//
+// Purpose:
+// Demonstrates how logd generates professional, styled HTML reports.
+// We showcase Dark vs. Light mode, and test how the HTML layout adapts
+// to narrow container widths (simulating mobile web views).
+//
+// Key Benchmarks:
+// 1. Modern Dark (Default technical dashboard)
+// 2. Paper Light (High-legibility printable report)
+// 3. Mobile Container (Squeezed 45-char width for responsiveness)
+
 import 'package:logd/logd.dart';
 
-/// Example demonstrating HTMLFormatter and HTMLSink for generating styled HTML logs.
-///
-/// This creates a complete HTML document with embedded CSS that can be opened
-/// in a browser for viewing formatted logs.
 void main() async {
-  // Create HTML sink
-  final htmlSink = HTMLSink(
-    filePath: 'logs/example.html',
-    darkMode: true, // Use dark mode styling
+  print('=== Logd / HTML Reporting Matrix ===\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 1: The "Technical Dashboard" (Dark Mode)
+  // ---------------------------------------------------------------------------
+  final darkSink =
+      HTMLSink(filePath: 'logs/dashboard_dark.html', darkMode: true);
+  final darkHandler = Handler(
+    formatter: const HTMLFormatter(),
+    sink: darkSink,
   );
 
-  // Configure logger with HTML output
-  Logger.configure(
-    'app',
-    handlers: [
-      Handler(
-        formatter: const HTMLFormatter(),
-        sink: htmlSink,
-      ),
-    ],
+  // ---------------------------------------------------------------------------
+  // SCENARIO 2: The "Printable Report" (Light Mode)
+  // ---------------------------------------------------------------------------
+  final lightSink =
+      HTMLSink(filePath: 'logs/report_light.html', darkMode: false);
+  final lightHandler = Handler(
+    formatter: const HTMLFormatter(),
+    sink: lightSink,
   );
 
-  final logger = Logger.get('app');
+  // ---------------------------------------------------------------------------
+  // SCENARIO 3: "Mobile Viewport" (Narrrow Wrapping)
+  // Goal: Test that HTML blocks wrap correctly when width is restricted.
+  // ---------------------------------------------------------------------------
+  final mobileSink =
+      HTMLSink(filePath: 'logs/mobile_view.html', darkMode: true);
+  final mobileHandler = Handler(
+    formatter: const HTMLFormatter(),
+    sink: mobileSink,
+    lineLength: 45, // Mobile-width simulation
+  );
 
-  print('=== HTMLFormatter Demo ===\n');
-  print('Writing logs to logs/example.html...\n');
+  // Configure
+  Logger.configure('sys.dark', handlers: [darkHandler]);
+  Logger.configure('sys.light', handlers: [lightHandler]);
+  Logger.configure('sys.mobile', handlers: [mobileHandler]);
 
-  // Generate various log entries
-  logger.trace('Application initialization started');
-  logger.debug('Loading configuration from config.yaml');
-  logger.info('Server started on port 8080');
-  logger.warning('High memory usage detected: 85%');
-  logger.error('Database connection failed');
+  final dark = Logger.get('sys.dark');
+  final light = Logger.get('sys.light');
+  final mobile = Logger.get('sys.mobile');
 
-  // IMPORTANT: Close the sink to write the HTML footer
-  await htmlSink.close();
+  // --- execution ---
 
-  print('''
-HTML log file created successfully!
+  print('Generating Dark Dashboard in logs/dashboard_dark.html...');
+  dark.info('Service cluster operational. Nodes synced: 15/15.');
+  dark.warning('Latency spikes detected in region af-south-1.');
 
-To view the logs:
-1. Open logs/example.html in your web browser
-2. Logs are styled with:
-   - Dark mode theme
-   - Color-coded log levels
-   - Readable monospace font
-   - Structured layout
+  print('Generating Light Report in logs/report_light.html...');
+  light.info('Monthly maintenance cycle complete.');
+  light.error('Deployment failure on node-v7.',
+      error: 'FileSystemException: No space left.');
 
-The HTML file includes:
-- Embedded CSS for styling
-- Semantic HTML markup
-- Level-based color coding
-- Proper escaping of HTML characters
-''');
+  print('Generating Mobile View in logs/mobile_view.html...');
+  mobile.info(
+      'This is a very long log message that must wrap beautifully even in the HTML output because the handler restricted the width to 45 characters.');
+
+  // IMPORTANT: Close sinks to finalize files
+  await darkSink.close();
+  await lightSink.close();
+  await mobileSink.close();
+
+  print('\n=== HTML Reporting Benchmark Complete ===');
+  print('Check the logs/ directory to see your professional web reports!');
 }

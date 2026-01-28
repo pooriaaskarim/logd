@@ -1,54 +1,65 @@
+// Example: MarkdownFormatter - Profound Documentation Generation
+//
+// Purpose:
+// Demonstrates how to use logd to generate high-quality, professional
+// documentation from log data. This is perfect for CI/CD reports,
+// GitHub issues, or technical knowledge bases.
+//
+// Key Benchmarks:
+// 1. The "Rich Technical Report" (Detailed, Interactive)
+// 2. The "Executive Summary" (Minimalist, Concise)
+
 import 'package:logd/logd.dart';
 
-/// Example demonstrating MarkdownFormatter for generating GitHub-Flavored Markdown logs.
-///
-/// This creates markdown output suitable for:
-/// - GitHub/GitLab issues
-/// - Documentation
-/// - Knowledge bases (Obsidian, Notion, etc.)
-void main() {
-  // Configure logger with Markdown output
-  Logger.configure(
-    'app',
-    handlers: [
-      Handler(
-        formatter: const MarkdownFormatter(
-          useCodeBlocks: true,
-          headingLevel: 3,
-        ),
-        sink: FileSink('logs/example.md'),
-      ),
-    ],
+void main() async {
+  print('=== Logd / Profound Markdown Showcase ===\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 1: The "Rich Technical Report"
+  // Goal: Provide a comprehensive layout with interactive stack traces.
+  // ---------------------------------------------------------------------------
+  final technicalHandler = Handler(
+    formatter: const MarkdownFormatter(
+      metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
+      headingLevel: 3,
+    ),
+    sink: FileSink('logs/tech_report.md'),
   );
 
-  final logger = Logger.get('app');
+  // ---------------------------------------------------------------------------
+  // SCENARIO 2: The "High-Level Executive Summary"
+  // Goal: Clean, large-heading logs with zero technical clutter.
+  // ---------------------------------------------------------------------------
+  final summaryHandler = Handler(
+    formatter: const MarkdownFormatter(
+      metadata: {}, // Purely level + message
+      headingLevel: 2,
+    ),
+    sink: FileSink('logs/summary.md'),
+  );
 
-  print('=== MarkdownFormatter Demo ===\n');
-  print('Writing logs to logs/example.md...\n');
+  // Configure
+  Logger.configure('doc.tech', handlers: [technicalHandler]);
+  Logger.configure('doc.exec', handlers: [summaryHandler]);
 
-  // Generate various log entries
-  logger.trace('Entering main function');
-  logger.debug('Configuration loaded from config.yaml');
-  logger.info('Server started on port 8080');
-  logger.warning('High memory usage detected: 85%');
-  logger.error('Database connection failed');
+  final tech = Logger.get('doc.tech');
+  final exec = Logger.get('doc.exec');
 
-  print('''
-Markdown log file created successfully!
+  // --- Run Scenarios ---
 
-The markdown output includes:
-- Emoji icons for log levels (🔍 trace, 🐛 debug, ℹ️ info, ⚠️ warning, ❌ error)
-- Metadata tables with timestamp and origin
-- Code blocks for messages (syntax highlighting ready)
-- Proper formatting for errors and stack traces
-- Horizontal rules between entries
+  print('SCENARIO 1: Generating technical report in logs/tech_report.md...');
+  tech.info('Kernel initialization cycle started.');
+  tech.debug('Sub-system "NetworkStack" calibrated: 1.2ms latency.');
 
-Use cases:
-1. **GitHub Issues**: Attach logs as markdown for readability
-2. **Documentation**: Embed logs in documentation systems
-3. **Knowledge Bases**: Import into Obsidian, Notion, etc.
-4. **Team Communication**: Share formatted logs in Slack/Discord
+  try {
+    throw StateError('Memory leak detected in ObjectPool<T>. Bytes: 1048576');
+  } catch (e, s) {
+    tech.error('Severe Resource Fault!', error: e, stackTrace: s);
+  }
 
-View the file: logs/example.md
-''');
+  print('SCENARIO 2: Generating executive summary in logs/summary.md...');
+  exec.info('Deployment of v2.5.0-alpha successful on cluster-green.');
+  exec.warning('Minor degradation observed in legacy Auth module.');
+
+  print('\n=== Professional Markdown Generation Complete ===');
 }

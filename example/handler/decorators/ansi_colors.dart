@@ -1,142 +1,117 @@
-// Example: StyleDecorator
+// Example: StyleDecorator - Visual Personality & Interaction
 //
-// Demonstrates:
-// - Level-based coloring
-// - Custom color schemes
-// - Fine-grained color control
-// - Header background option
+// Purpose:
+// Demonstrates logd's fine-grained styling engine. It shows how to use
+// predefined schemes, create high-contrast themes, and target specific
+// semantic tags (LogTag.message, LogTag.timestamp) for custom visuals.
 //
-// Expected: Colorized output based on log level
+// Key Benchmarks:
+// 1. Standard Palette (Standard level colors)
+// 2. High-Visibility (Inverse video headers, bold emphasis)
+// 3. Tag-Specific Specialist (Unique colors for individual data parts)
 
 import 'package:logd/logd.dart';
 
 void main() async {
-  // Default color scheme
-  final defaultHandler = Handler(
+  print('=== Logd / StyleDecorator Styling Matrix ===\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 1: The "Pastel Programmer" (Standard Scheme)
+  // ---------------------------------------------------------------------------
+  print('TEST 1: Standard Pastel Scheme');
+  final standardHandler = Handler(
     formatter: const StructuredFormatter(),
-    decorators: const [
-      StyleDecorator(),
+    decorators: [
+      const StyleDecorator(
+          theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
     ],
     sink: const ConsoleSink(),
-    lineLength: 80,
   );
 
-  // 1. Custom Color Scheme
-  final customColors = StyleDecorator(
-    theme: LogTheme(
-      colorScheme: LogColorScheme(
-        trace: LogColor.cyan,
-        debug: LogColor.white,
-        info: LogColor.brightBlue,
-        warning: LogColor.yellow,
-        error: LogColor.brightRed,
-      ),
+  Logger.configure('style.standard', handlers: [standardHandler]);
+  final std = Logger.get('style.standard');
+  std.info('System online. Routine check complete.');
+  std.warning('Disk usage reaching 80%.');
+
+  print('~' * 60);
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 2: The "High-Contrast Admin" (Inverted Headers)
+  // Goal: Use theme overrides to make headers instantly identifiable.
+  // ---------------------------------------------------------------------------
+  print('\nTEST 2: High-Contrast (Inverted Headers)');
+  final adminHandler = Handler(
+    formatter: const StructuredFormatter(),
+    decorators: [
+      const StyleDecorator(theme: _HighContrastTheme()),
+    ],
+    sink: const ConsoleSink(),
+  );
+
+  Logger.configure('style.admin', handlers: [adminHandler]);
+  final admin = Logger.get('style.admin');
+  admin.error('CRITICAL FAULT', error: 'Voltage regulator failure.');
+  admin.info('Attempting emergency bypass...');
+
+  print('~' * 60);
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 3: The "Semantic Specialist" (Fine-Grained Tags)
+  // Goal: Provide unique visuals for distinct metadata parts using LogTag.
+  // ---------------------------------------------------------------------------
+  print('\nTEST 3: Tag Specialist (Unique Metadata Colors)');
+  final specialistHandler = Handler(
+    formatter: const StructuredFormatter(
+      metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
-  );
-  final customHandler = Handler(
-    formatter: const StructuredFormatter(),
     decorators: [
-      customColors,
+      const StyleDecorator(theme: _TagSpecialistTheme()),
     ],
     sink: const ConsoleSink(),
-    lineLength: 80,
   );
 
-  // 3. Header Background (Reverse Video)
-  final headerHighlight = StyleDecorator(
-    theme: _HeaderBackgroundTheme(),
-  );
-  final headerBgHandler = Handler(
-    formatter: const StructuredFormatter(),
-    decorators: [
-      headerHighlight,
-    ],
-    sink: const ConsoleSink(),
-    lineLength: 80,
-  );
+  Logger.configure('style.special', handlers: [specialistHandler]);
+  final special = Logger.get('style.special');
+  special.info('Note the distinct colors for Timestamp, Logger, and Origin.');
 
-  // 2. High Contrast (Header Only)
-  final highContrast = StyleDecorator(
-    theme: _HeaderOnlyTheme(),
-  );
-  final selectiveHandler = Handler(
-    formatter: const StructuredFormatter(),
-    decorators: [
-      highContrast,
-    ],
-    sink: const ConsoleSink(),
-    lineLength: 80,
-  );
-
-  Logger.configure('example.default', handlers: [defaultHandler]);
-  Logger.configure('example.custom', handlers: [customHandler]);
-  Logger.configure('example.headerbg', handlers: [headerBgHandler]);
-  Logger.configure('example.selective', handlers: [selectiveHandler]);
-
-  final defaultLogger = Logger.get('example.default');
-  final customLogger = Logger.get('example.custom');
-  final headerBgLogger = Logger.get('example.headerbg');
-  final selectiveLogger = Logger.get('example.selective');
-
-  print('=== Default Color Scheme ===');
-  defaultLogger.trace('Trace message');
-  defaultLogger.debug('Debug message');
-  defaultLogger.info('Info message');
-  defaultLogger.warning('Warning message');
-  defaultLogger.error('Error message');
-
-  print('\n=== Custom Color Scheme ===');
-  customLogger.trace('Trace message');
-  customLogger.debug('Debug message');
-  customLogger.info('Info message');
-  customLogger.warning('Warning message');
-  customLogger.error('Error message');
-
-  print('\n=== Header Background ===');
-  headerBgLogger.info('Info with background header');
-  headerBgLogger.warning('Warning with background header');
-
-  print('\n=== Selective Coloring ===');
-  selectiveLogger.info('Selective coloring example');
-  try {
-    throw Exception('Test');
-  } catch (e, stack) {
-    selectiveLogger.error(
-      'Error with selective coloring',
-      error: e,
-      stackTrace: stack,
-    );
-  }
+  print('\n=== Styling Matrix Complete ===');
 }
 
-class _HeaderBackgroundTheme extends LogTheme {
-  const _HeaderBackgroundTheme()
-      : super(colorScheme: LogColorScheme.defaultScheme);
+/// A theme that inverts the header visuals for extreme visibility.
+class _HighContrastTheme extends LogTheme {
+  const _HighContrastTheme() : super(colorScheme: LogColorScheme.defaultScheme);
 
   @override
   LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
     var style = super.getStyle(level, tags);
     if (tags.contains(LogTag.header)) {
-      style = LogStyle(
+      return LogStyle(
         color: style.color,
-        bold: style.bold,
-        dim: style.dim,
-        inverse: true, // Force inverse
+        bold: true,
+        inverse: true,
       );
     }
     return style;
   }
 }
 
-class _HeaderOnlyTheme extends LogTheme {
-  const _HeaderOnlyTheme() : super(colorScheme: LogColorScheme.defaultScheme);
+/// A theme that assigns unique visuals to every semantic part.
+class _TagSpecialistTheme extends LogTheme {
+  const _TagSpecialistTheme() : super(colorScheme: LogColorScheme.darkScheme);
 
   @override
   LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
-    if (tags.contains(LogTag.message) ||
-        tags.contains(LogTag.stackFrame) ||
-        tags.contains(LogTag.border)) {
-      return const LogStyle(); // No style
+    if (tags.contains(LogTag.timestamp)) {
+      return const LogStyle(color: LogColor.yellow, dim: true);
+    }
+    if (tags.contains(LogTag.loggerName)) {
+      return const LogStyle(color: LogColor.magenta, bold: true);
+    }
+    if (tags.contains(LogTag.origin)) {
+      return const LogStyle(color: LogColor.cyan, italic: true);
+    }
+    if (tags.contains(LogTag.message)) {
+      return const LogStyle(color: LogColor.white);
     }
     return super.getStyle(level, tags);
   }
