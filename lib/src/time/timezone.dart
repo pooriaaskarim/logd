@@ -385,16 +385,15 @@ class TimezoneOffset {
 /// [Timezone] handles DTC internally.
 @immutable
 class Timezone {
-  const Timezone._({
-    required this.name,
-    required final DSTZoneRule rule,
-  }) : _rule = rule;
-
   /// System time zone.
   ///
   /// Tries to resolve to a DST-aware timezone base on the platform.
   /// if failed, falls back to fixed time zone with current system time zone.
   factory Timezone.local() {
+    if (_localCache != null) {
+      return _localCache!;
+    }
+
     String formatOffset(final Duration offset) {
       final hours = offset.inHours.abs();
       final minutes = offset.inMinutes.abs() % 60;
@@ -404,11 +403,22 @@ class Timezone {
     }
 
     final systemTime = Context.clock.now;
-    final systemTimezoneName =
-        Context.clock.timezoneName ?? systemTime.timeZoneName;
+    String? systemTimezoneName;
+    try {
+      systemTimezoneName =
+          Context.clock.timezoneName ?? systemTime.timeZoneName;
+    } catch (e, s) {
+      InternalLogger.log(
+        LogLevel.error,
+        'Platform timezone fetch failed',
+        error: e,
+        stackTrace: s,
+      );
+    }
 
-    if (_commonDSTRules.containsKey(systemTimezoneName)) {
-      return Timezone.named(systemTimezoneName);
+    if (systemTimezoneName != null &&
+        _commonDSTRules.containsKey(systemTimezoneName)) {
+      return _localCache = Timezone.named(systemTimezoneName);
     }
 
     final systemTimezoneOffset = systemTime.timeZoneOffset;
@@ -422,8 +432,8 @@ class Timezone {
       'Timezone() factory to define custom DST rules.',
     );
 
-    return Timezone._(
-      name: systemTimezoneName,
+    return _localCache = Timezone._(
+      name: systemTimezoneName ?? 'UTC',
       rule: DSTZoneRule(standardOffset: systemTimezoneOffset),
     );
   }
@@ -540,6 +550,17 @@ class Timezone {
           'See commonDSTRules and commonTimezones for full list.',
     );
   }
+
+  const Timezone._({
+    required this.name,
+    required final DSTZoneRule rule,
+  }) : _rule = rule;
+
+  static Timezone? _localCache;
+
+  /// Resets the local timezone cache.
+  @visibleForTesting
+  static void resetLocalCache() => _localCache = null;
 
   /// The name of the time zone (e.g., 'UTC', 'Asia/Kolkata').
   ///
