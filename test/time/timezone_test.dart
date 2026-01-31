@@ -27,6 +27,7 @@ void main() {
 
     tearDown(() {
       Context.reset();
+      Timezone.resetLocalCache();
     });
 
     test('utc() returns UTC with zero offset', () {
@@ -92,11 +93,13 @@ void main() {
         () {
       // Mock known name
       Context.setClock(MockClock(fixedUtcTime, 'America/New_York'));
+      Timezone.resetLocalCache();
       final tzKnown = Timezone.local();
       expect(tzKnown.name, equals('America/New_York'));
 
       // Mock unknown (triggers print warning, uses fixed)
       Context.setClock(MockClock(fixedUtcTime, 'Unknown'));
+      Timezone.resetLocalCache();
       final tzFallback = Timezone.local();
       expect(tzFallback.name, equals('Unknown'));
       expect(tzFallback.offset, isNotNull); // System offset

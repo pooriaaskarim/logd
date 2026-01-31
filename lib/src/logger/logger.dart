@@ -22,10 +22,12 @@ const _defaultStackMethodCount = {
   LogLevel.warning: 2,
   LogLevel.error: 8,
 };
-final _defaultTimestamp = Timestamp(
-  formatter: 'yyyy.MMM.dd Z HH:mm:ss.SSS',
-  timezone: Timezone.local(),
-);
+
+Timestamp? __defaultTimestamp;
+Timestamp get _defaultTimestamp => __defaultTimestamp ??= Timestamp(
+      formatter: 'yyyy.MMM.dd Z HH:mm:ss.SSS',
+      timezone: Timezone.local(),
+    );
 
 const _defaultStackTraceParser = StackTraceParser(
   ignorePackages: ['logd', 'flutter'],

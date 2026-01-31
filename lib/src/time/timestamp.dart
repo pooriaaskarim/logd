@@ -94,7 +94,9 @@ class TimestampFormatterCache {
 /// internally by [Timestamp] and is not part of the public API.
 class TimestampFormatter {
   /// [TimestampFormatter] with the given [pattern].
-  const TimestampFormatter(this.pattern);
+  TimestampFormatter(this.pattern);
+
+  List<_FormatSegment>? _parsedSegments;
 
   /// The token based format pattern string.
   ///
@@ -147,11 +149,11 @@ class TimestampFormatter {
       return time.millisecondsSinceEpoch.toString();
     }
 
-    final parsedFormatter = _parseFormatter(pattern);
+    _parsedSegments ??= _parseFormatter(pattern);
     final stringBuffer = StringBuffer();
     final tokenReplacements = _getReplacements(time, timezone);
 
-    for (final segment in parsedFormatter) {
+    for (final segment in _parsedSegments!) {
       if (segment.isToken) {
         final token = segment.value;
         if (tokenReplacements.containsKey(token)) {
@@ -224,8 +226,45 @@ class TimestampFormatter {
   }
 
   /// Available format tokens.
-  Set<String> get _knownTokens =>
-      _getReplacements(DateTime.now(), null).keys.toSet();
+  static const _tokens = {
+    'yyyy',
+    'yy',
+    'MMMM',
+    'MMM',
+    'MM',
+    'M',
+    'dd',
+    'd',
+    'EEEE',
+    'EEE',
+    'EE',
+    'E',
+    'HH',
+    'H',
+    'hhhh',
+    'hhh',
+    'hh',
+    'h',
+    'A',
+    'a',
+    'mm',
+    'm',
+    'ss',
+    's',
+    'SSS',
+    'SS',
+    'S',
+    'FFF',
+    'FF',
+    'F',
+    'z_iso8601',
+    'z_rfc2822',
+    'Z',
+    'ZZ',
+    'ZZZ',
+  };
+
+  Set<String> get _knownTokens => _tokens;
 
   List<_FormatSegment> _parseFormatter(final String format) {
     final segments = <_FormatSegment>[];
