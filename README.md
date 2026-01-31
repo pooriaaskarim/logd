@@ -1,6 +1,6 @@
 # logd
 
-A **high‑performance** hierarchical logger for Dart and Flutter. Build structured logs, control output destinations, and keep overhead minimal.
+A **modular** **hierarchical** logger for Dart and Flutter. Build structured logs, control output destinations, and keep overhead minimal.
 
 [![Pub Version](https://img.shields.io/pub/v/logd.svg)](https://pub.dev/packages/logd)  
 [![Pub Points](https://img.shields.io/pub/points/logd.svg)](https://pub.dev/packages/logd/score)  
@@ -139,7 +139,7 @@ final consoleHandler = Handler(
     StyleDecorator(),
     SuffixDecorator(
       label: '[v1.0.2]',
-      alignment: SuffixAlignment.right,
+      align: ture,
     ),
   ],
   sink: const ConsoleSink(),
