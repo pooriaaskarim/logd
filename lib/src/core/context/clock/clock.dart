@@ -1,6 +1,7 @@
 import '../../../logger/logger.dart';
-import 'clock_native.dart' if (dart.library.html) 'clock_web.dart'
-    as platform_tz;
+import 'clock_native.dart'
+    if (dart.library.js_interop) 'clock_web.dart'
+    if (dart.library.html) 'clock_web.dart' as platform_tz;
 
 /// Abstract interface for time-related operations.
 ///
