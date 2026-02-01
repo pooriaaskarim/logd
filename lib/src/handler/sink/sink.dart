@@ -31,4 +31,9 @@ abstract base class LogSink {
     final Iterable<LogLine> lines,
     final LogLevel level,
   );
+
+  /// Performs cleanup, such as closing file handles or network connections.
+  ///
+  /// This should be called when the sink is no longer needed.
+  Future<void> dispose() async {}
 }
