@@ -178,6 +178,24 @@ void _runDemo() {
     );
   }
 
+  // 8. Network Logging
+  // Ship logs to remote servers via HttpSink or SocketSink.
+  print('\n--- 8. Network Logging ---');
+
+  final networkHandler = Handler(
+    formatter: const JsonFormatter(),
+    sink: const HttpSink(
+      url: 'https://example.com/logs',
+      batchSize: 5,
+      flushInterval: Duration(seconds: 1),
+    ),
+  );
+
+  Logger.configure('example.network', handlers: [networkHandler]);
+  final networkLogger = Logger.get('example.network');
+
+  networkLogger.info('This log will be batched and sent over HTTP.');
+
   print('\nDemo Complete! Check the console output for colors and boxes.');
   print('Audit logs written to: logs/audit.log');
 }

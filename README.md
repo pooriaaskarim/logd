@@ -181,7 +181,7 @@ final errorHandler = Handler(
 // Regex-based filtering (exclude sensitive data)
 final publicHandler = Handler(
   formatter: PlainFormatter(),
-  sink: NetworkSink('https://logs.example.com'),
+  sink: FileSink('logs/public.log'),
   filters: [
     RegexFilter(r'password|secret|token', exclude: true),
   ],
@@ -260,6 +260,34 @@ Logger.configure('ai.agent', handlers: [
 
 **Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. The header is emitted only when the configuration changes.
 
+
+### Network Logging
+
+Ship logs to remote servers with built-in resilience:
+
+```dart
+const httpSink = HttpSink(
+  url: 'https://logs.api.com',
+  batchSize: 50,
+  flushInterval: Duration(seconds: 10),
+  dropPolicy: DropPolicy.discardOldest,
+);
+
+Logger.configure('app', handlers: [
+  Handler(formatter: JsonFormatter(), sink: httpSink),
+]);
+```
+
+Supported sinks: `HttpSink` (batching & retries), `SocketSink` (real-time streaming).
+
+```dart
+// For real-time streaming to a WebSocket server:
+const socketSink = SocketSink(
+  url: 'wss://monitor.example.com/logs',
+);
+```
+
+
 ### Microservice Logging
 
 ```dart
@@ -274,7 +302,7 @@ Logger.configure('database', handlers: [
 Logger.configure('auth', handlers: [
   Handler(
     formatter: JsonFormatter(),
-    sink: NetworkSink('https://security-logs.example.com'),
+    sink: FileSink('logs/security.log'),
     filters: [LevelFilter(LogLevel.warning)],
   ),
 ]);
