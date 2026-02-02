@@ -161,9 +161,6 @@ This ensures that indentation always perfectly mirrors the actual logger hierarc
   - **Connection Awareness**: Buffers logs during disconnection and automatically drains the buffer upon reconnection.
   - **Auto-Reconnect**: Schedules reconnection attempts after configurable intervals.
 
-> [!NOTE]
-> **Formatter Flexibility**: Network sinks are formatter-agnostic. While `JsonFormatter` is recommended for structured log aggregation, any formatter works. The sink converts `LogLine` output to strings via `.toString()` and joins multi-line output with newlines. Ensure your receiving endpoint expects the format your chosen formatter produces.
-
 ### Threading & Safety
 - **Isolate Awareness**: `logd` is designed to be safe across multiple isolates, though most sinks (like `FileSink`) perform their own synchronization to prevent file locking conflicts.
 - **Async Boundary**: While formatting and decoration are synchronous for deterministic snapshotting of data, the `Sink.output` call is the async boundary. This allows the application to continue while the I/O system persists the logs.
