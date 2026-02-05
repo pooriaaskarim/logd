@@ -16,9 +16,9 @@ void main() async {
   // ---------------------------------------------------------------------------
   print('TEST 1: Border Style Matrix');
 
-  await _showBorder(BorderStyle.rounded, 'Rounded (Modern)');
-  await _showBorder(BorderStyle.sharp, 'Sharp (Classic)');
-  await _showBorder(BorderStyle.double, 'Double (Emphasis)');
+  await _showBorder(BoxBorderStyle.rounded, 'Rounded (Modern)');
+  await _showBorder(BoxBorderStyle.sharp, 'Sharp (Classic)');
+  await _showBorder(BoxBorderStyle.double, 'Double (Emphasis)');
 
   print('=' * 60);
 
@@ -32,7 +32,7 @@ void main() async {
     formatter: const StructuredFormatter(),
     decorators: [
       const StyleDecorator(),
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      const BoxDecorator(border: BoxBorderStyle.rounded),
       const HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],
     sink: const ConsoleSink(),
@@ -57,7 +57,7 @@ void main() async {
         metadata: {LogMetadata.timestamp, LogMetadata.logger}),
     decorators: [
       const StyleDecorator(),
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      const BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 35, // Very tight for metadata + box
@@ -71,15 +71,15 @@ void main() async {
   print('\n=== BoxDecorator Matrix Complete ===');
 }
 
-Future<void> _showBorder(BorderStyle style, String label) async {
+Future<void> _showBorder(BoxBorderStyle border, String label) async {
   final handler = Handler(
     formatter: const PlainFormatter(metadata: {}),
-    decorators: [BoxDecorator(borderStyle: style)],
+    decorators: [BoxDecorator(border: border)],
     sink: const ConsoleSink(),
     lineLength: 50,
   );
   // Using a unique logger for style matrix comparison
-  final name = 'style.${style.name}';
+  final name = 'style.${border.name}';
   Logger.configure(name, handlers: [handler]);
   Logger.get(name).info('Testing $label');
 }

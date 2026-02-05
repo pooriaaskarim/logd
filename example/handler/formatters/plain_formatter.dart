@@ -44,7 +44,7 @@ void main() async {
     ),
     decorators: [
       const StyleDecorator(),
-      BoxDecorator(borderStyle: BorderStyle.double),
+      BoxDecorator(border: BoxBorderStyle.double),
     ],
     sink: const ConsoleSink(),
     lineLength: 35, // Extremely tight!

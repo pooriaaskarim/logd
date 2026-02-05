@@ -25,7 +25,15 @@ void main() {
     test('BoxDecorator handles emojis correctly in width calculation',
         () async {
       final logs = <String>[];
-      final sink = MemorySink((final line) => logs.add(line.toString()));
+      final sink = MemorySink((final structure) {
+        // Use AnsiEncoder to render the structure for visual check
+        const encoder = AnsiEncoder();
+        final rendered = encoder.encode(
+          structure.copyWith(metadata: {'width': 20}),
+          LogLevel.info,
+        );
+        logs.addAll(rendered.split('\n'));
+      });
 
       final handler = Handler(
         formatter: const PlainFormatter(
@@ -44,7 +52,6 @@ void main() {
         loggerName: 'test',
         origin: 'main',
         timestamp: '10:00:00',
-        
       );
 
       await handler.log(entry);
@@ -55,6 +62,7 @@ void main() {
       // Content width = 14. Box borders add 2. Total width = 16.
       // But handler.lineLength is 20.
       for (final line in logs) {
+        // visibleLength on string extension from utils
         expect(line.visibleLength, equals(20));
         expect(RegExp('^[╭│╰]').hasMatch(line), isTrue);
         expect(RegExp(r'[╮│╯]$').hasMatch(line), isTrue);
@@ -65,18 +73,16 @@ void main() {
 
 final class MemorySink extends LogSink {
   MemorySink(this.onLog);
-  final Function(LogLine) onLog;
+  final Function(LogDocument) onLog;
 
   @override
   int get preferredWidth => 80;
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
-    for (final line in lines) {
-      onLog(line);
-    }
+    onLog(document);
   }
 }

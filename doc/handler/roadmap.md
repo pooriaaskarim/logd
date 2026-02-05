@@ -17,7 +17,7 @@
 - [x] Update all formatters to emit `LogLine`
 - [x] Implement fine-grained tagging in `StructuredFormatter`
 - [x] Add `JsonPrettyFormatter` with semantic styling and customizable fields
-- [x] Add `MarkdownFormatter` and `HTMLFormatter`
+- [x] Add `MarkdownFormatter` and `HtmlEncoder` architecture
 
 ### ✅ P0: LLM-Optimized Logging (TOON)
 **Goal**: Create a format that is "native" to AI agents.
@@ -119,13 +119,13 @@
 - [ ] Browser-side filtering and search across all attached handlers
 
 
-### 🟡 P1: HTML Logging Consolidation & Simplification
-**Context**: We currently have both `HtmlFormatter` and `HtmlSink`. With the planned `HttpServerSink` (Dashboard), we need to evaluate if both are necessary or if they can be unified.
-
-**Research Tasks**:
-- [ ] Evaluate if `HtmlFormatter` should be simplified to only emit structured semantic tags (like `JSON`).
-- [ ] Determine if `HtmlSink` CSS should be moved to a shared theme system.
-- [ ] Consider if a single `WebLogHandler` could manage both static file generation and future server-side streaming.
+### ✅ P1: HTML Logging Consolidation & Simplification (v0.6.2)
+**Goal**: Eliminate redundant HTML-specific formatters and sinks.
+**Result**: Successfully unified under `HtmlEncoder` and `HtmlLayoutSink`.
+- [x] Evaluate and remove redundant `HtmlFormatter`
+- [x] Leverage `StructuredFormatter` with `LogEncoder` for HTML generation
+- [x] Implement `HtmlLayoutSink` wrapper for document structure management
+- [x] Unified CSS management within `HtmlEncoder`
 
 ---
 

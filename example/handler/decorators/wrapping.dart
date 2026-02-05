@@ -14,7 +14,7 @@ void main() async {
   final rawHandler = Handler(
     formatter: const JsonFormatter(metadata: {}),
     decorators: [
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      const BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 40,
@@ -33,7 +33,7 @@ void main() async {
   final wrappedHandler = Handler(
     formatter: const JsonFormatter(metadata: {}),
     decorators: [
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      const BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 40,
@@ -50,10 +50,10 @@ void main() async {
   // SCENARIO 3: Wrapped + Suffix (Sidebar Effect)
   // SuffixDecorator (aligned) ensures content fits first.
   final sidebarHandler = Handler(
-    formatter: const JsonFormatter(metadata: {}),
+    formatter: const JsonFormatter(metadata: {LogMetadata.origin}),
     decorators: [
       const SuffixDecorator(' [SIDEBAR]', aligned: true),
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      const BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 50,

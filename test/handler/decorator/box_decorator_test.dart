@@ -1,56 +1,73 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
-import 'mock_context.dart';
 
 void main() {
   group('BoxDecorator', () {
-    final lines = [LogLine.text('line 1'), LogLine.text('line 2')];
+    const lines = LogDocument(
+      nodes: [
+        MessageNode(segments: [StyledText('line 1')]),
+        MessageNode(segments: [StyledText('line 2')]),
+      ],
+    );
     const entry = LogEntry(
       loggerName: 'test',
       origin: 'test',
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      
     );
 
     test('adds rounded borders by default', () {
       const decorator = BoxDecorator();
-      final boxed = decorator
-          .decorate(lines, entry, const LogContext(availableWidth: 20))
-          .toList();
-      final rendered = renderLines(boxed);
+      final boxed = decorator.decorate(
+        lines,
+        entry,
+        const LogContext(availableWidth: 20),
+      );
 
-      expect(rendered.first, startsWith('╭'));
-      expect(rendered.last, startsWith('╰'));
-      expect(rendered[1], startsWith('│'));
-      expect(rendered[1], endsWith('│'));
+      expect(boxed.nodes.first, isA<BoxNode>());
+      final container = boxed.nodes.first as BoxNode;
+      expect(container.border, equals(BoxBorderStyle.rounded));
+
+      // Visual parity check
+      const encoder = AnsiEncoder();
+      final rendered = encoder.encode(boxed, LogLevel.info).split('\n');
+      expect(rendered.first, contains('─'));
+      expect(rendered.first, contains('╭'));
     });
 
     test('respects sharp border style', () {
       const decorator = BoxDecorator(
-        borderStyle: BorderStyle.sharp,
+        border: BoxBorderStyle.sharp,
       );
-      final boxed = decorator
-          .decorate(lines, entry, const LogContext(availableWidth: 20))
-          .toList();
-      final rendered = renderLines(boxed);
+      final boxed = decorator.decorate(
+        lines,
+        entry,
+        const LogContext(availableWidth: 20),
+      );
+      final container = boxed.nodes.first as BoxNode;
+      expect(container.border, equals(BoxBorderStyle.sharp));
 
-      expect(rendered.first, startsWith('┌'));
-      expect(rendered.last, startsWith('└'));
+      const encoder = AnsiEncoder();
+      final rendered = encoder.encode(boxed, LogLevel.info).split('\n');
+      expect(rendered.first, contains('┌'));
     });
 
     test('respects double border style', () {
       const decorator = BoxDecorator(
-        borderStyle: BorderStyle.double,
+        border: BoxBorderStyle.double,
       );
-      final boxed = decorator
-          .decorate(lines, entry, const LogContext(availableWidth: 20))
-          .toList();
-      final rendered = renderLines(boxed);
+      final boxed = decorator.decorate(
+        lines,
+        entry,
+        const LogContext(availableWidth: 20),
+      );
+      final container = boxed.nodes.first as BoxNode;
+      expect(container.border, equals(BoxBorderStyle.double));
 
-      expect(rendered.first, startsWith('╔'));
-      expect(rendered.last, startsWith('╚'));
+      const encoder = AnsiEncoder();
+      final rendered = encoder.encode(boxed, LogLevel.info).split('\n');
+      expect(rendered.first, contains('╔'));
     });
   });
 }

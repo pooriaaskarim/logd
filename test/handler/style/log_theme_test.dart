@@ -1,6 +1,6 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
-import 'mock_context.dart';
+import '../decorator/mock_context.dart';
 
 void main() {
   group('LogColorScheme Tag-Specific Overrides', () {
@@ -10,7 +10,6 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      
     );
 
     test('colorFor respects tag-specific overrides', () {
@@ -96,24 +95,31 @@ void main() {
       const decorator =
           StyleDecorator(theme: LogTheme(colorScheme: customScheme));
 
-      final lines = [
-        const LogLine([
-          LogSegment('2024-01-01', tags: {LogTag.header, LogTag.timestamp}),
-          LogSegment(' [INFO] ', tags: {LogTag.header, LogTag.level}),
-          LogSegment('Message', tags: {LogTag.message}),
-        ]),
-      ];
+      const structure = LogDocument(
+        nodes: [
+          HeaderNode(
+            segments: [
+              StyledText('2024-01-01', tags: {LogTag.header, LogTag.timestamp}),
+              StyledText(' [INFO] ', tags: {LogTag.header, LogTag.level}),
+            ],
+          ),
+          MessageNode(
+            segments: [
+              StyledText('Message', tags: {LogTag.message}),
+            ],
+          ),
+        ],
+      );
 
-      final decorated =
-          decorator.decorate(lines, infoEntry, mockContext).toList();
+      final decorated = decorator.decorate(structure, infoEntry, mockContext);
       final rendered = renderLines(decorated);
 
       // Timestamp should be dimmed (2) + brightBlack (90)
       expect(rendered[0], contains('\x1B[2m\x1B[90m'));
       // Level should be bold (1) + brightCyan (96)
       expect(rendered[0], contains('\x1B[1m\x1B[96m'));
-      // Message should be blue (34)
-      expect(rendered[0], contains('\x1B[34m'));
+      // Message should be blue (34) - likely on second line or later
+      expect(rendered.join('\n'), contains('\x1B[34m'));
     });
 
     test('LogTheme respects custom logic via subclass', () {

@@ -52,7 +52,6 @@ void main() {
                 level: LogLevel.info,
                 message: 'Entry $i',
                 timestamp: '2025-01-01 10:00:00',
-                
               ),
             ),
           );
@@ -84,7 +83,6 @@ void main() {
               level: LogLevel.info,
               message: 'Entry $i: ${'x' * 100}',
               timestamp: '2025-01-01 10:00:00',
-              
             ),
           ),
         );
@@ -116,7 +114,6 @@ void main() {
           level: LogLevel.info,
           message: 'First',
           timestamp: '10:00:00',
-          
         ),
       );
 
@@ -129,7 +126,6 @@ void main() {
           level: LogLevel.info,
           message: 'Second',
           timestamp: '10:00:02',
-          
         ),
       );
 

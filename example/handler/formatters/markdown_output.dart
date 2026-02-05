@@ -19,11 +19,13 @@ void main() async {
   // Goal: Provide a comprehensive layout with interactive stack traces.
   // ---------------------------------------------------------------------------
   final technicalHandler = Handler(
-    formatter: const MarkdownFormatter(
+    formatter: const PlainFormatter(
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
-      headingLevel: 3,
     ),
-    sink: FileSink('logs/tech_report.md'),
+    sink: FileSink(
+      'logs/tech_report.md',
+      encoder: const MarkdownEncoder(headingLevel: 3),
+    ),
   );
 
   // ---------------------------------------------------------------------------
@@ -31,11 +33,13 @@ void main() async {
   // Goal: Clean, large-heading logs with zero technical clutter.
   // ---------------------------------------------------------------------------
   final summaryHandler = Handler(
-    formatter: const MarkdownFormatter(
+    formatter: const PlainFormatter(
       metadata: {}, // Purely level + message
-      headingLevel: 2,
     ),
-    sink: FileSink('logs/summary.md'),
+    sink: FileSink(
+      'logs/summary.md',
+      encoder: const MarkdownEncoder(headingLevel: 2),
+    ),
   );
 
   // Configure

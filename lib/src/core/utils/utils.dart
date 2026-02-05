@@ -327,7 +327,7 @@ Iterable<List<(String, T)>> wrapWithData<T>(
           continue;
         }
 
-        final wrappingResult = text.wrapVisible(available).toList();
+        final wrappingResult = text.wrapVisiblePreserveAnsi(available).toList();
 
         if (wrappingResult.isEmpty || wrappingResult[0].isEmpty) {
           final forceChar = text.characters.first;

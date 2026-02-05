@@ -25,35 +25,59 @@ final class SuffixDecorator extends ContentDecorator {
   final LogStyle? style;
 
   @override
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  LogDocument decorate(
+    final LogDocument document,
     final LogEntry entry,
     final LogContext context,
   ) {
-    final suffixSegment =
-        LogSegment(suffix, tags: const {LogTag.suffix}, style: style);
-
-    if (!aligned) {
-      return lines.map((final l) => LogLine([...l.segments, suffixSegment]));
+    if (document.nodes.isEmpty) {
+      return document;
     }
 
-    return lines.map((final line) {
-      final currentLen = line.visibleLength;
-      final suffixLen = suffix.visibleLength;
+    return LogDocument(
+      nodes: document.nodes.map(_decorateNode).toList(),
+      metadata: document.metadata,
+    );
+  }
 
-      // We align to the end of the content area.
-      // context.contentLimit is the width reserved for content (Fixed or
-      // Flowing).
-      final targetWidth = context.contentLimit;
-      final paddingNeeded =
-          (targetWidth - currentLen - suffixLen).clamp(0, 1000);
+  LogNode _decorateNode(final LogNode node) {
+    if (node is ContentNode || node is DecoratedNode) {
+      return DecoratedNode(
+        children: [node],
+        trailingWidth: suffix.visibleLength,
+        trailing: [
+          StyledText(suffix, tags: const {LogTag.suffix}, style: style),
+        ],
+        alignTrailing: aligned,
+      );
+    }
 
-      return LogLine([
-        ...line.segments,
-        if (paddingNeeded > 0) LogSegment(' ' * paddingNeeded, tags: const {}),
-        suffixSegment,
-      ]);
-    });
+    if (node is LayoutNode) {
+      return switch (node) {
+        final BoxNode n => BoxNode(
+            children: n.children.map(_decorateNode).toList(),
+            border: n.border,
+            style: n.style,
+            title: n.title,
+            tags: n.tags,
+          ),
+        final IndentationNode n => IndentationNode(
+            children: n.children.map(_decorateNode).toList(),
+            indentString: n.indentString,
+            style: n.style,
+            tags: n.tags,
+          ),
+        final DecoratedNode _ =>
+          throw StateError('Should be handled by first if'),
+        final GroupNode n => GroupNode(
+            children: n.children.map(_decorateNode).toList(),
+            title: n.title,
+            tags: n.tags,
+          ),
+      };
+    }
+
+    return node;
   }
 
   @override

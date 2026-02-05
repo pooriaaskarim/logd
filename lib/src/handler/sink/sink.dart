@@ -22,13 +22,13 @@ abstract base class LogSink {
   /// layout constraints automatically.
   int get preferredWidth;
 
-  /// Outputs the [lines] to the destination.
+  /// Outputs the [document] to the destination.
   ///
   /// The [level] indicates the severity of the log entry that produced these
-  /// lines, which can be used by the sink for destination-specific logic (e.g.,
-  /// using different output streams for errors).
+  /// document, which can be used by the sink for destination-specific logic
+  /// (e.g., using different output streams for errors).
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   );
 

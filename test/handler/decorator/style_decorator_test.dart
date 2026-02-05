@@ -4,20 +4,23 @@ import 'mock_context.dart';
 
 void main() {
   group('StyleDecorator', () {
-    final lines = [LogLine.text('line 1'), LogLine.text('line 2')];
+    const lines = LogDocument(
+      nodes: [
+        MessageNode(segments: [StyledText('line 1')]),
+        MessageNode(segments: [StyledText('line 2')]),
+      ],
+    );
     const infoEntry = LogEntry(
       loggerName: 'test',
       origin: 'test',
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      
     );
 
     test('adds colors when enabled', () {
       const decorator = StyleDecorator();
-      final decorated =
-          decorator.decorate(lines, infoEntry, mockContext).toList();
+      final decorated = decorator.decorate(lines, infoEntry, mockContext);
       final rendered = renderLines(decorated);
 
       expect(rendered.length, equals(2));
@@ -42,32 +45,46 @@ void main() {
       );
 
       final info = renderLines(
-        decorator.decorate([LogLine.text('msg')], infoEntry, mockContext),
+        decorator.decorate(
+          const LogDocument(
+            nodes: [
+              MessageNode(segments: [StyledText('msg')]),
+            ],
+          ),
+          infoEntry,
+          mockContext,
+        ),
       ).first;
       final error = renderLines(
         decorator.decorate(
-          [LogLine.text('msg')],
+          const LogDocument(
+            nodes: [
+              MessageNode(segments: [StyledText('msg')]),
+            ],
+          ),
           const LogEntry(
             loggerName: 'test',
             origin: 'test',
             level: LogLevel.error,
             message: 'msg',
             timestamp: 'now',
-            
           ),
           mockContext,
         ),
       ).first;
       final warning = renderLines(
         decorator.decorate(
-          [LogLine.text('msg')],
+          const LogDocument(
+            nodes: [
+              MessageNode(segments: [StyledText('msg')]),
+            ],
+          ),
           const LogEntry(
             loggerName: 'test',
             origin: 'test',
             level: LogLevel.warning,
             message: 'msg',
             timestamp: 'now',
-            
           ),
           mockContext,
         ),
@@ -84,17 +101,22 @@ void main() {
       const decorator = StyleDecorator(
         theme: NoMessageTheme(),
       );
-      final headerLines = [
-        const LogLine([
-          LogSegment('Header 1', tags: {LogTag.header}),
-        ]),
-        const LogLine([
-          LogSegment('Message 1', tags: {LogTag.message}),
-        ]),
-      ];
+      const headerLines = LogDocument(
+        nodes: [
+          HeaderNode(
+            segments: [
+              StyledText('Header 1', tags: {LogTag.header}),
+            ],
+          ),
+          MessageNode(
+            segments: [
+              StyledText('Message 1', tags: {LogTag.message}),
+            ],
+          ),
+        ],
+      );
 
-      final decorated =
-          decorator.decorate(headerLines, infoEntry, mockContext).toList();
+      final decorated = decorator.decorate(headerLines, infoEntry, mockContext);
       final rendered = renderLines(decorated);
 
       // Header line should have inverted color code (\x1B[7m) - defined in NoMessageTheme

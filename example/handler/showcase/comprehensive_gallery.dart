@@ -21,7 +21,7 @@ void main() async {
           theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
       const SuffixDecorator(' [v1.0.2] ',
           aligned: true, style: LogStyle(color: LogColor.green, dim: true)),
-      BoxDecorator(borderStyle: BorderStyle.rounded),
+      BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 80,
@@ -75,7 +75,7 @@ void main() async {
       const StyleDecorator(theme: _InspectorTheme()),
       const HierarchyDepthPrefixDecorator(
           indent: '│ ', style: LogStyle(color: LogColor.blue)),
-      BoxDecorator(borderStyle: BorderStyle.double),
+      BoxDecorator(border: BoxBorderStyle.double),
     ],
     sink: const ConsoleSink(),
     lineLength: 65,
@@ -134,7 +134,7 @@ void main() async {
       const SuffixDecorator(' [OUT] ',
           style: LogStyle(
               backgroundColor: LogColor.magenta, color: LogColor.white)),
-      BoxDecorator(borderStyle: BorderStyle.sharp),
+      BoxDecorator(border: BoxBorderStyle.sharp),
       const StyleDecorator(),
     ],
     sink: const ConsoleSink(),

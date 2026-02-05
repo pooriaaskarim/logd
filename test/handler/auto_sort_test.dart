@@ -4,7 +4,7 @@ import 'decorator/mock_context.dart';
 
 // Mock Sink to capture output
 final class MemorySink extends LogSink {
-  final List<List<LogLine>> buffer = [];
+  final List<LogDocument> buffer = [];
 
   @override
   bool get enabled => true;
@@ -14,10 +14,10 @@ final class MemorySink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
-    buffer.add(lines.toList());
+    buffer.add(document);
   }
 }
 
@@ -31,7 +31,7 @@ void main() {
         formatter: const StructuredFormatter(),
         decorators: const [
           HierarchyDepthPrefixDecorator(indent: '>> '),
-          BoxDecorator(borderStyle: BorderStyle.rounded),
+          BoxDecorator(border: BoxBorderStyle.rounded),
           StyleDecorator(),
         ],
         lineLength: 20,
@@ -49,7 +49,6 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        
       );
 
       await handler.log(entry);
@@ -93,7 +92,6 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        
       );
 
       await handler.log(entry);
@@ -111,9 +109,8 @@ void main() {
       // But here we just want to ensure it works and doesn't crash or
       // duplicate output weirdly.
 
-      // Formatter adds prefix '----|' to message
       // Info level now defaults to blue (was green)
-      expect(line, contains('\x1B[34m----|msg\x1B[0m'));
+      expect(line, contains('\x1B[34mmsg\x1B[0m'));
     });
   });
 }

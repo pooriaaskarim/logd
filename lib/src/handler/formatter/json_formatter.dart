@@ -24,10 +24,10 @@ final class JsonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  Iterable<LogLine> format(
+  LogDocument format(
     final LogEntry entry,
     final LogContext context,
-  ) sync* {
+  ) {
     final map = <String, dynamic>{
       'level': entry.level.name,
       'message': entry.message,
@@ -48,7 +48,17 @@ final class JsonFormatter implements LogFormatter {
     }
 
     final json = jsonEncode(map);
-    yield LogLine.text(json);
+
+    return LogDocument(
+      nodes: [
+        MessageNode(
+          segments: [
+            StyledText(json, tags: const {LogTag.message}),
+          ],
+        ),
+      ],
+      metadata: map, // Also attach raw map for sinks that might prefer it
+    );
   }
 
   @override
@@ -101,11 +111,10 @@ final class JsonPrettyFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  Iterable<LogLine> format(
+  LogDocument format(
     final LogEntry entry,
     final LogContext context,
-  ) sync* {
-    final width = context.availableWidth;
+  ) {
     final map = <String, Object?>{
       'level': entry.level.name,
       'message': entry.message,
@@ -138,211 +147,176 @@ final class JsonPrettyFormatter implements LogFormatter {
       fieldTags['stackTrace'] = LogTag.stackFrame;
     }
 
-    yield* _formatValue(map, 0, width, tags: fieldTags);
+    return LogDocument(
+      nodes: _formatValue(map, tags: fieldTags),
+      metadata: map,
+    );
   }
 
-  Iterable<LogLine> _formatValue(
-    final Object? value,
-    final int depth,
-    final int width, {
+  List<LogNode> _formatValue(
+    final Object? value, {
     final Map<String, LogTag>? tags,
-    final List<LogSegment>? keySegments,
     final bool isLastValue = true,
-  }) sync* {
-    final prefix = indent * depth;
+  }) {
+    final nodes = <LogNode>[];
 
     if (value is Map) {
       final entries = value.entries.toList();
-      // First line of Map (opening brace)
-      yield LogLine([
-        if (keySegments != null) ...keySegments,
-        LogSegment(
-          '{',
-          tags: color ? const {LogTag.punctuation} : const {},
-        ),
-      ]);
 
+      // Opening brace
+      nodes.add(
+        MessageNode(
+          segments: [
+            StyledText(
+              '{',
+              tags: color ? const {LogTag.punctuation} : const {},
+            ),
+          ],
+        ),
+      );
+
+      final bodyNodes = <LogNode>[];
       for (int i = 0; i < entries.length; i++) {
         final entry = entries[i];
         final isLast = i == entries.length - 1;
+        final key = entry.key;
+        final val = entry.value;
+        final valueTag = tags?[key] ?? LogTag.value;
 
-        final segments = <LogSegment>[
-          // Combine key parts into single segment to prevent wrapping from
-          // splitting them and trimming the trailing space
-          LogSegment(
-            '$prefix$indent"${entry.key}": ',
+        final keySegments = [
+          StyledText(
+            '"$key": ',
             tags: color ? const {LogTag.key, LogTag.punctuation} : const {},
           ),
         ];
 
-        final val = entry.value;
-        final Object? processedValue;
-        if (val is String) {
-          processedValue = _tryParseJson(val) ?? val;
-        } else {
-          processedValue = val;
-        }
+        final processedValue =
+            (val is String) ? (_tryParseJson(val) ?? val) : val;
 
         if (processedValue is Map || processedValue is List) {
-          yield* _formatValue(
+          // Recursive call for nested structure
+          final nestedNodes = _formatValue(
             processedValue,
-            depth + 1,
-            width,
             tags: tags,
-            keySegments: segments,
             isLastValue: isLast,
           );
-        } else {
-          final currentPrefixWidth = segments.fold(
-            0,
-            (final s, final seg) => s + seg.text.visibleLength,
-          );
 
-          final valueStr = _valueString(val);
-          final valueTag = tags?[entry.key] ?? LogTag.value;
-
-          // Wrap the value with an indent that matches the key part
-          final valueLine = LogLine([
-            LogSegment(valueStr, tags: {valueTag}),
-          ]);
-          final valueLines =
-              valueLine.wrap(width, indent: ' ' * currentPrefixWidth).toList();
-
-          if (valueLines.isEmpty) {
-            yield LogLine([
-              ...segments,
-              LogSegment('', tags: {valueTag}),
-              if (!isLast)
-                LogSegment(
-                  ',',
-                  tags: color ? const {LogTag.punctuation} : const {},
-                ),
-            ]);
+          // Merge the key into the first line of the nested block (brace/bracket)
+          if (nestedNodes.isNotEmpty && nestedNodes.first is MessageNode) {
+            final firstNode = nestedNodes.first as MessageNode;
+            bodyNodes.add(
+              MessageNode(
+                segments: [...keySegments, ...firstNode.segments],
+              ),
+            );
+            bodyNodes.addAll(nestedNodes.skip(1));
           } else {
-            // First line has the key prepended
-            yield LogLine([
-              ...segments,
-              ...valueLines[0].segments,
-              if (valueLines.length == 1 && !isLast)
-                LogSegment(
-                  ',',
-                  tags: color ? const {LogTag.punctuation} : const {},
-                ),
-            ]);
-
-            // Subsequent lines already have the correct indent from wrap()
-            for (int j = 1; j < valueLines.length; j++) {
-              final isValueLast = j == valueLines.length - 1;
-              yield LogLine([
-                ...valueLines[j].segments,
-                if (isValueLast && !isLast)
-                  LogSegment(
+            bodyNodes.add(MessageNode(segments: keySegments));
+            bodyNodes.addAll(nestedNodes);
+          }
+        } else {
+          // Leaf value
+          final valueStr = _valueString(processedValue);
+          bodyNodes.add(
+            MessageNode(
+              segments: [
+                ...keySegments,
+                StyledText(valueStr, tags: {valueTag}),
+                if (!isLast)
+                  StyledText(
                     ',',
                     tags: color ? const {LogTag.punctuation} : const {},
                   ),
-              ]);
-            }
-          }
+              ],
+            ),
+          );
         }
       }
 
+      nodes.add(IndentationNode(indentString: indent, children: bodyNodes));
+
       // Closing brace
-      yield LogLine([
-        LogSegment(
-          '$prefix}',
-          tags: color ? const {LogTag.punctuation} : const {},
+      nodes.add(
+        MessageNode(
+          segments: [
+            StyledText(
+              '}',
+              tags: color ? const {LogTag.punctuation} : const {},
+            ),
+            if (!isLastValue)
+              StyledText(
+                ',',
+                tags: color ? const {LogTag.punctuation} : const {},
+              ),
+          ],
         ),
-        if (!isLastValue)
-          LogSegment(
-            ',',
-            tags: color ? const {LogTag.punctuation} : const {},
-          ),
-      ]);
+      );
     } else if (value is List) {
-      // First line of List (opening bracket)
-      yield LogLine([
-        if (keySegments != null) ...keySegments,
-        LogSegment(
-          '[',
-          tags: color ? const {LogTag.punctuation} : const {},
+      // Opening bracket
+      nodes.add(
+        MessageNode(
+          segments: [
+            StyledText(
+              '[',
+              tags: color ? const {LogTag.punctuation} : const {},
+            ),
+          ],
         ),
-      ]);
+      );
+
+      final bodyNodes = <LogNode>[];
       for (int i = 0; i < value.length; i++) {
         final isLast = i == value.length - 1;
         final val = value[i];
-        final Object? processedValue;
-        if (val is String) {
-          processedValue = _tryParseJson(val) ?? val;
-        } else {
-          processedValue = val;
-        }
+        final processedValue =
+            (val is String) ? (_tryParseJson(val) ?? val) : val;
 
         if (processedValue is Map || processedValue is List) {
-          yield* _formatValue(
-            processedValue,
-            depth + 1,
-            width,
-            tags: tags,
-            isLastValue: isLast,
+          bodyNodes.addAll(
+            _formatValue(
+              processedValue,
+              tags: tags,
+              isLastValue: isLast,
+            ),
           );
         } else {
-          final prefixStr = '$prefix$indent';
-          final segments = [
-            LogSegment(
-              prefixStr,
-              tags: const {},
+          final valueStr = _valueString(processedValue);
+          bodyNodes.add(
+            MessageNode(
+              segments: [
+                StyledText(valueStr, tags: color ? {LogTag.value} : const {}),
+                if (!isLast)
+                  StyledText(
+                    ',',
+                    tags: color ? const {LogTag.punctuation} : const {},
+                  ),
+              ],
             ),
-          ];
-          final currentPrefixWidth = prefixStr.visibleLength;
-
-          final valueStr = _valueString(val);
-          final valueTag = color ? {LogTag.value} : <LogTag>{};
-
-          // Wrap the value with an indent that matches the prefix
-          final valueLine = LogLine([LogSegment(valueStr, tags: valueTag)]);
-          final valueLines =
-              valueLine.wrap(width, indent: ' ' * currentPrefixWidth).toList();
-
-          if (valueLines.isNotEmpty) {
-            yield LogLine([
-              ...segments,
-              ...valueLines[0].segments,
-              if (valueLines.length == 1 && !isLast)
-                LogSegment(
-                  ',',
-                  tags: color ? const {LogTag.punctuation} : const {},
-                ),
-            ]);
-
-            if (valueLines.length > 1) {
-              for (int j = 1; j < valueLines.length; j++) {
-                final isValueLast = j == valueLines.length - 1;
-                yield LogLine([
-                  ...valueLines[j].segments,
-                  if (isValueLast && !isLast)
-                    LogSegment(
-                      ',',
-                      tags: color ? const {LogTag.punctuation} : const {},
-                    ),
-                ]);
-              }
-            }
-          }
+          );
         }
       }
+
+      nodes.add(IndentationNode(indentString: indent, children: bodyNodes));
+
       // Closing bracket
-      yield LogLine([
-        LogSegment(
-          '$prefix]',
-          tags: color ? const {LogTag.punctuation} : const {},
+      nodes.add(
+        MessageNode(
+          segments: [
+            StyledText(
+              ']',
+              tags: color ? const {LogTag.punctuation} : const {},
+            ),
+            if (!isLastValue)
+              StyledText(
+                ',',
+                tags: color ? const {LogTag.punctuation} : const {},
+              ),
+          ],
         ),
-        if (!isLastValue)
-          LogSegment(
-            ',',
-            tags: color ? const {LogTag.punctuation} : const {},
-          ),
-      ]);
+      );
     }
+
+    return nodes;
   }
 
   String _valueString(final Object? value) {

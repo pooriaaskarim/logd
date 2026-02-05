@@ -1,166 +1,159 @@
-# Handler Architecture
+# Handler Architecture: Semantic Separation
 
-This document details the internal processing pipeline of the `Handler` module.
+The `logd` handler module is built on a fundamental philosophical shift in logging: **Separation of Intent from Rendering**.
 
-## The Pipeline
+Unlike traditional logging systems where formatters immediately "draw" text, `logd` uses a multi-stage pipeline that treats a log entry as a **Semantic Data Structure** until the very last moment.
 
-The `Handler` class acts as an orchestrator. When `handler.log(entry)` is called, data flows through four distinct stages.
+## The Semantic Pipeline
+
+When `handler.log(entry)` is called, data flows through five distinct logical stages.
 
 ```mermaid
 flowchart LR
-    Entry --> Filter --> Format --> Wrap --> Dec --> Sink --> IO
+    Entry --> Filter --> Format --> Dec --> Enc --> Sink --> IO
 ```
 
-### The Life of a Log entry (Sequence)
+### 1. Filtering (Semantic Admission)
+**Component**: `LogFilter`
+Efficient checks run before any structure is built. If a filter fails, processing stops.
 
-```mermaid
-sequenceDiagram
-    participant L as Logger
-    participant H as Handler
-    participant F as Formatter
-    participant D as Decorator
-    participant S as Sink
+### 2. Formatting (Logical Intent)
+**Component**: `LogFormatter`
+**Output**: `LogStructure` (Internal Representation)
 
-    L->>H: log(LogEntry)
-    H->>H: Filter Check
-    alt Should remain?
-        H->>F: format(entry, context)
-        F-->>H: Iterable<LogLine>
-        H->>H: wrap(availableWidth)
-        loop Each Decorator
-            H->>D: decorate(lines, entry, context)
-            D-->>H: Iterable<LogLine>
-        end
-        H->>S: output(lines, level)
-        S-->>H: Future<void>
-    end
-```
+The formatter decides **WHAT** information is relevant and in what **LOGICAL** order. It does not decide how it looks. It emits a `LogStructure` composed of semantic `LogBlock`s (Sections, Containers).
 
-The `Handler` initializes a `LogContext` for every entry, ensuring **Unified Layout Sovereignty**:
-- **totalWidth**: The authoritative spatial limit (from sink or user).
-- **paddingWidth**: Calculated as the sum of all structural decorator footprints.
-- **availableWidth**: The remaining slot for initial content (`totalWidth - paddingWidth`).
-- **contentLimit**: The boundary for aligned metadata (e.g. suffixes).
+### 3. Decoration (Structural Enhancement)
+**Component**: `LogDecorator`
+**Output**: `LogStructure` (Enhanced)
 
-Formatters wrap content to `availableWidth` *before* decorators run, eliminating layout conflicts.
+Decorators wrap or modify the logical structure. For example, a `BoxDecorator` doesn't draw a box with `-` and `|`; it wraps the existing structure in a `LogContainer` of style `box`.
+
+### 4. Encoding (Physical Rendering)
+**Component**: `LogEncoder<T>`
+**Output**: `T` (Physical Format: String, HTML, JSON)
+
+**The most critical stage.** The encoder is the only component that knows the physical constraints of the target medium. It translates the abstract `LogStructure` into a specific format.
+- **Terminal Encoder**: Calculates terminal width, draws ASCII borders, performs hard line-wrapping, and applies ANSI colors.
+- **HTML Encoder**: Generates a semantic `<details>` DOM tree, delegates wrapping to CSS, and applies color via classes.
+- **JSON Encoder**: Preserves the structural hierarchy as nested objects for log aggregators.
+
+### 5. Sinking (Physical Transport)
+**Component**: `LogSink`
+The sink receives the rendered data and performs the actual I/O side effect (writing to file, sending via HTTP).
+
+---
+
+
+## The Layout Contract: `LogContext`
+
+While Encoders have the final say on *how* to draw, the `Handler` ensures everyone plays by the same spatial rules via `LogContext`.
+
+- **totalWidth**: The authoritative spatial target (e.g., 80 chars, or terminal width).
+- **hints**: Semantic hints for formatters (e.g., `colors: true/false`).
+
+> **Note**: Unlike the v0.6.1 architecture where formatters had to calculate `availableWidth` and wrap text manually, v0.6.2 formatters generally **ignore** width. They emit the full content, trusting the `Encoder` to handle wrapping gracefully at the very last moment.
+
+---
+
+## The Components in Detail
 
 ### Stage 1: Filtering
 **Component**: `LogFilter`
 **Input**: `LogEntry`
 **Output**: `Boolean`
 
-Filters are deeply efficient checks run before any string manipulation occurs. If any filter returns `false`, processing stops immediately to save CPU cycles.
+Filters are deeply efficient checks run before any structure is built. If any filter returns `false`, processing stops immediately.
 - *Example*: `LevelFilter` (ignore DEBUG logs), `RegexFilter` (ignore logs containing "password").
 
-### Stage 2: Formatting
+### Stage 2: Formatting (The Architect)
 **Component**: `LogFormatter`
-**Data Interface**: `LogField`
-**Input**: `LogEntry`, `LogContext`
-**Output**: `Iterable<LogLine>`
- 
-The formatter transforms the structured log entry into a list of semantic lines (`LogLine`). To ensure consistency, all formatters use the `LogField` system for field-safe data extraction from `LogEntry`.
+**Output**: `LogStructure`
 
-- **Layout Alignment**: Formatters strictly rely on `context.availableWidth` provided by the handler to perform internal wrapping and alignment.
-- **StructuredFormatter**: Detailed layout (header, origin, message) with fine-grained semantic tagging. **(Preferred for human reading)**
-- **ToonFormatter**: Token-Oriented Object Notation. Highly efficient for LLM consumption. **(Preferred for AI agents)**
-- **JsonFormatter**: Compact JSON serialization. Supports field customization via `LogField`.
-- **JsonPrettyFormatter**: Pretty-printed JSON with semantic tagging.
-- **MarkdownFormatter**: Generates structured Markdown output.
-- **HTMLFormatter**: Produces semantic HTML segments.
-- **PlainFormatter**: Standard `[timestamp] level: message` format.
+The formatter constructs the logical building blocks of the log.
 
-### Semantic Tagging (`LogTag`)
+#### Standard Formatters
+- **StructuredFormatter**: The default for humans. Organizes data into clear Header, Message, and Origin sections.
+- **ToonFormatter**: "Token-Oriented Object Notation". A high-density format optimized for LLM consumption.
+- **JsonFormatter**: Compact JSON serialization.
+- **JsonPrettyFormatter**: Recursive, color-aware JSON for human debugging.
+- **PlainFormatter**: Minimalist `[time] level: message`.
+- **MarkdownFormatter**: Structured Markdown output.
 
-The bridge between Stage 2 (Formatting) and Stage 3 (Decoration) is the `LogTag`. Formatters do not emit raw strings; they emit `LogSegment`s tagged with semantic metadata.
+#### Semantic Tagging (`LogTag`)
+The formatter tags every `LogSegment` with semantic meaning, allowing downstream styles to be applied regardless of the formatter used.
 
-| Tag | Purpose | Example Component                     |
-|---|---|---------------------------------------|
-| `header` | General structural metadata | `ToonFormatter` fields                |
-| `timestamp` | Time of entry | `StructuredFormatter`                 |
-| `level` | Log severity (e.g. `[INFO]`) | `StructuredFormatter`                 |
-| `message` | The primary content | `JsonFormatter`                       |
-| `border` | Visual framing characters | `BoxDecorator`, `JsonPrettyFormatter` |
-| `origin` | File/Line source info | `StructuredFormatter`                 |
-| `error` | Exception details | `LogField.error` extraction           |
-| `hierarchy` | Tree prefixes | `HierarchyDepthPrefixDecorator`       |
-| `suffix` | Trailing metadata | `SuffixDecorator`                     |
+| Tag | Purpose | Example |
+|---|---|---|
+| `header` | Structural metadata blocks | `[INFO]` |
+| `timestamp` | Time of entry | `2023-10-10...` |
+| `level` | Severity indication | `ERROR` |
+| `message` | The primary content body | User message |
+| `error` | Exception details | Stack traces |
+| `origin` | Source location | `UserService:42` |
+| `key/value` | Structured data pairs | `userId=5` |
 
-**Why this matters**: A decorator can selectively target segments. For example, `StyleDecorator` might make `border` segments dim while making `level` segments bold and colored. This decoupling allows you to swap formatters without losing your high-fidelity terminal styling.
-
-### Stage 3: Decoration
+### Stage 3: Decoration (The Interior Designer)
 **Component**: `LogDecorator`
-**Input**: `Iterable<LogLine>`
-**Output**: `Iterable<LogLine>`
+**Output**: `LogStructure` (Enhanced)
 
-Decorators apply post-formatting transformations, often leveraging `LogContext.availableWidth` for dynamic adjustments. They are composable and execute in the order they appear in the `decorators` list (auto-sorted by type).
-- **BoxDecorator**: Adds ASCII borders around the lines. It is now decoupled from the layout logic.
-- **StyleDecorator**: The primary engine for visual transformations. Unlike simple colorizers, it:
-    - Resolves semantic **LogStyles** from a **LogTheme** using both the `LogLevel` and the segment's `LogTag`s.
-    - Supports bold, dim, italic, inverse, and both foreground/background colors.
-    - **Merges styles**: It respects styles already applied by formatters while applying theme defaults.
-    - Replaces the legacy **ColorDecorator** (now a deprecated alias).
+Decorators modify the logical tree, wrapping content or injecting new sections.
 
-For a deep dive into how decorators interact, see [Decorator Composition](decorator_compositions.md).
+- **BoxDecorator**: Wraps the entire structure in a `LogContainer(style: box)`. It implies "this is a frame".
+- **HierarchyDecorator**: Wraps content in a `LogContainer(style: hierarchy)`, implying indentation/nesting.
+- **SuffixDecorator**: Appends a specific section to the end of the structure (e.g., `[v1.0]`).
+- **StyleDecorator**: Applies `LogStyle` to segments based on their `LogTag`. This is where "Errors should be red" is defined, separate from the text.
 
-### Stage 4: Output (Sinking)
+### Stage 4: Encoding (The Renderer)
+**Component**: `LogEncoder<T>`
+**Output**: `T` (e.g., `String`, `List<int>`)
+
+This is where the abstract `LogStructure` becomes concrete.
+
+| Encoder | Philosophy | Output Example |
+|---|---|---|
+| **AnsiEncoder** | "Pixel Perfect" | Draws `┌─┐`, calculates `width=80`, wraps text, adds `\x1B[31m`. |
+| **HtmlEncoder** | "Semantic Web" | Renders `<details class="log-box error">`. No physical border chars. |
+| **JsonEncoder** | "Pure Data" | Converts the hierarchy to nested JSON objects. Preserves structure. |
+| **PlainTextEncoder** | "Universal" | Renders ASCII borders but no colors. |
+
+### Stage 5: Output (Sinking)
 **Component**: `LogSink`
-**Input**: `Iterable<LogLine>`, `LogLevel`
-**Output**: `Future<void>` (I/O Side Effect)
- 
-The sink handles the physical write operation. Sinks are designed to be robust and isolated from the main application flow.
+**Output**: Side Effect
 
-- **Preferred Width**: Each sink reports its `preferredWidth` (e.g., terminal width or default 80). The `Handler` uses this to initialize `LogContext.availableWidth` if a manual `lineLength` is not provided.
-- **Fail-Safe Processing**: Sinks are wrapped in internal error handlers. If a `FileSink` fails (e.g., Disk Full), the error is routed to `InternalLogger` and does not crash the calling thread.
-- **Concurrency**: Most sinks (except simple console wrappers) utilize an internal task queue (mutex) to serialize writes, preventing race conditions during rapid logging.
+The sink handles the physical transport.
 
-## Class Diagram
+#### Standard Sinks
+- **ConsoleSink**:
+  - Auto-detects terminal capabilities.
+  - Defaults to `AnsiEncoder` if supported, else `PlainTextEncoder`.
+- **FileSink**:
+  - **Thread-Safety**: Uses internal mutexes for concurrent writes.
+  - **Rotation**: Handles `SizeRotation` and `TimeRotation` safely.
+  - **Durability**: Auto-flushes to disk.
+- **HtmlLayoutSink**:
+  - A wrapper sink! It wraps any other sink (like `FileSink`).
+  - Writes the global `<html><head><style>...</head>` preamble.
+  - Writes `HtmlEncoder` fragments into the `<body>`.
+- **NetworkSinks (Http/Socket)**:
+  - **HttpSink**: Batches logs and POSTs them with exponential backoff.
+  - **SocketSink**: Streams logs over WebSockets with auto-reconnect.
 
-## The Data Model: LogEntry
+---
 
-The `LogEntry` is the immutable data snapshot passed through the pipeline.
+## Data Model: `LogEntry`
 
-### API Protection
+The `LogEntry` is the immutable snapshot of a logging event.
+
 > [!IMPORTANT]
-> The `LogEntry` constructor and `Handler.log` method are marked as **`@internal`**. 
-> Developers should always interface with the logging system via the `Logger` API (e.g., `logger.info()`). This preserves the integrity of the data model and allows for future pipeline optimizations without breaking user code.
+> The `LogEntry` constructor is `@internal`. Users should only create logs via the `Logger` interface. This shields the internal data structure from breaking changes in user code.
 
 ### Dynamic Hierarchy
-To ensure performance and consistency, `LogEntry` does not store a manual depth value. Instead, `hierarchyDepth` is computed dynamically from the `loggerName`:
-- `global` -> 0
-- `app` -> 1
-- `app.services.db` -> 3
+`logd` computes hierarchy depth dynamically from the logger name (`app.component.service`). This ensures that indentation in `HierarchyDecorator` is always correct, even if loggers are created ad-hoc.
 
-This ensures that indentation always perfectly mirrors the actual logger hierarchy, regardless of how the entry was created.
+---
 
-## Standard Implementations
+## Threading & Safety
 
-### Sinks
-- **ConsoleSink**: 
-  - Dynamic width detection via `stdout.terminalColumns`.
-  - Platform-aware ANSI support detection.
-  - Efficiently translates `LogStyle` metadata into ANSI escape codes.
-- **FileSink**: 
-  - **Thread-Safety**: Uses a `_writeLock` (Completer-based mutex) to ensure sequential file access across asynchronous calls.
-  - **Rotation**: Supports `SizeRotation` and `TimeRotation`. Handles file shifts, compression (GZip), and cleanup of old backups.
-  - **Durability**: Employs `flush: true` on every write to minimize data loss during crashes.
-  - **Auto-Provisioning**: Automatically creates parent directories if they don't exist.
-- **HTMLSink**: 
-  - Self-contained documents with embedded CSS for high-fidelity viewing in browsers.
-  - Session-managed: Safely coordinates multiple sink instances writing to the same file path.
-  - Dark mode support built-in.
-- **MultiSink**: 
-  - **Broadcast Engine**: Dispatches logs to child sinks in parallel using `Future.wait`.
-  - **Error Isolation**: Failure in one child sink (e.g., a network timeout) does not prevent other sinks from completing.
-- **HttpSink**:
-  - **Batching**: Buffers logs and ships them in configurable batch sizes to reduce network overhead.
-  - **Resilience**: Implements exponential backoff retries on failure (up to `maxRetries` attempts).
-  - **Memory Safety**: Uses `DropPolicy` (`discardOldest`, `discardNewest`) to manage buffer overflow.
-  - **Final Drain**: `dispose()` flushes all pending logs before cleanup.
-- **SocketSink**:
-  - **Real-Time Streaming**: Sends logs immediately over a WebSocket connection.
-  - **Connection Awareness**: Buffers logs during disconnection and automatically drains the buffer upon reconnection.
-  - **Auto-Reconnect**: Schedules reconnection attempts after configurable intervals.
-
-### Threading & Safety
-- **Isolate Awareness**: `logd` is designed to be safe across multiple isolates, though most sinks (like `FileSink`) perform their own synchronization to prevent file locking conflicts.
-- **Async Boundary**: While formatting and decoration are synchronous for deterministic snapshotting of data, the `Sink.output` call is the async boundary. This allows the application to continue while the I/O system persists the logs.
+- **Isolate Safe**: `LogEntry` and `LogStructure` are immutable and sendable across isolates.
+- **Async Boundary**: The boundary lies at `Sink.output`. Formatting, Decorating, and Encoding happen synchronously to ensure the *state* of the log (mutable objects, memory) is captured immediately. Only the I/O is async.

@@ -25,23 +25,28 @@ void main() async {
         theme: _HeaderBackgroundTheme(),
       ),
       BoxDecorator(
-        borderStyle: BorderStyle.rounded,
+        border: BoxBorderStyle.rounded,
       ),
     ],
     sink: const ConsoleSink(),
     lineLength: 80,
   );
 
-  final htmlSink =
-      HTMLSink(filePath: '$basePath/dashboard.html', darkMode: true);
+  final htmlSink = HtmlLayoutSink(
+    FileSink('$basePath/dashboard.html'),
+    encoder: const HtmlEncoder(darkMode: true),
+  );
   final htmlHandler = Handler(
-    formatter: const HTMLFormatter(),
+    formatter: const StructuredFormatter(),
     sink: htmlSink,
   );
 
   final markdownHandler = Handler(
-    formatter: const MarkdownFormatter(headingLevel: 2),
-    sink: FileSink('$basePath/report.md'),
+    formatter: const StructuredFormatter(),
+    sink: FileSink(
+      '$basePath/report.md',
+      encoder: const MarkdownEncoder(headingLevel: 2),
+    ),
   );
 
   final semanticHandler = Handler(

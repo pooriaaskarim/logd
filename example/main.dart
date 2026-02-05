@@ -34,14 +34,14 @@ void _runDemo() {
     // StructuredFormatter handles the layout (origin, metadata, wrapping)
     formatter: const StructuredFormatter(),
     decorators: [
-      // StyleDecorator adds level-based coloring to the content (before boxing)
-      const StyleDecorator(),
       // BoxDecorator adds the visual frame (border color is handled internally)
       BoxDecorator(
-        borderStyle: BorderStyle.rounded,
+        border: BoxBorderStyle.rounded,
       ),
     ],
-    sink: const ConsoleSink(),
+    sink: const ConsoleSink(
+      theme: LogTheme(colorScheme: LogColorScheme.defaultScheme),
+    ),
     lineLength: 80,
   );
 
@@ -65,11 +65,12 @@ void _runDemo() {
     formatter: const JsonPrettyFormatter(),
     decorators: [
       BoxDecorator(
-        borderStyle: BorderStyle.double,
+        border: BoxBorderStyle.double,
       ),
-      const StyleDecorator(),
     ],
-    sink: const ConsoleSink(),
+    sink: const ConsoleSink(
+      theme: LogTheme(colorScheme: LogColorScheme.defaultScheme),
+    ),
     lineLength: 50, // Narrow box for JSON
   );
 
@@ -88,15 +89,14 @@ void _runDemo() {
   final hierarchicalHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      const StyleDecorator(
-        theme: _HierarchicalTheme(),
-      ),
       BoxDecorator(
-        borderStyle: BorderStyle.sharp,
+        border: BoxBorderStyle.sharp,
       ),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
-    sink: const ConsoleSink(),
+    sink: const ConsoleSink(
+      theme: _HierarchicalTheme(),
+    ),
     lineLength: 80,
   );
 

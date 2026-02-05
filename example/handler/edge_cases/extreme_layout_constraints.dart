@@ -8,7 +8,7 @@ void main() async {
   final tinyHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      BoxDecorator(borderStyle: BorderStyle.rounded),
+      BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 8, // Tiny! Internal space ~2-4 chars
@@ -36,7 +36,7 @@ void main() async {
   final tabBoxHandler = Handler(
     formatter: const PlainFormatter(metadata: {}),
     decorators: [
-      BoxDecorator(borderStyle: BorderStyle.sharp),
+      BoxDecorator(border: BoxBorderStyle.sharp),
     ],
     sink: const ConsoleSink(),
     lineLength: 40,
@@ -69,7 +69,7 @@ void main() async {
     decorators: [
       const StyleDecorator(
           theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
-      BoxDecorator(borderStyle: BorderStyle.double),
+      BoxDecorator(border: BoxBorderStyle.double),
       const SuffixDecorator(' [FINAL] ',
           style: LogStyle(color: LogColor.green, bold: true)),
     ],

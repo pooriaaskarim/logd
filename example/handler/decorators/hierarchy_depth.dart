@@ -38,7 +38,7 @@ Future<void> main() async {
       const HierarchyDepthPrefixDecorator(
         indent: '    ',
       ),
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      const BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 50,

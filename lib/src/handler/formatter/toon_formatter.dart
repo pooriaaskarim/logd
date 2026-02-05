@@ -13,12 +13,6 @@ final class ToonFormatter implements LogFormatter {
   /// - [arrayName]: The name of the array in the header (e.g., 'logs').
   /// - [metadata]: Contextual metadata to include in the output columns.
   /// - [color]: Whether to emit semantic tags for coloring.
-  ///   metadata: {LogMetadata.timestamp, LogMetadata.logger,
-  ///   LogMetadata.origin},
-  ///   color: true,
-  ///   multiline: true,
-  /// );
-  /// ```
   const ToonFormatter({
     this.delimiter = '\t',
     this.arrayName = 'logs',
@@ -45,15 +39,13 @@ final class ToonFormatter implements LogFormatter {
   final bool color;
 
   /// Whether to allow actual newlines in strings (rather than escaping to \n).
-  /// Recommended for visual high-detail benchmarks but can break machine
-  /// parsers.
   final bool multiline;
 
   @override
-  Iterable<LogLine> format(
+  LogDocument format(
     final LogEntry entry,
     final LogContext context,
-  ) sync* {
+  ) {
     // Header includes metadata followed by crucial fields
     final metaNames = metadata.map((final m) => m.name).join(',');
     const crucialNames = 'level,message,error,stackTrace';
@@ -61,20 +53,22 @@ final class ToonFormatter implements LogFormatter {
         '$arrayName[]{$metaNames${metaNames.isNotEmpty ? ',' : ''}'
         '$crucialNames}:';
 
-    final headerLine = color
-        ? LogLine([
-            LogSegment(headerStr, tags: const {LogTag.header}),
-          ])
-        : LogLine.text(headerStr);
+    final headerSegment = color
+        ? StyledText(headerStr, tags: const {LogTag.header})
+        : StyledText(headerStr, tags: const {});
 
-    yield* headerLine.wrap(context.availableWidth);
+    final rowSegments =
+        color ? _formatColorizedRow(entry) : _formatPlainRow(entry);
 
-    final rowLine = color ? _formatColorizedRow(entry) : _formatPlainRow(entry);
-
-    yield* rowLine.wrap(context.availableWidth);
+    return LogDocument(
+      nodes: [
+        HeaderNode(segments: [headerSegment]),
+        MessageNode(segments: rowSegments),
+      ],
+    );
   }
 
-  LogLine _formatPlainRow(final LogEntry entry) {
+  List<StyledText> _formatPlainRow(final LogEntry entry) {
     final values = [
       ...metadata.map((final m) => m.getValue(entry)),
       entry.level.name,
@@ -83,17 +77,19 @@ final class ToonFormatter implements LogFormatter {
       entry.stackTrace?.toString() ?? '',
     ];
 
-    return LogLine.text(values.map(_escapeAndQuote).join(delimiter));
+    return [
+      StyledText(values.map(_escapeAndQuote).join(delimiter), tags: const {}),
+    ];
   }
 
-  LogLine _formatColorizedRow(final LogEntry entry) {
-    final segments = <LogSegment>[];
+  List<StyledText> _formatColorizedRow(final LogEntry entry) {
+    final segments = <StyledText>[];
 
     void add(final String val, final LogTag tag) {
       if (segments.isNotEmpty) {
-        segments.add(LogSegment(delimiter, tags: const {LogTag.punctuation}));
+        segments.add(StyledText(delimiter, tags: const {LogTag.punctuation}));
       }
-      segments.add(LogSegment(_escapeAndQuote(val), tags: {tag}));
+      segments.add(StyledText(_escapeAndQuote(val), tags: {tag}));
     }
 
     for (final meta in metadata) {
@@ -105,7 +101,7 @@ final class ToonFormatter implements LogFormatter {
     add(entry.error?.toString() ?? '', LogTag.error);
     add(entry.stackTrace?.toString() ?? '', LogTag.stackFrame);
 
-    return LogLine(segments);
+    return segments;
   }
 
   String _escapeAndQuote(final String value) {

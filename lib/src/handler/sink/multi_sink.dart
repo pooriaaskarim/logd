@@ -37,33 +37,27 @@ base class MultiSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
     if (!enabled) {
-      return;
-    }
-    // Convert to list once to avoid multiple iterations of a potentially
-    // lazy iterable (e.g., if it comes from a generator).
-    final linesList = lines.toList();
-    if (linesList.isEmpty) {
       return;
     }
 
     await Future.wait(
       sinks
           .where((final sink) => sink.enabled)
-          .map((final sink) => _safeOutput(sink, linesList, level)),
+          .map((final sink) => _safeOutput(sink, document, level)),
     );
   }
 
   Future<void> _safeOutput(
     final LogSink sink,
-    final List<LogLine> lines,
+    final LogDocument structure,
     final LogLevel level,
   ) async {
     try {
-      await sink.output(lines, level);
+      await sink.output(structure, level);
     } catch (e, s) {
       InternalLogger.log(
         LogLevel.error,

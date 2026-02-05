@@ -20,233 +20,200 @@ final class StructuredFormatter implements LogFormatter {
 
   @override
   final Set<LogMetadata> metadata;
+
   @override
-  Iterable<LogLine> format(final LogEntry entry, final LogContext context) {
-    final width = context.availableWidth;
-    final innerWidth = (width - 4).clamp(1, double.infinity).toInt();
-
-    return <LogLine>[
-      ..._buildHeader(entry, width),
-      ..._buildMessage(entry.message, innerWidth),
-      if (entry.error != null) ..._buildError(entry.error!, innerWidth),
-      if (entry.stackFrames != null)
-        ..._buildStackTrace(entry.stackFrames!, innerWidth),
-    ];
-  }
-
-  List<LogLine> _buildHeader(final LogEntry entry, final int width) => [
-        // Phase 1: Timestamp
-        if (metadata.contains(LogMetadata.timestamp))
-          ..._buildHeaderSection([(entry.timestamp, LogTag.timestamp)], width),
-
-        // Phase 2: Level & Logger
-        ..._buildHeaderSection(
-          [
-            ('[${entry.level.name.toUpperCase()}]', LogTag.level),
-            if (metadata.contains(LogMetadata.logger))
-              ('[${entry.loggerName}]', LogTag.loggerName),
-          ],
-          width,
-        ),
-
-        // Phase 3: Origin
-        if (metadata.contains(LogMetadata.origin))
-          ..._buildHeaderSection(
-            [('[${entry.origin}]', LogTag.origin)],
-            width,
+  LogDocument format(final LogEntry entry, final LogContext context) =>
+      LogDocument(
+        nodes: [
+          DecoratedNode(
+            leadingWidth: 4,
+            leadingHint: 'structured_separator',
+            children: [_buildHeader(entry, context)],
           ),
-      ];
+          DecoratedNode(
+            leadingWidth: 5,
+            leadingHint: 'structured_content',
+            children: [_buildMessage(entry.message, context)],
+          ),
+          if (entry.error != null)
+            DecoratedNode(
+              leadingWidth: 5,
+              leadingHint: 'structured_content',
+              children: [_buildError(entry.error!)],
+            ),
+          if (entry.stackFrames != null)
+            DecoratedNode(
+              leadingWidth: 5,
+              leadingHint: 'structured_content',
+              children: [_buildStackTrace(entry.stackFrames!, context)],
+            ),
+        ],
+      );
 
-  Iterable<LogLine> _buildHeaderSection(
-    final List<(String text, LogTag? tag)> parts,
-    final int width,
-  ) sync* {
-    if (parts.isEmpty) {
-      return;
-    }
-    const prefix = '____';
-    final contentWidth = (width - prefix.length).clamp(1, 1000);
+  ContentNode _buildHeader(final LogEntry entry, final LogContext context) {
+    // Reserve 4 chars for '____' prefix
+    final innerWidth = (context.availableWidth - 4).clamp(1, 1000);
 
-    // 1. Build initial coarse segments, splitting by internal newlines
-    final logicalLines = <List<LogSegment>>[[]];
-    for (int i = 0; i < parts.length; i++) {
-      final p = parts[i];
-      if (i > 0 && logicalLines.last.isNotEmpty) {
-        logicalLines.last.add(const LogSegment(' ', tags: {LogTag.header}));
-      }
+    final segments = <StyledText>[];
 
-      final subLines = p.$1.split('\n');
-      for (int j = 0; j < subLines.length; j++) {
-        if (j > 0) {
-          logicalLines.add([]);
-        }
-        logicalLines.last.add(
-          LogSegment(
-            subLines[j],
-            tags: {
-              LogTag.header,
-              if (p.$2 != null) p.$2!,
-            },
+    // Line 1: [Logger][Level][Origin]
+    final line1Segments = <StyledText>[
+      StyledText(
+        '[${entry.loggerName}]',
+        tags: const {LogTag.header, LogTag.loggerName},
+      ),
+      StyledText(
+        '[${entry.level.name.toUpperCase()}]',
+        tags: const {LogTag.header, LogTag.level},
+      ),
+    ];
+
+    if (metadata.contains(LogMetadata.origin)) {
+      line1Segments
+        ..add(const StyledText(' ', tags: {LogTag.header}))
+        ..add(
+          StyledText(
+            '[${entry.origin}]',
+            tags: const {LogTag.header, LogTag.origin},
           ),
         );
-      }
     }
 
-    // 2. Wrap each logical line into the framing structure
-    for (final logicalLine in logicalLines) {
-      if (logicalLine.isEmpty) {
+    // Line 2: Timestamp
+    final line2Segments = <StyledText>[];
+    if (metadata.contains(LogMetadata.timestamp)) {
+      line2Segments.add(
+        StyledText(
+          entry.timestamp,
+          tags: const {LogTag.header, LogTag.timestamp},
+        ),
+      );
+    }
+
+    final allLines = [line1Segments, line2Segments];
+
+    for (final lineSegments in allLines) {
+      if (lineSegments.isEmpty) {
         continue;
       }
 
-      var currentOutputLine = <LogSegment>[
-        const LogSegment(prefix, tags: {LogTag.header}),
-      ];
-      var currentX = 0;
+      // Flatten for wrapping
+      final flat = lineSegments.map((final s) => (s.text, s)).toList();
+      final wrapped = wrapWithData(flat, innerWidth);
 
-      for (final seg in logicalLine) {
-        final textLines =
-            LogLine([LogSegment(seg.text, tags: seg.tags)]).wrap(contentWidth);
+      for (final wLine in wrapped) {
+        for (final chunk in wLine) {
+          segments.add(chunk.$2.copyWith(text: chunk.$1));
+        }
+        segments.add(const StyledText('\n', tags: {LogTag.header}));
+      }
+    }
 
-        // If the first part of this segment doesn't fit on the current line,
-        // force a new line immediately.
-        if (currentX > 0 &&
-            textLines.first.visibleLength > (contentWidth - currentX)) {
-          yield* _finishLine(currentOutputLine, width);
-          currentOutputLine = [
-            const LogSegment(prefix, tags: {LogTag.header}),
-          ];
-          currentX = 0;
+    // Remove trailing newline if present to prevent double spacing
+    if (segments.isNotEmpty && segments.last.text == '\n') {
+      segments.removeLast();
+    }
+
+    return HeaderNode(
+      segments: segments,
+    );
+  }
+
+  MessageNode _buildMessage(final String content, final LogContext context) {
+    if (content.isEmpty) {
+      return const MessageNode(segments: []);
+    }
+
+    // Reserve 5 chars for '----|' prefix
+    final innerWidth = (context.availableWidth - 5).clamp(1, 1000);
+    final segments = <StyledText>[];
+
+    final explicitLines = content.split('\n');
+
+    for (int i = 0; i < explicitLines.length; i++) {
+      final lineContent = explicitLines[i];
+
+      // Wrap this explicit line
+      final wrappedLine = wrapWithData(
+        [
+          (lineContent, const StyledText('', tags: {LogTag.message})),
+        ],
+        innerWidth,
+      ).toList();
+
+      for (int j = 0; j < wrappedLine.length; j++) {
+        final wLine = wrappedLine[j];
+
+        for (final chunk in wLine) {
+          segments.add(chunk.$2.copyWith(text: chunk.$1));
         }
 
-        var isFirstSubLine = true;
-        for (final textLine in textLines) {
-          if (!isFirstSubLine) {
-            // New line needed for subsequent wrapped parts
-            yield* _finishLine(currentOutputLine, width);
-            currentOutputLine = [
-              const LogSegment(prefix, tags: {LogTag.header}),
-            ];
-            currentX = 0;
-          }
-
-          // Append segments from this text line
-          for (final s in textLine.segments) {
-            currentOutputLine.add(s);
-            currentX += s.text.visibleLength;
-          }
-          isFirstSubLine = false;
+        // Add newline unless it's the very last line of everything
+        if (i < explicitLines.length - 1 || j < wrappedLine.length - 1) {
+          segments.add(const StyledText('\n'));
         }
       }
-
-      if (currentOutputLine.length > 1) {
-        yield* _finishLine(currentOutputLine, width);
-      }
     }
+
+    return MessageNode(segments: segments);
   }
 
-  Iterable<LogLine> _finishLine(
-    final List<LogSegment> line,
-    final int totalWidth,
-  ) sync* {
-    final currentLen =
-        line.fold(0, (final sum, final s) => sum + s.text.visibleLength);
-    final fillerLen = totalWidth - currentLen;
-    if (fillerLen > 0) {
-      line.add(LogSegment('_' * fillerLen, tags: const {LogTag.header}));
-    }
-    yield LogLine(line);
-  }
+  FooterNode _buildError(final Object error) => FooterNode(
+        segments: [
+          StyledText('Error: $error', tags: const {LogTag.error}),
+        ],
+      );
 
-  List<LogLine> _buildMessage(final String content, final int innerWidth) {
-    final raw =
-        content.split('\n').where((final l) => l.trim().isNotEmpty).toList();
-    const prefix = '----|';
-    final wrapWidth =
-        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
-    final out = <LogLine>[];
-    for (final line in raw) {
-      final wrapped = _wrap(line, wrapWidth);
-      for (int i = 0; i < wrapped.length; i++) {
-        final p = i == 0 ? prefix : ' ' * prefix.length;
-        out.add(
-          LogLine([
-            LogSegment(p + wrapped[i], tags: const {LogTag.message}),
-          ]),
-        );
-      }
-    }
-    return out;
-  }
-
-  List<LogLine> _buildError(
-    final Object error,
-    final int innerWidth,
-  ) {
-    final raw = error
-        .toString()
-        .split('\n')
-        .where((final l) => l.trim().isNotEmpty)
-        .toList();
-    const prefix = '----|';
-    final wrapWidth =
-        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
-    final lines = <LogLine>[
-      ..._wrap('Error:', wrapWidth).map(
-        (final l) => LogLine([
-          LogSegment(
-            prefix + l,
-            tags: const {LogTag.error},
-          ),
-        ]),
-      ),
-    ];
-    for (final line in raw) {
-      final wrapped = _wrap(line, wrapWidth);
-
-      for (int i = 0; i < wrapped.length; i++) {
-        final p = i == 0 ? prefix : ' ' * prefix.length;
-        lines.add(
-          LogLine([
-            LogSegment(p + wrapped[i], tags: const {LogTag.error}),
-          ]),
-        );
-      }
-    }
-    return lines;
-  }
-
-  List<LogLine> _buildStackTrace(
+  FooterNode _buildStackTrace(
     final List<CallbackInfo> frames,
-    final int innerWidth,
+    final LogContext context,
   ) {
-    const prefix = '----|';
-    final wrapWidth =
-        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
-    final lines = <LogLine>[
-      ..._wrap('Stack Trace:', wrapWidth).map(
-        (final l) => LogLine([
-          LogSegment(prefix + l, tags: const {LogTag.stackFrame}),
-        ]),
-      ),
-    ];
+    // Reserve 5 chars for '----|' prefix
+    final innerWidth = (context.availableWidth - 5).clamp(1, 1000);
+    final segments = <StyledText>[];
+
+    // Header "Stack Trace:"
+    final headerWrap = wrapWithData(
+      [
+        ('Stack Trace:', const StyledText('', tags: {LogTag.stackFrame})),
+      ],
+      innerWidth,
+    ).toList();
+
+    for (final wLine in headerWrap) {
+      for (final chunk in wLine) {
+        segments.add(chunk.$2.copyWith(text: chunk.$1));
+      }
+      segments.add(const StyledText('\n', tags: {LogTag.stackFrame}));
+    }
+
     for (final frame in frames) {
-      final line =
+      final text =
           ' at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
-      final wrapped = _wrap(line, wrapWidth);
-      for (int i = 0; i < wrapped.length; i++) {
-        final p = i == 0 ? prefix : ' ' * prefix.length;
-        lines.add(
-          LogLine([
-            LogSegment(p + wrapped[i], tags: const {LogTag.stackFrame}),
-          ]),
-        );
+      final wrappedFrame = wrapWithData(
+        [
+          (text, const StyledText('', tags: {LogTag.stackFrame})),
+        ],
+        innerWidth,
+      ).toList();
+
+      for (final line in wrappedFrame) {
+        for (final chunk in line) {
+          segments.add(chunk.$2.copyWith(text: chunk.$1));
+        }
+        segments.add(const StyledText('\n'));
       }
     }
-    return lines;
-  }
 
-  List<String> _wrap(final String text, final int maxWidth) =>
-      text.wrapVisiblePreserveAnsi(maxWidth).toList();
+    // Remove trailing newline
+    if (segments.isNotEmpty && segments.last.text == '\n') {
+      segments.removeLast();
+    }
+
+    return FooterNode(
+      segments: segments,
+    );
+  }
 
   @override
   bool operator ==(final Object other) =>

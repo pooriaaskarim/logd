@@ -23,7 +23,7 @@ void main() async {
     formatter: const StructuredFormatter(),
     decorators: [
       const StyleDecorator(theme: _EliteDashboardTheme()),
-      BoxDecorator(borderStyle: BorderStyle.rounded),
+      BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 80,
@@ -41,7 +41,7 @@ void main() async {
     decorators: [
       const StyleDecorator(
           theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
-      BoxDecorator(borderStyle: BorderStyle.rounded),
+      BoxDecorator(border: BoxBorderStyle.rounded),
       const HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],
     sink: const ConsoleSink(),

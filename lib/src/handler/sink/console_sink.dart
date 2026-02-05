@@ -3,7 +3,13 @@ part of '../handler.dart';
 /// A [LogSink] that outputs formatted log lines to the system console.
 @immutable
 base class ConsoleSink extends LogSink {
-  const ConsoleSink({super.enabled});
+  /// Creates a [ConsoleSink].
+  ///
+  /// - [theme]: Optional theme to resolve semantic tags into ANSI colors.
+  const ConsoleSink({this.theme, super.enabled});
+
+  /// The theme used for ANSI output (if supported).
+  final LogTheme? theme;
 
   @override
   int get preferredWidth =>
@@ -11,7 +17,7 @@ base class ConsoleSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
     if (!enabled) {
@@ -19,46 +25,11 @@ base class ConsoleSink extends LogSink {
     }
     try {
       final supportsAnsi = io.stdout.supportsAnsiEscapes;
+      final LogEncoder<String> encoder =
+          supportsAnsi ? AnsiEncoder(theme: theme) : const PlainTextEncoder();
 
-      for (final line in lines) {
-        final buffer = StringBuffer();
-        for (final segment in line.segments) {
-          final style = segment.style;
-          if (supportsAnsi && style != null) {
-            // Apply ANSI codes
-            if (style.bold == true) {
-              buffer.write(AnsiStyle.bold.sequence);
-            }
-            if (style.dim == true) {
-              buffer.write(AnsiStyle.dim.sequence);
-            }
-            if (style.italic == true) {
-              buffer.write(AnsiStyle.italic.sequence);
-            }
-            if (style.inverse == true) {
-              buffer.write('\x1B[7m'); // Hardcoded inverse for now
-            }
-            if (style.color != null) {
-              final ansiCode = AnsiColorCode.fromLogColor(style.color!);
-              buffer.write(ansiCode.foreground);
-            }
-            if (style.backgroundColor != null) {
-              final ansiCode =
-                  AnsiColorCode.fromLogColor(style.backgroundColor!);
-              buffer.write(ansiCode.background);
-            }
-
-            buffer
-              ..write(segment.text)
-
-              // Reset
-              ..write(AnsiStyle.reset.sequence);
-          } else {
-            buffer.write(segment.text);
-          }
-        }
-        print(buffer);
-      }
+      final output = encoder.encode(document, level);
+      print(output);
     } catch (e, s) {
       InternalLogger.log(
         LogLevel.error,

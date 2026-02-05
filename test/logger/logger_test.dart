@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
 
@@ -210,26 +211,32 @@ void main() {
 
       buffer.sink();
 
-      expect(logCollector.logs, containsAll(['[INFO] line 1', 'line 2']));
+      expect(
+        logCollector.logs.map((final l) => l.trim()),
+        containsAll(['[INFO] line 1', 'line 2']),
+      );
     });
   });
 
   group('InternalLogger', () {
     test('InternalLogger does not recursively log when a handler fails',
         () async {
+      final sink = FailingSink()..called = Completer<void>();
       final failingHandler = Handler(
         formatter: const PlainFormatter(),
-        sink: FailingSink(),
+        sink: sink,
       );
 
-      Logger.configure('global', handlers: [failingHandler]);
+      Logger.configure('recursion_test_unique', handlers: [failingHandler]);
 
-      // This should NOT cause a stack overflow
-      Logger.get().info('trigger failure');
+      // Trigger the failure.
+      Logger.get('recursion_test_unique').info('trigger failure');
 
-      // If it didn't throw/overflow, we are good.
-      // InternalLogger should have logged the error to Console
-      // (default) or wherever it's configured.
+      // Wait for the sink to be called
+      await sink.called!.future;
+
+      // Wait for the async processing (and error handling) to finish.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
     });
   });
 
@@ -257,14 +264,16 @@ void main() {
 class LoggerHierarchyEdgeCases {}
 
 base class FailingSink extends LogSink {
+  Completer<void>? called;
   @override
   int get preferredWidth => 80;
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
+    called?.complete();
     throw Exception('Simulated failure');
   }
 }
@@ -277,9 +286,10 @@ base class LogCollector extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
-    logs.addAll(lines.map((final l) => l.toString()));
+    const encoder = PlainTextEncoder();
+    logs.addAll(encoder.encode(document, level).split('\n'));
   }
 }

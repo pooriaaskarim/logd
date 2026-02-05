@@ -15,7 +15,7 @@ void main() async {
     formatter: const StructuredFormatter(),
     decorators: [
       BoxDecorator(
-        borderStyle: BorderStyle.rounded,
+        border: BoxBorderStyle.rounded,
       ),
     ],
     sink: const ConsoleSink(),

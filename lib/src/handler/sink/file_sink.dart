@@ -328,7 +328,12 @@ base class FileSink extends LogSink {
   ///   to a filename, not a directory.
   /// - [fileRotation]: An optional policy for rotating the log file.
   /// - [enabled]: Whether the sink is currently active.
-  FileSink(this.basePath, {this.fileRotation, super.enabled = true}) {
+  FileSink(
+    this.basePath, {
+    this.fileRotation,
+    this.encoder = const PlainTextEncoder(),
+    super.enabled = true,
+  }) {
     _validateBasePath(basePath);
   }
 
@@ -359,6 +364,9 @@ base class FileSink extends LogSink {
   /// The rotation policy applied to this sink (null for no rotation).
   final FileRotation? fileRotation;
 
+  /// The encoder to use for serializing logs (default: [PlainTextEncoder]).
+  final LogEncoder<String> encoder;
+
   /// Internal mutex to serialize write operations and prevent race conditions.
   ///
   /// Uses a Completer-based queue to ensure all write operations are executed
@@ -367,7 +375,7 @@ base class FileSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
     if (!enabled) {
@@ -385,7 +393,7 @@ base class FileSink extends LogSink {
     }
 
     try {
-      await _performWrite(lines);
+      await _performWrite(document, level);
       completer.complete();
     } catch (e, s) {
       completer.completeError(e, s);
@@ -406,18 +414,21 @@ base class FileSink extends LogSink {
   /// Performs the actual file write operation.
   ///
   /// This method is called from [output] after acquiring the write lock.
-  Future<void> _performWrite(final Iterable<LogLine> lines) async {
+  Future<void> _performWrite(
+    final LogDocument structure,
+    final LogLevel level,
+  ) async {
     final file = Context.fileSystem.file(basePath);
     final parentDir = file.parent;
     if (!await parentDir.exists()) {
       await parentDir.create(recursive: true);
     }
 
-    final linesList = lines.toList();
-    if (linesList.isEmpty) {
+    final encoded = encoder.encode(structure, level);
+    if (encoded.isEmpty) {
       return;
     }
-    final newData = '${linesList.map((final l) => l.toString()).join('\n')}\n';
+    final newData = '$encoded\n';
 
     File targetFile = file;
     if (fileRotation != null &&

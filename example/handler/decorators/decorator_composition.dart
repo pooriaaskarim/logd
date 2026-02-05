@@ -27,7 +27,7 @@ void main() async {
       const PrefixDecorator(' [SVC] '),
 
       // Structural Decoration (Inner)
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      const BoxDecorator(border: BoxBorderStyle.rounded),
 
       // Structural Decoration (Outer)
       const HierarchyDepthPrefixDecorator(indent: '  '),
@@ -59,7 +59,7 @@ void main() async {
     decorators: [
       // Tag every line to ensure if file is concatenated, boundaries are clear
       const SuffixDecorator(' <AUDIT-END>', aligned: true),
-      BoxDecorator(borderStyle: BorderStyle.sharp),
+      BoxDecorator(border: BoxBorderStyle.sharp),
     ],
     sink: const ConsoleSink(),
     lineLength: 60,

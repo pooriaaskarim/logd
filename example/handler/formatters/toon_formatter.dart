@@ -44,7 +44,7 @@ void main() async {
     ),
     decorators: [
       const StyleDecorator(theme: _ToonPanelTheme()),
-      BoxDecorator(borderStyle: BorderStyle.rounded),
+      BoxDecorator(border: BoxBorderStyle.rounded),
     ],
     sink: const ConsoleSink(),
     lineLength: 40, // Aggressively narrow for Toon + Box

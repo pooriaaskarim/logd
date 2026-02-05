@@ -7,14 +7,14 @@ class MockFormatter implements LogFormatter {
   @override
   final Set<LogMetadata> metadata;
 
-  final Iterable<LogLine> Function(LogEntry) formatFn;
+  final LogDocument Function(LogEntry) formatFn;
   @override
-  Iterable<LogLine> format(final LogEntry entry, final LogContext context) =>
+  LogDocument format(final LogEntry entry, final LogContext context) =>
       formatFn(entry);
 }
 
 final class MockSink extends LogSink {
-  final List<List<LogLine>> outputs = [];
+  final List<LogDocument> outputs = [];
   final List<LogLevel> levels = [];
 
   @override
@@ -22,10 +22,10 @@ final class MockSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
-    outputs.add(lines.toList());
+    outputs.add(document);
     levels.add(level);
   }
 }
@@ -46,12 +46,15 @@ void main() {
     setUp(() {
       sink = MockSink();
       formatter = MockFormatter(
-        (final entry) => [LogLine.text('formatted: ${entry.message}')],
+        (final entry) => LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('formatted: ${entry.message}')]),
+          ],
+        ),
       );
       testEntry = LogEntry(
         loggerName: 'test',
         origin: 'main',
-        
         level: LogLevel.info,
         message: 'hello',
         timestamp: Timestamp.iso8601().timestamp!,
@@ -63,12 +66,14 @@ void main() {
       await handler.log(testEntry);
 
       expect(sink.outputs.length, equals(1));
-      expect(sink.outputs.first.first.toString(), equals('formatted: hello'));
+      final section = sink.outputs.first.nodes.first as MessageNode;
+      expect(section.segments.first.text, equals('formatted: hello'));
       expect(sink.levels.first, equals(LogLevel.info));
     });
 
-    test('Handler skips sink if formatter returns empty list', () async {
-      final emptyFormatter = MockFormatter((final _) => []);
+    test('Handler skips sink if formatter returns empty blocks', () async {
+      final emptyFormatter =
+          MockFormatter((final _) => const LogDocument(nodes: []));
       final handler = Handler(formatter: emptyFormatter, sink: sink);
       await handler.log(testEntry);
 
@@ -111,7 +116,6 @@ void main() {
     const entryInfo = LogEntry(
       loggerName: 'app.ui',
       origin: 'Widget.build',
-      
       level: LogLevel.info,
       message: 'info msg',
       timestamp: '2025-01-01 12:00:00',
@@ -119,7 +123,6 @@ void main() {
     const entryError = LogEntry(
       loggerName: 'app.service',
       origin: 'Service.run',
-      
       level: LogLevel.error,
       message: 'error msg',
       timestamp: '2025-01-01 12:00:01',

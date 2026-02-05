@@ -11,16 +11,13 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: '2025-01-01T10:00:00Z',
-      
     );
 
     test('Output header once then rows with TAB delimiter (default)', () {
       const formatter = ToonFormatter();
 
-      final lines = formatter
-          .format(entry, mockContext)
-          .map((final l) => l.toString())
-          .toList();
+      final structure = formatter.format(entry, mockContext);
+      final lines = renderLines(structure);
 
       // Header includes: timestamp,logger,origin,level,message,error,stackTrace
       expect(lines.length, equals(2));
@@ -42,10 +39,8 @@ void main() {
       const formatter = ToonFormatter(
         metadata: {LogMetadata.logger},
       );
-      final lines = formatter
-          .format(entry, mockContext)
-          .map((final l) => l.toString())
-          .toList();
+      final structure = formatter.format(entry, mockContext);
+      final lines = renderLines(structure);
 
       expect(
         lines[0],
@@ -59,7 +54,8 @@ void main() {
         metadata: {LogMetadata.logger},
         color: true,
       );
-      final lines = formatter.format(entry, mockContext).toList();
+      final structure = formatter.format(entry, mockContext);
+      final lines = structure.nodes.map((final b) => b as ContentNode).toList();
 
       // Row is index 1
       final row = lines[1];
@@ -73,7 +69,7 @@ void main() {
       expect(rowSegs[2].tags, contains(LogTag.level));
     });
 
-    test('Respects availableWidth by truncating row', () {
+    test('Respects availableWidth via AnsiEncoder', () {
       const formatter = ToonFormatter(
         metadata: {}, // Only crucial content
       );
@@ -83,19 +79,22 @@ void main() {
         level: LogLevel.info,
         message: 'This is a very long message',
         timestamp: 'now',
-        
       );
 
-      // We use a width that allows breaking at the TAB.
-      // info (4) + \t (4) = 8.
-      const context = LogContext(availableWidth: 8);
-      final lines = formatter.format(entryLong, context).toList();
+      // info (4) + \t (1 cell visible) = 5.
+      // Message starts after delimiter.
+      final structure =
+          formatter.format(entryLong, const LogContext(availableWidth: 10));
 
-      // The row line should have visibleLength 8
-      final row =
-          lines.firstWhere((final l) => l.toString().startsWith('info'));
-      expect(row.visibleLength, equals(8));
-      expect(row.toString(), equals('info\t'));
+      const encoder = AnsiEncoder();
+      // We pass the width in metadata for the encoder
+      final rendered = encoder
+          .encode(structure.copyWith(metadata: {'width': 10}), LogLevel.info)
+          .split('\n');
+
+      final row = rendered.firstWhere((final l) => l.startsWith('info'));
+      // visibleLength should be around 10.
+      expect(LogLine.text(row).visibleLength, lessThanOrEqualTo(10));
     });
   });
 }

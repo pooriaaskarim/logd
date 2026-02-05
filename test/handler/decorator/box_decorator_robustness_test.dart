@@ -21,19 +21,28 @@ void main() {
       );
 
       final formatted = formatter.format(entry, context);
-      final boxed = box.decorate(formatted, entry, context).toList();
+      final structure = box.decorate(formatted, entry, context);
 
-      // Check top/bottom border length
-      final topWidth = boxed[0].visibleLength;
+      const encoder = AnsiEncoder();
+      // Add width to metadata for the encoder
+      final boxedLines = encoder
+          .encode(
+            structure.copyWith(metadata: {'width': 40}),
+            LogLevel.info,
+          )
+          .split('\n');
 
-      for (int i = 0; i < boxed.length; i++) {
-        final line = boxed[i];
-        print('Line $i: ${line.visibleLength} chars | $line');
+      // Check top/bottom border length (the first line should be the top border)
+      final topWidth = LogLine.text(boxedLines[0]).visibleLength;
+      expect(topWidth, equals(40));
+
+      for (int i = 0; i < boxedLines.length; i++) {
+        final lineText = boxedLines[i];
+        final lineWidth = LogLine.text(lineText).visibleLength;
         expect(
-          line.visibleLength,
+          lineWidth,
           equals(topWidth),
-          reason: 'Line \$i has inconsistent width: \${line.visibleLength}'
-              ' vs \$topWidth',
+          reason: 'Line $i has inconsistent width: $lineWidth vs $topWidth',
         );
       }
     });
@@ -54,14 +63,25 @@ void main() {
       );
 
       final formatted = formatter.format(entry, context);
-      final boxed = box.decorate(formatted, entry, context).toList();
+      final structure = box.decorate(formatted, entry, context);
+
+      const encoder = AnsiEncoder();
+      final boxedLines = encoder
+          .encode(
+            structure.copyWith(metadata: {'width': 30}),
+            LogLevel.error,
+          )
+          .split('\n');
 
       // Box should have consistent width across all lines
-      final boxWidth = boxed[0].visibleLength;
-      for (int i = 0; i < boxed.length; i++) {
-        final line = boxed[i];
+      final boxWidth = LogLine.text(boxedLines[0]).visibleLength;
+      expect(boxWidth, equals(30));
+
+      for (int i = 0; i < boxedLines.length; i++) {
+        final lineText = boxedLines[i];
+        final lineWidth = LogLine.text(lineText).visibleLength;
         expect(
-          line.visibleLength,
+          lineWidth,
           equals(boxWidth),
           reason: 'All box lines should have the same width',
         );

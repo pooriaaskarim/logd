@@ -39,8 +39,22 @@ void main() {
         client: mockClient,
       );
 
-      await sink.output([LogLine.text('log1')], LogLevel.info);
-      await sink.output([LogLine.text('log2')], LogLevel.info);
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('log1')]),
+          ],
+        ),
+        LogLevel.info,
+      );
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('log2')]),
+          ],
+        ),
+        LogLevel.info,
+      );
       verifyNever(
         () => mockClient.post(
           any(),
@@ -49,7 +63,14 @@ void main() {
         ),
       );
 
-      await sink.output([LogLine.text('log3')], LogLevel.info);
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('log3')]),
+          ],
+        ),
+        LogLevel.info,
+      );
       await Future.delayed(Duration.zero);
 
       verify(
@@ -76,7 +97,14 @@ void main() {
         client: mockClient,
       );
 
-      await sink.output([LogLine.text('queued')], LogLevel.info);
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('queued')]),
+          ],
+        ),
+        LogLevel.info,
+      );
       await Future.delayed(const Duration(milliseconds: 100));
 
       verify(
@@ -113,7 +141,14 @@ void main() {
         client: mockClient,
       );
 
-      await sink.output([LogLine.text('retry-me')], LogLevel.info);
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('retry-me')]),
+          ],
+        ),
+        LogLevel.info,
+      );
       await Future.delayed(const Duration(milliseconds: 600));
 
       expect(attempts, equals(2));
@@ -139,7 +174,14 @@ void main() {
         channel: mockChannel,
       );
 
-      await sink.output([LogLine.text('instant')], LogLevel.info);
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('instant')]),
+          ],
+        ),
+        LogLevel.info,
+      );
       await Future.delayed(Duration.zero);
 
       verify(() => mockSink.add('instant')).called(1);
@@ -156,7 +198,14 @@ void main() {
       );
 
       // don't await because it will block on readyCompleter
-      final f = sink.output([LogLine.text('buffered')], LogLevel.info);
+      final f = sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('buffered')]),
+          ],
+        ),
+        LogLevel.info,
+      );
 
       await Future.delayed(Duration.zero);
       verifyNever(() => mockSink.add(any()));
@@ -193,10 +242,30 @@ void main() {
         client: mockClient,
       );
 
-      await sink.output([LogLine.text('first')], LogLevel.info);
-      await sink.output([LogLine.text('second')], LogLevel.info);
-      await sink
-          .output([LogLine.text('third')], LogLevel.info); // Should be dropped
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('first')]),
+          ],
+        ),
+        LogLevel.info,
+      );
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('second')]),
+          ],
+        ),
+        LogLevel.info,
+      );
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('third')]),
+          ],
+        ),
+        LogLevel.info,
+      ); // Should be dropped
 
       await sink.dispose();
 
@@ -226,7 +295,14 @@ void main() {
         client: mockClient,
       );
 
-      await sink.output([LogLine.text('ignored')], LogLevel.info);
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('ignored')]),
+          ],
+        ),
+        LogLevel.info,
+      );
       await Future.delayed(Duration.zero);
 
       verifyNever(
@@ -253,7 +329,14 @@ void main() {
         client: mockClient,
       );
 
-      await sink.output([LogLine.text('pending')], LogLevel.info);
+      await sink.output(
+        const LogDocument(
+          nodes: [
+            MessageNode(segments: [StyledText('pending')]),
+          ],
+        ),
+        LogLevel.info,
+      );
       verifyNever(
         () => mockClient.post(
           any(),

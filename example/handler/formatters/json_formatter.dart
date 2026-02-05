@@ -35,7 +35,11 @@ void main() async {
   final inspectorHandler = Handler(
     formatter: const JsonPrettyFormatter(
       color: true, // Enable semantic tagging for StyleDecorator
-      metadata: {...LogMetadata.values},
+      metadata: {
+        LogMetadata.timestamp,
+        LogMetadata.logger,
+        LogMetadata.origin,
+      },
       indent: '  ',
     ),
     decorators: [
@@ -45,7 +49,7 @@ void main() async {
         ' [AUDIT]',
       ),
       const SuffixDecorator(' [AUDIT]', aligned: true),
-      BoxDecorator(borderStyle: BorderStyle.sharp),
+      BoxDecorator(border: BoxBorderStyle.sharp),
     ],
     sink: const ConsoleSink(),
     lineLength: 50, // Narrow enough to force internal wrapping of values

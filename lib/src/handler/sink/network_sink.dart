@@ -27,8 +27,12 @@ abstract base class NetworkSink extends LogSink {
   const NetworkSink({
     this.maxBufferSize = 1000,
     this.dropPolicy = DropPolicy.discardOldest,
+    this.encoder = const PlainTextEncoder(),
     super.enabled,
   });
+
+  /// The encoder to use for serializing logs (default: [PlainTextEncoder]).
+  final LogEncoder<String> encoder;
 
   /// Max entries to hold in memory.
   final int maxBufferSize;
@@ -113,6 +117,7 @@ final class HttpSink extends NetworkSink {
     this.flushInterval = const Duration(seconds: 60),
     this.maxRetries = 5,
     this.client,
+    super.encoder,
     super.maxBufferSize,
     super.dropPolicy,
     super.enabled,
@@ -143,7 +148,7 @@ final class HttpSink extends NetworkSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
     if (!enabled || isDisposed) {
@@ -152,8 +157,8 @@ final class HttpSink extends NetworkSink {
 
     _ensureActive();
 
-    final formatted = lines.map((final s) => s.toString()).join('\n');
-    enqueue(formatted);
+    final encoded = encoder.encode(document, level);
+    enqueue(encoded);
 
     if (_state.buffer.length >= batchSize) {
       _triggerFlush();
@@ -251,6 +256,7 @@ final class SocketSink extends NetworkSink {
     this.headers = const {},
     this.reconnectInterval = const Duration(seconds: 15),
     this.channel,
+    super.encoder,
     super.maxBufferSize,
     super.dropPolicy,
     super.enabled,
@@ -275,19 +281,19 @@ final class SocketSink extends NetworkSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
     final LogLevel level,
   ) async {
     if (!enabled || isDisposed) {
       return;
     }
 
-    final formatted = lines.map((final s) => s.toString()).join('\n');
+    final encoded = encoder.encode(document, level);
 
     if (_socketState.isConnected) {
-      _send(formatted);
+      _send(encoded);
     } else {
-      enqueue(formatted);
+      enqueue(encoded);
       if (!_socketState.isConnecting) {
         await _connect();
       }

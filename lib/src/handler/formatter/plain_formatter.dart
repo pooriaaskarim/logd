@@ -23,72 +23,133 @@ final class PlainFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  Iterable<LogLine> format(
+  LogDocument format(
     final LogEntry entry,
     final LogContext context,
-  ) sync* {
-    final width = context.availableWidth;
-
+  ) {
     // 1. Collect all entry segments (Level, Metadata, Message)
-    final parts = <(String text, LogTag? tag)>[
-      ('[${entry.level.name.toUpperCase()}]', LogTag.level),
+    final segments = <StyledText>[
+      StyledText(
+        '[${entry.level.name.toUpperCase()}]',
+        tags: const {LogTag.level},
+      ),
     ];
 
     for (final meta in metadata) {
       final value = meta.getValue(entry);
       if (value.isNotEmpty) {
         final text = meta != LogMetadata.timestamp ? '[$value]' : value;
-        parts
-          ..add((' ', null))
-          ..add((text, meta.tag));
+        segments
+          ..add(const StyledText(' ', tags: {}))
+          ..add(StyledText(text, tags: {meta.tag}));
       }
     }
 
-    parts
-      ..add((' ', null))
-      ..add((entry.message, LogTag.message));
+    segments.add(const StyledText(' ', tags: {}));
 
-    // 2. Emit the entry flow
-    yield* _wrapFlow(parts, width);
+    // Calculate generic header width so far to offset wrapping
+    var headerWidth = 0;
+    for (final s in segments) {
+      headerWidth += s.text.visibleLength;
+    }
 
-    // 3. Handle Error if present
+    // Wrap the message
+    // First line must fit in (availableWidth - headerWidth)
+    // Subsequent lines use full availableWidth
+    final firstLineWidth =
+        (context.availableWidth - headerWidth).clamp(1, 1000);
+
+    final messageSegments = [
+      (entry.message, const StyledText('', tags: {LogTag.message})),
+    ];
+    final wrappedMessage = wrapWithData(
+      messageSegments,
+      firstLineWidth,
+      subsequentWidth: context.availableWidth,
+    );
+
+    var firstLine = true;
+    for (final line in wrappedMessage) {
+      if (!firstLine) {
+        segments.add(const StyledText('\n', tags: {}));
+      }
+      for (final chunk in line) {
+        segments.add(
+          StyledText(
+            chunk.$1,
+            tags: const {LogTag.message},
+          ),
+        );
+      }
+      firstLine = false;
+    }
+
+    // 2. Handle Error if present
     if (entry.error != null) {
       const errorPrefix = 'Error: ';
       final errorContent = entry.error.toString();
-      yield* _wrapFlow(
-        [(errorPrefix + errorContent, LogTag.error)],
-        width,
-      );
+      segments
+        ..add(const StyledText('\n', tags: {}))
+        ..add(
+          StyledText(
+            errorPrefix + errorContent,
+            tags: const {LogTag.error},
+          ),
+        );
     }
 
-    // 4. Handle Stack Trace if present
+    // 3. Handle Stack Trace if present
     if (entry.stackFrames != null && entry.stackFrames!.isNotEmpty) {
       for (final frame in entry.stackFrames!) {
         final text =
             'at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
-        yield* _wrapFlow([(text, LogTag.stackFrame)], width);
+
+        final wrappedStack = wrapWithData(
+          [
+            (text, const StyledText('', tags: {LogTag.stackFrame})),
+          ],
+          context.availableWidth,
+        );
+
+        for (final line in wrappedStack) {
+          segments.add(const StyledText('\n', tags: {}));
+          for (final chunk in line) {
+            segments.add(
+              StyledText(chunk.$1, tags: const {LogTag.stackFrame}),
+            );
+          }
+        }
       }
     } else if (entry.stackTrace != null) {
       final lines = entry.stackTrace.toString().split('\n');
       for (final line in lines) {
         if (line.trim().isNotEmpty) {
-          yield* _wrapFlow([(line, LogTag.stackFrame)], width);
+          final wrappedStack = wrapWithData(
+            [
+              (line, const StyledText('', tags: {LogTag.stackFrame})),
+            ],
+            context.availableWidth,
+          );
+
+          for (final stackLine in wrappedStack) {
+            segments.add(const StyledText('\n', tags: {}));
+            for (final chunk in stackLine) {
+              segments.add(
+                StyledText(chunk.$1, tags: const {LogTag.stackFrame}),
+              );
+            }
+          }
         }
       }
     }
-  }
 
-  Iterable<LogLine> _wrapFlow(
-    final List<(String text, LogTag? tag)> parts,
-    final int width,
-  ) sync* {
-    final line = LogLine(
-      parts
-          .map((final p) => LogSegment(p.$1, tags: {if (p.$2 != null) p.$2!}))
-          .toList(),
+    return LogDocument(
+      nodes: [
+        MessageNode(
+          segments: segments,
+        ),
+      ],
     );
-
-    yield* line.wrap(width);
   }
 
   @override

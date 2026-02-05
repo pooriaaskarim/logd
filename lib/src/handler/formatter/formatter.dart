@@ -1,19 +1,15 @@
 part of '../handler.dart';
 
-/// Abstract interface for formatting a [LogEntry] into a sequence of
-/// text lines.
+/// Abstract interface for formatting a [LogEntry] into [LogDocument].
 ///
-/// Formatters are responsible for the structural representation of a log entry,
-/// such as converting it to JSON, a boxed layout, or a simple plain text line.
+/// Formatters are responsible for Structuring the output produced from
+/// a log entry. Determine the data and how it should be shown.
 abstract interface class LogFormatter {
   const LogFormatter({required this.metadata});
 
   /// Contextual metadata to include in the output.
   final Set<LogMetadata> metadata;
 
-  /// Formats the [entry] into an [Iterable] of [LogLine]s.
-  ///
-  /// Using [Iterable] enables lazy evaluation and efficient processing when
-  /// chaining multiple formatters or applying decorators.
-  Iterable<LogLine> format(final LogEntry entry, final LogContext context);
+  /// Formats the [entry] into a [LogDocument].
+  LogDocument format(final LogEntry entry, final LogContext context);
 }

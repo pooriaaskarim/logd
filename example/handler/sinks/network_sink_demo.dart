@@ -49,7 +49,7 @@ void main() async {
       formatter: const PlainFormatter(metadata: {LogMetadata.timestamp}),
       decorators: [
         const StyleDecorator(), // Standard colors
-        const BoxDecorator(borderStyle: BorderStyle.double),
+        const BoxDecorator(border: BoxBorderStyle.double),
       ],
       sink: SocketSink(url: 'ws://127.0.0.1:$socketPort'),
     );
@@ -91,8 +91,11 @@ void main() async {
 
     // --- CASE 5: Documentation Stream (Socket + Markdown) ---
     final docsHandler = Handler(
-      formatter: const MarkdownFormatter(),
-      sink: SocketSink(url: 'ws://127.0.0.1:$socketPort'),
+      formatter: const StructuredFormatter(),
+      sink: SocketSink(
+        url: 'ws://127.0.0.1:$socketPort',
+        encoder: const MarkdownEncoder(),
+      ),
     );
     Logger.configure('dev.docs', handlers: [docsHandler]);
 

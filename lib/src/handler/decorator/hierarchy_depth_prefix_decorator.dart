@@ -20,20 +20,39 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
   final LogStyle? style;
 
   @override
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  LogDocument decorate(
+    final LogDocument document,
     final LogEntry entry,
     final LogContext context,
   ) {
     if (entry.hierarchyDepth <= 0) {
-      return lines;
+      return document;
     }
 
-    final depthStr = indent * entry.hierarchyDepth;
-    final prefixSegment =
-        LogSegment(depthStr, tags: const {LogTag.hierarchy}, style: style);
+    // Wrap the existing blocks in a hierarchy container.
+    // We can nest containers to represent depth, but typically the encoder
+    // handles depth calculations. However, since this decorator
+    // is manually applied, we effectively just mark "this structure is
+    // hierarchical".
+    //
+    // To support the existing behavior where the loop in Handler might call
+    // this, we simply return a container implementation.
+    //
+    // Note: In the new architecture, the Encoder usually handles hierarchy
+    // simply by checking entry.hierarchyDepth if it wants to.
+    // But if we want to force manual hierarchy injection via decorators,
+    // we use a Container.
 
-    return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
+    return LogDocument(
+      nodes: [
+        IndentationNode(
+          children: document.nodes,
+          indentString: indent * entry.hierarchyDepth,
+          style: style,
+        ),
+      ],
+      metadata: document.metadata,
+    );
   }
 
   @override

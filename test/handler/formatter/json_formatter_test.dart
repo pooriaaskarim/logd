@@ -12,15 +12,15 @@ void main() {
       level: LogLevel.info,
       message: 'Test message',
       timestamp: '2025-01-01 10:00:00',
-      
     );
 
     test('outputs compact JSON with default metadata', () {
       const formatter = JsonFormatter();
-      final lines = formatter.format(entry, mockContext).toList();
+      final structure = formatter.format(entry, mockContext);
+      final rendered = renderLines(structure);
 
-      expect(lines.length, equals(1));
-      final json = lines.first.toString();
+      expect(rendered.length, equals(1));
+      final json = rendered.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Metadata
@@ -43,16 +43,16 @@ void main() {
         level: LogLevel.error,
         message: 'Failed',
         timestamp: '2025-01-01 10:00:00',
-        
         error: 'Connection failed',
         stackTrace: StackTrace.fromString('stack line 1\n  stack line 2'),
       );
 
       const formatter = JsonFormatter(metadata: {});
-      final lines = formatter.format(errorEntry, mockContext).toList();
+      final structure = formatter.format(errorEntry, mockContext);
+      final rendered = renderLines(structure);
 
-      expect(lines.length, equals(1));
-      final json = lines.first.toString();
+      expect(rendered.length, equals(1));
+      final json = rendered.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Crucial content always present
@@ -73,15 +73,15 @@ void main() {
       level: LogLevel.info,
       message: 'Test message',
       timestamp: '2025-01-01 10:00:00',
-      
     );
 
     test('outputs formatted JSON with indentation', () {
       const formatter = JsonPrettyFormatter();
-      final lines = formatter.format(entry, mockContext).toList();
+      final structure = formatter.format(entry, mockContext);
+      final rendered = renderLines(structure);
 
-      expect(lines.length, greaterThan(1));
-      final output = lines.map((final l) => l.toString()).join('\n');
+      expect(rendered.length, greaterThan(1));
+      final output = rendered.join('\n');
 
       expect(output, contains('  "timestamp": '));
       expect(output, contains('  "level": '));
@@ -98,29 +98,40 @@ void main() {
       level: LogLevel.info,
       message: 'Test message',
       timestamp: '2025-01-01 10:00:00',
-      
     );
 
     test('emits semantic tags when color is true', () {
       const formatter = JsonPrettyFormatter(color: true);
-      final lines = formatter.format(entry, mockContext).toList();
+      final structure = formatter.format(entry, mockContext);
+      final blocks = structure.nodes;
 
-      expect(lines.length, greaterThan(0));
+      expect(blocks.length, greaterThan(0));
       bool foundKey = false;
       bool foundLevel = false;
       bool foundPunctuation = false;
-      for (final line in lines) {
-        for (final segment in line.segments) {
-          if (segment.tags.contains(LogTag.key)) {
-            foundKey = true;
+
+      void visit(final LogNode node) {
+        if (node is ContentNode) {
+          for (final segment in node.segments) {
+            if (segment.tags.contains(LogTag.key)) {
+              foundKey = true;
+            }
+            if (segment.tags.contains(LogTag.level)) {
+              foundLevel = true;
+            }
+            if (segment.tags.contains(LogTag.punctuation)) {
+              foundPunctuation = true;
+            }
           }
-          if (segment.tags.contains(LogTag.level)) {
-            foundLevel = true;
-          }
-          if (segment.tags.contains(LogTag.punctuation)) {
-            foundPunctuation = true;
+        } else if (node is LayoutNode) {
+          for (final child in node.children) {
+            visit(child);
           }
         }
+      }
+
+      for (final block in blocks) {
+        visit(block);
       }
       expect(foundKey, isTrue);
       expect(foundLevel, isTrue);
@@ -135,16 +146,16 @@ void main() {
       level: LogLevel.info,
       message: 'Processing request',
       timestamp: '2025-01-01 14:30:15.123',
-      
     );
 
     test('includes only specified metadata but always crucial content', () {
       const formatter = JsonFormatter(
         metadata: {LogMetadata.timestamp},
       );
-      final lines = formatter.format(entry, mockContext).toList();
+      final structure = formatter.format(entry, mockContext);
+      final rendered = renderLines(structure).first;
 
-      final json = lines.first.toString();
+      final json = rendered;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Metadata specified
@@ -161,9 +172,10 @@ void main() {
 
     test('empty metadata list still includes level and message', () {
       const formatter = JsonFormatter(metadata: {});
-      final lines = formatter.format(entry, mockContext).toList();
+      final structure = formatter.format(entry, mockContext);
+      final rendered = renderLines(structure).first;
 
-      final json = lines.first.toString();
+      final json = rendered;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['level'], equals('info'));

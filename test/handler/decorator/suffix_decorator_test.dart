@@ -1,5 +1,6 @@
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
+import 'mock_context.dart';
 
 void main() {
   group('SuffixDecorator', () {
@@ -15,19 +16,24 @@ void main() {
         timestamp: '2025-01-01',
       );
 
-      final lines = [LogLine.text('line 1'), LogLine.text('line 2')];
-      final decorated = decorator.decorate(lines, entry, context).toList();
+      const structure = LogDocument(
+        nodes: [
+          MessageNode(segments: [StyledText('line 1\nline 2')]),
+        ],
+      );
+      final decorated = decorator.decorate(structure, entry, context);
+      final rendered = renderLines(decorated);
 
-      expect(decorated.length, equals(2));
-      expect(decorated[0].segments.last.text, equals(suffix));
-      expect(decorated[1].segments.last.text, equals(suffix));
+      // Each rendered line should have the suffix appended
+      expect(rendered[0], equals('line 1 [SUFFIX]'));
+      expect(rendered[1], equals('line 2 [SUFFIX]'));
     });
 
     test('aligns suffix to far right when alignToEnd: true', () {
       const suffix = '!!';
       const decorator = SuffixDecorator(suffix, aligned: true);
-      // Total area is 20. Suffix is 2. Formatter gets 18.
-      const context = LogContext(availableWidth: 18, contentLimit: 20);
+      // Total area is 20. Suffix is 2.
+      const context = LogContext(availableWidth: 20, contentLimit: 20);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -36,13 +42,23 @@ void main() {
         timestamp: 'now',
       );
 
-      final lines = [LogLine.text('12345')]; // Length 5
-      final decorated = decorator.decorate(lines, entry, context).toList();
+      const structure = LogDocument(
+        nodes: [
+          MessageNode(segments: [StyledText('12345')]),
+        ],
+      );
+      final decorated = decorator.decorate(structure, entry, context);
 
-      // Content (5) + Padding (13) + Suffix (2) = 20 total (contentLimit)
-      expect(decorated[0].visibleLength, equals(20));
-      expect(decorated[0].segments[1].text, equals(' ' * 13));
-      expect(decorated[0].segments.last.text, equals('!!'));
+      // The decorator returns a DecoratedNode wrapping the message
+      expect(decorated.nodes.first, isA<DecoratedNode>());
+      final node = decorated.nodes.first as DecoratedNode;
+      expect(node.trailing!.first.text, equals('!!'));
+      expect(node.trailing!.first.tags, contains(LogTag.suffix));
+
+      final rendered = renderLines(decorated, width: 20);
+      // "12345" + padding + "!!" = 20
+      // padding = 20 - 5 - 2 = 13
+      expect(rendered.first, equals('12345' + (' ' * 13) + '!!'));
     });
 
     test('reports correct paddingWidth', () {
@@ -72,15 +88,28 @@ void main() {
         timestamp: '2025-01-01',
       );
 
-      // Handler evaluation order: ContentDecorator (Suffix) ->
-      // StructuralDecorator (Box)
-      final lines = [LogLine.text('test')];
-      final suffixed = suffixDecorator.decorate(lines, entry, context);
-      final boxed = box.decorate(suffixed, entry, context).toList();
+      const structure = LogDocument(
+        nodes: [
+          MessageNode(segments: [StyledText('test')]),
+        ],
+      );
 
-      // Box width: availableWidth (20) + 2 border = 22 total
-      expect(boxed[0].visibleLength, equals(22));
-      expect(boxed[1].segments[2].text, equals(' !!'));
+      // In the new architecture, SuffixDecorator is a StructuralDecorator.
+      // SuffixDecorator priority is 3 (unknown structural).
+      // BoxDecorator priority is 1.
+      // So Box applies first (wrapping content), then Suffix applies (wrapping box).
+      final s1 = box.decorate(structure, entry, context);
+      final s2 = suffixDecorator.decorate(s1, entry, context);
+
+      expect(s2.nodes.first, isA<DecoratedNode>());
+      final decorated = s2.nodes.first as DecoratedNode;
+      expect(decorated.children.first, isA<BoxNode>());
+
+      final rendered = renderLines(s2);
+      // Every line of the box should have ' !!' appended
+      for (final line in rendered) {
+        expect(line, endsWith(' !!'));
+      }
     });
   });
 }

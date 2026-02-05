@@ -18,20 +18,24 @@ void main() async {
   // ---------------------------------------------------------------------------
   // SCENARIO 1: The "Technical Dashboard" (Dark Mode)
   // ---------------------------------------------------------------------------
-  final darkSink =
-      HTMLSink(filePath: 'logs/dashboard_dark.html', darkMode: true);
+  final darkSink = HtmlLayoutSink(
+    FileSink('logs/dashboard_dark.html'),
+    encoder: const HtmlEncoder(darkMode: true),
+  );
   final darkHandler = Handler(
-    formatter: const HTMLFormatter(),
+    formatter: const StructuredFormatter(),
     sink: darkSink,
   );
 
   // ---------------------------------------------------------------------------
   // SCENARIO 2: The "Printable Report" (Light Mode)
   // ---------------------------------------------------------------------------
-  final lightSink =
-      HTMLSink(filePath: 'logs/report_light.html', darkMode: false);
+  final lightSink = HtmlLayoutSink(
+    FileSink('logs/report_light.html'),
+    encoder: const HtmlEncoder(darkMode: false),
+  );
   final lightHandler = Handler(
-    formatter: const HTMLFormatter(),
+    formatter: const StructuredFormatter(),
     sink: lightSink,
   );
 
@@ -39,10 +43,12 @@ void main() async {
   // SCENARIO 3: "Mobile Viewport" (Narrrow Wrapping)
   // Goal: Test that HTML blocks wrap correctly when width is restricted.
   // ---------------------------------------------------------------------------
-  final mobileSink =
-      HTMLSink(filePath: 'logs/mobile_view.html', darkMode: true);
+  final mobileSink = HtmlLayoutSink(
+    FileSink('logs/mobile_view.html'),
+    encoder: const HtmlEncoder(darkMode: true),
+  );
   final mobileHandler = Handler(
-    formatter: const HTMLFormatter(),
+    formatter: const StructuredFormatter(),
     sink: mobileSink,
     lineLength: 45, // Mobile-width simulation
   );

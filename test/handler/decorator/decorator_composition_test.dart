@@ -4,14 +4,18 @@ import 'mock_context.dart';
 
 void main() {
   group('Decorator Composition', () {
-    final lines = [LogLine.text('msg line 1'), LogLine.text('msg line 2')];
+    const lines = LogDocument(
+      nodes: [
+        MessageNode(segments: [StyledText('msg line 1')]),
+        MessageNode(segments: [StyledText('msg line 2')]),
+      ],
+    );
     const entry = LogEntry(
       loggerName: 'test',
       origin: 'test',
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      
     );
 
     test('Order: BoxDecorator then StyleDecorator colors the borders', () {
@@ -19,7 +23,7 @@ void main() {
       const color = StyleDecorator();
 
       final boxed = box.decorate(lines, entry, mockContext);
-      final colored = color.decorate(boxed, entry, mockContext).toList();
+      final colored = color.decorate(boxed, entry, mockContext);
       final rendered = renderLines(colored);
 
       // Should have top border, 2 content lines, bottom border = 4 lines
@@ -43,7 +47,7 @@ void main() {
       const box = BoxDecorator();
 
       final colored = color.decorate(lines, entry, mockContext);
-      final boxed = box.decorate(colored, entry, mockContext).toList();
+      final boxed = box.decorate(colored, entry, mockContext);
       final rendered = renderLines(boxed);
 
       expect(rendered.length, equals(4));
@@ -61,44 +65,55 @@ void main() {
     });
 
     test('Multiple decorators apply sequentially', () {
-      // Mock decorators to track application
       const decorator1 = PrefixDecorator('P1: ');
       const decorator2 = PrefixDecorator('P2: ');
 
-      final result = decorator2
-          .decorate(
-            decorator1.decorate([LogLine.text('msg')], entry, mockContext),
-            entry,
-            mockContext,
-          )
-          .first;
+      final resultStructure = decorator2.decorate(
+        decorator1.decorate(
+          const LogDocument(
+            nodes: [
+              MessageNode(segments: [StyledText('msg')]),
+            ],
+          ),
+          entry,
+          mockContext,
+        ),
+        entry,
+        mockContext,
+      );
 
-      // Note: PrefixDecorator adds header LogSegment, LogLine.toString() joins
-      // them.
-      // renderLines also joins them.
-      // If mockContext.supportsAnsi is true, and header is colored?
-      // PrefixDecorator uses `LogTag.header`. StyleDecorator is NOT involved
-      // here?
-      // Wait, PrefixDecorator assigns `tags: {LogTag.header}`.
-      // IF we used StyleDecorator it would color it. But here we don't.
-      // So renderLines output is plain.
-      expect(result.toString(), equals('P2: P1: msg'));
+      final rendered = renderLines(resultStructure);
+      expect(rendered.first, equals('P2: P1: msg'));
     });
 
     test('BoxDecorator handles already colored lines using padVisible', () {
       const color = StyleDecorator();
       const box = BoxDecorator();
 
-      final colored =
-          color.decorate([LogLine.text('abc')], entry, mockContext).toList();
-      final boxed = box.decorate(colored, entry, mockContext).toList();
+      const input = LogDocument(
+        nodes: [
+          MessageNode(segments: [StyledText('abc')]),
+        ],
+      );
+      final colored = color.decorate(input, entry, mockContext);
+      final boxed = box.decorate(colored, entry, mockContext);
       final rendered = renderLines(boxed);
 
-      final middleLine = boxed[1];
-      // visibleLength should be 80 (availableWidth) + 2 borders = 82.
+      // In the new architecture, the BoxDecorator returns a LayoutNode (Box).
+      // The content inside the container should be colored.
+      final container = boxed.nodes.first as BoxNode;
       expect(
-        middleLine.visibleLength,
-        equals(82),
+        container.children.length,
+        equals(1),
+      ); // Should contain one Message
+      final contentSection = container.children.first as MessageNode;
+
+      // We don't check visibleLength directly on LogSection as it doesn't
+      // include borders anymore.
+      // Borders are rendered by the encoder.
+      expect(
+        contentSection.segments.first.text,
+        equals('abc'),
       );
 
       final renderedMiddle = rendered[1];
@@ -124,7 +139,6 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        
       );
 
       // Pipeline execution
@@ -132,8 +146,7 @@ void main() {
       // colored
       final s1 = box.decorate(lines, deepEntry, mockContext);
       final s2 = ansi.decorate(s1, deepEntry, mockContext);
-      final finalOutput =
-          hierarchy.decorate(s2, deepEntry, mockContext).toList();
+      final finalOutput = hierarchy.decorate(s2, deepEntry, mockContext);
       final rendered = renderLines(finalOutput);
 
       expect(rendered.length, equals(4));

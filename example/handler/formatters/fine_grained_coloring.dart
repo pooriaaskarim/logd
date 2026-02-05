@@ -20,7 +20,7 @@ void main() {
   final visualHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      BoxDecorator(borderStyle: BorderStyle.rounded),
+      BoxDecorator(border: BoxBorderStyle.rounded),
       const StyleDecorator(theme: _ProfoundConsoleTheme()),
     ],
     sink: const ConsoleSink(),

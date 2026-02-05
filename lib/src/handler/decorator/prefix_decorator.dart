@@ -16,15 +16,60 @@ final class PrefixDecorator extends ContentDecorator {
   final LogStyle? style;
 
   @override
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  LogDocument decorate(
+    final LogDocument document,
     final LogEntry entry,
     final LogContext context,
   ) {
-    final prefixSegment =
-        LogSegment(prefix, tags: const {LogTag.prefix}, style: style);
+    if (document.nodes.isEmpty) {
+      return document;
+    }
 
-    return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
+    return LogDocument(
+      nodes: document.nodes.map(_decorateNode).toList(),
+      metadata: document.metadata,
+    );
+  }
+
+  LogNode _decorateNode(final LogNode node) {
+    if (node is ContentNode || node is DecoratedNode) {
+      return DecoratedNode(
+        children: [node],
+        leadingWidth: prefix.visibleLength,
+        leading: [
+          StyledText(prefix, tags: const {LogTag.prefix}, style: style),
+        ],
+        // Prefix shouldn't force right-alignment of trailing space by itself
+        alignTrailing: false,
+      );
+    }
+
+    if (node is LayoutNode) {
+      return switch (node) {
+        final BoxNode n => BoxNode(
+            children: n.children.map(_decorateNode).toList(),
+            border: n.border,
+            style: n.style,
+            title: n.title,
+            tags: n.tags,
+          ),
+        final IndentationNode n => IndentationNode(
+            children: n.children.map(_decorateNode).toList(),
+            indentString: n.indentString,
+            style: n.style,
+            tags: n.tags,
+          ),
+        final DecoratedNode _ =>
+          throw StateError('Should be handled by first if'),
+        final GroupNode n => GroupNode(
+            children: n.children.map(_decorateNode).toList(),
+            title: n.title,
+            tags: n.tags,
+          ),
+      };
+    }
+
+    return node;
   }
 
   @override
