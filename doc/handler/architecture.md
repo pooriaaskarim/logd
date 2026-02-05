@@ -151,6 +151,15 @@ This ensures that indentation always perfectly mirrors the actual logger hierarc
 - **MultiSink**: 
   - **Broadcast Engine**: Dispatches logs to child sinks in parallel using `Future.wait`.
   - **Error Isolation**: Failure in one child sink (e.g., a network timeout) does not prevent other sinks from completing.
+- **HttpSink**:
+  - **Batching**: Buffers logs and ships them in configurable batch sizes to reduce network overhead.
+  - **Resilience**: Implements exponential backoff retries on failure (up to `maxRetries` attempts).
+  - **Memory Safety**: Uses `DropPolicy` (`discardOldest`, `discardNewest`) to manage buffer overflow.
+  - **Final Drain**: `dispose()` flushes all pending logs before cleanup.
+- **SocketSink**:
+  - **Real-Time Streaming**: Sends logs immediately over a WebSocket connection.
+  - **Connection Awareness**: Buffers logs during disconnection and automatically drains the buffer upon reconnection.
+  - **Auto-Reconnect**: Schedules reconnection attempts after configurable intervals.
 
 ### Threading & Safety
 - **Isolate Awareness**: `logd` is designed to be safe across multiple isolates, though most sinks (like `FileSink`) perform their own synchronization to prevent file locking conflicts.

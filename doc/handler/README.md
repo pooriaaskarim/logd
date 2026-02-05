@@ -94,7 +94,12 @@ Complex formats like JSON and TOON use semantic tags (`LogTag.timestamp`, `LogTa
 ### Sinks
 - `ConsoleSink`: Outputs to standard output (`stdout`), dynamically detecting terminal width.
 - `FileSink`: Writes to the local filesystem with support for advanced rotation strategies (size-based, time-based) and compression.
+- `HttpSink`: Ships logs to remote HTTP endpoints with batching, exponential backoff retries, and memory-safe buffering via `DropPolicy`.
+- `SocketSink`: Streams logs in real-time over WebSocket connections with automatic reconnection and buffer draining on recovery.
 - `MultiSink`: Distributes output to multiple sinks concurrently, ensuring resilient logging.
+
+> [!TIP]
+> **Network Sink Formatter Choice**: While `JsonFormatter` is recommended for `HttpSink` (produces structured JSON arrays), network sinks accept any formatter. Use `ToonFormatter` for efficient real-time streaming or `PlainFormatter` for simple text ingestion. Ensure your receiving endpoint matches the expected format.
 
 ## Composition
 
@@ -226,6 +231,45 @@ logger.configure(
         recursive: true, 
       ),
       sink: const ConsoleSink(),
+    ),
+  ],
+);
+```
+
+### 4. Centralized Network Logging
+Ship logs to a central aggregation service with resilient delivery.
+
+```dart
+final logger = Logger.get('app.production');
+logger.configure(
+  handlers: [
+    Handler(
+      formatter: const JsonFormatter(),
+      sink: const HttpSink(
+        url: 'https://logs.example.com/ingest',
+        batchSize: 50,
+        flushInterval: Duration(seconds: 10),
+        maxRetries: 5,
+        dropPolicy: DropPolicy.discardOldest,
+      ),
+    ),
+  ],
+);
+```
+
+### 5. Real-Time Monitoring Dashboard
+Stream logs to a live monitoring WebSocket server.
+
+```dart
+final logger = Logger.get('app.monitor');
+logger.configure(
+  handlers: [
+    Handler(
+      formatter: const ToonFormatter(), // Efficient for streaming
+      sink: const SocketSink(
+        url: 'wss://monitor.example.com/logs',
+        reconnectInterval: Duration(seconds: 5),
+      ),
     ),
   ],
 );

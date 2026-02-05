@@ -2,12 +2,12 @@
 
 ## 0.6.1: Unified Formatter Configuration & Layout Stability
 
-### ⚠️ Breaking Changes
+### Breaking Changes
 - **Removed `BoxFormatter`**: Finalized the removal of the deprecated `BoxFormatter` in favor of the more flexible `StructuredFormatter` + `BoxDecorator` composition.
 - **`LogMetadata` Transition**: Replaced the `LogField` enum with a more focused `LogMetadata` enum (`timestamp`, `logger`, `origin`). 
 - **Internal API Shields**: Marked `Handler.log` and the `LogEntry` constructor as **`@internal`** to protect the internal data model while promoting the high-level `Logger` API.
 
-### 🚀 Enhancements & Features
+### Enhancements & Features
 - **Unified Formatter API**: All formatters now accept a `Set<LogMetadata>` in their constructors, providing a consistent interface for controlling contextual data output while preserving core content (`message`, `level`, `error`).
 - **Introducing `SuffixDecorator`**: A new decorator for appending text to log lines, featuring an **aligned mode** to right-justify suffixes against the terminal or box edge.
 - **Intelligent JSON Inspection**: `JsonPrettyFormatter` now features recursive detection and pretty-printing of stringified JSON objects nested within messages.
@@ -17,20 +17,20 @@
   - `PlainFormatter`: Reworked with a flow-based layout that correctly wraps long messages and errors containing metadata.
 - **Styled Decorators**: `PrefixDecorator` and `HierarchyDepthPrefixDecorator` now support applying a `LogStyle` for high-fidelity semantic coloring.
 
-### 🏗 Layout & Architecture
+### Layout & Architecture
 - **Centralized Layout Logic**: Text wrapping is now handled implicitly by the `Handler` pipeline, ensuring structural decorators like `BoxDecorator` never receive overflowing lines.
 - **Decorator `paddingWidth`**: Decorators can now declare their visual footprint, allowing the `Handler` to calculate precisely how much space is available for the primary log content.
 - **Expanded `LogContext`**: Added `totalWidth` and `contentLimit` properties to provide decorators with definitive spatial constraints for precise alignment.
 - **Dynamic Hierarchy Depth**: `LogEntry` now computes its `hierarchyDepth` dynamically from the `loggerName`, guaranteeing that visual indentation always reflects the actual logger tree.
 
-### 🛠 Stability & Fixes
+### Stability & Fixes
 - **Robust ANSI Utilities**: Significant improvements to `visibleLength` (including tab expansion) and a new `wrapWithData` utility that preserves semantic segments across line breaks.
 - **Pure-Dart Compatibility**: Eliminated leaked `package:flutter_test` dependencies from the core library.
 - **Layout Artifact Removal**: Fixed redundant ANSI reset sequences that caused "phantom" empty lines in narrow terminal widths.
 
 ## 0.6.0: LLM-Optimized Logging & Shared Data Model
 
-### ⚠️ Breaking Changes
+### Breaking Changes
 - **Styling Engine Overhaul**: Replaced the terminal-bound `AnsiColorConfig` and `AnsiColorScheme` with a platform-agnostic **`LogTheme`** system. Visual intent is now decoupled from platform representation.
 - **Unified Formatter API**: Standardized metadata extraction via the **`LogField`** enum. 
   - **Removed**: Individual boolean flags (e.g., `showLevel`, `includeTime`) in `JsonFormatter` and `ToonFormatter`.
@@ -38,13 +38,13 @@
 - **Strict Logger Naming**: Enforced deterministic hierarchy traversal via name validation (regex: `^[a-z0-9_]+(\.[a-z0-9_]+)*$`) and automatic normalization to lowercase. This prevents "Ghost Hierarchies" caused by case sensitivity or invalid characters.
 - **Decorator Migration**: `ColorDecorator` is now a deprecated alias for **`StyleDecorator`**. All visual transformations now flow through the `LogTheme` resolution logic.
 
-### 🚀 Major Overhauls & Features
+### Major Overhauls & Features
 - **ToonFormatter (LLM-Native)**: Introduced **Token-Oriented Object Notation (TOON)**, a header-first streaming format optimized for AI agent context efficiency.
 - **Semantic Styling Pipeline**: The internal pipeline now emits rich **`LogStyle`** metadata. Sinks are now responsible for final rendering (e.g., translating `Bold` and `Dim` into ANSI codes or CSS classes).
 - **Style Resolution Precision**: Enhanced `JsonPrettyFormatter` to correctly tag and style nested JSON values by mapping them to their corresponding `LogField` types.
 - **Shared Field Logic**: Core log metadata (Timestamp, Level, Logger, Message, Error, StackTrace) is now extracted via a centralized, type-safe provider used by all modern formatters.
 
-### 📚 Documentation Suite
+### Documentation Suite
 - **Technical Manuals**: Completely rebuilt the `doc/` module with high-precision architectural guides:
   - **[Architecture](doc/handler/architecture.md)**: Details the 4-stage pipeline and operational context (`LogContext`).
   - **[Migration Guide](doc/handler/migration.md)**: Outlines the transition from monolithic "God Components" to decentralized behaviors.

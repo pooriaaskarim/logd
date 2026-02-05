@@ -78,11 +78,22 @@
 
 ---
 
+### ✅ P1: Network Sinks (HttpSink & SocketSink)
+**Context**: Users require reliable network logging for centralized log aggregation and real-time monitoring.
+
+**Result**: Implemented specialized network sinks extending `NetworkSink` base class.
+- [x] `HttpSink`: POST logs to REST endpoint with batching and exponential backoff retries
+- [x] `SocketSink`: Real-time WebSocket streaming with auto-reconnection
+- [x] `DropPolicy` for memory-safe buffer management (`discardOldest`, `discardNewest`)
+- [x] Dependency injection support for testability (`client` and `channel` parameters)
+- [x] Comprehensive test coverage (8 tests passing)
+
+---
+
 ### 🟡 P1: Additional Sinks
 **Context**: Users require diverse output destinations.
 
 **Planned Sinks**:
-- [ ] `HttpSink`: POST logs to REST endpoint with batching
 - [ ] `SqliteSink`: Persist logs to local database with schema
 - [ ] `SentrySink`: Direct integration with error tracking
 - [ ] `MemorySink`: In-memory buffer for testing/debugging
