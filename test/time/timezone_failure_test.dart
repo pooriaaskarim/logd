@@ -76,7 +76,8 @@ void main() {
       final tz = Timezone.local();
 
       // Crash -> Catch -> Name is null -> Fallback to 'UTC'
-      // Wait, no. If crash happens in TRY block, assignment to systemTimezoneName fails (remains null).
+      // Wait, no. If crash happens in TRY block, assignment to
+      // systemTimezoneName fails (remains null).
       // BUT, the catch block just logs.
       // The code then proceeds.
       // systemTimezoneName is null.

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.2: Resilient Network Logging & Timezone Standardization
+- ### Features
+  - **Network Sinks**: Introduced `HttpSink` and `SocketSink` for robust remote logging.
+    - Supports configurable retries, batching, and timeout handling.
+    - Compatible with all standard formatters (JSON, semantic formatters).
+    - Includes `SocketSink` for TCP/UDP logging (experimental/advanced usage).
+- ### Robustness & Standardization
+  - **Timezone Engine Overhaul**: Replaced the custom timezone implementation with the industry-standard `package:timezone`.
+    - **Standard Integration**: Leverages the official IANA Time Zone Database via `package:timezone`.
+    - **Robust Caching**: Implemented a caching layer for `Timezone.local` and `Timezone.named` to eliminate expensive database lookups on every log call.
+    - **Web Support**: Fixed compilation issues on Web platforms (`clock_web.dart`). 
+  - **Timezone Initialization**: Added `Timezone.ensureInitialized()` for explicit control over timezone database loading.
+- ### Fixes
+  - **Timezone Resolution**: Fixed an issue where `timezone` fetching could fail or produce repetitive error logs on iOS devices.
+  - **Web Platform**: Resolved a `MissingPluginException` and compilation errors related to `clock_web.dart`.
+
 ## 0.6.1: Unified Formatter Configuration & Layout Stability
 
 ### Breaking Changes
