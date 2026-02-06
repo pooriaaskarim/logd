@@ -33,46 +33,28 @@ graph LR
 
 ## Timezone Engine
 
-The `Timezone` class allows creating instances that are aware of Daylight Saving Time (DST) transitions without relying on the OS's `tzdata`.
+The `Timezone` class serves as a wrapper around the standard **IANA Time Zone Database**, provided by the `timezone` package.
 
-### DST Logic
-The engine uses `DSTZoneRule` to calculate offsets.
-- **Rules**: Defined by a Start Month/Week/Day and End Month/Week/Day.
-- **Transition Calculation**: `_computeTransition` dynamically finds the exact UTC instant a clock change occurs for a given year.
-- **Offset Computation**: For any given UTC `DateTime`, the engine checks:
-    1. Is the time within the Start/End window? (Northern Hemisphere)
-    2. OR does it wrap around the year end? (Southern Hemisphere)
+### Architecture
 
 ```mermaid
-classDiagram
-    class Timezone {
-        +String name
-        +DSTZoneRule rule
-        +DateTime now
-        +Duration offset
-    }
-
-    class DSTZoneRule {
-        +Duration standardOffset
-        +Duration dstDelta
-        +DSTTransitionRule start
-        +DSTTransitionRule end
-    }
-
-    class DSTTransitionRule {
-        +int month
-        +int weekday
-        +int instance
-        +LocalTime at
-    }
-
-    Timezone *-- DSTZoneRule
-    DSTZoneRule *-- DSTTransitionRule
+graph TD
+    User[User API] --> Timezone{Timezone Wrapper}
+    Timezone -->|Local/Named| TZPkg[package:timezone]
+    TZPkg -->|Load| Database[IANA TZ Database]
+    Database -->|Calculations| TZPkg
+    Timezone -->|Offset/Rules| Result[Accurate DateTime]
     
-    style Timezone fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
-    style DSTZoneRule fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style DSTTransitionRule fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    style User fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    style Timezone fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    style TZPkg fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
 ```
 
-### Local Resolution
-`Timezone.local()` attempts to match the system's timezone name (e.g., "America/New_York") against a built-in map of known rules. If unknown, it falls back to a **Fixed Offset** timezone based on the current system settings, logging a warning that DST automatic transitions will not be supported for that unknown zone.
+### Components
+
+1.  **Timezone Wrapper**: The `logd` `Timezone` class provides a unified API (`local`, `utc`, `named`) that abstracts the underlying library.
+2.  **Initialization**: `Timezone.ensureInitialized()` loads the IANA database (bundled with the package). This is handled implicitly by `local()` and `named()` factories if not done manually.
+3.  **Local Resolution**: 
+    - `Timezone.local()` attempts to match the system's timezone name against the IANA database.
+    - If the name is unknown (e.g., on some minimal Android environments), it falls back to a **Fixed Offset** timezone derived from the system's current offset, ensuring application stability even if DST rules are unavailable.
+

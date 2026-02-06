@@ -10,8 +10,8 @@ import 'dart:js_interop_unsafe';
 ///
 /// How to use:
 /// - Called internally by Time.timezoneNameFetcher() on web.
-/// - Example: String tz = fetchWebTimezoneName(); // 'Europe/London'
-String fetchWebTimezoneName() {
+/// - Example: String tz = fetchNativeTimezoneName();
+String fetchNativeTimezoneName() {
   try {
     final intl = jsi.globalContext.getProperty<jsi.JSObject?>('Intl'.toJS);
     if (intl == null) {

@@ -1,26 +1,24 @@
 # Time Design Philosophy
 
-## Dependency Isolation
+## Strategic Dependencies
 
-**Principle**: Avoid external dependencies for core timestamp functionality.
+**Principle**: Minimize core dependencies, but leverage industry standards for complex domains.
 
-**Rationale**: As a foundational library, `logd` must minimize dependency conflicts. External packages like `intl` or `timezone` have their own versioning constraints that would propagate to all `logd` users. The custom implementation ensures:
-- Zero version conflicts
-- Reduced total dependency graph size
-- Predictable behavior across platforms
+**Rationale**: While `logd` aims for minimal dependencies, Timezone resolution (especially DST handling) is politically complex and constantly changing. Implementing a custom engine was fragile and maintenance-heavy.
+- **Decision**: Adopt `package:timezone` (IANA database).
+- **Benefit**: Ensures correctness and simplifies the codebase.
+- **Mitigation**: The dependency is wrapped in `logd`'s API, shielding users from breaking changes in the underlying package.
 
-**Trade-off**: Requires maintaining custom formatters and timezone rules.
+## Standardized Timezone Handling
 
-## Explicit Timezone Handling
+**Principle**: Use the standard IANA Time Zone Database.
 
-**Principle**: Use rule-based DST calculation rather than system timezone databases.
+**Rationale**: System timezone data varies by OS version and platform (especially on Android). Using the bundled IANA database ensures:
+- **Consistency**: Identical output for the same UTC instant across different hosts.
+- **Reproducibility**: Formatting in tests is deterministic regardless of the machine's locale or OS version.
+- **Accuracy**: Automatic updates via package version bumps when governments change DST rules.
 
-**Rationale**: System timezone data varies by OS version and platform. Embedding common DST rules ensures:
-- Consistent output for the same UTC instant across different hosts
-- Reproducible timestamp formatting in test environments
-- Explicit control over timezone transitions
-
-**Limitation**: Political changes to DST rules require library updates or manual configuration via `Timezone()` factory.
+**Limitation**: Requires loading the database (handled automatically via `ensureInitialized` or implicit initialization).
 
 ## Microsecond Precision
 

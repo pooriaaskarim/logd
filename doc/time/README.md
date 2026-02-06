@@ -5,7 +5,7 @@ The Time module manages timestamp generation and timezone handling for log entri
 ## Capabilities
 
 - **High-Precision Timestamps**: Efficient generation of timestamps for high-volume logging.
-- **Timezone Support**: utilities for handling UTC and Local time conversions.
+- **Timezone Support**: Standard IANA database integration for accurate global time.
 - **Formatting**: Customizable date/time patterns (e.g., ISO-8601).
 
 ## Integration
