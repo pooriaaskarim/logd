@@ -15,31 +15,6 @@ part 'internal_logger.dart';
 part 'log_buffer.dart';
 part 'log_entry.dart';
 
-const _defaultStackMethodCount = {
-  LogLevel.trace: 0,
-  LogLevel.debug: 0,
-  LogLevel.info: 0,
-  LogLevel.warning: 2,
-  LogLevel.error: 8,
-};
-
-Timestamp? __defaultTimestamp;
-Timestamp get _defaultTimestamp => __defaultTimestamp ??= Timestamp(
-      formatter: 'yyyy.MMM.dd Z HH:mm:ss.SSS',
-      timezone: Timezone.local(),
-    );
-
-const _defaultStackTraceParser = StackTraceParser(
-  ignorePackages: ['logd', 'flutter'],
-);
-final _defaultHandlers = <Handler>[
-  const Handler(
-    formatter: StructuredFormatter(),
-    sink: ConsoleSink(),
-    decorators: [BoxDecorator()],
-  ),
-];
-
 /// Internal configuration for a [Logger], holding optional fields that
 /// can inherit from parent.
 @internal
@@ -155,11 +130,34 @@ class LoggerCache {
       logLevel: resolvedLogLevel ?? LogLevel.debug,
       includeFileLineInHeader: resolvedIncludeFileLineInHeader ?? false,
       stackMethodCount: Map.unmodifiable(
-        resolvedStackMethodCount ?? _defaultStackMethodCount,
+        resolvedStackMethodCount ??
+            Map.unmodifiable({
+              LogLevel.trace: 0,
+              LogLevel.debug: 0,
+              LogLevel.info: 0,
+              LogLevel.warning: 2,
+              LogLevel.error: 8,
+            }),
       ),
-      timestamp: resolvedTimestamp ?? _defaultTimestamp,
-      stackTraceParser: resolvedStackTraceParser ?? _defaultStackTraceParser,
-      handlers: List.unmodifiable(resolvedHandlers ?? _defaultHandlers),
+      timestamp: resolvedTimestamp ??
+          Timestamp(
+            formatter: 'yyyy.MMM.dd Z HH:mm:ss.SSS',
+            timezone: Timezone.local(),
+          ),
+      stackTraceParser: resolvedStackTraceParser ??
+          const StackTraceParser(
+            ignorePackages: ['logd', 'flutter'],
+          ),
+      handlers: List.unmodifiable(
+        resolvedHandlers ??
+            <Handler>[
+              const Handler(
+                formatter: StructuredFormatter(),
+                sink: ConsoleSink(),
+                decorators: [BoxDecorator()],
+              ),
+            ],
+      ),
     );
 
     _cache[loggerName] = resolved;

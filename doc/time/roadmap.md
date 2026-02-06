@@ -49,6 +49,9 @@
 - Library updates to `logd` will bump `timezone` package version.
 - Users verify accurate rules based on `timezone` version.
 
+### 🟡 P1: IOS Timezone name resolution corrupted.
+**context:** IOS platform based timezone fetch implementation flaky!
+
 ---
 
 ## Known Limitations
