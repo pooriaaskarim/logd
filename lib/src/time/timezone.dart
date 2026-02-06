@@ -48,8 +48,13 @@ class Timezone {
       try {
         final location = tz.getLocation(systemTimezoneName);
         return _localCache = Timezone._(location);
-      } catch (_) {
-        // Location not found in DB
+      } catch (e, s) {
+        InternalLogger.log(
+          LogLevel.error,
+          'Timezone "$systemTimezoneName" not found in database.',
+          error: e,
+          stackTrace: s,
+        );
       }
     }
 
