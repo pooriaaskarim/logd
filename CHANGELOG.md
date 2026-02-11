@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.3: Optimized Stack Trace Parsing & Logger Robustness
+- ### Optimizations
+  - **Single-Pass Parsing**: Introduced a unified `StackTraceParser.parse` method that extracts both the caller and required stack frames in a single pass, eliminating redundant processing.
+  - **Regex Caching**: Implemented class-level caching for stack frame regular expressions to minimize compilation overhead.
+- ### Robustness & Validation
+  - **Configuration Guards**: Added strict input validation to `Logger.configure`, rejecting negative stack counts and empty handler lists with clear error messages.
+  - **Inheritance Efficiency**: Optimized `freezeInheritance` to track actual state changes, skipping expensive cache invalidations when descendant configurations are already fully defined.
+  - **Null Message Stability**: Standardized behavior for `null` log messages (converted to empty string) and explicitly documented this behavior in the API.
+- ### Refactoring & Quality
+  - **Module Reorganization**: Refined the `stack_trace` module structure, moving `StackFrameSet` to a dedicated file and standardizing the parsing API.
+  - **Documentation Refresh**: Comprehensively updated roadmap, architecture, and philosophy documents to align with the latest performance and structural improvements.
+
+
 ## 0.6.2: Resilient Network Logging & Timezone Standardization
 - ### Features
   - **Network Sinks**: Introduced `HttpSink` and `SocketSink` for robust remote logging.

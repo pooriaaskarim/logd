@@ -17,44 +17,6 @@ class StackTraceParser {
   /// Optional custom filter function to decide if a frame should be ignored.
   final FrameFilter? customFilter;
 
-  /// Extracts the first relevant caller frame from the stack trace.
-  ///
-  /// Skips internal frames and ignores specified packages.
-  ///
-  /// Parameters:
-  /// - [stackTrace]: The full stack trace to parse.
-  /// - [skipFrames]: Number of initial frames to skip (default 0).
-  ///
-  /// Returns: CallbackInfo if found, null otherwise.
-  CallbackInfo? extractCaller({
-    required final StackTrace stackTrace,
-    final int skipFrames = 0,
-  }) {
-    final lines = stackTrace.toString().split('\n');
-    int index = skipFrames;
-
-    while (index < lines.length) {
-      final frame = lines[index].trim();
-      if (frame.isEmpty) {
-        index++;
-        continue;
-      }
-
-      if (_shouldIgnoreFrame(frame)) {
-        index++;
-        continue;
-      }
-
-      final info = parseFrame(frame);
-      if (info != null) {
-        return info;
-      }
-
-      index++;
-    }
-    return null;
-  }
-
   bool _shouldIgnoreFrame(final String frame) {
     if (customFilter != null && !customFilter!(frame)) {
       return true;
@@ -62,10 +24,58 @@ class StackTraceParser {
     return ignorePackages.any((final pkg) => frame.contains('package:$pkg/'));
   }
 
-  CallbackInfo? parseFrame(final String frame) {
+  // Compiled once per class load for performance.
+  static final _frameRegex = RegExp(r'#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)');
+
+  /// Parses a stack trace in a single pass, extracting both the caller
+  /// (first non-ignored frame) and up to [maxFrames] stack frames.
+  ///
+  /// Parameters:
+  /// - [stackTrace]: The full stack trace to parse.
+  /// - [skipFrames]: Number of initial frames to skip (default 0).
+  /// - [maxFrames]: Maximum number of stack frames to collect (default 0).
+  ///
+  /// Returns: A [StackFrameSet] with the caller and collected frames.
+  StackFrameSet parse({
+    required final StackTrace stackTrace,
+    final int skipFrames = 0,
+    final int maxFrames = 0,
+  }) {
+    final lines = stackTrace.toString().split('\n');
+    CallbackInfo? caller;
+    final frames = <CallbackInfo>[];
+    int index = skipFrames;
+
+    while (index < lines.length) {
+      final frame = lines[index].trim();
+      index++;
+      if (frame.isEmpty) {
+        continue;
+      }
+      if (_shouldIgnoreFrame(frame)) {
+        continue;
+      }
+
+      final info = _parseFrame(frame);
+      if (info == null) {
+        continue;
+      }
+
+      caller ??= info;
+      if (maxFrames > 0 && frames.length < maxFrames) {
+        frames.add(info);
+      }
+      if (maxFrames == 0 || frames.length >= maxFrames) {
+        break;
+      }
+    }
+
+    return StackFrameSet(caller: caller, frames: frames);
+  }
+
+  CallbackInfo? _parseFrame(final String frame) {
     // #0 Class.method (package:path/file.dart:25:7)
-    final reg = RegExp(r'#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)');
-    final match = reg.firstMatch(frame);
+    final match = _frameRegex.firstMatch(frame);
     if (match == null) {
       return null;
     }

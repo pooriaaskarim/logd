@@ -1,231 +1,182 @@
 # Logger Module Roadmap
 
-This document tracks planned improvements, known issues, and TODO items for the logger module.
+This document tracks planned improvements, known issues, and TODO items for the logger module, organized by priority and phased for dependency-aware implementation.
 
 ---
 
 ## Priority System
 
 - 🔴 **P0 (Critical)**: Blocks maturity, must fix before v1.0
-- 🟡 **P1 (High)**: Important for production use, DX issues
+- 🟡 **P1 (High)**: Important for production use, correctness issues
 - 🟢 **P2 (Medium)**: Nice-to-have, quality-of-life improvements
-- 🔵 **P3 (Low)**: Future considerations, rare edge cases
+- 🔵 **P3 (Low)**: Future considerations, micro-optimizations
 
 ---
 
-## Documentation & DX
+## Phase 1 — Correctness & Safety
 
-### 🟢 P2: Add Architecture Decision Records (ADRs)
+Items in this phase are prerequisites for subsequent phases.
 
-**Issue**: Design decisions (sparse storage, version-based invalidation, etc.) not formally documented.
+### ~~🟡 P1: Fix `_extractStackFrames` Using Wrong Parser~~ ✅ v0.6.3
+
+**Resolved**: `_extractStackFrames()` was removed entirely. `Logger._log()` now uses `parse()` which performs single-pass parsing with the configured `stackTraceParser`.
 
 **TODO**:
-- [ ] Create `docs/decisions/` directory
-- [ ] Write ADRs for key decisions:
-  - [ ] ADR-001: Hierarchical inheritance model
-  - [ ] ADR-002: Version-based cache invalidation
-  - [ ] ADR-003: Sparse configuration storage
-  - [ ] ADR-004: Unmodifiable resolved collections
-  - [ ] ADR-005: InternalLogger for fail-safe
-
-**Template**: Use [MADR](https://adr.github.io/madr/) format.
+- [x] Replace `const StackTraceParser()` with configured parser
+- [x] Refactored to single-pass via `parse()` — `_extractStackFrames()` deleted
 
 ---
 
-## Testing
+### ~~🟡 P1: Validate `configure()` Inputs~~ ✅ v0.6.3
 
-### 🟡 P1: Add Test for Partial Freeze
-
-**Issue**: Missing test coverage for freeze with partial child overrides.
-
-**Location**: Test gap identified in analysis
+**Resolved**: Input validation added to `Logger.configure()`.
 
 **TODO**:
-- [ ] Add test case:
-  ```dart
-  test('freezeInheritance with partial child overrides', () {
-    Logger.configure('global', logLevel: LogLevel.trace, enabled: false);
-    Logger.configure('app.ui', enabled: true); // Only enabled
-    
-    Logger.get('app').freezeInheritance();
-    
-    expect(Logger.get('app.ui').enabled, isTrue);      // Kept own
-    expect(Logger.get('app.ui').logLevel, LogLevel.trace); // Froze from parent
-    
-    Logger.configure('global', logLevel: LogLevel.error);
-    expect(Logger.get('app.ui').logLevel, LogLevel.trace); // Still frozen
-  });
-  ```
+- [x] Reject negative `stackMethodCount` values (`ArgumentError`)
+- [x] Reject empty handlers list (`ArgumentError`)
+- [x] Tests added for all invalid-input paths
+- [ ] Validate `stackMethodCount` keys are valid `LogLevel` values (deferred — enum constraint makes this low-risk)
 
 ---
 
-### 🟢 P2: Add Deep Hierarchy Performance Test
+### ~~🟡 P1: Fix Freeze No-Op Version Bump~~ ✅ v0.6.3
 
-**Issue**: No test validating performance with deep hierarchies.
+**Resolved**: `freezeInheritance()` now tracks `bool changed` per config and only bumps `_version` + calls `invalidate()` when at least one field was actually populated.
 
 **TODO**:
-- [ ] Create benchmark test with 10+ level hierarchy
-- [ ] Measure resolution time
-- [ ] Set performance budget (e.g., < 1ms for 10 levels)
-- [ ] Add to CI
+- [x] Add `changed` tracking to `freezeInheritance()`
+- [x] Skip version bump when nothing changed
+- [x] Tests added for both no-op and effective freeze cases
 
 ---
 
-### 🟢 P2: Add Concurrency Test
+### ~~🟡 P1: Decide on Null-Message Behavior~~ ✅ v0.6.3
 
-**Issue**: No test for rapid concurrent configuration changes.
+**Decision**: Keep current behavior — `null` produces an empty string. Documented in `_log()` doc comment.
+
+**Rationale**: Changing to skip would be a behavioral breaking change; `"null"` string would be misleading for code that intentionally passes null.
 
 **TODO**:
-- [ ] Test multiple isolates configuring independently
-- [ ] Test rapid `configure()` calls (stress test cache invalidation)
-- [ ] Verify no race conditions in cache
+- [x] Decision: keep empty string
+- [x] Document in `_log()` API docs
+- [x] Test added
 
 ---
 
-## Performance Optimizations
+### 🟡 P1: Prevent LogBuffer Leaks
+
+**Issue**: If a user acquires a buffer but never calls `sink()`, memory is leaked and content is lost.
+
+**Context**: LogBuffers are designed for accumulating log entries across the execution path of an algorithm or multi-step operation, then sinking atomically at the end. This means a callback-based `autoSink()` wrapper would not fit the use case — the writes happen across method boundaries, not within a single scope.
+
+**TODO**:
+- [ ] **Documentation**: Prominently document the `try/finally` pattern in README + API docs
+- [ ] **Debug-mode tracking**: In debug builds, track acquired-but-not-sinked buffers (e.g., via `InternalLogger` warning when the same logger acquires a new buffer while a previous one was never sinked)
+- [ ] **Max-size safeguard**: Add optional `maxEntries` limit on `LogBuffer` to bound memory growth in the "forgot to sink" case
+- [ ] **Add lint rule** to warn about acquiring a buffer without sinking it
+- [ ] Add tests for leak detection and max-size behavior
+
+---
+
+## Phase 2 — Inheritance System Maturation
+
+Depends on Phase 1 (particularly the freeze no-op fix).
+
+### 🟡 P1: Inheritance Maturation (Monitoring, Unfreeze & Visibility)
+
+**Issue**: Once frozen, inheritance can never be restored. Additionally, the inheritance system lacks visibility for advanced users.
+
+**Challenge**: Distinguishing "user explicitly set X" from "X was copied during freeze."
+
+**Solution**: Track frozen fields with `Set<String> _frozenFields` per config.
+
+**TODO**:
+- [ ] Add monitoring utilities to track the state of the inheritance system
+- [ ] Add `_frozenFields` tracking to `LoggerConfig`
+- [ ] `freezeInheritance()` populates `_frozenFields` for each field it fills
+- [ ] `unfreezeInheritance()` nulls out only `_frozenFields` entries, restoring dynamic resolution
+- [ ] Test: freeze → unfreeze → parent change → child updates dynamically again
+- [ ] Architecture & Philosophy Refinement: Further document the nuances of hierarchical overrides vs. freezing
+
+---
+
+### 🟢 P2: Review `@immutable` Annotations
+
+**Issue**: Most `@immutable` annotations were added in v0.3.1, but `LoggerConfig` and `_ResolvedConfig` may need review.
+
+**TODO**:
+- [ ] Audit remaining classes for immutability gaps
+- [ ] Consider making `LoggerConfig` immutable (assess breaking-change impact)
+
+---
+
+## Phase 3 — Performance & Cache Efficiency
 
 ### 🟡 P1: Optimize Descendant Invalidation (O(n) → O(m))
 
 **Issue**: Cache invalidation scans entire cache on every `configure()`.
 
-**Location**: [`logger.dart:169-173`](../../lib/src/logger/logger.dart#L169-L173)
+**Location**: `LoggerCache.invalidate()` in [`logger.dart`](../../lib/src/logger/logger.dart)
 
 **Current Complexity**: O(n × m) where n = cache size, m = key length
 
+**Options**:
+
+| Approach | Lookup | Trade-off |
+|----------|--------|-----------|
+| Reverse index `Map<String, Set<String>>` | O(1) | Memory overhead |
+| Prefix trie | O(m) where m = name length | Implementation complexity |
+
+**Recommendation**: Start with reverse index (simpler, sufficient for realistic hierarchy sizes).
+
 **TODO**:
-- [ ] **Option A**: Maintain reverse index `Map<String, Set<String>> _descendants`
-  - Update on logger creation
-  - O(1) lookup of descendants
-  - Trade-off: Memory overhead
-- [ ] **Option B**: Use prefix tree (trie) for cache storage
-  - O(m) invalidation
-  - More complex implementation
-- [ ] Benchmark both approaches
-- [ ] Implement chosen solution
-- [ ] Add tests
-
-**Recommendation**: Start with Option A (simpler, sufficient for most use cases).
-
-```dart
-// Proposed: Reverse index
-class LoggerCache {
-  static final Map<String, Set<String>> _descendants = {};
-  
-  static void _trackDescendant(String parent, String child) {
-    _descendants.putIfAbsent(parent, () => {}).add(child);
-  }
-  
-  static void invalidate(String loggerName) {
-    _cache.remove(loggerName);
-    final desc = _descendants[loggerName] ?? {};
-    for (final d in desc) {
-      _cache.remove(d);
-    }
-  }
-}
-```
+- [ ] Implement `_descendants` reverse index, populated on `Logger.get()`
+- [ ] Update `invalidate()` to use reverse index
+- [ ] Benchmark before/after on hierarchy of 100+ loggers
+- [ ] Add regression test for invalidation correctness
 
 ---
 
-### 🟢 P2: Skip No-Op Freeze Invalidations
+### ~~🟢 P2: Eliminate Redundant Stack Trace Parsing~~ ✅ v0.6.3
 
-**Issue**: `freezeInheritance()` always bumps version and invalidates, even if no fields changed.
+**Resolved**: `StackFrameSet` data class and `parse()` method added to `StackTraceParser`. `Logger._log()` now calls `parse()` once for both caller and frame extraction. `_extractStackFrames()` removed entirely.
 
-**Location**: [`logger.dart:369-379`](../../lib/src/logger/logger.dart#L369-L379)
+**Cross-Reference**: See [stack_trace roadmap](../stack_trace/roadmap.md).
 
 **TODO**:
-- [ ] Track if any field was actually set
-- [ ] Only bump version and invalidate if `changed == true`
-- [ ] Add test verifying no-op freeze doesn't invalidate
-
-```dart
-// Proposed
-void freezeInheritance() {
-  for (final key in _registry.keys.toList()) {
-    if (key == name || _isDescendant(key, name)) {
-      final childConfig = _registry[key]!;
-      bool changed = false;
-      
-      if (childConfig.enabled == null) {
-        childConfig.enabled = enabled;
-        changed = true;
-      }
-      // ... for all fields
-      
-      if (changed) {
-        childConfig._version++;
-        LoggerCache.invalidate(key);
-      }
-    }
-  }
-}
-```
+- [x] Implement `StackFrameSet` in stack_trace module
+- [x] Implement `parse()` in `StackTraceParser`
+- [x] Update `Logger._log()` to use single-pass API
+- [x] `_extractStackFrames()` removed
+- [ ] Benchmark improvement (deferred)
 
 ---
 
-### 🔵 P3: Add Hierarchy Depth Warning
+### 🔵 P3: String Concatenation in Origin Building
 
-**Issue**: No protection against accidentally deep hierarchies.
+**Issue**: Multiple string concatenations in `_buildOrigin()`.
 
 **TODO**:
-- [ ] Define threshold (e.g., 10 levels)
-- [ ] Log InternalLogger warning on first access of deep logger
-- [ ] Make threshold configurable
-- [ ] Document in philosophy.md
+- [ ] Profile to confirm this is measurable
+- [ ] Refactor to `StringBuffer` for complex origin strings
+- [ ] Add fast path for the common simple case
 
 ---
 
-## Feature Additions
+### 🔵 P3: LogBuffer Memory Pooling
 
-### 🟡 P1: Inheritance System Maturation
-**Context**: The current inheritance system is powerful but lacks visibility and certain control mechanisms for advanced users.
+**Issue**: Each buffer access creates a new `LogBuffer` instance.
 
 **TODO**:
-- [ ] **Runtime Hierarchy Overview**: Implement an API to visualize or traverse the current logger tree configuration at runtime.
-- [ ] **Unfreeze Support**: Implement `unfreezeInheritance()` to restore dynamic inheritance (see details in P1 item below).
-- [ ] **Architecture & Philosophy Refinement**: Further document the nuances of hierarchical overrides vs. freezing.
+- [ ] Implement object pool with configurable max size
+- [ ] Benchmark allocation reduction
+- [ ] Document pool behavior and sizing guidance
 
 ---
 
-### 🟡 P1: Add `unfreezeInheritance()`
+## Phase 4 — Developer Experience
 
-**Issue**: Once frozen, can't restore dynamic inheritance.
-
-**Use Case**: Testing, plugin reload, configuration hot-reload.
-
-**TODO**:
-- [ ] Design API: `logger.unfreezeInheritance()`
-- [ ] Implementation: Set fields to `null` if they match parent's effective value
-- [ ] Add tests for freeze → unfreeze → parent change → child updates
-- [ ] Update documentation
-
-**Challenge**: How to distinguish "explicitly set to value that happens to match parent" vs "frozen from parent"?
-
-**Solution**: Add metadata `Map<String, Set<String>> _frozenFields` tracking which fields were frozen (not explicitly set).
-
----
-
-### 🟢 P2: Add `stackMethodCount` Merge Semantics
-
-**Issue**: Partial `stackMethodCount` maps don't merge with defaults/parent.
-
-**Current**: All-or-nothing replacement.
-
-**TODO**:
-- [ ] **Decision**: Keep current behavior OR implement merge
-- [ ] If merge:
-  - [ ] Update resolution to merge with defaults
-  - [ ] Update documentation
-  - [ ] Add tests
-- [ ] If keep current:
-  - [ ] Document clearly in `Logger.configure` docs
-  - [ ] Add FAQ entry
-
-**Recommendation**: Document current behavior first, consider merge for v2.0 if requested.
-
----
-
-### 🟢 P2: Add Configuration Import/Export
+### 🟢 P2: Configuration Import/Export
 
 **Issue**: No way to share logger config across isolates.
 
@@ -243,33 +194,85 @@ void freezeInheritance() {
 
 ---
 
-### 🔵 P3: Add Production Reset API
+### 🟢 P2: `stackMethodCount` Merge Semantics
 
-**Issue**: `clearRegistry()` is `@visibleForTesting`, no public reset.
+**Issue**: Partial `stackMethodCount` maps don't merge with defaults/parent.
 
-**Use Case**: Long-lived servers, plugin systems, multi-tenant apps.
+**Current**: All-or-nothing replacement.
 
 **TODO**:
-- [ ] Expose `Logger.reset()` or `Logger.clearAll()`
-- [ ] Add warning documentation (loses all configs)
-- [ ] Consider partial reset: `Logger.reset('subtree')`
+- [ ] **Decision**: Keep current behavior OR implement merge
+- [ ] If merge: update resolution, documentation, and add tests
+- [ ] If keep current: document clearly in `Logger.configure` docs and add FAQ entry
+
+**Recommendation**: Document current behavior first, consider merge if requested.
 
 ---
 
-## Code Quality
+### 🟢 P2: Metrics & Observability
 
-### 🟡 P1: Add `@immutable` to Appropriate Classes
-
-**Issue**: `LoggerConfig` and `_ResolvedConfig` should be immutable or marked.
+**Issue**: No way to monitor logger health or performance.
 
 **TODO**:
-- [ ] Review all classes for immutability
-- [ ] Add `@immutable` where appropriate
-- [ ] Consider making `LoggerConfig` immutable (breaking change?)
+- [ ] Design `LoggerMetrics` API (cache hit/miss, drops, handler failures, buffer usage)
+- [ ] Opt-in only (zero overhead when disabled)
+- [ ] Implement `LoggerMetrics.toJson()` for export
+- [ ] Document in README
 
 ---
 
-### 🟢 P2: Extract Constants to Named Constants
+### 🟢 P2: Bulk Configuration API
+
+**Issue**: Configuring multiple loggers requires multiple calls.
+
+**TODO**:
+- [ ] Design bulk configuration API
+- [ ] **Option A**: `Logger.configureMultiple(Map<String, LoggerConfig>)`
+- [ ] **Option B**: `Logger.configurePattern(pattern: 'app.*', ...)`
+- [ ] Ensure cache invalidation is batched (single pass, not N passes)
+- [ ] Add tests and documentation
+
+---
+
+### 🟢 P2: Test Utilities
+
+**Issue**: Hard to test code that uses loggers.
+
+**TODO**:
+- [ ] Create `TestLogger` utility class
+- [ ] Implement `CaptureSink` for log capture
+- [ ] Add assertion helpers (`hasLog`, `hasLogMatching`, etc.)
+- [ ] Add `package:logd/testing.dart` export
+- [ ] Document testing patterns with examples
+
+---
+
+### 🟢 P2: Logger Hierarchy Visualization
+
+**Issue**: Hard to understand current logger tree structure at runtime.
+
+**TODO**:
+- [ ] Implement `Logger.printHierarchy()` debug utility
+- [ ] Implement `Logger.exportHierarchy()` → `Map<String, dynamic>`
+- [ ] Show: name, explicit config, effective (resolved) config, frozen fields
+- [ ] Document in README
+
+---
+
+### 🟢 P2: Graceful Handler Degradation
+
+**Issue**: If all handlers fail, logs are silently lost (except InternalLogger output).
+
+**TODO**:
+- [ ] Implement fallback-to-console when all configured handlers fail
+- [ ] Make fallback behavior configurable
+- [ ] Document in README
+
+---
+
+## Phase 5 — Code Quality & Hardening
+
+### 🔵 P3: Extract Constants to Named Constants
 
 **Issue**: Magic numbers/strings in code.
 
@@ -284,7 +287,7 @@ void freezeInheritance() {
 
 ---
 
-### 🟢 P2: Add Null Safety Asserts
+### 🔵 P3: Add Null Safety Asserts
 
 **Issue**: Some code paths assume non-null without explicit checks.
 
@@ -295,94 +298,112 @@ void freezeInheritance() {
 
 ---
 
-## Breaking Changes (Consider for v2.0)
+### 🔵 P3: Add Hierarchy Depth Warning
 
-### Make `LoggerConfig` Immutable
+**Issue**: No protection against accidentally deep hierarchies.
 
-**Current**: Mutable fields, mutated in-place by `configure()`.
-
-**Proposed**: Replace entire `LoggerConfig` instance on change.
-
-**Benefit**: True immutability, easier reasoning.
-
-**Cost**: More GC pressure, breaking change.
+**TODO**:
+- [ ] Define threshold (e.g., 10 levels)
+- [ ] Log InternalLogger warning on first access of deep logger
+- [ ] Make threshold configurable
+- [ ] Document in philosophy.md
 
 ---
 
-### Change Default `enabled` to `true` in Production
+### 🔵 P3: Production Reset API
 
-**Current**: Disabled in release builds.
+**Issue**: `clearRegistry()` is `@visibleForTesting`, no public reset.
 
-**Proposed**: Always enabled by default.
+**Use Case**: Long-lived servers, plugin systems, multi-tenant apps.
 
-**Benefit**: Less surprising.
-
-**Cost**: Slight performance impact if not explicitly disabled.
+**TODO**:
+- [ ] Expose `Logger.reset()` or `Logger.clearAll()`
+- [ ] Add warning documentation (loses all configs)
+- [ ] Consider partial reset: `Logger.reset('subtree')`
 
 ---
 
-### Rename `freezeInheritance()` → `lockConfiguration()`
+### 🔵 P3: Add Concurrency Test
 
-**Current**: `freezeInheritance()` unclear to new users.
+**Issue**: No test for rapid concurrent configuration changes.
 
-**Proposed**: `lockConfiguration()` / `unlockConfiguration()`.
+**TODO**:
+- [ ] Test multiple isolates configuring independently
+- [ ] Test rapid `configure()` calls (stress test cache invalidation)
+- [ ] Verify no race conditions in cache
 
-**Benefit**: Clearer intent.
+---
+
+### 🔵 P3: Architecture Decision Records (ADRs)
+
+**Issue**: Design decisions not formally documented.
+
+**TODO**:
+- [ ] Create `doc/decisions/` directory
+- [ ] Write ADRs for key decisions:
+  - [ ] ADR-001: Hierarchical inheritance model
+  - [ ] ADR-002: Version-based cache invalidation
+  - [ ] ADR-003: Sparse configuration storage
+  - [ ] ADR-004: Unmodifiable resolved collections
+  - [ ] ADR-005: InternalLogger for fail-safe
+- [ ] Use [MADR](https://adr.github.io/madr/) format
+
+---
+
+## Cross-Module Coordination
+
+| Item | Logger Side | Stack Trace Side | Status |
+|------|-------------|------------------|--------|
+| Redundant parsing | `_log()` uses `parse()` | `StackFrameSet` + `parse()` | ✅ v0.6.3 |
+| Regex caching | — | `static final _frameRegex` | ✅ v0.6.3 |
+| Wrong parser in `_extractStackFrames` | Resolved: `_extractStackFrames()` removed | — | ✅ v0.6.3 |
+
+See [stack_trace roadmap](../stack_trace/roadmap.md) for the stack_trace module's priorities.
+
+---
+
+## Test Coverage Gaps
+
+### Deep Hierarchy Performance Test
+- 10+ level hierarchy, measure resolution latency
+- Set budget: < 1ms for 10 levels
+
+### ~~Partial Freeze Test~~ ✅ v0.6.3
+Covered by `freezeInheritance no-op optimization` test group.
+
+### ~~Stack Frame Parser Test~~ ✅ v0.6.3
+Resolved by switch to `parse()` — configured parser is always used.
 
 ---
 
 ## Completed ✅
 
-- **v0.6.1: Layout & Stability Refinement**
-  - Implemented dynamic `hierarchyDepth` in `LogEntry` for guaranteed tree consistency.
-  - Enforced internal security boundaries by marking `LogEntry` constructor and `Handler.log` as `@internal`.
-  - Optimized `Logger.configure` with deep collection equality to prevent redundant cache clears.
-  - Refined `InternalLogger` to ensure fail-safe error reporting during layout collapses.
+| Item | Version | Summary |
+|------|---------|---------|
+| Deep equality for collections | v0.6.1 | `mapEquals`/`listEquals` prevent redundant cache invalidation |
+| Dynamic hierarchy depth | v0.6.1 | `LogEntry.hierarchyDepth` computed from name, not stored |
+| API protection with `@internal` | v0.6.1 | `LogEntry` constructor and `InternalLogger` marked internal |
+| `@immutable` annotations | v0.3.1 | Applied to all core configuration and handler classes |
+| Freeze concurrent-mutation fix | v0.6.2 | `freezeInheritance()` snapshots keys with `.toList()` |
+| Fix `_extractStackFrames` parser | v0.6.3 | Uses configured `stackTraceParser`; method removed in favor of `parse()` |
+| Validate `configure()` inputs | v0.6.3 | Rejects negative `stackMethodCount` and empty `handlers` list |
+| Fix freeze no-op version bump | v0.6.3 | Tracks `changed` flag, skips invalidation when no fields populated |
+| Null-message behavior | v0.6.3 | Decision: `null` → empty string, documented in `_log()` |
+| Regex caching (stack_trace) | v0.6.3 | Regex compiled once as `static final _frameRegex` |
+| Redundant parsing elimination | v0.6.3 | `StackFrameSet` + `parse()` — single-pass parsing |
 
 ---
 
 ## Rejected ❌
 
-_(Track rejected ideas here with rationale)_
+_(No rejected items at this stage.)_
 
 ---
 
 ## How to Contribute
 
-1. **Claim**: Comment on GitHub issue.
-2. **Branch**: `feat/logger-<todo-name>`.
-3. **Test**: Add tests before implementation.
-4. **Document**: Update docs alongside code.
-5. **Update**: Check off item and move to "Completed" section.
-
----
-
-### v0.x (Current)
-- [x] Hierarchical inheritance with version-based caching.
-- [x] Zero-cost disabled logging and inheritance freezing.
-- [x] Deep equality configuration optimization.
-- [x] @internal protection for core data models.
-
-### v1.0 (Stable)
-- [ ] 95%+ test coverage and performance benchmarks.
-- [ ] Comprehensive documentation (Logger + Handler integration).
-- [ ] Refined ADRs for all major design decisions.
-
-### v2.0 (Future)
-- [ ] Trie-based cache for massive hierarchies.
-- [ ] Cross-isolate configuration synchronization.
-
----
-
-## Completed ✅
-
-- **v0.6.1: Stability & Safety**
-  - **Dynamic Depth**: `LogEntry.hierarchyDepth` is now computed from logger names.
-  - **API Shielding**: Enforced `@internal` guards on `LogEntry` and `Handler.log`.
-  - **Deep Equality**: Optimized `Logger.configure` to skip redundant invalidations.
-  - **Fail-Safe**: Refined `InternalLogger` for robust terminal error reporting.
-
----
-
-## Rejected ❌
-*(No rejected items at this stage)*
+1. **Claim**: Comment on GitHub issue
+2. **Branch**: `feat/logger-<item-name>`
+3. **Test**: Add tests before implementation
+4. **Document**: Update docs alongside code
+5. **Update**: Check off item and move to Completed

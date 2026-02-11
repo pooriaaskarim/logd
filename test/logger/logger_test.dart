@@ -252,6 +252,128 @@ void main() {
           .freezeInheritance();
     });
   });
+
+  group('Logger.configure() Input Validation', () {
+    setUp(() {
+      Logger.clearRegistry();
+    });
+
+    test('rejects negative stackMethodCount values', () {
+      expect(
+        () => Logger.configure('app', stackMethodCount: {LogLevel.error: -1}),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects empty handlers list', () {
+      expect(
+        () => Logger.configure('app', handlers: []),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('accepts valid stackMethodCount values', () {
+      Logger.configure(
+        'app',
+        stackMethodCount: {LogLevel.error: 0, LogLevel.warning: 5},
+      );
+      expect(Logger.get('app').stackMethodCount[LogLevel.error], equals(0));
+      expect(Logger.get('app').stackMethodCount[LogLevel.warning], equals(5));
+    });
+
+    test('accepts valid non-empty handlers list', () {
+      Logger.configure(
+        'app',
+        handlers: [
+          const Handler(
+            formatter: PlainFormatter(),
+            sink: ConsoleSink(),
+          ),
+        ],
+      );
+      expect(Logger.get('app').handlers, hasLength(1));
+    });
+  });
+
+  group('freezeInheritance no-op optimization', () {
+    setUp(() {
+      Logger.clearRegistry();
+    });
+
+    test('freeze when all fields explicit does not bump version', () {
+      // Set all fields explicitly on child
+      Logger.configure('app', logLevel: LogLevel.info);
+      Logger.configure(
+        'app.ui',
+        enabled: true,
+        logLevel: LogLevel.debug,
+        includeFileLineInHeader: false,
+        stackMethodCount: {LogLevel.error: 3},
+        handlers: [
+          const Handler(
+            formatter: PlainFormatter(),
+            sink: ConsoleSink(),
+          ),
+        ],
+      );
+
+      // Read child values before freeze
+      final child = Logger.get('app.ui');
+      final levelBefore = child.logLevel;
+      final enabledBefore = child.enabled;
+
+      // Freeze — should be no-op for app.ui (all fields already set)
+      Logger.get('app').freezeInheritance();
+
+      // Values remain identical
+      expect(child.logLevel, equals(levelBefore));
+      expect(child.enabled, equals(enabledBefore));
+    });
+
+    test('freeze with null fields applies parent values', () {
+      Logger.configure('global', logLevel: LogLevel.error, enabled: false);
+      // app.ui has no explicit config (all null)
+      final child = Logger.get('app.ui');
+      expect(child.logLevel, equals(LogLevel.error));
+      expect(child.enabled, isFalse);
+
+      Logger.get('global').freezeInheritance();
+
+      // Now change global — frozen child should NOT change
+      Logger.configure('global', logLevel: LogLevel.trace, enabled: true);
+      expect(child.logLevel, equals(LogLevel.error)); // frozen
+      expect(child.enabled, isFalse); // frozen
+    });
+  });
+
+  group('Null message behavior', () {
+    setUp(() {
+      Logger.clearRegistry();
+    });
+
+    test('logger.info(null) produces output with empty message', () async {
+      final logCollector = LogCollector();
+      Logger.configure(
+        'null_test',
+        handlers: [
+          Handler(
+            formatter: const PlainFormatter(metadata: {}),
+            sink: logCollector,
+          ),
+        ],
+      );
+
+      Logger.get('null_test').info(null);
+
+      // Allow async handler dispatch to complete
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      // Should produce output (not skip), with empty message content
+      expect(logCollector.logs, isNotEmpty);
+      // The log should contain [INFO] but the message part is empty
+      expect(logCollector.logs.first, contains('[INFO]'));
+    });
+  });
 }
 
 class LoggerHierarchyEdgeCases {}
