@@ -4,19 +4,21 @@ This document provides a technical overview of the stack_trace module implementa
 
 ## File Structure
 
-The stack_trace module is organized into 3 files:
+The stack_trace module is organized into 4 files:
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| [`stack_trace.dart`](../../lib/src/stack_trace/stack_trace.dart) | 7 | Part file aggregator |
+| [`stack_trace.dart`](../../lib/src/stack_trace/stack_trace.dart) | 9 | Part file aggregator |
 | [`callback_info.dart`](../../lib/src/stack_trace/callback_info.dart) | 52 | Immutable data class for parsed frame information |
-| [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart) | 102 | Core parsing engine with regex-based frame extraction |
+| [`stack_frame_set.dart`](../../lib/src/stack_trace/stack_frame_set.dart) | 20 | Immutable result container for single-pass parsing |
+| [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart) | 116 | Core parsing engine with regex-based frame extraction |
 
 ## System Components
 
-The stack_trace module consists of two primary components:
+The stack_trace module consists of three primary components:
 1. **The Parser**: Regex-based extraction engine
-2. **The Data Model**: Immutable frame representation
+2. **The Result Model**: Immutable parse result (`StackFrameSet`)
+3. **The Data Model**: Immutable frame representation (`CallbackInfo`)
 
 ### 1. StackTraceParser
 
@@ -30,7 +32,17 @@ The parser is the core engine that converts raw stack trace strings into structu
 
 **Immutability**: The parser is marked `@immutable` and uses `const` constructor, making it safe to share across isolates.
 
-### 2. CallbackInfo
+### 2. StackFrameSet
+
+**Location**: `StackFrameSet` class in [`stack_frame_set.dart`](../../lib/src/stack_trace/stack_frame_set.dart)
+
+An immutable result container returned by `StackTraceParser.parse()`.
+
+**Fields**:
+- `caller` - First relevant `CallbackInfo` (nullable)
+- `frames` - List of additional `CallbackInfo` frames (may be empty)
+
+### 3. CallbackInfo
 
 **Location**: `CallbackInfo` class in [`callback_info.dart`](../../lib/src/stack_trace/callback_info.dart)
 
@@ -47,7 +59,7 @@ An immutable data class representing a single parsed stack frame.
 
 ## Parsing Pipeline
 
-When `extractCaller()` is called, the raw stack trace string is processed linearly:
+When `parse()` is called, the raw stack trace string is processed linearly:
 
 ```mermaid
 flowchart TD
@@ -57,8 +69,15 @@ flowchart TD
     Skip -- Yes (Internal Pkg) --> Loop
     Skip -- No (User Code) --> Parse[Regex Parse]
     Parse --> Match{Matches?}
-    Match -- Yes --> Struct[CallbackInfo]
+    Match -- Yes --> Collect[Collect Frame]
     Match -- No --> Loop
+    Collect --> CallerSet{Caller Set?}
+    CallerSet -- No --> SetCaller[Set as Caller]
+    CallerSet -- Yes --> AddFrame[Add to Frames]
+    SetCaller --> Done{maxFrames reached?}
+    AddFrame --> Done
+    Done -- No --> Loop
+    Done -- Yes --> Result[StackFrameSet]
     
     classDef inputStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
     classDef processStyle fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
@@ -66,52 +85,50 @@ flowchart TD
     
     class Raw inputStyle
     class Split,Parse processStyle
-    class Struct outputStyle
+    class Result outputStyle
 ```
 
 ### Extraction Algorithm
 
-**Location**: `StackTraceParser.extractCaller()` in [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart)
+**Location**: `StackTraceParser.parse()` in [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart)
 
 ```dart
-CallbackInfo? extractCaller({
+StackFrameSet parse({
   required StackTrace stackTrace,
   int skipFrames = 0,
+  int maxFrames = 0,
 }) {
   final lines = stackTrace.toString().split('\n');
+  CallbackInfo? caller;
+  final frames = <CallbackInfo>[];
   int index = skipFrames;
 
   while (index < lines.length) {
     final frame = lines[index].trim();
-    
-    // Skip empty frames
-    if (frame.isEmpty) {
-      index++;
-      continue;
-    }
-
-    // Apply filtering
-    if (_shouldIgnoreFrame(frame)) {
-      index++;
-      continue;
-    }
-
-    // Attempt to parse
-    final info = parseFrame(frame);
-    if (info != null) {
-      return info;  // First valid frame wins
-    }
-
     index++;
+    if (frame.isEmpty) continue;
+    if (_shouldIgnoreFrame(frame)) continue;
+
+    final info = _parseFrame(frame);
+    if (info == null) continue;
+
+    caller ??= info;  // First valid frame becomes the caller
+    if (maxFrames > 0 && frames.length < maxFrames) {
+      frames.add(info);
+    }
+    if (maxFrames == 0 || frames.length >= maxFrames) {
+      break;  // Early exit once we have what we need
+    }
   }
-  return null;  // No valid frame found
+
+  return StackFrameSet(caller: caller, frames: frames);
 }
 ```
 
 **Key Characteristics**:
-1. **Linear scan** - Processes frames sequentially
-2. **Early exit** - Returns immediately upon finding first valid frame
-3. **Defensive** - Returns `null` instead of throwing on parse failure
+1. **Single pass** - Extracts both caller and frames in one iteration
+2. **Early exit** - Returns immediately upon collecting enough frames
+3. **Defensive** - Returns null caller if no valid frame found, never throws
 
 ### Frame Filtering
 
@@ -132,7 +149,7 @@ bool _shouldIgnoreFrame(String frame) {
 
 ### Frame Parsing
 
-**Location**: `StackTraceParser.parseFrame()` in [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart)
+**Location**: `StackTraceParser._parseFrame()` (private) in [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart)
 
 **Dart VM Stack Format**:
 ```
@@ -146,7 +163,7 @@ bool _shouldIgnoreFrame(String frame) {
 
 **Regex Pattern**:
 ```dart
-final reg = RegExp(r'#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)');
+static final _frameRegex = RegExp(r'#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)');
 ```
 
 **Capture Groups**:
@@ -178,8 +195,8 @@ Private class names (e.g., `_MyClass`) have the leading underscore stripped for 
 ## Performance Characteristics
 
 ### Time Complexity
-- **extractCaller()**: O(n) where n = number of frames until first match
-- **parseFrame()**: O(1) - Single regex match
+- **parse()**: O(n) where n = number of frames until enough are collected
+- **_parseFrame()**: O(1) - Single regex match
 - **Best case**: O(1) - First frame matches
 - **Worst case**: O(n) - No frames match, scan entire trace
 
@@ -188,29 +205,29 @@ Private class names (e.g., `_MyClass`) have the leading underscore stripped for 
 - **O(1)** for regex matching (no additional allocations)
 
 ### Optimizations
-1. **Early exit** - Stops at first valid frame, doesn't parse entire trace
-2. **No caching** - Stack traces are unique per call, caching would waste memory
-3. **Immutable results** - `CallbackInfo` can be safely shared without copying
+1. **Early exit** - Stops as soon as caller + maxFrames collected
+2. **Regex caching** - `static final _frameRegex` compiled once per class load, not per call
+3. **Single-pass parsing** - `parse()` extracts both caller and frames in one pass
+4. **No frame caching** - Stack traces are unique per call, caching would waste memory
+5. **Immutable results** - `CallbackInfo` can be safely shared without copying
 
 ## Edge Cases
 
 ### Empty Stack Traces
 ```dart
-final caller = parser.extractCaller(stackTrace: StackTrace.fromString(''));
-// Returns: null
+final result = parser.parse(stackTrace: StackTrace.fromString(''));
+// result.caller: null
+// result.frames: []
 ```
 
 ### Malformed Frames
-```dart
-final info = parser.parseFrame('invalid frame format');
-// Returns: null (regex doesn't match)
-```
+Malformed frames are silently skipped. If regex matching fails, `_parseFrame()` returns `null` and the parser continues to the next frame.
 
 ### All Frames Filtered
 ```dart
 final parser = StackTraceParser(ignorePackages: ['myapp']);
-final caller = parser.extractCaller(stackTrace: myAppStackTrace);
-// Returns: null (all frames belong to 'myapp')
+final result = parser.parse(stackTrace: myAppStackTrace);
+// result.caller: null (all frames belong to 'myapp')
 ```
 
 ### Anonymous Functions
@@ -240,22 +257,25 @@ Format: `#0 a.b (file.dart:10:5)`
 
 ## Integration with Logger Module
 
-The logger module uses `StackTraceParser` in two contexts:
+The logger module uses `StackTraceParser.parse()` for single-pass extraction of both caller and stack frames:
 
-### 1. Caller Extraction
 **Location**: `Logger._log()` in logger module
 
 ```dart
-final caller = stackTraceParser.extractCaller(
+final frameCount = stackMethodCount[level] ?? 0;
+final parsed = stackTraceParser.parse(
   stackTrace: stackTrace ?? StackTrace.current,
   skipFrames: 1,  // Skip Logger._log itself
+  maxFrames: frameCount,
+);
+if (parsed.caller == null) return;
+
+final entry = LogEntry(
+  origin: _buildOrigin(parsed.caller!),
+  stackFrames: parsed.frames.isEmpty ? null : parsed.frames,
+  // ...
 );
 ```
-
-### 2. Stack Frame Extraction
-**Location**: `Logger._extractStackFrames()` in logger module
-
-Currently uses separate parsing logic. **Optimization opportunity**: Combine with caller extraction to avoid redundant parsing (see roadmap).
 
 ## Equality and Hashing
 

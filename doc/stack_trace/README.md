@@ -12,15 +12,16 @@ final parser = StackTraceParser(
   ignorePackages: ['logd', 'flutter'],
 );
 
-// Extract caller information
-final caller = parser.extractCaller(
+// Extract caller and stack frames in a single pass
+final result = parser.parse(
   stackTrace: StackTrace.current,
-  skipFrames: 1,  // Skip the extractCaller call itself
+  skipFrames: 1,  // Skip the parse call itself
+  maxFrames: 3,   // Collect up to 3 frames
 );
 
-if (caller != null) {
-  print('Called from: ${caller.className}.${caller.methodName}');
-  print('Location: ${caller.filePath}:${caller.lineNumber}');
+if (result.caller != null) {
+  print('Called from: ${result.caller!.className}.${result.caller!.methodName}');
+  print('Location: ${result.caller!.filePath}:${result.caller!.lineNumber}');
 }
 
 // Configure logger to use custom parser
@@ -33,7 +34,7 @@ Logger.configure('app',
 
 ## Component Overview
 
-The stack_trace module consists of 3 source files:
+The stack_trace module consists of 4 source files:
 
 ### Core Components
 
@@ -42,6 +43,10 @@ The stack_trace module consists of 3 source files:
 - Configurable package filtering via `ignorePackages`
 - Optional custom filtering via `customFilter` callback
 - Regex-based frame parsing for Dart VM format
+
+#### [stack_frame_set.dart](../../lib/src/stack_trace/stack_frame_set.dart)
+- **`StackFrameSet`** - Immutable result of a single-pass parse
+- Contains: caller (`CallbackInfo?`) and additional frames (`List<CallbackInfo>`)
 
 #### [callback_info.dart](../../lib/src/stack_trace/callback_info.dart)
 - **`CallbackInfo`** - Immutable data class representing a parsed stack frame
@@ -53,15 +58,17 @@ The stack_trace module consists of 3 source files:
 
 ## Capabilities
 
-### 1. Caller Extraction
-Identify the precise class, method, and line number where a log event originated:
+### 1. Single-Pass Parsing
+Extract caller information and additional stack frames in one pass:
 
 ```dart
-final caller = parser.extractCaller(
+final result = parser.parse(
   stackTrace: StackTrace.current,
   skipFrames: 1,
+  maxFrames: 5,  // 0 = caller only
 );
-// Returns: CallbackInfo(className: 'MyClass', methodName: 'myMethod', ...)
+// result.caller: CallbackInfo(className: 'MyClass', methodName: 'myMethod', ...)
+// result.frames: up to 5 CallbackInfo entries
 ```
 
 ### 2. Frame Filtering
@@ -81,14 +88,6 @@ final parser = StackTraceParser(
 );
 ```
 
-### 3. Frame Parsing
-Parse individual stack frames into structured data:
-
-```dart
-final info = parser.parseFrame('#0 MyClass.method (package:app/file.dart:42:7)');
-// Returns: CallbackInfo with parsed components
-```
-
 ## API Reference
 
 ### StackTraceParser
@@ -102,8 +101,13 @@ const StackTraceParser({
 ```
 
 **Methods**:
-- `extractCaller({required StackTrace stackTrace, int skipFrames = 0})` - Extract first relevant caller
-- `parseFrame(String frame)` - Parse a single frame string into CallbackInfo
+- `parse({required StackTrace stackTrace, int skipFrames = 0, int maxFrames = 0})` - Single-pass extraction of caller and stack frames, returns `StackFrameSet`
+
+### StackFrameSet
+
+**Fields**:
+- `caller` - First relevant `CallbackInfo` (nullable)
+- `frames` - List of additional `CallbackInfo` frames (may be empty)
 
 ### CallbackInfo
 

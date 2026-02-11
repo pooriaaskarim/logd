@@ -46,12 +46,12 @@ Stack trace format may vary across:
 - **Runtime environments** - Flutter vs pure Dart
 
 ### Behavior
-If regex matching fails or produces malformed data, `extractCaller()` returns `null` rather than throwing exceptions. The logging pipeline continues with degraded information rather than crashing.
+If regex matching fails or produces malformed data, `parse()` returns a `StackFrameSet` with a null caller rather than throwing exceptions. The logging pipeline continues with degraded information rather than crashing.
 
 **Example**:
 ```dart
-final info = parser.parseFrame('malformed frame');
-// Returns: null (no exception thrown)
+final info = parser.parse(stackTrace: StackTrace.fromString('malformed'));
+// info.caller: null (no exception thrown)
 ```
 
 **Philosophy**: Logging is a diagnostic tool. It should never cause the application to fail. Better to have incomplete logs than no application.
@@ -185,18 +185,17 @@ Stop processing as soon as the first valid frame is found.
 ```dart
 while (index < lines.length) {
   // ... filtering logic ...
-  final info = parseFrame(frame);
-  if (info != null) {
-    return info;  // Early exit
+  final info = _parseFrame(frame);
+  if (info == null) continue;
+
+  caller ??= info;
+  if (maxFrames == 0 || frames.length >= maxFrames) {
+    break;  // Early exit
   }
-  index++;
 }
 ```
 
-**Trade-off**: Can't collect multiple valid frames. Acceptable because:
-- Logger only needs the *first* user frame for origin
-- Stack frames are extracted separately in logger module
-- Simplifies API (returns single `CallbackInfo`, not list)
+**Trade-off**: The `parse()` method now collects both caller and frames in a single pass, making early exit even more effective — it stops as soon as the required number of frames are collected.
 
 ---
 

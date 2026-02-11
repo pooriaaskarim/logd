@@ -17,56 +17,49 @@ This document tracks planned improvements, known issues, and TODO items for the 
 
 Items in this phase are prerequisites for subsequent phases.
 
-### 🟡 P1: Validate `configure()` Inputs
+### ~~🟡 P1: Fix `_extractStackFrames` Using Wrong Parser~~ ✅ v0.6.3
 
-**Issue**: No validation of configuration values, allowing invalid states.
-
-**Problems**:
-- `stackMethodCount` could have negative values
-- `handlers` could be empty list (no output)
-- No validation that `stackMethodCount` keys are valid `LogLevel` values
+**Resolved**: `_extractStackFrames()` was removed entirely. `Logger._log()` now uses `parse()` which performs single-pass parsing with the configured `stackTraceParser`.
 
 **TODO**:
-- [ ] Reject negative `stackMethodCount` values (throw `ArgumentError`)
-- [ ] Reject empty handlers list (throw `ArgumentError`)
-- [ ] Validate `stackMethodCount` keys are valid `LogLevel` values
-- [ ] Add tests for every invalid-input path
+- [x] Replace `const StackTraceParser()` with configured parser
+- [x] Refactored to single-pass via `parse()` — `_extractStackFrames()` deleted
 
 ---
 
-### 🟡 P1: Fix Freeze/Iterate Race Condition
+### ~~🟡 P1: Validate `configure()` Inputs~~ ✅ v0.6.3
 
-**Issue**: `freezeInheritance()` mutates configs while iterating the registry.
-
-**Fix**: Collect target keys first, then apply changes in a separate pass:
-
-```dart
-void freezeInheritance() {
-  final targets = _registry.keys
-      .where((k) => k == name || _isDescendant(k, name))
-      .toList();              // snapshot keys
-
-  for (final key in targets) {
-    final config = _registry[key]!;
-    bool changed = false;
-    if (config.enabled == null) { config.enabled = enabled; changed = true; }
-    if (config.logLevel == null) { config.logLevel = logLevel; changed = true; }
-    // ... remaining fields ...
-    if (changed) {
-      config._version++;
-      LoggerCache.invalidate(key);
-    }
-  }
-}
-```
+**Resolved**: Input validation added to `Logger.configure()`.
 
 **TODO**:
-- [ ] Implement two-phase approach (collect → mutate)
-- [ ] Skip version bump when nothing changed (addresses no-op freeze invalidation too)
-- [ ] Add concurrency stress test
+- [x] Reject negative `stackMethodCount` values (`ArgumentError`)
+- [x] Reject empty handlers list (`ArgumentError`)
+- [x] Tests added for all invalid-input paths
+- [ ] Validate `stackMethodCount` keys are valid `LogLevel` values (deferred — enum constraint makes this low-risk)
 
-> [!NOTE]
-> This single fix resolves three former roadmap items: the race condition, the no-op freeze invalidation, and the unnecessary version bumps.
+---
+
+### ~~🟡 P1: Fix Freeze No-Op Version Bump~~ ✅ v0.6.3
+
+**Resolved**: `freezeInheritance()` now tracks `bool changed` per config and only bumps `_version` + calls `invalidate()` when at least one field was actually populated.
+
+**TODO**:
+- [x] Add `changed` tracking to `freezeInheritance()`
+- [x] Skip version bump when nothing changed
+- [x] Tests added for both no-op and effective freeze cases
+
+---
+
+### ~~🟡 P1: Decide on Null-Message Behavior~~ ✅ v0.6.3
+
+**Decision**: Keep current behavior — `null` produces an empty string. Documented in `_log()` doc comment.
+
+**Rationale**: Changing to skip would be a behavioral breaking change; `"null"` string would be misleading for code that intentionally passes null.
+
+**TODO**:
+- [x] Decision: keep empty string
+- [x] Document in `_log()` API docs
+- [x] Test added
 
 ---
 
@@ -85,60 +78,34 @@ void freezeInheritance() {
 
 ---
 
-### 🟡 P1: Decide on Null-Message Behavior
-
-**Issue**: `logger.info(null)` silently produces an empty string. Users may expect `"null"` or a skip.
-
-**Current Behavior**: `message?.toString() ?? ''` (empty string)
-
-**TODO**:
-- [ ] Choose: empty string / `"null"` / skip entirely
-- [ ] Document the choice in API docs
-- [ ] Add tests
-
----
-
 ## Phase 2 — Inheritance System Maturation
 
-Depends on Phase 1 (particularly the freeze race condition fix).
+Depends on Phase 1 (particularly the freeze no-op fix).
 
-### 🟡 P1: Add `unfreezeInheritance()`
+### 🟡 P1: Inheritance Maturation (Monitoring, Unfreeze & Visibility)
 
-**Issue**: Once frozen, inheritance can never be restored.
-
-**Use Case**: Testing, plugin reload, configuration hot-reload.
+**Issue**: Once frozen, inheritance can never be restored. Additionally, the inheritance system lacks visibility for advanced users.
 
 **Challenge**: Distinguishing "user explicitly set X" from "X was copied during freeze."
 
 **Solution**: Track frozen fields with `Set<String> _frozenFields` per config.
 
 **TODO**:
+- [ ] Add monitoring utilities to track the state of the inheritance system
 - [ ] Add `_frozenFields` tracking to `LoggerConfig`
 - [ ] `freezeInheritance()` populates `_frozenFields` for each field it fills
 - [ ] `unfreezeInheritance()` nulls out only `_frozenFields` entries, restoring dynamic resolution
 - [ ] Test: freeze → unfreeze → parent change → child updates dynamically again
-- [ ] Update architecture + philosophy docs
-
----
-
-### 🟡 P1: Inheritance System Maturation
-
-**Context**: The current inheritance system is powerful but lacks visibility and certain control mechanisms for advanced users.
-
-**TODO**:
-- [ ] Runtime Hierarchy Overview: Implement an API to visualize or traverse the current logger tree configuration at runtime
-- [ ] Complete unfreeze support (see above)
 - [ ] Architecture & Philosophy Refinement: Further document the nuances of hierarchical overrides vs. freezing
 
 ---
 
-### 🟡 P1: Add `@immutable` to Appropriate Classes
+### 🟢 P2: Review `@immutable` Annotations
 
-**Issue**: `LoggerConfig` and `_ResolvedConfig` should be immutable or marked.
+**Issue**: Most `@immutable` annotations were added in v0.3.1, but `LoggerConfig` and `_ResolvedConfig` may need review.
 
 **TODO**:
-- [ ] Review all classes for immutability
-- [ ] Add `@immutable` where appropriate
+- [ ] Audit remaining classes for immutability gaps
 - [ ] Consider making `LoggerConfig` immutable (assess breaking-change impact)
 
 ---
@@ -149,7 +116,7 @@ Depends on Phase 1 (particularly the freeze race condition fix).
 
 **Issue**: Cache invalidation scans entire cache on every `configure()`.
 
-**Location**: `Logger.configure()` in [`logger.dart`](../../lib/src/logger/logger.dart)
+**Location**: `LoggerCache.invalidate()` in [`logger.dart`](../../lib/src/logger/logger.dart)
 
 **Current Complexity**: O(n × m) where n = cache size, m = key length
 
@@ -170,19 +137,18 @@ Depends on Phase 1 (particularly the freeze race condition fix).
 
 ---
 
-### 🟢 P2: Eliminate Redundant Stack Trace Parsing
+### ~~🟢 P2: Eliminate Redundant Stack Trace Parsing~~ ✅ v0.6.3
 
-**Issue**: Stack trace is parsed twice — once for caller, once for frames.
+**Resolved**: `StackFrameSet` data class and `parse()` method added to `StackTraceParser`. `Logger._log()` now calls `parse()` once for both caller and frame extraction. `_extractStackFrames()` removed entirely.
 
-**Location**: `Logger._log()`
-
-**Cross-Reference**: See [stack_trace roadmap](../stack_trace/roadmap.md) for coordinated solution.
+**Cross-Reference**: See [stack_trace roadmap](../stack_trace/roadmap.md).
 
 **TODO**:
-- [ ] Implement `ParsedStackTrace` in stack_trace module
-- [ ] Update `Logger._log()` to call `parseComplete()` once
-- [ ] Benchmark improvement
-- [ ] Update both modules' docs
+- [x] Implement `StackFrameSet` in stack_trace module
+- [x] Implement `parse()` in `StackTraceParser`
+- [x] Update `Logger._log()` to use single-pass API
+- [x] `_extractStackFrames()` removed
+- [ ] Benchmark improvement (deferred)
 
 ---
 
@@ -283,7 +249,7 @@ Depends on Phase 1 (particularly the freeze race condition fix).
 
 ### 🟢 P2: Logger Hierarchy Visualization
 
-**Issue**: Hard to understand current logger tree structure.
+**Issue**: Hard to understand current logger tree structure at runtime.
 
 **TODO**:
 - [ ] Implement `Logger.printHierarchy()` debug utility
@@ -357,19 +323,6 @@ Depends on Phase 1 (particularly the freeze race condition fix).
 
 ---
 
-### 🔵 P3: Inconsistent Null Handling
-
-**Issue**: Unclear behavior when `null` message is logged.
-
-**Current Behavior**: `message?.toString() ?? ''` (empty string)
-
-**TODO**:
-- [ ] Decide on standard behavior (empty string, "null", or skip)
-- [ ] Document behavior clearly
-- [ ] Add tests for null message handling
-
----
-
 ### 🔵 P3: Add Concurrency Test
 
 **Issue**: No test for rapid concurrent configuration changes.
@@ -399,10 +352,11 @@ Depends on Phase 1 (particularly the freeze race condition fix).
 
 ## Cross-Module Coordination
 
-| Item | Logger Side | Stack Trace Side |
-|------|-------------|------------------|
-| Redundant parsing | Update `_log()` to use `parseComplete()` | Implement `ParsedStackTrace` + `parseComplete()` |
-| Regex caching | — | Move regex to `static final` field |
+| Item | Logger Side | Stack Trace Side | Status |
+|------|-------------|------------------|--------|
+| Redundant parsing | `_log()` uses `parse()` | `StackFrameSet` + `parse()` | ✅ v0.6.3 |
+| Regex caching | — | `static final _frameRegex` | ✅ v0.6.3 |
+| Wrong parser in `_extractStackFrames` | Resolved: `_extractStackFrames()` removed | — | ✅ v0.6.3 |
 
 See [stack_trace roadmap](../stack_trace/roadmap.md) for the stack_trace module's priorities.
 
@@ -410,25 +364,15 @@ See [stack_trace roadmap](../stack_trace/roadmap.md) for the stack_trace module'
 
 ## Test Coverage Gaps
 
-### Partial Freeze Test
-```dart
-test('freezeInheritance with partial child overrides', () {
-  Logger.configure('global', logLevel: LogLevel.trace, enabled: false);
-  Logger.configure('app.ui', enabled: true);
-  
-  Logger.get('app').freezeInheritance();
-  
-  expect(Logger.get('app.ui').enabled, isTrue);
-  expect(Logger.get('app.ui').logLevel, LogLevel.trace);
-  
-  Logger.configure('global', logLevel: LogLevel.error);
-  expect(Logger.get('app.ui').logLevel, LogLevel.trace); // still frozen
-});
-```
-
 ### Deep Hierarchy Performance Test
 - 10+ level hierarchy, measure resolution latency
 - Set budget: < 1ms for 10 levels
+
+### ~~Partial Freeze Test~~ ✅ v0.6.3
+Covered by `freezeInheritance no-op optimization` test group.
+
+### ~~Stack Frame Parser Test~~ ✅ v0.6.3
+Resolved by switch to `parse()` — configured parser is always used.
 
 ---
 
@@ -439,6 +383,14 @@ test('freezeInheritance with partial child overrides', () {
 | Deep equality for collections | v0.6.1 | `mapEquals`/`listEquals` prevent redundant cache invalidation |
 | Dynamic hierarchy depth | v0.6.1 | `LogEntry.hierarchyDepth` computed from name, not stored |
 | API protection with `@internal` | v0.6.1 | `LogEntry` constructor and `InternalLogger` marked internal |
+| `@immutable` annotations | v0.3.1 | Applied to all core configuration and handler classes |
+| Freeze concurrent-mutation fix | v0.6.2 | `freezeInheritance()` snapshots keys with `.toList()` |
+| Fix `_extractStackFrames` parser | v0.6.3 | Uses configured `stackTraceParser`; method removed in favor of `parse()` |
+| Validate `configure()` inputs | v0.6.3 | Rejects negative `stackMethodCount` and empty `handlers` list |
+| Fix freeze no-op version bump | v0.6.3 | Tracks `changed` flag, skips invalidation when no fields populated |
+| Null-message behavior | v0.6.3 | Decision: `null` → empty string, documented in `_log()` |
+| Regex caching (stack_trace) | v0.6.3 | Regex compiled once as `static final _frameRegex` |
+| Redundant parsing elimination | v0.6.3 | `StackFrameSet` + `parse()` — single-pass parsing |
 
 ---
 

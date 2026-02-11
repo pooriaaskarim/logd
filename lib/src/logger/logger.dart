@@ -260,10 +260,14 @@ class Logger {
   /// - [enabled]: Whether logging is enabled.
   /// - [logLevel]: Minimum log level to process.
   /// - [includeFileLineInHeader]: Include file/line in origin.
-  /// - [stackMethodCount]: Stack frames per level.
+  /// - [stackMethodCount]: Stack frames per level. Values must be non-negative.
   /// - [timestamp]: Timestamp config.
   /// - [stackTraceParser]: Stack parser config.
-  /// - [handlers]: List of handlers.
+  /// - [handlers]: List of handlers. Must not be empty if provided.
+  ///
+  /// Throws [ArgumentError] if:
+  /// - Any [stackMethodCount] value is negative.
+  /// - [handlers] is an empty list.
   ///
   /// How to use:
   /// - Logger.configure('app', logLevel: LogLevel.info);
@@ -282,6 +286,26 @@ class Logger {
     final StackTraceParser? stackTraceParser,
     final List<Handler>? handlers,
   }) {
+    // Input validation
+    if (stackMethodCount != null) {
+      for (final entry in stackMethodCount.entries) {
+        if (entry.value < 0) {
+          throw ArgumentError.value(
+            entry.value,
+            'stackMethodCount[${entry.key}]',
+            'Stack method count cannot be negative',
+          );
+        }
+      }
+    }
+    if (handlers != null && handlers.isEmpty) {
+      throw ArgumentError.value(
+        handlers,
+        'handlers',
+        'Handlers list cannot be empty',
+      );
+    }
+
     final normalized = _normalizeName(name);
     final config = _registry.putIfAbsent(normalized, () => LoggerConfig());
 
@@ -375,17 +399,40 @@ class Logger {
   void freezeInheritance() {
     for (final key in _registry.keys.toList()) {
       if (key == name || _isDescendant(key, name)) {
-        final childConfig = _registry[key]!
-          ..enabled ??= enabled
-          ..logLevel ??= logLevel
-          ..includeFileLineInHeader ??= includeFileLineInHeader
-          ..stackMethodCount ??= Map.from(stackMethodCount)
-          ..timestamp ??= timestamp
-          ..stackTraceParser ??= stackTraceParser
-          ..handlers ??= List.from(handlers);
-        // Since we set fields, bump version and clear cache
-        childConfig._version++;
-        LoggerCache.invalidate(key);
+        final childConfig = _registry[key]!;
+        bool changed = false;
+        if (childConfig.enabled == null) {
+          childConfig.enabled = enabled;
+          changed = true;
+        }
+        if (childConfig.logLevel == null) {
+          childConfig.logLevel = logLevel;
+          changed = true;
+        }
+        if (childConfig.includeFileLineInHeader == null) {
+          childConfig.includeFileLineInHeader = includeFileLineInHeader;
+          changed = true;
+        }
+        if (childConfig.stackMethodCount == null) {
+          childConfig.stackMethodCount = Map.from(stackMethodCount);
+          changed = true;
+        }
+        if (childConfig.timestamp == null) {
+          childConfig.timestamp = timestamp;
+          changed = true;
+        }
+        if (childConfig.stackTraceParser == null) {
+          childConfig.stackTraceParser = stackTraceParser;
+          changed = true;
+        }
+        if (childConfig.handlers == null) {
+          childConfig.handlers = List.from(handlers);
+          changed = true;
+        }
+        if (changed) {
+          childConfig._version++;
+          LoggerCache.invalidate(key);
+        }
       }
     }
   }
@@ -527,9 +574,12 @@ class Logger {
   /// Checks enabled and level, extracts caller, builds entry, and sends to
   /// handlers.
   ///
+  /// **Null messages**: A `null` message produces an empty string in the
+  /// log output. It is not converted to `"null"` and is not skipped.
+  ///
   /// Parameters:
   /// - [level]: The log level.
-  /// - [message]: The message object.
+  /// - [message]: The message object (null produces an empty string).
   /// - [error]: Optional error.
   /// - [stackTrace]: Optional or current stack trace.
   Future<void> _log(
@@ -541,11 +591,13 @@ class Logger {
     if (!enabled || level.index < logLevel.index) {
       return;
     }
-    final caller = stackTraceParser.extractCaller(
+    final frameCount = stackMethodCount[level] ?? 0;
+    final parsed = stackTraceParser.parse(
       stackTrace: stackTrace ?? StackTrace.current,
       skipFrames: 1,
+      maxFrames: frameCount,
     );
-    if (caller == null) {
+    if (parsed.caller == null) {
       return;
     }
     final entry = LogEntry(
@@ -553,8 +605,8 @@ class Logger {
       level: level,
       message: message?.toString() ?? '',
       timestamp: timestamp.timestamp ?? '',
-      origin: _buildOrigin(caller),
-      stackFrames: _extractStackFrames(level, stackTrace ?? StackTrace.current),
+      origin: _buildOrigin(parsed.caller!),
+      stackFrames: parsed.frames.isEmpty ? null : parsed.frames,
       error: error,
       stackTrace: stackTrace,
     );
@@ -583,43 +635,6 @@ class Logger {
       origin += ' (${info.filePath}:${info.lineNumber})';
     }
     return origin;
-  }
-
-  /// Internal: Extracts a limited number of stack frames based on level config.
-  ///
-  /// Parameters:
-  /// - [level]: Determines frame count from stackMethodCount.
-  /// - [stack]: The stack trace to parse.
-  ///
-  /// Returns: List of parsed frames or null if count is 0.
-  List<CallbackInfo>? _extractStackFrames(
-    final LogLevel level,
-    final StackTrace stack,
-  ) {
-    final count = stackMethodCount[level] ?? 0;
-    if (count == 0) {
-      return null;
-    }
-
-    final lines = stack.toString().split('\n');
-    int index =
-        lines.indexWhere((final line) => line.contains('Logger._log')) + 1;
-    final frames = <CallbackInfo>[];
-    const parser = StackTraceParser();
-    int added = 0;
-
-    while (index < lines.length && added < count) {
-      final frame = lines[index++].trim();
-      if (frame.isEmpty) {
-        continue;
-      }
-      final info = parser.parseFrame(frame);
-      if (info != null) {
-        frames.add(info);
-        added++;
-      }
-    }
-    return frames.isEmpty ? null : frames;
   }
 
   /// Internal: Helper for retrieving parent name.

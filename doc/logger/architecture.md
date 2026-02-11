@@ -117,15 +117,16 @@ When a log method (e.g., `info`) is called:
    - The logger checks its cached `enabled` state and `logLevel`
    - If disabled or below threshold, returns immediately (Zero-Cost)
 
-2. **Caller Extraction**:
-   - `StackTraceParser` identifies the call site
+2. **Single-Pass Stack Parsing**:
+   - `parse()` extracts both caller and stack frames in one pass
    - Skips 1 frame to exclude `_log` itself
-   - Returns `null` if caller cannot be determined (aborts logging)
+   - Collects up to `stackMethodCount[level]` frames
+   - Returns `null` caller if no valid frame found (aborts logging)
 
 3. **LogEntry Construction**:
    - Creates immutable `LogEntry` with all log data
    - Builds origin string from caller info
-   - Extracts stack frames based on level configuration
+   - Stack frames provided directly from `parse()` result
    - Formats timestamp
 
 4. **Handler Dispatch**:
@@ -139,10 +140,10 @@ origin = className.isNotEmpty ? 'ClassName.methodName' : 'methodName'
 if (includeFileLineInHeader) origin += ' (file.dart:123)'
 ```
 
-**Stack Frame Extraction** (see `Logger._extractStackFrames()`):
-- Extracts frames after `Logger._log` in stack trace
+**Stack Frame Extraction** (via `StackTraceParser.parse()`):
+- Single pass: extracts both caller and additional frames
 - Limits to `stackMethodCount[level]` frames
-- Returns `null` if count is 0 (optimization)
+- Returns empty list if count is 0 (optimization)
 
 ### 5. LogEntry Structure
 
@@ -264,7 +265,7 @@ For critical hot-paths where logger configuration is guaranteed to be static, de
 **Implementation**:
 - Iterates through all descendants in registry
 - Copies parent's effective values into child's explicit configuration (for `null` fields only)
-- Increments version and invalidates cache
+- **No-op optimization**: Only increments version and invalidates cache when at least one field was actually populated (skips entirely if all fields were already explicit)
 
 **Result**:
 - Future lookups bypass the resolution path entirely

@@ -45,38 +45,24 @@ This document tracks planned improvements, known issues, and TODO items for the 
 
 ---
 
-### Regex Compilation Caching
-**Issue**: Regex is recompiled on every frame parse.
+### ~~Regex Compilation Caching~~ ✅ v0.6.3
 
-**Current Code**:
-```dart
-CallbackInfo? parseFrame(String frame) {
-  final reg = RegExp(r'#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)');
-  final match = reg.firstMatch(frame);
-  // ...
-}
-```
+**Resolved**: Regex moved to `static final _frameRegex` in `StackTraceParser`.
 
-**TODO**:
-- [ ] Move regex to static final field
-- [ ] Benchmark performance improvement
-- [ ] Update tests to verify behavior unchanged
-
-**Proposed Solution**:
 ```dart
 class StackTraceParser {
   static final _frameRegex = RegExp(r'#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)');
   
-  CallbackInfo? parseFrame(String frame) {
+  CallbackInfo? _parseFrame(String frame) {
     final match = _frameRegex.firstMatch(frame);
     // ...
   }
 }
 ```
 
-**Acceptance Criteria**:
-- Regex compiled once per class load
-- Performance improvement measurable in benchmarks
+**TODO**:
+- [x] Move regex to static final field
+- [ ] Benchmark performance improvement (deferred)
 
 ---
 
@@ -107,41 +93,18 @@ class StackTraceParser {
 
 ---
 
-### Parsed Frame Caching
-**Context**: Logger module parses same stack trace twice (caller + frames).
+### ~~Parsed Frame Caching~~ ✅ v0.6.3
 
-**Cross-Reference**: See [logger roadmap](../logger/roadmap.md) for coordinated solution
+**Resolved**: `StackFrameSet` data class and `parse()` method implemented. Logger module integrated.
 
-**Current State**:
-- `extractCaller()` parses for origin
-- `_extractStackFrames()` parses for stack frames
-- Both parse the same `StackTrace` object
+**Cross-Reference**: See [logger roadmap](../logger/roadmap.md)
 
 **TODO**:
-- [ ] Design `ParsedStackTrace` data class
-- [ ] Implement `parseComplete()` method
-- [ ] Coordinate with logger module on API integration
-- [ ] Benchmark performance improvement
-- [ ] Update both modules' documentation
-
-**Proposed API**:
-```dart
-class ParsedStackTrace {
-  final CallbackInfo? caller;
-  final List<String> frames;
-}
-
-ParsedStackTrace parseComplete({
-  required StackTrace stackTrace,
-  required int skipFrames,
-  required int maxFrames,
-});
-```
-
-**Acceptance Criteria**:
-- Single parse pass for both caller and frames
-- Logger module integrated with new API
-- Performance improvement measurable
+- [x] Design `StackFrameSet` data class
+- [x] Implement `parse()` method
+- [x] Coordinate with logger module on API integration
+- [x] `Logger._log()` uses `parse()`, `_extractStackFrames()` removed
+- [ ] Benchmark performance improvement (deferred)
 
 ---
 
@@ -205,15 +168,17 @@ ParsedStackTrace parseComplete({
 
 **TODO**:
 - [ ] Design batch parsing API
-- [ ] Implement `parseFrames(List<String> frames)`
+- [ ] Implement batch parsing via `parse()` with frame collection
 - [ ] Optimize for bulk operations
 - [ ] Add tests for batch parsing
 
 **Proposed API**:
 ```dart
-List<CallbackInfo?> parseFrames(List<String> frames) {
-  return frames.map(parseFrame).toList();
-}
+// Use parse() with high maxFrames to collect frames in bulk
+final result = parser.parse(
+  stackTrace: trace,
+  maxFrames: 100,
+);
 ```
 
 **Acceptance Criteria**:
@@ -224,26 +189,17 @@ List<CallbackInfo?> parseFrames(List<String> frames) {
 
 ## Cross-Module Optimizations
 
-### Eliminate Redundant Stack Trace Parsing
+### ~~Eliminate Redundant Stack Trace Parsing~~ ✅ v0.6.3
 **Modules**: stack_trace + logger
 
-**Current State**:
-- Logger calls `stackTraceParser.extractCaller()` for origin
-- Logger calls `_extractStackFrames()` for stack frames
-- Both parse the same `StackTrace` object
-
-**Proposed Solution**: Implement `parseComplete()` method (see "Parsed Frame Caching" above)
-
-**Coordination Required**:
-- Stack trace module: Implement `parseComplete()` API
-- Logger module: Update `Logger._log()` to use new API
-- Both modules: Update documentation
+**Resolved**: `StackFrameSet` + `parse()` implemented. Logger module uses single-pass API.
 
 **TODO**:
-- [ ] Implement in stack_trace module first
-- [ ] Coordinate with logger module integration
-- [ ] Benchmark performance improvement
-- [ ] Update both roadmaps when complete
+- [x] Implement in stack_trace module
+- [x] Coordinate with logger module integration
+- [x] `Logger._log()` uses `parse()`, `_extractStackFrames()` removed
+- [ ] Benchmark performance improvement (deferred)
+- [x] Update both roadmaps
 
 ---
 
@@ -296,3 +252,17 @@ Added `customFilter` callback for arbitrary filtering logic.
 **Completed**: Initial release
 
 All data structures marked `@immutable` for thread safety.
+
+---
+
+### ✅ Regex Caching
+**Completed**: v0.6.3
+
+Moved `RegExp` from local variable in `_parseFrame()` to `static final _frameRegex`.
+
+---
+
+### ✅ StackFrameSet + parse()
+**Completed**: v0.6.3
+
+Single-pass parsing API producing both caller and stack frames. Integrated with logger module.
