@@ -11,7 +11,6 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      
     );
 
     test('adds rounded borders by default', () {

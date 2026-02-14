@@ -11,7 +11,6 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      
     );
 
     test('Order: BoxDecorator then StyleDecorator colors the borders', () {
@@ -124,7 +123,6 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        
       );
 
       // Pipeline execution

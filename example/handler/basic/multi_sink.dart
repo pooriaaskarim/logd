@@ -29,11 +29,10 @@ void main() async {
     logLevel: LogLevel.info,
   );
 
-  final logger = Logger.get('example.multi');
-
-  logger.info('This message goes to both console and file');
-  logger.warning('Warning messages also go to both');
-  logger.error('Error messages are duplicated to both sinks');
+  Logger.get('example.multi')
+    ..info('This message goes to both console and file')
+    ..warning('Warning messages also go to both')
+    ..error('Error messages are duplicated to both sinks');
 
   print('\nCheck logs/multi_sink.log to verify file output');
 }

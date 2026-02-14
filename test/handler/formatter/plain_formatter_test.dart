@@ -7,7 +7,6 @@ void main() {
     const entry = LogEntry(
       loggerName: 'test.logger',
       origin: 'main.dart:10:5',
-      
       level: LogLevel.info,
       message: 'Hello World',
       timestamp: '2025-01-01 12:00:00',
@@ -43,7 +42,6 @@ void main() {
       final errorEntry = LogEntry(
         loggerName: 'test',
         origin: 'main',
-        
         level: LogLevel.error,
         message: 'Kaboom',
         timestamp: 'now',

@@ -10,7 +10,6 @@ void main() {
       level: LogLevel.info,
       message: 'Hello World',
       timestamp: '2025-01-01 10:00:00',
-      
     );
 
     test('formats header with correct sequence', () {
@@ -39,7 +38,6 @@ void main() {
         level: LogLevel.info,
         message: 'This is a very long message that should be wrapped.',
         timestamp: 'ts',
-        
       );
       final lines = formatter
           .format(longEntry, const LogContext(availableWidth: 20))

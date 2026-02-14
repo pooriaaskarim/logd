@@ -18,20 +18,20 @@ void main() async {
   // ---------------------------------------------------------------------------
   // SCENARIO 1: The "Technical Dashboard" (Dark Mode)
   // ---------------------------------------------------------------------------
-  final darkSink =
+  const darkSink =
       HTMLSink(filePath: 'logs/dashboard_dark.html', darkMode: true);
-  final darkHandler = Handler(
-    formatter: const HTMLFormatter(),
+  const darkHandler = Handler(
+    formatter: HTMLFormatter(),
     sink: darkSink,
   );
 
   // ---------------------------------------------------------------------------
   // SCENARIO 2: The "Printable Report" (Light Mode)
   // ---------------------------------------------------------------------------
-  final lightSink =
+  const lightSink =
       HTMLSink(filePath: 'logs/report_light.html', darkMode: false);
-  final lightHandler = Handler(
-    formatter: const HTMLFormatter(),
+  const lightHandler = Handler(
+    formatter: HTMLFormatter(),
     sink: lightSink,
   );
 
@@ -39,10 +39,10 @@ void main() async {
   // SCENARIO 3: "Mobile Viewport" (Narrrow Wrapping)
   // Goal: Test that HTML blocks wrap correctly when width is restricted.
   // ---------------------------------------------------------------------------
-  final mobileSink =
+  const mobileSink =
       HTMLSink(filePath: 'logs/mobile_view.html', darkMode: true);
-  final mobileHandler = Handler(
-    formatter: const HTMLFormatter(),
+  const mobileHandler = Handler(
+    formatter: HTMLFormatter(),
     sink: mobileSink,
     lineLength: 45, // Mobile-width simulation
   );
@@ -59,17 +59,22 @@ void main() async {
   // --- execution ---
 
   print('Generating Dark Dashboard in logs/dashboard_dark.html...');
-  dark.info('Service cluster operational. Nodes synced: 15/15.');
-  dark.warning('Latency spikes detected in region af-south-1.');
+  dark
+    ..info('Service cluster operational. Nodes synced: 15/15.')
+    ..warning('Latency spikes detected in region af-south-1.');
 
   print('Generating Light Report in logs/report_light.html...');
-  light.info('Monthly maintenance cycle complete.');
-  light.error('Deployment failure on node-v7.',
-      error: 'FileSystemException: No space left.');
+  light
+    ..info('Monthly maintenance cycle complete.')
+    ..error(
+      'Deployment failure on node-v7.',
+      error: 'FileSystemException: No space left.',
+    );
 
   print('Generating Mobile View in logs/mobile_view.html...');
   mobile.info(
-      'This is a very long log message that must wrap beautifully even in the HTML output because the handler restricted the width to 45 characters.');
+      'This is a very long log message that must wrap beautifully even in the '
+      'HTML output because the handler restricted the width to 45 characters.');
 
   // IMPORTANT: Close sinks to finalize files
   await darkSink.close();

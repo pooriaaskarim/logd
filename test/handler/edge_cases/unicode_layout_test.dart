@@ -44,7 +44,6 @@ void main() {
         loggerName: 'test',
         origin: 'main',
         timestamp: '10:00:00',
-        
       );
 
       await handler.log(entry);

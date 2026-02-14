@@ -12,7 +12,6 @@ void main() {
       level: LogLevel.error,
       message: 'Critical failure detected',
       timestamp: '2025-01-01 10:00:00',
-      
     );
 
     test('formats identity header with default profound style', () {
@@ -61,7 +60,6 @@ void main() {
         level: LogLevel.error,
         message: 'Line 1\nLine 2',
         timestamp: '2025-01-01 10:00:00',
-        
       );
       const formatter = MarkdownFormatter();
       final lines = formatter.format(multilineEntry, mockContext).toList();
@@ -77,7 +75,6 @@ void main() {
         level: LogLevel.error,
         message: 'Stack Test',
         timestamp: '2025-01-01 10:00:00',
-        
         stackFrames: [
           CallbackInfo(
             className: '',
@@ -107,7 +104,6 @@ void main() {
         level: LogLevel.error,
         message: 'Msg',
         timestamp: '2025-01-01',
-        
         error: 'Serious Error',
       );
       const formatter = MarkdownFormatter();

@@ -17,13 +17,13 @@ void main() {
   // THE "VISUAL CONSOLE" HANDLER
   // Goal: Maximize semantic clarity using the Styles engine.
   // ---------------------------------------------------------------------------
-  final visualHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const visualHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
-      const StyleDecorator(theme: _ProfoundConsoleTheme()),
+      StyleDecorator(theme: _ProfoundConsoleTheme()),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 75,
   );
 
@@ -32,14 +32,14 @@ void main() {
 
   print('=== Logd / Fine-Grained Styling Benchmark ===\n');
 
-  log.info('System core initialized. Environment: Sandbox-Alpha.');
-
-  log.debug('Verifying cryptographic checksums for module "Kernel"...');
-
-  log.warning('Throughput approaching 10k req/s. Auto-scaling pending.');
-
-  log.error('Authentication Fault!',
-      error: 'ChecksumMismatch: Expected 0xAF43, found 0x0000.');
+  log
+    ..info('System core initialized. Environment: Sandbox-Alpha.')
+    ..debug('Verifying cryptographic checksums for module "Kernel"...')
+    ..warning('Throughput approaching 10k req/s. Auto-scaling pending.')
+    ..error(
+      'Authentication Fault!',
+      error: 'ChecksumMismatch: Expected 0xAF43, found 0x0000.',
+    );
 
   print('\n=== Visual Styling Benchmark Complete ===');
 }
