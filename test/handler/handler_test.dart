@@ -51,7 +51,6 @@ void main() {
       testEntry = LogEntry(
         loggerName: 'test',
         origin: 'main',
-        
         level: LogLevel.info,
         message: 'hello',
         timestamp: Timestamp.iso8601().timestamp!,
@@ -111,7 +110,6 @@ void main() {
     const entryInfo = LogEntry(
       loggerName: 'app.ui',
       origin: 'Widget.build',
-      
       level: LogLevel.info,
       message: 'info msg',
       timestamp: '2025-01-01 12:00:00',
@@ -119,7 +117,6 @@ void main() {
     const entryError = LogEntry(
       loggerName: 'app.service',
       origin: 'Service.run',
-      
       level: LogLevel.error,
       message: 'error msg',
       timestamp: '2025-01-01 12:00:01',

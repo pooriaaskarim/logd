@@ -63,18 +63,20 @@ Items in this phase are prerequisites for subsequent phases.
 
 ---
 
-### 🟡 P1: Prevent LogBuffer Leaks
+### ~~🟡 P1: Prevent LogBuffer Leaks~~ ✅ v0.6.4 (Ongoing)
 
-**Issue**: If a user acquires a buffer but never calls `sink()`, memory is leaked and content is lost.
-
-**Context**: LogBuffers are designed for accumulating log entries across the execution path of an algorithm or multi-step operation, then sinking atomically at the end. This means a callback-based `autoSink()` wrapper would not fit the use case — the writes happen across method boundaries, not within a single scope.
+**Resolved**: Added a `Finalizer` to `LogBuffer` that detects when a buffer is garbage collected without being sinked. 
+- Logged as `LogLevel.warning` via `InternalLogger`.
+- `autoSinkBuffer` now defaults to **`false`** (data is lost by default, enforcing explicit lifecycle management).
+- Support for `error` and `stackTrace` added to `LogBuffer`.
 
 **TODO**:
-- [ ] **Documentation**: Prominently document the `try/finally` pattern in README + API docs
-- [ ] **Debug-mode tracking**: In debug builds, track acquired-but-not-sinked buffers (e.g., via `InternalLogger` warning when the same logger acquires a new buffer while a previous one was never sinked)
-- [ ] **Max-size safeguard**: Add optional `maxEntries` limit on `LogBuffer` to bound memory growth in the "forgot to sink" case
-- [ ] **Add lint rule** to warn about acquiring a buffer without sinking it
-- [ ] Add tests for leak detection and max-size behavior
+- [x] **Documentation**: Documented `autoSinkBuffer` behavior and importance of `.sink()`
+- [x] **Finalizer-based tracking**: Implemented via `Finalizer` with stack trace capturing for leaks
+- [x] **New Default**: `autoSinkBuffer` now defaults to `false`
+- [ ] **Max-size safeguard**: Add optional `maxEntries` limit on `LogBuffer` to bound memory growth in the "forgot to sink" case (Deferred)
+- [ ] **Add lint rule** to warn about acquiring a buffer without sinking it (Future)
+- [x] Tests added for leak detection state and error/stackTrace fields
 
 ---
 

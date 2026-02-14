@@ -15,7 +15,7 @@ void main() {
     () {
       _runDemo();
     },
-    (error, stack) {
+    (final error, final stack) {
       Logger.get().error(
         'Caught uncaught error in zone',
         error: error,
@@ -30,18 +30,18 @@ void _runDemo() {
   // The Handler module decouples layout from visual decoration.
   print('--- 1. Composable Architecture ---');
 
-  final composableHandler = Handler(
+  const composableHandler = Handler(
     // StructuredFormatter handles the layout (origin, metadata, wrapping)
-    formatter: const StructuredFormatter(),
+    formatter: StructuredFormatter(),
     decorators: [
       // StyleDecorator adds level-based coloring to the content (before boxing)
-      const StyleDecorator(),
+      StyleDecorator(),
       // BoxDecorator adds the visual frame (border color is handled internally)
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 80,
   );
 
@@ -51,32 +51,29 @@ void _runDemo() {
     logLevel: LogLevel.trace,
   );
 
-  final logger = Logger.get('example');
-
-  logger.info('Welcome to Logd!');
-  logger.debug('Debug messages are perfect for deep tracing.');
-  logger.warning('This is a warning, something might be wrong.');
+  final logger = Logger.get('example')
+    ..info('Welcome to Logd!')
+    ..debug('Debug messages are perfect for deep tracing.')
+    ..warning('This is a warning, something might be wrong.');
 
   // 2. Robust Wrapping & Decoupling
   // BoxDecorator can now wrap ANY input, even from other formatters.
   print('\n--- 2. Robust JSON Boxing ---');
 
-  final jsonBoxedHandler = Handler(
-    formatter: const JsonPrettyFormatter(),
+  const jsonBoxedHandler = Handler(
+    formatter: JsonPrettyFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.double,
       ),
-      const StyleDecorator(),
+      StyleDecorator(),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 50, // Narrow box for JSON
   );
 
   Logger.configure('example.json', handlers: [jsonBoxedHandler]);
-  final jsonLogger = Logger.get('example.json');
-
-  jsonLogger.info(
+  Logger.get('example.json').info(
     'User profile updated successfully.',
   );
 
@@ -85,18 +82,18 @@ void _runDemo() {
   // We use HierarchyDepthPrefixDecorator to visually show the depth.
   print('\n--- 3. Hierarchical Indentation ---');
 
-  final hierarchicalHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const hierarchicalHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const StyleDecorator(
+      StyleDecorator(
         theme: _HierarchicalTheme(),
       ),
       BoxDecorator(
         borderStyle: BorderStyle.sharp,
       ),
-      const HierarchyDepthPrefixDecorator(indent: '│ '),
+      HierarchyDepthPrefixDecorator(indent: '│ '),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 80,
   );
 
@@ -118,15 +115,13 @@ void _runDemo() {
   // JsonPrettyFormatter enables vibrant, styled JSON in the terminal.
   print('\n--- 4. Styled JSON Logging ---');
 
-  final prettyHandler = Handler(
-    formatter: const JsonPrettyFormatter(),
-    sink: const ConsoleSink(),
+  const prettyHandler = Handler(
+    formatter: JsonPrettyFormatter(),
+    sink: ConsoleSink(),
   );
 
   Logger.configure('example.pretty', handlers: [prettyHandler]);
-  final prettyLogger = Logger.get('example.pretty');
-
-  prettyLogger.info('Task completed successfully.');
+  Logger.get('example.pretty').info('Task completed successfully.');
 
   // 5. Atomic Multi-line Buffers
   // Send atomic multi-line logs without interleaving.
@@ -153,16 +148,15 @@ void _runDemo() {
         fileRotation: SizeRotation(maxSize: '1 MB'),
       ),
     ]),
-    filters: [
+    filters: const [
       // Only log errors to this high-priority audit sink
-      const LevelFilter(LogLevel.error),
+      LevelFilter(LogLevel.error),
     ],
   );
 
   Logger.configure('example.audit', handlers: [fileHandler]);
-  final auditLogger = Logger.get('example.audit');
-
-  auditLogger.error('Security alert: Unauthorized access attempt detected');
+  Logger.get('example.audit')
+      .error('Security alert: Unauthorized access attempt detected');
 
   // 7. Stack Trace Parsing
   // Clean, readable stack traces with package filtering.
@@ -182,9 +176,9 @@ void _runDemo() {
   // Ship logs to remote servers via HttpSink or SocketSink.
   print('\n--- 8. Network Logging ---');
 
-  final networkHandler = Handler(
-    formatter: const JsonFormatter(),
-    sink: const HttpSink(
+  const networkHandler = Handler(
+    formatter: JsonFormatter(),
+    sink: HttpSink(
       url: 'https://example.com/logs',
       batchSize: 5,
       flushInterval: Duration(seconds: 1),
@@ -192,9 +186,8 @@ void _runDemo() {
   );
 
   Logger.configure('example.network', handlers: [networkHandler]);
-  final networkLogger = Logger.get('example.network');
-
-  networkLogger.info('This log will be batched and sent over HTTP.');
+  Logger.get('example.network')
+      .info('This log will be batched and sent over HTTP.');
 
   print('\nDemo Complete! Check the console output for colors and boxes.');
   print('Audit logs written to: logs/audit.log');

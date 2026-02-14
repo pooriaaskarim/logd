@@ -3,27 +3,32 @@ import 'package:logd/logd.dart';
 
 void main() async {
   print(
-      '╔═════════════════════════════════════════════════════════════════════╗');
+    '╔═════════════════════════════════════════════════════════════════════╗',
+  );
   print(
-      '║                    LOGD: COMPREHENSIVE GALLERY                      ║');
+    '║                    LOGD: COMPREHENSIVE GALLERY                      ║',
+  );
   print(
-      '╚═════════════════════════════════════════════════════════════════════╝\n');
+    '╚═════════════════════════════════════════════════════════════════════╝\n',
+  );
 
   // ===========================================================================
   // 1. THE CLOUD ARCHITECT (Structured + Box + Aligned Suffix + Styling)
   // ===========================================================================
-  final cloudHandler = Handler(
-    formatter: const StructuredFormatter(
+  const cloudHandler = Handler(
+    formatter: StructuredFormatter(
       metadata: {LogMetadata.timestamp, LogMetadata.origin, LogMetadata.logger},
     ),
     decorators: [
-      const StyleDecorator(
-          theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
-      const SuffixDecorator(' [v1.0.2] ',
-          aligned: true, style: LogStyle(color: LogColor.green, dim: true)),
+      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
+      SuffixDecorator(
+        ' [v1.0.2] ',
+        aligned: true,
+        style: LogStyle(color: LogColor.green, dim: true),
+      ),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 80,
   );
 
@@ -34,23 +39,26 @@ void main() async {
   Logger.get('backend.init')
       .info('System initialization started. Loading modules...');
   Logger.get('backend.db').error(
-      'Failed to connect to database cluster "db-alpha".',
-      error: 'ConnectionTimeoutException: Unable to reach host on port 5432');
+    'Failed to connect to database cluster "db-alpha".',
+    error: 'ConnectionTimeoutException: Unable to reach host on port 5432',
+  );
 
   // ===========================================================================
   // 2. THE DATA SCIENTIST (Toon + Custom Prefix + Style)
   // ===========================================================================
-  final dataHandler = Handler(
-    formatter: const ToonFormatter(
+  const dataHandler = Handler(
+    formatter: ToonFormatter(
       color: true,
       metadata: {LogMetadata.timestamp},
     ),
     decorators: [
-      const StyleDecorator(),
-      const PrefixDecorator(' TELEMETRY >> ',
-          style: LogStyle(color: LogColor.yellow, bold: true)),
+      StyleDecorator(),
+      PrefixDecorator(
+        ' TELEMETRY >> ',
+        style: LogStyle(color: LogColor.yellow, bold: true),
+      ),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
   );
 
   Logger.configure('telemetry', handlers: [dataHandler]);
@@ -65,26 +73,29 @@ void main() async {
   // ===========================================================================
   // 3. THE INSPECTOR (JsonPretty + Nested + Color + Box + Hierarchy)
   // ===========================================================================
-  final inspectorHandler = Handler(
-    formatter: const JsonPrettyFormatter(
+  const inspectorHandler = Handler(
+    formatter: JsonPrettyFormatter(
       color: true,
       prettyPrintNestedJson: true,
       metadata: {},
     ),
     decorators: [
-      const StyleDecorator(theme: _InspectorTheme()),
-      const HierarchyDepthPrefixDecorator(
-          indent: '│ ', style: LogStyle(color: LogColor.blue)),
+      StyleDecorator(theme: _InspectorTheme()),
+      HierarchyDepthPrefixDecorator(
+        indent: '│ ',
+        style: LogStyle(color: LogColor.blue),
+      ),
       BoxDecorator(borderStyle: BorderStyle.double),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 65,
   );
 
   Logger.configure('proxy', handlers: [inspectorHandler]);
   print('\n--- GALLERY 3: THE INSPECTOR ---');
   print(
-      '(JsonPretty + Nested Expansion + Hierarchy + Double Box + Custom Theme)\n');
+    '(JsonPretty + Nested Expansion + Hierarchy + Double Box + Custom Theme)\n',
+  );
 
   final payload = {
     'request': {
@@ -93,10 +104,10 @@ void main() async {
       'body': jsonEncode({
         'action': 'sync',
         'items': [1, 2, 3],
-        'metadata': {'v': 1.2, 'stable': true}
-      })
+        'metadata': {'v': 1.2, 'stable': true},
+      }),
     },
-    'response_time': '45ms'
+    'response_time': '45ms',
   };
 
   Logger.get('proxy.spy.net')
@@ -105,13 +116,15 @@ void main() async {
   // ===========================================================================
   // 4. THE MINIMALIST (Plain + Hierarchy)
   // ===========================================================================
-  final debugHandler = Handler(
-    formatter: const PlainFormatter(metadata: {LogMetadata.timestamp}),
+  const debugHandler = Handler(
+    formatter: PlainFormatter(metadata: {LogMetadata.timestamp}),
     decorators: [
-      const HierarchyDepthPrefixDecorator(
-          indent: '│   ', style: LogStyle(color: LogColor.magenta, dim: true)),
+      HierarchyDepthPrefixDecorator(
+        indent: '│   ',
+        style: LogStyle(color: LogColor.magenta, dim: true),
+      ),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
   );
 
   Logger.configure('app', handlers: [debugHandler]);
@@ -125,19 +138,24 @@ void main() async {
   // ===========================================================================
   // 5. THE SURVIVOR (Plain + Prefix + Suffix + Box + Style - Chaos Mode)
   // ===========================================================================
-  final chaosHandler = Handler(
-    formatter: const PlainFormatter(metadata: {}),
+  const chaosHandler = Handler(
+    formatter: PlainFormatter(metadata: {}),
     decorators: [
-      const PrefixDecorator(' [IN] ',
-          style:
-              LogStyle(backgroundColor: LogColor.blue, color: LogColor.white)),
-      const SuffixDecorator(' [OUT] ',
-          style: LogStyle(
-              backgroundColor: LogColor.magenta, color: LogColor.white)),
+      PrefixDecorator(
+        ' [IN] ',
+        style: LogStyle(backgroundColor: LogColor.blue, color: LogColor.white),
+      ),
+      SuffixDecorator(
+        ' [OUT] ',
+        style: LogStyle(
+          backgroundColor: LogColor.magenta,
+          color: LogColor.white,
+        ),
+      ),
       BoxDecorator(borderStyle: BorderStyle.sharp),
-      const StyleDecorator(),
+      StyleDecorator(),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 35,
   );
 
@@ -146,20 +164,25 @@ void main() async {
   print('(Multi-Decorator + 35 Width Extreme Wrapping)\n');
 
   Logger.get('chaos').warning(
-      'Stability alert! Message forced to wrap inside a tiny box with both prefix and suffix attached.');
+    'Stability alert! Message forced to wrap inside a tiny box with both'
+    ' prefix and suffix attached.',
+  );
 
   print(
-      '\n═════════════════════════════════════════════════════════════════════');
+    '\n═════════════════════════════════════════════════════════════════════',
+  );
   print(
-      '║                    GALLERY PRESENTATION COMPLETE                    ║');
+    '║                    GALLERY PRESENTATION COMPLETE                    ║',
+  );
   print(
-      '╚═════════════════════════════════════════════════════════════════════');
+    '╚═════════════════════════════════════════════════════════════════════',
+  );
 }
 
 class _InspectorTheme extends LogTheme {
   const _InspectorTheme() : super(colorScheme: LogColorScheme.darkScheme);
   @override
-  LogStyle getStyle(LogLevel level, Set<LogTag> tags) {
+  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
     if (tags.contains(LogTag.key)) {
       return const LogStyle(color: LogColor.magenta, bold: true);
     }

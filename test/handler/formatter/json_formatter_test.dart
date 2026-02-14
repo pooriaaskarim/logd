@@ -12,7 +12,6 @@ void main() {
       level: LogLevel.info,
       message: 'Test message',
       timestamp: '2025-01-01 10:00:00',
-      
     );
 
     test('outputs compact JSON with default metadata', () {
@@ -43,7 +42,6 @@ void main() {
         level: LogLevel.error,
         message: 'Failed',
         timestamp: '2025-01-01 10:00:00',
-        
         error: 'Connection failed',
         stackTrace: StackTrace.fromString('stack line 1\n  stack line 2'),
       );
@@ -73,7 +71,6 @@ void main() {
       level: LogLevel.info,
       message: 'Test message',
       timestamp: '2025-01-01 10:00:00',
-      
     );
 
     test('outputs formatted JSON with indentation', () {
@@ -98,7 +95,6 @@ void main() {
       level: LogLevel.info,
       message: 'Test message',
       timestamp: '2025-01-01 10:00:00',
-      
     );
 
     test('emits semantic tags when color is true', () {
@@ -135,7 +131,6 @@ void main() {
       level: LogLevel.info,
       message: 'Processing request',
       timestamp: '2025-01-01 14:30:15.123',
-      
     );
 
     test('includes only specified metadata but always crucial content', () {

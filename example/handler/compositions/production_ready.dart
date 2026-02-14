@@ -13,16 +13,16 @@ import 'package:logd/logd.dart';
 
 void main() async {
   // Console handler: Structured, colored, boxed
-  final consoleHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const consoleHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const StyleDecorator(),
+      StyleDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),
-      const HierarchyDepthPrefixDecorator()
+      HierarchyDepthPrefixDecorator(),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 100,
   );
 
@@ -45,13 +45,13 @@ void main() async {
     sink: FileSink(
       'logs/errors.log',
       fileRotation: TimeRotation(
-        interval: Duration(days: 1),
+        interval: const Duration(days: 1),
         backupCount: 30,
         compress: true,
       ),
     ),
-    filters: [
-      const LevelFilter(LogLevel.error),
+    filters: const [
+      LevelFilter(LogLevel.error),
     ],
   );
 
@@ -75,14 +75,14 @@ void main() async {
     logLevel: LogLevel.debug,
   );
 
-  final logger = Logger.get('app');
+  Logger.get('app')
 
-  // Simulate application logging
-  logger.debug('Application starting');
-  logger.info('Server listening on port 8080');
-  logger.info('Database connection established');
-  logger.warning('High memory usage detected: 85%');
-  logger.error('Failed to process request', error: Exception('Timeout'));
+    // Simulate application logging
+    ..debug('Application starting')
+    ..info('Server listening on port 8080')
+    ..info('Database connection established')
+    ..warning('High memory usage detected: 85%')
+    ..error('Failed to process request', error: Exception('Timeout'));
 
   print('\nCheck logs/ directory for:');
   print('  - app.log (all logs, plain format)');

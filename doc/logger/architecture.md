@@ -8,9 +8,9 @@ The logger module is organized into 6 files:
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| [`logger.dart`](../../lib/src/logger/logger.dart) | 668 | Core implementation: `Logger`, `LoggerConfig`, `LoggerCache`, `_ResolvedConfig` |
+| [`logger.dart`](../../lib/src/logger/logger.dart) | 711 | Core implementation: `Logger`, `LoggerConfig`, `LoggerCache`, `_ResolvedConfig` |
 | [`log_entry.dart`](../../lib/src/logger/log_entry.dart) | 59 | Structured log event representation |
-| [`log_buffer.dart`](../../lib/src/logger/log_buffer.dart) | 35 | Multi-line log buffering |
+| [`log_buffer.dart`](../../lib/src/logger/log_buffer.dart) | 155 | Multi-line log buffering |
 | [`internal_logger.dart`](../../lib/src/logger/internal_logger.dart) | 26 | Fail-safe internal logging |
 | [`flutter_stubs.dart`](../../lib/src/logger/flutter_stubs.dart) | 6 | No-op Flutter stubs for pure Dart |
 | [`flutter_stubs_flutter.dart`](../../lib/src/logger/flutter_stubs_flutter.dart) | 14 | Flutter error integration |
@@ -35,7 +35,7 @@ static final Map<String, LoggerConfig> _registry = {};
 ```
 
 **`LoggerConfig` Structure**:
-- **Nullable fields**: `enabled`, `logLevel`, `includeFileLineInHeader`, `stackMethodCount`, `timestamp`, `stackTraceParser`, `handlers`
+- **Nullable fields**: `enabled`, `logLevel`, `includeFileLineInHeader`, `stackMethodCount`, `timestamp`, `stackTraceParser`, `handlers`, `autoSinkBuffer`
 - **Version tracking**: `_version` counter for cache invalidation
 - **Sparse storage**: Only explicitly set values are non-null; `null` signals inheritance
 
@@ -99,7 +99,8 @@ handlers: [
       BoxDecorator(),
       ]
   ),
-]
+],
+autoSinkBuffer: false,
 ```
 
 **Immutability Protection**:
@@ -188,6 +189,7 @@ int get hierarchyDepth {
 **API**:
 - `writeln(object)` - Append line to buffer
 - `writeAll(objects)` - Append multiple lines
+- `error` / `stackTrace` - Attach context objects to the buffered log
 - `sink()` - Flush buffer to logger and clear
 
 **Implementation Details**:

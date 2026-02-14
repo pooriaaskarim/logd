@@ -40,6 +40,12 @@ class LoggerConfig {
   /// Optional: List of handlers. Inherits from parent if null.
   List<Handler>? handlers;
 
+  /// Optional: Whether to automatically sink abandoned buffers.
+  ///
+  /// If true, buffers collected by GC will be logged with a warning.
+  /// If false (default), data is lost and a severe error is logged.
+  bool? autoSinkBuffer;
+
   /// Cache version tracker.
   int _version = 0;
 }
@@ -82,6 +88,10 @@ class LoggerCache {
   static List<Handler> handlers(final String loggerName) =>
       _resolve(Logger._normalizeName(loggerName)).handlers;
 
+  /// Resolves the effective [autoSinkBuffer] for [loggerName].
+  static bool autoSinkBuffer(final String loggerName) =>
+      _resolve(Logger._normalizeName(loggerName)).autoSinkBuffer;
+
   /// Internal: Resolves and caches the effective configuration for
   /// [loggerName]. Expects [loggerName] to be normalized.
   static _ResolvedConfig _resolve(final String loggerName) {
@@ -102,6 +112,7 @@ class LoggerCache {
     Timestamp? resolvedTimestamp;
     StackTraceParser? resolvedStackTraceParser;
     List<Handler>? resolvedHandlers;
+    bool? resolvedAutoSinkBuffer;
 
     while (true) {
       final cSource = Logger._registry[currentName];
@@ -113,6 +124,7 @@ class LoggerCache {
         resolvedTimestamp ??= cSource.timestamp;
         resolvedStackTraceParser ??= cSource.stackTraceParser;
         resolvedHandlers ??= cSource.handlers;
+        resolvedAutoSinkBuffer ??= cSource.autoSinkBuffer;
       }
 
       final parentName = Logger._getParentName(currentName);
@@ -158,6 +170,7 @@ class LoggerCache {
               ),
             ],
       ),
+      autoSinkBuffer: resolvedAutoSinkBuffer ?? false,
     );
 
     _cache[loggerName] = resolved;
@@ -190,6 +203,7 @@ class _ResolvedConfig {
     required this.timestamp,
     required this.stackTraceParser,
     required this.handlers,
+    required this.autoSinkBuffer,
   });
 
   final int version;
@@ -200,6 +214,7 @@ class _ResolvedConfig {
   final Timestamp timestamp;
   final StackTraceParser stackTraceParser;
   final List<Handler> handlers;
+  final bool autoSinkBuffer;
 }
 
 /// Main logd interface.
@@ -264,6 +279,7 @@ class Logger {
   /// - [timestamp]: Timestamp config.
   /// - [stackTraceParser]: Stack parser config.
   /// - [handlers]: List of handlers. Must not be empty if provided.
+  /// - [autoSinkBuffer]: Whether to auto-sink abandoned buffers.
   ///
   /// Throws [ArgumentError] if:
   /// - Any [stackMethodCount] value is negative.
@@ -285,6 +301,7 @@ class Logger {
     final Timestamp? timestamp,
     final StackTraceParser? stackTraceParser,
     final List<Handler>? handlers,
+    final bool? autoSinkBuffer,
   }) {
     // Input validation
     if (stackMethodCount != null) {
@@ -341,6 +358,10 @@ class Logger {
       config.handlers = handlers;
       changed = true;
     }
+    if (autoSinkBuffer != null && autoSinkBuffer != config.autoSinkBuffer) {
+      config.autoSinkBuffer = autoSinkBuffer;
+      changed = true;
+    }
 
     if (changed) {
       config._version++;
@@ -382,6 +403,9 @@ class Logger {
   /// **Note**: Returns an **unmodifiable** list.
   @pragma('vm:prefer-inline')
   List<Handler> get handlers => LoggerCache.handlers(name);
+
+  /// Whether to auto-sink abandoned buffers.
+  bool get autoSinkBuffer => LoggerCache.autoSinkBuffer(name);
 
   /// Freezes the current inherited configurations into descendant loggers.
   ///
@@ -427,6 +451,10 @@ class Logger {
         }
         if (childConfig.handlers == null) {
           childConfig.handlers = List.from(handlers);
+          changed = true;
+        }
+        if (childConfig.autoSinkBuffer == null) {
+          childConfig.autoSinkBuffer = autoSinkBuffer;
           changed = true;
         }
         if (changed) {

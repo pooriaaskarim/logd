@@ -15,7 +15,6 @@ void main() {
         level: LogLevel.error,
         message: 'Error occurred',
         timestamp: '2025-01-01 10:00:00',
-        
         error: null,
         stackTrace: null,
       );
@@ -35,7 +34,6 @@ void main() {
         level: LogLevel.info,
         message: 'test',
         timestamp: '2025-01-01 10:00:00',
-        
       );
 
       final lines = formatter.format(entry, context).toList();
@@ -66,7 +64,6 @@ void main() {
         level: LogLevel.info,
         message: 'x',
         timestamp: '2025-01-01 10:00:00',
-        
       );
 
       const context = LogContext(availableWidth: 40);
@@ -89,7 +86,6 @@ void main() {
         level: LogLevel.error,
         message: 'Error',
         timestamp: '2025-01-01 10:00:00',
-        
         error: null,
       );
 

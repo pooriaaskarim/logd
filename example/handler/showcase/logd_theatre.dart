@@ -18,24 +18,24 @@ void main() async {
   _prepareDirectories(basePath);
 
   // 1. Setup the Multi-Backend Theatre
-  final consoleHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const consoleHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const StyleDecorator(
+      StyleDecorator(
         theme: _HeaderBackgroundTheme(),
       ),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 80,
   );
 
-  final htmlSink =
+  const htmlSink =
       HTMLSink(filePath: '$basePath/dashboard.html', darkMode: true);
-  final htmlHandler = Handler(
-    formatter: const HTMLFormatter(),
+  const htmlHandler = Handler(
+    formatter: HTMLFormatter(),
     sink: htmlSink,
   );
 
@@ -50,7 +50,7 @@ void main() async {
   );
 
   final toonHandler = Handler(
-    formatter: ToonFormatter(),
+    formatter: const ToonFormatter(),
     sink: FileSink('$basePath/llm_context.toon'),
   );
 
@@ -73,14 +73,16 @@ void main() async {
 
   // Scene 1: System Startup
   print('🎬 Scene 1: System Startup');
-  logger.info('Initializing Logd Theatre Core...');
-  logger.debug('Loading theater scenes from assets/scripts/v1.json');
+  logger
+    ..info('Initializing Logd Theatre Core...')
+    ..debug('Loading theater scenes from assets/scripts/v1.json');
 
   // Scene 2: Network Activity
   print('\n🎬 Scene 2: Network Activity');
-  netLogger.info('Connecting to Global Backend Service...');
-  netLogger.trace('GET /api/v1/auth/tokens - 200 OK (45ms)');
-  netLogger.warning('High latency detected in us-east region: 450ms');
+  netLogger
+    ..info('Connecting to Global Backend Service...')
+    ..trace('GET /api/v1/auth/tokens - 200 OK (45ms)')
+    ..warning('High latency detected in us-east region: 450ms');
 
   // Scene 3: The Incident
   print('\n🎬 Scene 3: The Incident');
@@ -88,8 +90,11 @@ void main() async {
   try {
     _performInvalidDatabaseOperation();
   } catch (e, s) {
-    dbLogger.error('Critical database corruption detected!',
-        error: e, stackTrace: s);
+    dbLogger.error(
+      'Critical database corruption detected!',
+      error: e,
+      stackTrace: s,
+    );
   }
 
   // Scene 4: Multi-line Telemetry
@@ -103,8 +108,8 @@ void main() async {
 
   // Scene 5: Hierarchy Isolation
   print('\n🎬 Scene 5: Hierarchy Isolation');
-  final subLogger = Logger.get('theatre.sub.deep');
-  subLogger.info('This prefix should not be colored even if level is colored.');
+  Logger.get('theatre.sub.deep')
+      .info('This prefix should not be colored even if level is colored.');
 
   // Scene 6: Closing down
   print('\n🎬 Scene 6: Curtain Call');
@@ -127,7 +132,7 @@ void main() async {
   print('-----------------------------------------');
 }
 
-void _prepareDirectories(String path) {
+void _prepareDirectories(final String path) {
   final dir = io.Directory(path);
   if (!dir.existsSync()) {
     dir.createSync(recursive: true);
@@ -135,7 +140,7 @@ void _prepareDirectories(String path) {
 }
 
 void _performInvalidDatabaseOperation() {
-  throw io.FileSystemException('Permission denied', '/var/db/actors.db');
+  throw const io.FileSystemException('Permission denied', '/var/db/actors.db');
 }
 
 class _HeaderBackgroundTheme extends LogTheme {

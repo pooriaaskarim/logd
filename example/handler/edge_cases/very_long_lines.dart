@@ -12,25 +12,25 @@ import 'package:logd/logd.dart';
 
 void main() async {
   // Handler with wrapping
-  final wrappedHandler = Handler(
-    formatter: const StructuredFormatter(),
-    decorators: const [
+  const wrappedHandler = Handler(
+    formatter: StructuredFormatter(),
+    decorators: [
       StyleDecorator(),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 40,
   );
 
   // Handler with box and wrapping
-  final boxedHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const boxedHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const StyleDecorator(),
+      StyleDecorator(),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 40,
   );
 
@@ -41,7 +41,7 @@ void main() async {
   final boxedLogger = Logger.get('example.boxed');
 
   // Very long single line
-  final longLine = 'This is an extremely long line that contains many words '
+  const longLine = 'This is an extremely long line that contains many words '
       'and should definitely wrap across multiple lines when formatted. '
       'It should preserve ANSI codes if any are present and maintain '
       'readability throughout the wrapping process.';

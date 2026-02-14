@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4: LogBuffer Enhancements & Project-Wide Refactor
+- ### LogBuffer Enhancement & Safety
+  - **Error/StackTrace Support**: Added ability to capture `error` and `stackTrace` within `LogBuffer` for more robust multi-line error reporting.
+  - **Deterministic Sinking**: Changed default behavior to `autoSink: false` in `Logger.infoBuffer` and related utilities to encourage explicit lifecycle management.
+  - **Leak Traceability**: `LogBuffer` now captures and reports the creation stack trace when a buffer is leaked (abandoned without sinking), facilitating rapid debugging of resource leaks.
+
 ## 0.6.3: Optimized Stack Trace Parsing & Logger Robustness
 - ### Optimizations
   - **Single-Pass Parsing**: Introduced a unified `StackTraceParser.parse` method that extracts both the caller and required stack frames in a single pass, eliminating redundant processing.

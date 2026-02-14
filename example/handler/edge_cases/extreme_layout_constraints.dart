@@ -5,12 +5,12 @@ void main() async {
 
   // Case 1: The Tiny Box (Minimum width)
   // Ensures clamping and logic doesn't crash on negative widths.
-  final tinyHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const tinyHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 8, // Tiny! Internal space ~2-4 chars
   );
 
@@ -20,25 +20,25 @@ void main() async {
 
   // Case 2: The "Unbreakable" Token
   // Long words without spaces must be broken mid-char if necessary.
-  final glueHandler = Handler(
-    formatter: const PlainFormatter(metadata: {}),
-    sink: const ConsoleSink(),
+  const glueHandler = Handler(
+    formatter: PlainFormatter(metadata: {}),
+    sink: ConsoleSink(),
     lineLength: 20,
   );
 
   Logger.configure('glue', handlers: [glueHandler]);
   print('\nSTRESS 2: Unbreakable Word Wrapping');
-  Logger.get('glue').info(
-      'Supercalifragilisticexpialidocious_is_one_very_long_string_without_spaces');
+  Logger.get('glue').info('Supercalifragilisticexpialidocious_is_one_very'
+      '_long_string_without_spaces');
 
   // Case 3: Tabs in Frames (Visual Alignment Test)
   // Verifies specialized box tab-expansion logic.
-  final tabBoxHandler = Handler(
-    formatter: const PlainFormatter(metadata: {}),
+  const tabBoxHandler = Handler(
+    formatter: PlainFormatter(metadata: {}),
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 40,
   );
 
@@ -47,33 +47,37 @@ void main() async {
   Logger.get('tab').info('\tFirst Tab\n\t\tSecond Tab\nNon-tabbed line');
 
   // Case 4: Deep Recursion Safety in JsonFormatter
-  final deepJsonHandler = Handler(
-    formatter: const JsonPrettyFormatter(color: true),
-    decorators: [const StyleDecorator()],
-    sink: const ConsoleSink(),
+  const deepJsonHandler = Handler(
+    formatter: JsonPrettyFormatter(color: true),
+    decorators: [StyleDecorator()],
+    sink: ConsoleSink(),
   );
 
   Logger.configure('deep', handlers: [deepJsonHandler]);
   print('\nSTRESS 4: Deep JSON Nesting');
-  Map<String, dynamic> buildDeep(int depth) {
-    if (depth == 0) return {'leaf': 'reached'};
+  Map<String, dynamic> buildDeep(final int depth) {
+    if (depth == 0) {
+      return {'leaf': 'reached'};
+    }
     return {'node_$depth': buildDeep(depth - 1)};
   }
 
   Logger.get('deep').info('Deep structural dive', error: buildDeep(8));
 
   // Case 5: Semantic Tag Mixing
-  // Ensuring tags from different phases (Formatter + Box + Suffix) all style correctly.
-  final mixHandler = Handler(
-    formatter: const ToonFormatter(color: true),
+  // Ensuring tags from different phases (Formatter + Box + Suffix) all style
+  // correctly.
+  const mixHandler = Handler(
+    formatter: ToonFormatter(color: true),
     decorators: [
-      const StyleDecorator(
-          theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
+      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
       BoxDecorator(borderStyle: BorderStyle.double),
-      const SuffixDecorator(' [FINAL] ',
-          style: LogStyle(color: LogColor.green, bold: true)),
+      SuffixDecorator(
+        ' [FINAL] ',
+        style: LogStyle(color: LogColor.green, bold: true),
+      ),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
   );
 
   Logger.configure('mixer', handlers: [mixHandler]);

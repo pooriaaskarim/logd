@@ -48,8 +48,9 @@ void main() async {
   // --- Run Scenarios ---
 
   print('SCENARIO 1: Generating technical report in logs/tech_report.md...');
-  tech.info('Kernel initialization cycle started.');
-  tech.debug('Sub-system "NetworkStack" calibrated: 1.2ms latency.');
+  tech
+    ..info('Kernel initialization cycle started.')
+    ..debug('Sub-system "NetworkStack" calibrated: 1.2ms latency.');
 
   try {
     throw StateError('Memory leak detected in ObjectPool<T>. Bytes: 1048576');
@@ -58,8 +59,9 @@ void main() async {
   }
 
   print('SCENARIO 2: Generating executive summary in logs/summary.md...');
-  exec.info('Deployment of v2.5.0-alpha successful on cluster-green.');
-  exec.warning('Minor degradation observed in legacy Auth module.');
+  exec
+    ..info('Deployment of v2.5.0-alpha successful on cluster-green.')
+    ..warning('Minor degradation observed in legacy Auth module.');
 
   print('\n=== Professional Markdown Generation Complete ===');
 }
