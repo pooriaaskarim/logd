@@ -11,7 +11,6 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: '2025-01-01T10:00:00Z',
-      
     );
 
     test('Output header once then rows with TAB delimiter (default)', () {
@@ -83,7 +82,6 @@ void main() {
         level: LogLevel.info,
         message: 'This is a very long message',
         timestamp: 'now',
-        
       );
 
       // We use a width that allows breaking at the TAB.

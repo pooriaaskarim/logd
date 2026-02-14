@@ -48,6 +48,7 @@ Main implementation file containing:
 #### [log_buffer.dart](../../lib/src/logger/log_buffer.dart)
 - **`LogBuffer`** - Efficient buffer for building multi-line log messages
 - Extends `StringBuffer` with `sink()` method for atomic output
+- Supports attaching an **`error`** or **`stackTrace`** to the buffered log
 - Accessed via `logger.traceBuffer`, `logger.debugBuffer`, etc.
 
 #### [internal_logger.dart](../../lib/src/logger/internal_logger.dart)
@@ -88,7 +89,7 @@ The construction of `LogEntry` objects is an automated internal concern. The `Lo
 
 ### Configuration
 - `Logger.configure(name, ...)` - Set configuration for a logger and its descendants
-- Parameters: `enabled`, `logLevel`, `includeFileLineInHeader`, `stackMethodCount`, `timestamp`, `stackTraceParser`, `handlers`
+- Parameters: `enabled`, `logLevel`, `includeFileLineInHeader`, `stackMethodCount`, `timestamp`, `stackTraceParser`, `handlers`, `autoSinkBuffer`
 - Changes propagate dynamically to descendants unless explicitly overridden
 
 ### Logging Methods
@@ -101,11 +102,24 @@ The construction of `LogEntry` objects is an automated internal concern. The `Lo
 ### Multi-Line Buffering
 ```dart
 final buffer = logger.infoBuffer;
-buffer?.writeln('Line 1');
-buffer?.writeln('Line 2');
-buffer?.writeln('Line 3');
-buffer?.sink();  // Atomically logs all lines
+try {
+  // Some operations
+  buffer?.writeln('Line 1');
+  // Some operations
+  buffer?.writeln('Line 2');
+  // Some operations
+  buffer?.writeln('Line 3');
+} catch (e, stackTrace) {
+  // Some operations
+  buffer?.error = e;
+  buffer?.stackTrace = stackTrace;
+} finally {
+  buffer?.sink();  // Atomically logs all lines
+}
 ```
+
+> [!IMPORTANT]
+> Always call `.sink()` when using a buffer. By default, `autoSinkBuffer` is **disabled** (`false`). If a buffer is garbage collected without being sinked, a leak warning is logged via `InternalLogger` and data is lost unless explicitly enabled.
 
 ### Performance Optimization
 - `logger.freezeInheritance()` - Bake current configuration into descendants for zero-cost lookups
@@ -124,6 +138,7 @@ buffer?.sink();  // Atomically logs all lines
 - `logger.timestamp` - Timestamp formatter configuration
 - `logger.stackTraceParser` - Stack trace parser configuration
 - `logger.handlers` - Handler list (unmodifiable)
+- `logger.autoSinkBuffer` - Whether abandoned buffers are auto-sinked (default: `false`)
 
 ## Documentation
 

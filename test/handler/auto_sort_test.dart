@@ -49,7 +49,6 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        
       );
 
       await handler.log(entry);
@@ -93,7 +92,6 @@ void main() {
         level: LogLevel.info,
         message: 'msg',
         timestamp: 'now',
-        
       );
 
       await handler.log(entry);

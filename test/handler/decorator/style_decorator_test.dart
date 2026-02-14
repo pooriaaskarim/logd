@@ -11,7 +11,6 @@ void main() {
       level: LogLevel.info,
       message: 'msg',
       timestamp: 'now',
-      
     );
 
     test('adds colors when enabled', () {
@@ -53,7 +52,6 @@ void main() {
             level: LogLevel.error,
             message: 'msg',
             timestamp: 'now',
-            
           ),
           mockContext,
         ),
@@ -67,7 +65,6 @@ void main() {
             level: LogLevel.warning,
             message: 'msg',
             timestamp: 'now',
-            
           ),
           mockContext,
         ),
