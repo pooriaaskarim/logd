@@ -1,0 +1,19 @@
+name: logd_linter
+description: Lint rules and quick fixes for the logd logging library.
+version: 0.1.0
+repository: https://github.com/pooriaaskarim/logd
+homepage: https://pub.dev/packages/logd_linter
+issue_tracker: https://github.com/pooriaaskarim/logd/issues
+
+license: BSD-3-Clause
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+resolution: workspace
+
+dependencies:
+  analyzer: ^8.0.0
+  custom_lint_builder: ^0.8.0
+
+dev_dependencies:
+  test: ^1.24.0

@@ -1,31 +1,15 @@
-name: logd
-description: Modular hierarchical logging for Dart and Flutter. Features modular pipeline processing, O(1) configuration resolution, and low‑overhead performance.
-version: 0.6.3
-repository: https://github.com/pooriaaskarim/logd
-homepage: https://pub.dev/packages/logd
-topics:
-  - logging
-  - logger
-  - hierarchical
-  - performance
-  - structured-logging
+name: workspace
+description: workspace for logd logger library.
 
-license: BSD-3-Clause
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.5.0 <4.0.0'
+licence: BSD-3-Clause
 
-dependencies:
-  flutter:
-    sdk: flutter
-  characters: ^1.3.0
-  http: ^1.2.0
-  meta: ^1.17.0
-  timezone: ^0.11.0
-  web_socket_channel: ^3.0.0
+workspace:
+  - packages/logd
+  - packages/logd_linter
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^5.0.0
-  test: ^1.24.0
-  mocktail: ^1.0.4
+  custom_lint: ^0.8.1
+  logd_linter:
+    path: packages/logd_linter
