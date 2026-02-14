@@ -18,17 +18,18 @@ void main() async {
   // SCENARIO A: The "Comic Relay"
   // Goal: Demonstrate multi-level narrative indentation with toon characters.
   // ---------------------------------------------------------------------------
-  final relayHandler = Handler(
-    formatter: const ToonFormatter(
+  const relayHandler = Handler(
+    formatter: ToonFormatter(
       metadata: {LogMetadata.logger},
     ),
     decorators: [
-      const StyleDecorator(
-          theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
-      const HierarchyDepthPrefixDecorator(indent: '┃ '),
-      const SuffixDecorator(' [v8]', aligned: true),
+      StyleDecorator(
+        theme: LogTheme(colorScheme: LogColorScheme.pastelScheme),
+      ),
+      HierarchyDepthPrefixDecorator(indent: '┃ '),
+      SuffixDecorator(' [v8]', aligned: true),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 75,
   );
 
@@ -37,16 +38,16 @@ void main() async {
   // Goal: The ultimate layout stress test. We force a complex character layout
   // (Toon) inside a Rounded Box at an aggressively narrow 40-char width.
   // ---------------------------------------------------------------------------
-  final panelHandler = Handler(
-    formatter: const ToonFormatter(
+  const panelHandler = Handler(
+    formatter: ToonFormatter(
       metadata: {LogMetadata.timestamp, LogMetadata.logger},
       multiline: true, // Allow real newlines for high-detail visuals
     ),
     decorators: [
-      const StyleDecorator(theme: _ToonPanelTheme()),
+      StyleDecorator(theme: _ToonPanelTheme()),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 40, // Aggressively narrow for Toon + Box
   );
 
@@ -56,18 +57,17 @@ void main() async {
 
   // --- Run Scenario A: Comic Relay ---
   print('TEST A: Comic Relay (Style + Deep Hierarchy)');
-  final relay = Logger.get('relay.narration');
-  relay.info('Chapter 1: The Server Awakens.');
+  Logger.get('relay.narration').info('Chapter 1: The Server Awakens.');
 
-  final subRelay = Logger.get('relay.narration.engine.v8');
-  subRelay.debug('JIT compiler warming up: optimization level 4.');
-  subRelay.warning('Speculative execution threshold reached (80%).');
+  Logger.get('relay.narration.engine.v8')
+    ..debug('JIT compiler warming up: optimization level 4.')
+    ..warning('Speculative execution threshold reached (80%).');
   print('〰' * 40);
 
   // --- Run Scenario B: Toon Boxed ---
   print('\nTEST B: Toon Boxed (Action Panel: Box + Style + 40 Width)');
-  final alert = Logger.get('panel.alert');
-  alert.info('Establishing secure uplink to cluster-primary-alpha.');
+  final alert = Logger.get('panel.alert')
+    ..info('Establishing secure uplink to cluster-primary-alpha.');
 
   try {
     _detonate();

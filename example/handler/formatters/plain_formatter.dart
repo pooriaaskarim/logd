@@ -19,17 +19,16 @@ void main() async {
   // Goal: Test multi-line wrapping when the available width is eaten up by
   // deep hierarchy indentation.
   // ---------------------------------------------------------------------------
-  final indentHandler = Handler(
-    formatter: const PlainFormatter(
+  const indentHandler = Handler(
+    formatter: PlainFormatter(
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
     decorators: [
-      const StyleDecorator(
-          theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
-      const HierarchyDepthPrefixDecorator(indent: '│ '), // Wide indent
-      const PrefixDecorator(' [SYSTEM] '),
+      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      HierarchyDepthPrefixDecorator(indent: '│ '), // Wide indent
+      PrefixDecorator(' [SYSTEM] '),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 45, // Tight width after indentation
   );
 
@@ -38,15 +37,15 @@ void main() async {
   // Goal: Stress-test multi-line metadata wrapping inside a Double-Line Box
   // in an ultra-restricted terminal space.
   // ---------------------------------------------------------------------------
-  final boxHandler = Handler(
-    formatter: const PlainFormatter(
+  const boxHandler = Handler(
+    formatter: PlainFormatter(
       metadata: {LogMetadata.timestamp, LogMetadata.logger},
     ),
     decorators: [
-      const StyleDecorator(),
+      StyleDecorator(),
       BoxDecorator(borderStyle: BorderStyle.double),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 35, // Extremely tight!
   );
 
@@ -56,20 +55,18 @@ void main() async {
 
   // --- Run Scenario A: Deep Indent ---
   print('TEST A: Deep Indent Stress (45 Width + Depth 3)');
-  final top = Logger.get('sys.indent');
-  top.info('Starting top-level operation.');
+  Logger.get('sys.indent').info('Starting top-level operation.');
 
-  final deep = Logger.get('sys.indent.sub.feature.module');
-  deep.debug(
-      'This is a very long message that must wrap multiple times because the indentation has consumed most of the 45-character width.');
+  Logger.get('sys.indent.sub.feature.module').debug(
+      'This is a very long message that must wrap multiple times because the '
+      'indentation has consumed most of the 45-character width.');
   print('-' * 40);
 
   // --- Run Scenario B: Micro-Box ---
   print('\nTEST B: The Micro-Box (35 Width + Double Borders)');
-  final boxed = Logger.get('sys.box');
-  boxed.info('System online.');
-  boxed.warning(
-      'Pressure warning: available space is reaching critical levels.');
+  final boxed = Logger.get('sys.box')
+    ..info('System online.')
+    ..warning('Pressure warning: available space is reaching critical levels.');
 
   try {
     _crash();

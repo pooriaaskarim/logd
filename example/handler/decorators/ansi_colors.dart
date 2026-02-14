@@ -19,19 +19,18 @@ void main() async {
   // SCENARIO 1: The "Pastel Programmer" (Standard Scheme)
   // ---------------------------------------------------------------------------
   print('TEST 1: Standard Pastel Scheme');
-  final standardHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const standardHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const StyleDecorator(
-          theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
   );
 
   Logger.configure('style.standard', handlers: [standardHandler]);
-  final std = Logger.get('style.standard');
-  std.info('System online. Routine check complete.');
-  std.warning('Disk usage reaching 80%.');
+  Logger.get('style.standard')
+    ..info('System online. Routine check complete.')
+    ..warning('Disk usage reaching 80%.');
 
   print('~' * 60);
 
@@ -40,18 +39,18 @@ void main() async {
   // Goal: Use theme overrides to make headers instantly identifiable.
   // ---------------------------------------------------------------------------
   print('\nTEST 2: High-Contrast (Inverted Headers)');
-  final adminHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const adminHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const StyleDecorator(theme: _HighContrastTheme()),
+      StyleDecorator(theme: _HighContrastTheme()),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
   );
 
   Logger.configure('style.admin', handlers: [adminHandler]);
-  final admin = Logger.get('style.admin');
-  admin.error('CRITICAL FAULT', error: 'Voltage regulator failure.');
-  admin.info('Attempting emergency bypass...');
+  Logger.get('style.admin')
+    ..error('CRITICAL FAULT', error: 'Voltage regulator failure.')
+    ..info('Attempting emergency bypass...');
 
   print('~' * 60);
 
@@ -60,19 +59,19 @@ void main() async {
   // Goal: Provide unique visuals for distinct metadata parts using LogTag.
   // ---------------------------------------------------------------------------
   print('\nTEST 3: Tag Specialist (Unique Metadata Colors)');
-  final specialistHandler = Handler(
-    formatter: const StructuredFormatter(
+  const specialistHandler = Handler(
+    formatter: StructuredFormatter(
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
     decorators: [
-      const StyleDecorator(theme: _TagSpecialistTheme()),
+      StyleDecorator(theme: _TagSpecialistTheme()),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
   );
 
   Logger.configure('style.special', handlers: [specialistHandler]);
-  final special = Logger.get('style.special');
-  special.info('Note the distinct colors for Timestamp, Logger, and Origin.');
+  Logger.get('style.special')
+      .info('Note the distinct colors for Timestamp, Logger, and Origin.');
 
   print('\n=== Styling Matrix Complete ===');
 }
@@ -83,7 +82,7 @@ class _HighContrastTheme extends LogTheme {
 
   @override
   LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
-    var style = super.getStyle(level, tags);
+    final style = super.getStyle(level, tags);
     if (tags.contains(LogTag.header)) {
       return LogStyle(
         color: style.color,

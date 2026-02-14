@@ -12,9 +12,9 @@ import 'package:logd/logd.dart';
 void main() async {
   // Configure a simple handler
 
-  final handler = Handler(
-    formatter: const StructuredFormatter(),
-    sink: const ConsoleSink(),
+  const handler = Handler(
+    formatter: StructuredFormatter(),
+    sink: ConsoleSink(),
     lineLength: 80,
   );
 
@@ -26,14 +26,14 @@ void main() async {
     logLevel: LogLevel.trace,
   );
 
-  final logger = Logger.get('example');
+  final logger = Logger.get('example')
 
-  // Test all log levels
-  logger.trace('This is a trace message');
-  logger.debug('This is a debug message');
-  logger.info('This is an info message');
-  logger.warning('This is a warning message');
-  logger.error('This is an error message');
+    // Test all log levels
+    ..trace('This is a trace message')
+    ..debug('This is a debug message')
+    ..info('This is an info message')
+    ..warning('This is a warning message')
+    ..error('This is an error message');
 
   // Test with error and stack trace
   try {

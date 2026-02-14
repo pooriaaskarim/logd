@@ -11,14 +11,14 @@
 import 'package:logd/logd.dart';
 
 void main() async {
-  final handler = Handler(
-    formatter: const StructuredFormatter(),
+  const handler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 60,
   );
 

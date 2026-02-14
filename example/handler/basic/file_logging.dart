@@ -30,7 +30,8 @@ void main() async {
   // Generate enough logs to trigger rotation
   for (int i = 0; i < 50; i++) {
     logger.info(
-        'Log entry $i: This is a test message that will fill up the file');
+      'Log entry $i: This is a test message that will fill up the file',
+    );
   }
 
   print('Check logs/example.log for output');

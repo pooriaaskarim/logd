@@ -1,9 +1,10 @@
 // Example: JsonFormatter - Exhaustive Combinatorial Stress Matrix
 //
 // Purpose:
-// Demonstrates how machine-parseable data can be transformed into human-friendly
-// visual "Inspections" using the Logd pipeline. We combine JSON output
-// with sharp borders, semantic styling, and multi-line wrapping.
+// Demonstrates how machine-parseable data can be transformed into
+// human-friendly visual "Inspections" using the Logd pipeline.
+// We combine JSON output with sharp borders, semantic styling, and
+// multi-line wrapping.
 //
 // Key Benchmarks:
 // 1. Raw Data Stream (Standard JSON for ingestors)
@@ -18,11 +19,11 @@ void main() async {
   // SCENARIO A: The "Production Pipe" (Raw JSON)
   // Goal: Baseline test for single-line, machine-readable output.
   // ---------------------------------------------------------------------------
-  final rawHandler = Handler(
-    formatter: const JsonFormatter(
+  const rawHandler = Handler(
+    formatter: JsonFormatter(
       metadata: {LogMetadata.timestamp},
     ),
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 100,
   );
 
@@ -32,22 +33,22 @@ void main() async {
   // to create a "Technical Property Inspector" feel.
   // Constraints: 50-char width + customized punctuation colors.
   // ---------------------------------------------------------------------------
-  final inspectorHandler = Handler(
-    formatter: const JsonPrettyFormatter(
+  const inspectorHandler = Handler(
+    formatter: JsonPrettyFormatter(
       color: true, // Enable semantic tagging for StyleDecorator
       metadata: {...LogMetadata.values},
       indent: '  ',
     ),
     decorators: [
-      const StyleDecorator(theme: _JsonInspectorTheme()),
-      const HierarchyDepthPrefixDecorator(indent: '│ '),
-      const PrefixDecorator(
+      StyleDecorator(theme: _JsonInspectorTheme()),
+      HierarchyDepthPrefixDecorator(indent: '│ '),
+      PrefixDecorator(
         ' [AUDIT]',
       ),
-      const SuffixDecorator(' [AUDIT]', aligned: true),
+      SuffixDecorator(' [AUDIT]', aligned: true),
       BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 50, // Narrow enough to force internal wrapping of values
   );
 
@@ -57,19 +58,22 @@ void main() async {
 
   // --- Run Scenario A: Raw Stream ---
   print('TEST A: Raw JSON Data Stream (100 Width)');
-  final raw = Logger.get('data.raw');
-  raw.info('Event: transaction_complete | id=TX-5512 | state=success');
+  Logger.get('data.raw')
+      .info('Event: transaction_complete | id=TX-5512 | state=success');
   print('-' * 40);
 
   print('\nTEST B: JSON Boxed (Sharp Box + Hierarchy + Suffix)');
-  final inspector = Logger.get('data.inspect.service.v1');
-  inspector.warning('Sub-optimal performance detected in cache layer.', error: {
-    'cache_type': 'DistributedRedis',
-    'hit_rate': 0.72,
-    'latency_ms': 54.2,
-    'nodes_failing': ['eu-west-1a', 'eu-west-1c'],
-    'remediation': 'Scaling cluster size to 5 nodes.'
-  });
+  final inspector = Logger.get('data.inspect.service.v1')
+    ..warning(
+      'Sub-optimal performance detected in cache layer.',
+      error: {
+        'cache_type': 'DistributedRedis',
+        'hit_rate': 0.72,
+        'latency_ms': 54.2,
+        'nodes_failing': ['eu-west-1a', 'eu-west-1c'],
+        'remediation': 'Scaling cluster size to 5 nodes.',
+      },
+    );
 
   print('\nTEST C: Stringified JSON Auto-expansion');
   inspector.info('{"system_status": "yellow", "load_avg": [1.5, 2.3, 2.1],'

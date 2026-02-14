@@ -10,32 +10,32 @@
 import 'package:logd/logd.dart';
 
 void main() async {
-  final handler = Handler(
-    formatter: const StructuredFormatter(),
-    decorators: const [
+  const handler = Handler(
+    formatter: StructuredFormatter(),
+    decorators: [
       StyleDecorator(),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 80,
   );
 
   Logger.configure('example.edge', handlers: [handler]);
-  final logger = Logger.get('example.edge');
+  Logger.get('example.edge')
 
-  // Empty string
-  logger.info('');
+    // Empty string
+    ..info('')
 
-  // Whitespace only
-  logger.info('   ');
+    // Whitespace only
+    ..info('   ')
 
-  // Null-like (empty object)
-  logger.info('');
+    // Null-like (empty object)
+    ..info('')
 
-  // Very short
-  logger.info('x');
+    // Very short
+    ..info('x')
 
-  // Only newlines
-  logger.info('\n\n\n');
+    // Only newlines
+    ..info('\n\n\n');
 
   print('All edge cases handled without errors');
 }

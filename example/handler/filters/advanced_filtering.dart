@@ -26,7 +26,7 @@ void main() async {
     sink: const ConsoleSink(),
     filters: [
       const LevelFilter(LogLevel.warning),
-      RegexFilter(RegExp(r'error|fail|critical', caseSensitive: false)),
+      RegexFilter(RegExp('error|fail|critical', caseSensitive: false)),
     ],
   );
 
@@ -36,7 +36,7 @@ void main() async {
     sink: const ConsoleSink(),
     filters: [
       RegexFilter(
-        RegExp(r'password|secret|token'),
+        RegExp('password|secret|token'),
         invert: true, // Exclude if matches
       ),
     ],
@@ -60,15 +60,17 @@ void main() async {
   dbLogger.info('DB message - should NOT appear');
 
   print('\n=== Content + Level Filter ===');
-  filteredLogger.info('Info message - should NOT appear');
-  filteredLogger.warning('Warning message - should NOT appear (no match)');
-  filteredLogger.warning('Warning with ERROR - should appear');
-  filteredLogger.error('Error message - should appear');
+  filteredLogger
+    ..info('Info message - should NOT appear')
+    ..warning('Warning message - should NOT appear (no match)')
+    ..warning('Warning with ERROR - should appear')
+    ..error('Error message - should appear');
 
   print('\n=== Exclude Filter (no secrets) ===');
-  excludeLogger.info('Normal message - should appear');
-  excludeLogger.info('Message with password - should NOT appear');
-  excludeLogger.info('Message with secret - should NOT appear');
-  excludeLogger.info('Message with token - should NOT appear');
-  excludeLogger.info('Safe message - should appear');
+  excludeLogger
+    ..info('Normal message - should appear')
+    ..info('Message with password - should NOT appear')
+    ..info('Message with secret - should NOT appear')
+    ..info('Message with token - should NOT appear')
+    ..info('Safe message - should appear');
 }

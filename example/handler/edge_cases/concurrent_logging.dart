@@ -14,7 +14,7 @@ import 'package:logd/logd.dart';
 void main() async {
   final handler = Handler(
     formatter: const StructuredFormatter(),
-    decorators: [
+    decorators: const [
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
       ),
@@ -28,7 +28,7 @@ void main() async {
   // Create multiple loggers
   final loggers = List.generate(
     5,
-    (i) => Logger.get('example.concurrent.worker$i'),
+    (final i) => Logger.get('example.concurrent.worker$i'),
   );
 
   // Log concurrently

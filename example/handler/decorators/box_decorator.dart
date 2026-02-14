@@ -3,7 +3,8 @@
 // Purpose:
 // Demonstrates how the BoxDecorator provides highly visual boundaries for logs.
 // It exercises border style selection and tests how the box adapts to
-// internal wrapping (from formatters) and external indentation (from hierarchy).
+// internal wrapping (from formatters) and external indentation
+// (from hierarchy).
 
 import 'package:logd/logd.dart';
 
@@ -28,14 +29,14 @@ void main() async {
   // ---------------------------------------------------------------------------
   print('\nTEST 2: The Full Stack (Depth 2 Indentation)');
 
-  final fullStackHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const fullStackHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const StyleDecorator(),
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
-      const HierarchyDepthPrefixDecorator(indent: '┃ '),
+      StyleDecorator(),
+      BoxDecorator(borderStyle: BorderStyle.rounded),
+      HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 60,
   );
 
@@ -52,26 +53,28 @@ void main() async {
   // ---------------------------------------------------------------------------
   print('\nTEST 3: Pressure Test (35 chars + Boxes)');
 
-  final pressureHandler = Handler(
-    formatter: const PlainFormatter(
-        metadata: {LogMetadata.timestamp, LogMetadata.logger}),
+  const pressureHandler = Handler(
+    formatter: PlainFormatter(
+      metadata: {LogMetadata.timestamp, LogMetadata.logger},
+    ),
     decorators: [
-      const StyleDecorator(),
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      StyleDecorator(),
+      BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 35, // Very tight for metadata + box
   );
 
   Logger.configure('box.pressure', handlers: [pressureHandler]);
-  final pressure = Logger.get('box.pressure');
-  pressure.info(
-      'This message is long enough to force internal wrapping inside the rounded box borders.');
+  Logger.get('box.pressure').info(
+    'This message is long enough to force internal wrapping inside the '
+    'rounded box borders.',
+  );
 
   print('\n=== BoxDecorator Matrix Complete ===');
 }
 
-Future<void> _showBorder(BorderStyle style, String label) async {
+Future<void> _showBorder(final BorderStyle style, final String label) async {
   final handler = Handler(
     formatter: const PlainFormatter(metadata: {}),
     decorators: [BoxDecorator(borderStyle: style)],

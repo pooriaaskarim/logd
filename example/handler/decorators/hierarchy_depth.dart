@@ -7,14 +7,14 @@ Future<void> main() async {
   print('=== Logd / Hierarchy Depth Showcase ===\n');
 
   // SCENARIO 1: Simple Indentation (Tree Style)
-  final treeHandler = Handler(
-    formatter: const PlainFormatter(metadata: {}),
+  const treeHandler = Handler(
+    formatter: PlainFormatter(metadata: {}),
     decorators: [
-      const HierarchyDepthPrefixDecorator(
+      HierarchyDepthPrefixDecorator(
         indent: '│   ',
       ),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
   );
 
   Logger.configure('tree', handlers: [treeHandler]);
@@ -32,15 +32,15 @@ Future<void> main() async {
 
   // SCENARIO 2: Combined with Box (Box inside Depth)
   // The indentation happens OUTSIDE the box.
-  final boxedHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const boxedHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const HierarchyDepthPrefixDecorator(
+      HierarchyDepthPrefixDecorator(
         indent: '    ',
       ),
-      const BoxDecorator(borderStyle: BorderStyle.rounded),
+      BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 50,
   );
 
@@ -57,7 +57,7 @@ Future<void> main() async {
   print('\n=== Hierarchy Depth Showcase Complete ===');
 }
 
-void _log(String root, int depth, String msg) {
+void _log(final String root, final int depth, final String msg) {
   // Generate logger name to reflect depth
   final name =
       depth == 0 ? root : '$root.${List.filled(depth, 'sub').join('.')}';

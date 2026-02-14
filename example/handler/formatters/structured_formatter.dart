@@ -19,32 +19,31 @@ void main() async {
   // Goal: Create a high-impact developer dashboard with unique semantic visual
   // identities for metadata.
   // ---------------------------------------------------------------------------
-  final dashboardHandler = Handler(
-    formatter: const StructuredFormatter(),
+  const dashboardHandler = Handler(
+    formatter: StructuredFormatter(),
     decorators: [
-      const StyleDecorator(theme: _EliteDashboardTheme()),
+      StyleDecorator(theme: _EliteDashboardTheme()),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 80,
   );
 
   // ---------------------------------------------------------------------------
   // SCENARIO B: "The Framing Squeeze"
-  // Goal: The absolute stress test for tiered framing. We stack Hierarchy depth,
-  // rounded boxes, and styled metadata into a tiny 40-char window.
+  // Goal: The absolute stress test for tiered framing. We stack Hierarchy
+  // depth, rounded boxes, and styled metadata into a tiny 40-char window.
   // ---------------------------------------------------------------------------
-  final squeezeHandler = Handler(
-    formatter: const StructuredFormatter(
+  const squeezeHandler = Handler(
+    formatter: StructuredFormatter(
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
     decorators: [
-      const StyleDecorator(
-          theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
       BoxDecorator(borderStyle: BorderStyle.rounded),
-      const HierarchyDepthPrefixDecorator(indent: '┃ '),
+      HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],
-    sink: const ConsoleSink(),
+    sink: ConsoleSink(),
     lineLength: 40, // Extreme squeeze for Framed Header + Box + Indent
   );
 
@@ -54,25 +53,27 @@ void main() async {
 
   // --- Run Scenario A: Dashboard Elite ---
   print('TEST A: Dashboard Elite (80 Width + Custom Tag Styling)');
-  final elite = Logger.get('ui.elite');
-  elite.info('Service cluster "Athena" reporting nominal performance.');
-  elite.warning('Throughput at soft-limit for node-west-4.');
+  Logger.get('ui.elite')
+    ..info('Service cluster "Athena" reporting nominal performance.')
+    ..warning('Throughput at soft-limit for node-west-4.');
   print('=' * 40);
 
   // --- Run Scenario B: Framing Squeeze ---
   print('\nTEST B: The Framing Squeeze (40 Width + Box + Indent + Style)');
-  final topSqueeze = Logger.get('ui.squeeze');
-  topSqueeze.info('Top level activity.');
+  Logger.get('ui.squeeze').info('Top level activity.');
 
-  final deepSqueeze = Logger.get('ui.squeeze.sub.module.feature');
-  deepSqueeze.debug('Checking state...');
-  deepSqueeze.error('Resource Fault!',
-      error: 'OutOfMemoryError: Heap limit exceeded in GarbageCollector.');
+  Logger.get('ui.squeeze.sub.module.feature')
+    ..debug('Checking state...')
+    ..error(
+      'Resource Fault!',
+      error: 'OutOfMemoryError: Heap limit exceeded in GarbageCollector.',
+    );
 
   print('\n=== Structured Combinatorial Matrix Complete ===');
 }
 
-/// A specialized theme that uses [LogTag] to create a "Dashboard" visual layout.
+/// A specialized theme that uses [LogTag] to create a "Dashboard" visual
+/// layout.
 class _EliteDashboardTheme extends LogTheme {
   const _EliteDashboardTheme() : super(colorScheme: LogColorScheme.darkScheme);
 
