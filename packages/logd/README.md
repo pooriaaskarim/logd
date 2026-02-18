@@ -1,5 +1,7 @@
 <h1 style="margin-bottom: 20px; font-size: 50px; text-align: left;font-weight: bold; width:" > <a href="https://pub.dev/packages/logd" style="color: white; " >logd</a> <a href="https://img.shields.io/pub/v/logd.svg"><img src="https://img.shields.io/pub/v/logd.svg"></a> <a href="https://img.shields.io/pub/points/logd.svg"><img src="https://img.shields.io/pub/points/logd.svg"></a> <a href="https://img.shields.io/pub/dm/logd.svg"> <a href="https://opensource.org/licenses/BSD-3-Clause"><img src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg"></a> </h1>
-![logd Hero](https://raw.githubusercontent.com/pooriaaskarim/logd/refs/heads/master/assets/img/logd_hero.webp)
+<div style="background-color: #2B2C50; justify-self: center; width: 90%; padding: 20px 0px; margin-top: 20px; margin-bottom: 10px; display: flex; justify-content: center; border-radius: 10px; box-shadow: 0px 0px 10px #2B2C50;">
+  <img src="https://raw.githubusercontent.com/pooriaaskarim/logd/refs/heads/master/assets/img/logd_hero.webp" alt="logd Logo" width="55%" style="object-fit: contain;">
+</div>
 
 <br>
 <p style="margin-top: 0px; text-align: left;font-weight: normal; font-size: 18px;" >

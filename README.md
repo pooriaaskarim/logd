@@ -1,8 +1,8 @@
 <h1 style="margin-bottom: 20px; text-align: left;font-weight: bold; width:" > logd Monorepo <img src="https://img.shields.io/pub/v/logd?logo=dart" alt="Pub Version" title="Pub Version"> <img src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg" alt="License: BSD 3-Clause" title="License: BSD 3-Clause"> <img src="https://img.shields.io/badge/maintained%20with-melos-f7bf7f.svg" alt="Maintained with Melos" title="Maintained with Melos"> </h1>
 
-
-![logd Monorepo Hero](assets/img/logd_hero.webp)
-
+<div style="background-color: #2B2C50;  justify-self: center;  width: 90%; padding: 20px 0px; display: flex; justify-content: center; border-radius: 10px; box-shadow: 0px 0px 10px #2B2C50; margin-bottom: 20px;">
+  <img src="https://raw.githubusercontent.com/pooriaaskarim/logd/refs/heads/master/assets/img/logd_hero.webp" alt="logd Logo" width="55%" style="object-fit: contain;">
+</div>
 
 <p style="width: 100%; margin-bottom: 30px; text-align: left; font-weight: normal; font-size: 18px;">Welcome to the <b>logd</b> monorepo. This workspace contains the core <b>logd</b> library, performance benchmarks, and shared development scripts.</p>
 
