@@ -33,30 +33,30 @@ The logger module consists of 6 source files:
 
 ### Core Components
 
-#### [logger.dart](../../lib/src/logger/logger.dart)
+#### [logger.dart](../../packages/logd/lib/src/logger/logger.dart)
 Main implementation file containing:
 - **`Logger`** - Primary public API for logging operations
 - **`LoggerConfig`** - Sparse configuration storage (nullable fields for inheritance)
 - **`LoggerCache`** - Version-based caching system with lazy resolution
 - **`_ResolvedConfig`** - Immutable container for resolved configuration
 
-#### [log_entry.dart](../../lib/src/logger/log_entry.dart)
+#### [log_entry.dart](../../packages/logd/lib/src/logger/log_entry.dart)
 - **`LogEntry`** - Structured representation of a log event
 - Contains: logger name, level, message, timestamp, origin, stack frames, error, stack trace
 - Computes `hierarchyDepth` dynamically from logger name
 
-#### [log_buffer.dart](../../lib/src/logger/log_buffer.dart)
+#### [log_buffer.dart](../../packages/logd/lib/src/logger/log_buffer.dart)
 - **`LogBuffer`** - Efficient buffer for building multi-line log messages
 - Extends `StringBuffer` with `sink()` method for atomic output
 - Supports attaching an **`error`** or **`stackTrace`** to the buffered log
 - Accessed via `logger.traceBuffer`, `logger.debugBuffer`, etc.
 
-#### [internal_logger.dart](../../lib/src/logger/internal_logger.dart)
+#### [internal_logger.dart](../../packages/logd/lib/src/logger/internal_logger.dart)
 - **`InternalLogger`** - Fail-safe internal logging to prevent circularity
 - Bypasses handler pipeline, outputs directly to console
 - Used for logging library errors without triggering infinite loops
 
-#### [flutter_stubs.dart](../../lib/src/logger/flutter_stubs.dart) / [flutter_stubs_flutter.dart](../../lib/src/logger/flutter_stubs_flutter.dart)
+#### [flutter_stubs.dart](../../packages/logd/lib/src/logger/flutter_stubs.dart) / [flutter_stubs_flutter.dart](../../packages/logd/lib/src/logger/flutter_stubs_flutter.dart)
 - Conditional Flutter integration using conditional imports
 - `flutter_stubs.dart` - No-op for pure Dart environments
 - `flutter_stubs_flutter.dart` - Hooks into `FlutterError.onError` when Flutter is available
