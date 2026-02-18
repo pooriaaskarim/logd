@@ -1,0 +1,12 @@
+name: logd
+packages:
+  - packages/*
+
+scripts:
+  test:
+    run: melos exec -- "dart test"
+    description: Run all tests in the workspace.
+
+  get:
+    run: melos exec -- "dart pub get"
+    description: Run pub get in all packages.

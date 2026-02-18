@@ -38,22 +38,22 @@ The stack_trace module consists of 4 source files:
 
 ### Core Components
 
-#### [stack_trace_parser.dart](../../lib/src/stack_trace/stack_trace_parser.dart)
+#### [stack_trace_parser.dart](../../packages/logd/lib/src/stack_trace/stack_trace_parser.dart)
 - **`StackTraceParser`** - Core parsing engine for extracting structured data from stack traces
 - Configurable package filtering via `ignorePackages`
 - Optional custom filtering via `customFilter` callback
 - Regex-based frame parsing for Dart VM format
 
-#### [stack_frame_set.dart](../../lib/src/stack_trace/stack_frame_set.dart)
+#### [stack_frame_set.dart](../../packages/logd/lib/src/stack_trace/stack_frame_set.dart)
 - **`StackFrameSet`** - Immutable result of a single-pass parse
 - Contains: caller (`CallbackInfo?`) and additional frames (`List<CallbackInfo>`)
 
-#### [callback_info.dart](../../lib/src/stack_trace/callback_info.dart)
+#### [callback_info.dart](../../packages/logd/lib/src/stack_trace/callback_info.dart)
 - **`CallbackInfo`** - Immutable data class representing a parsed stack frame
 - Contains: class name, method name, file path, line number, full method string
 - Provides equality and hash code implementations
 
-#### [stack_trace.dart](../../lib/src/stack_trace/stack_trace.dart)
+#### [stack_trace.dart](../../packages/logd/lib/src/stack_trace/stack_trace.dart)
 - Part file aggregator that combines the module components
 
 ## Capabilities
