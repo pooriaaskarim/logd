@@ -4,10 +4,10 @@ This document explains how to contribute to `logd`'s documentation.
 
 ## Documentation Structure
 
-The `/docs` directory contains technical documentation organized by module:
+The `/doc` directory contains technical documentation organized by module:
 
 ```
-docs/
+doc/
 ├── README.md           # Documentation index
 ├── logger/             # Logger module docs
 │   ├── philosophy.md
@@ -59,7 +59,7 @@ Update docs when:
 
 ### Documentation PR Guidelines
 
-1. **Update relevant files**: If changing logger behavior, update `docs/logger/architecture.md`
+1. **Update relevant files**: If changing logger behavior, update `doc/logger/architecture.md`
 2. **Mark roadmap items**: Check off completed items in roadmap files
 3. **Add diagrams**: Use Mermaid for new flows or structures
 4. **Link from code**: Reference doc sections in complex code comments
@@ -89,7 +89,7 @@ graph LR
 ### Broken Link Detection
 ```bash
 # Check for broken internal links
-grep -r "file:///" docs/ | grep -v "\.md"
+grep -r "file:///" doc/ | grep -v "\.md"
 ```
 
 ## Adding New Modules
@@ -97,13 +97,13 @@ grep -r "file:///" docs/ | grep -v "\.md"
 When adding a new module, create the documentation triad:
 
 ```bash
-mkdir -p docs/new_module
-touch docs/new_module/philosophy.md
-touch docs/new_module/architecture.md
-touch docs/new_module/roadmap.md
+mkdir -p doc/new_module
+touch doc/new_module/philosophy.md
+touch doc/new_module/architecture.md
+touch doc/new_module/roadmap.md
 ```
 
-Then update `docs/README.md` to link to the new module.
+Then update `doc/README.md` to link to the new module.
 
 ## Questions or Suggestions?
 

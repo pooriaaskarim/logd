@@ -8,12 +8,12 @@ The logger module is organized into 6 files:
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| [`logger.dart`](../../lib/src/logger/logger.dart) | 711 | Core implementation: `Logger`, `LoggerConfig`, `LoggerCache`, `_ResolvedConfig` |
-| [`log_entry.dart`](../../lib/src/logger/log_entry.dart) | 59 | Structured log event representation |
-| [`log_buffer.dart`](../../lib/src/logger/log_buffer.dart) | 155 | Multi-line log buffering |
-| [`internal_logger.dart`](../../lib/src/logger/internal_logger.dart) | 26 | Fail-safe internal logging |
-| [`flutter_stubs.dart`](../../lib/src/logger/flutter_stubs.dart) | 6 | No-op Flutter stubs for pure Dart |
-| [`flutter_stubs_flutter.dart`](../../lib/src/logger/flutter_stubs_flutter.dart) | 14 | Flutter error integration |
+| [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart) | 711 | Core implementation: `Logger`, `LoggerConfig`, `LoggerCache`, `_ResolvedConfig` |
+| [`log_entry.dart`](../../packages/logd/lib/src/logger/log_entry.dart) | 59 | Structured log event representation |
+| [`log_buffer.dart`](../../packages/logd/lib/src/logger/log_buffer.dart) | 155 | Multi-line log buffering |
+| [`internal_logger.dart`](../../packages/logd/lib/src/logger/internal_logger.dart) | 26 | Fail-safe internal logging |
+| [`flutter_stubs.dart`](../../packages/logd/lib/src/logger/flutter_stubs.dart) | 6 | No-op Flutter stubs for pure Dart |
+| [`flutter_stubs_flutter.dart`](../../packages/logd/lib/src/logger/flutter_stubs_flutter.dart) | 14 | Flutter error integration |
 
 ## System Components
 
@@ -26,7 +26,7 @@ The logger module consists of five primary subsystems:
 
 ### 1. Configuration Registry
 
-**Location**: `Logger._registry` in [`logger.dart`](../../lib/src/logger/logger.dart)
+**Location**: `Logger._registry` in [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)
 
 The `_registry` is a static map holding `LoggerConfig` objects. A `LoggerConfig` is mutable and represents the *explicit* configuration set by the user.
 
@@ -41,7 +41,7 @@ static final Map<String, LoggerConfig> _registry = {};
 
 ### 2. Name Validation & Normalization
 
-**Location**: `Logger._normalizeName()` in [`logger.dart`](../../lib/src/logger/logger.dart)
+**Location**: `Logger._normalizeName()` in [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)
 
 To ensure consistency and prevent fragile hierarchy lookups, all names pass through a normalization gate.
 
@@ -56,7 +56,7 @@ To ensure consistency and prevent fragile hierarchy lookups, all names pass thro
 
 ### 3. Resolution & Caching
 
-**Location**: `LoggerCache` class in [`logger.dart`](../../lib/src/logger/logger.dart)
+**Location**: `LoggerCache` class in [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)
 
 The `LoggerCache` maintains the derived state of the system using a versioned-invalidation strategy.
 
@@ -110,7 +110,7 @@ autoSinkBuffer: false,
 
 ### 4. Dispatch Pipeline
 
-**Location**: `Logger._log()` in [`logger.dart`](../../lib/src/logger/logger.dart)
+**Location**: `Logger._log()` in [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)
 
 When a log method (e.g., `info`) is called:
 
@@ -148,7 +148,7 @@ if (includeFileLineInHeader) origin += ' (file.dart:123)'
 
 ### 5. LogEntry Structure
 
-**Location**: `LogEntry` class in [`log_entry.dart`](../../lib/src/logger/log_entry.dart)
+**Location**: `LogEntry` class in [`log_entry.dart`](../../packages/logd/lib/src/logger/log_entry.dart)
 
 **Fields**:
 - `loggerName` - Name of the logger that created this entry
@@ -177,7 +177,7 @@ int get hierarchyDepth {
 
 ### 6. LogBuffer Architecture
 
-**Location**: `LogBuffer` class in [`log_buffer.dart`](../../lib/src/logger/log_buffer.dart)
+**Location**: `LogBuffer` class in [`log_buffer.dart`](../../packages/logd/lib/src/logger/log_buffer.dart)
 
 **Purpose**: Atomic multi-line logging to prevent interleaved output in concurrent scenarios.
 
@@ -208,7 +208,7 @@ buffer?.sink();  // Atomically logs all lines as single entry
 
 ### 7. InternalLogger (Fail-Safe System)
 
-**Location**: `InternalLogger` class in [`internal_logger.dart`](../../lib/src/logger/internal_logger.dart)
+**Location**: `InternalLogger` class in [`internal_logger.dart`](../../packages/logd/lib/src/logger/internal_logger.dart)
 
 **Purpose**: Prevent logging system failures from crashing the application.
 
@@ -235,17 +235,17 @@ stack_trace_lines
 
 ### 8. Flutter Integration
 
-**Conditional Import Mechanism** (see top of [`logger.dart`](../../lib/src/logger/logger.dart)):
+**Conditional Import Mechanism** (see top of [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)):
 ```dart
 import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
     as flutter_stubs;
 ```
 
-**Pure Dart Environment** ([`flutter_stubs.dart`](../../lib/src/logger/flutter_stubs.dart)):
+**Pure Dart Environment** ([`flutter_stubs.dart`](../../packages/logd/lib/src/logger/flutter_stubs.dart)):
 - `attachToFlutterErrors()` throws `UnsupportedError`
 - Prevents runtime errors in non-Flutter environments
 
-**Flutter Environment** ([`flutter_stubs_flutter.dart`](../../lib/src/logger/flutter_stubs_flutter.dart)):
+**Flutter Environment** ([`flutter_stubs_flutter.dart`](../../packages/logd/lib/src/logger/flutter_stubs_flutter.dart)):
 - Hooks into `FlutterError.onError`
 - Routes Flutter framework errors through logd pipeline
 - Logs to global logger with error level
@@ -260,7 +260,7 @@ void main() {
 
 ## Freezing Inheritance
 
-**Location**: `Logger.freezeInheritance()` in [`logger.dart`](../../lib/src/logger/logger.dart)
+**Location**: `Logger.freezeInheritance()` in [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)
 
 For critical hot-paths where logger configuration is guaranteed to be static, developers can call `logger.freezeInheritance()`.
 

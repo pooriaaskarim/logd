@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:logd/logd.dart';
-import '../../../scripts/servers/network_test_utils.dart';
+import '../../../../../scripts/servers/network_test_utils.dart';
 
 void main() async {
   print('\x1B[1m\x1B[96mlogd\x1B[0m | Network Sink Professional Showcase');
@@ -12,6 +12,14 @@ void main() async {
   Process? httpServer;
 
   try {
+    // 0. Dynamic Path Discovery
+    final scriptFile = File(Platform.script.toFilePath());
+    // example/handler/sinks/network_sink_demo.dart
+    final projectRoot =
+        scriptFile.parent.parent.parent.parent.parent.parent.path;
+    final socketDir = '$projectRoot/scripts/servers/socket';
+    final httpDir = '$projectRoot/scripts/servers/http';
+
     // 1. Dynamic Port Discovery
     final socketPort = await NetworkTestUtils.findAvailablePort(12345);
     final httpPort = await NetworkTestUtils.findAvailablePort(8080);
@@ -23,14 +31,14 @@ void main() async {
     socketServer = await Process.start(
       './.venv/bin/python',
       ['main.py', '--port', socketPort.toString()],
-      workingDirectory: 'scripts/servers/socket',
+      workingDirectory: socketDir,
       environment: {'PYTHONUNBUFFERED': '1'},
     );
 
     httpServer = await Process.start(
       './.venv/bin/python',
       ['main.py', '--port', httpPort.toString()],
-      workingDirectory: 'scripts/servers/http',
+      workingDirectory: httpDir,
       environment: {'PYTHONUNBUFFERED': '1'},
     );
 
@@ -136,11 +144,18 @@ void main() async {
       ..info('Vector database sync complete')
       ..info('Ready for prompt processing');
     print('\x1B[2m   (Sent 3 logs, triggering TOON batch report)\x1B[0m');
-    await _delay(2);
+
+    // 5. Cleanup
+    await Future.wait([
+      terminalHandler.sink.dispose(),
+      jsonHandler.sink.dispose(),
+      prettyJsonHandler.sink.dispose(),
+      toonHandler.sink.dispose(),
+      docsHandler.sink.dispose(),
+    ]);
 
     print('\n\x1B[32mShowcase complete.\x1B[0m');
-    print('\x1B[1mPress [ENTER] to clean up and exit...\x1B[0m');
-    stdin.readLineSync();
+    await Future.delayed(const Duration(seconds: 1));
   } catch (e) {
     print('\x1B[91mDemo failed: $e\x1B[0m');
   } finally {

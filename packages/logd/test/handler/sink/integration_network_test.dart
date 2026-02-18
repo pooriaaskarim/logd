@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
 
-import '../../../scripts/servers/network_test_utils.dart';
+import '../../../../../scripts/servers/network_test_utils.dart';
 
 void main() {
   group('Network Sinks Integration', () {
@@ -56,7 +56,7 @@ void main() {
       socketProcess = await Process.start(
         './.venv/bin/python',
         ['main.py', '--port', socketPort.toString()],
-        workingDirectory: 'scripts/servers/socket',
+        workingDirectory: '../../scripts/servers/socket',
         environment: {
           'HOST': '127.0.0.1',
           'PYTHONUNBUFFERED': '1',
@@ -75,7 +75,7 @@ void main() {
       httpProcess = await Process.start(
         './.venv/bin/python',
         ['main.py', '--port', httpPort.toString()],
-        workingDirectory: 'scripts/servers/http',
+        workingDirectory: '../../scripts/servers/http',
         environment: {
           'HOST': '127.0.0.1',
           'PYTHONUNBUFFERED': '1',
