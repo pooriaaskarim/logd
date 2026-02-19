@@ -321,7 +321,7 @@ class TimeRotation extends FileRotation {
 /// This sink uses internal synchronization to ensure that concurrent write
 /// operations are serialized, preventing data loss when logging operations
 /// happen rapidly (e.g., in a loop).
-base class FileSink extends LogSink {
+base class FileSink extends LogSink<LogDocument> {
   /// Creates a [FileSink] at the specified [basePath].
   ///
   /// - [basePath]: The relative or absolute path to the log file. Must point
@@ -367,9 +367,10 @@ base class FileSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     if (!enabled) {
       return;
     }
@@ -385,7 +386,7 @@ base class FileSink extends LogSink {
     }
 
     try {
-      await _performWrite(lines);
+      await _performWrite(document, level, context: context);
       completer.complete();
     } catch (e, s) {
       completer.completeError(e, s);
@@ -406,18 +407,24 @@ base class FileSink extends LogSink {
   /// Performs the actual file write operation.
   ///
   /// This method is called from [output] after acquiring the write lock.
-  Future<void> _performWrite(final Iterable<LogLine> lines) async {
+  Future<void> _performWrite(
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     final file = Context.fileSystem.file(basePath);
     final parentDir = file.parent;
     if (!await parentDir.exists()) {
       await parentDir.create(recursive: true);
     }
 
-    final linesList = lines.toList();
-    if (linesList.isEmpty) {
+    const encoder = PlainTextEncoder();
+    final width = context?.totalWidth ?? preferredWidth;
+    final encoded = encoder.encode(document, level, width: width);
+    if (encoded.isEmpty) {
       return;
     }
-    final newData = '${linesList.map((final l) => l.toString()).join('\n')}\n';
+    final newData = '$encoded\n';
 
     File targetFile = file;
     if (fileRotation != null &&

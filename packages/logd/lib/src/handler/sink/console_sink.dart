@@ -2,7 +2,7 @@ part of '../handler.dart';
 
 /// A [LogSink] that outputs formatted log lines to the system console.
 @immutable
-base class ConsoleSink extends LogSink {
+base class ConsoleSink extends LogSink<LogDocument> {
   const ConsoleSink({super.enabled});
 
   @override
@@ -11,54 +11,21 @@ base class ConsoleSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     if (!enabled) {
       return;
     }
     try {
       final supportsAnsi = io.stdout.supportsAnsiEscapes;
+      final LogEncoder<String> encoder =
+          supportsAnsi ? const AnsiEncoder() : const PlainTextEncoder();
 
-      for (final line in lines) {
-        final buffer = StringBuffer();
-        for (final segment in line.segments) {
-          final style = segment.style;
-          if (supportsAnsi && style != null) {
-            // Apply ANSI codes
-            if (style.bold == true) {
-              buffer.write(AnsiStyle.bold.sequence);
-            }
-            if (style.dim == true) {
-              buffer.write(AnsiStyle.dim.sequence);
-            }
-            if (style.italic == true) {
-              buffer.write(AnsiStyle.italic.sequence);
-            }
-            if (style.inverse == true) {
-              buffer.write('\x1B[7m'); // Hardcoded inverse for now
-            }
-            if (style.color != null) {
-              final ansiCode = AnsiColorCode.fromLogColor(style.color!);
-              buffer.write(ansiCode.foreground);
-            }
-            if (style.backgroundColor != null) {
-              final ansiCode =
-                  AnsiColorCode.fromLogColor(style.backgroundColor!);
-              buffer.write(ansiCode.background);
-            }
-
-            buffer
-              ..write(segment.text)
-
-              // Reset
-              ..write(AnsiStyle.reset.sequence);
-          } else {
-            buffer.write(segment.text);
-          }
-        }
-        print(buffer);
-      }
+      final totalWidth = context?.totalWidth ?? preferredWidth;
+      final output = encoder.encode(document, level, width: totalWidth);
+      io.stdout.writeln(output);
     } catch (e, s) {
       InternalLogger.log(
         LogLevel.error,

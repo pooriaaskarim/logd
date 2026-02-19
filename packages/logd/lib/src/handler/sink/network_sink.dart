@@ -18,7 +18,7 @@ enum DropPolicy {
 ///
 /// Refactored to support `const` constructors by moving mutable state
 /// (buffer, disposal status) to a lazy-initialized [Expando].
-abstract base class NetworkSink extends LogSink {
+abstract base class NetworkSink extends LogSink<LogDocument> {
   /// Creates a [NetworkSink].
   ///
   /// - [maxBufferSize]: Max entries to hold in memory (default: 1000).
@@ -143,16 +143,19 @@ final class HttpSink extends NetworkSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     if (!enabled || isDisposed) {
       return;
     }
 
     _ensureActive();
 
-    final formatted = lines.map((final s) => s.toString()).join('\n');
+    const encoder = PlainTextEncoder();
+    final width = context?.totalWidth ?? preferredWidth;
+    final formatted = encoder.encode(document, level, width: width);
     enqueue(formatted);
 
     if (_state.buffer.length >= batchSize) {
@@ -275,14 +278,17 @@ final class SocketSink extends NetworkSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     if (!enabled || isDisposed) {
       return;
     }
 
-    final formatted = lines.map((final s) => s.toString()).join('\n');
+    const encoder = PlainTextEncoder();
+    final width = context?.totalWidth ?? preferredWidth;
+    final formatted = encoder.encode(document, level, width: width);
 
     if (_socketState.isConnected) {
       _send(formatted);

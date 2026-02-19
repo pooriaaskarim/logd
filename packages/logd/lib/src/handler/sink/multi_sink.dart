@@ -10,7 +10,7 @@ part of '../handler.dart';
 /// (a `MultiSink` containing another`MultiSink`) is not allowed
 /// to prevent potential infinite loops or excessive overhead.
 @immutable
-base class MultiSink extends LogSink {
+base class MultiSink extends LogSink<LogDocument> {
   /// Creates a [MultiSink] with the provided list of [sinks].
   ///
   /// Throws an [ArgumentError] if the list is empty or contains another
@@ -33,37 +33,36 @@ base class MultiSink extends LogSink {
       );
 
   /// The list of child sinks to which log lines are broadcast.
-  final List<LogSink> sinks;
+  final List<LogSink<LogDocument>> sinks;
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     if (!enabled) {
       return;
     }
-    // Convert to list once to avoid multiple iterations of a potentially
-    // lazy iterable (e.g., if it comes from a generator).
-    final linesList = lines.toList();
-    if (linesList.isEmpty) {
+
+    if (document.nodes.isEmpty) {
       return;
     }
 
     await Future.wait(
-      sinks
-          .where((final sink) => sink.enabled)
-          .map((final sink) => _safeOutput(sink, linesList, level)),
+      sinks.where((final sink) => sink.enabled).map(
+          (final sink) => _safeOutput(sink, document, level, context: context)),
     );
   }
 
   Future<void> _safeOutput(
-    final LogSink sink,
-    final List<LogLine> lines,
-    final LogLevel level,
-  ) async {
+    final LogSink<LogDocument> sink,
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     try {
-      await sink.output(lines, level);
+      await sink.output(document, level, context: context);
     } catch (e, s) {
       InternalLogger.log(
         LogLevel.error,

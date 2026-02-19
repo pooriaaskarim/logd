@@ -19,7 +19,7 @@ part of '../handler.dart';
 /// await sink.close(); // Write footer and close file
 /// ```
 @immutable
-final class HTMLSink extends LogSink {
+final class HTMLSink extends LogSink<LogDocument> {
   /// Creates an [HTMLSink].
   ///
   /// - [filePath]: Path to the HTML file to write to.
@@ -45,9 +45,10 @@ final class HTMLSink extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     final session = _getSession();
 
     await session.enqueue(() async {
@@ -69,15 +70,12 @@ final class HTMLSink extends LogSink {
         }
 
         // Append log entries
-        final buffer = StringBuffer();
-        for (final line in lines) {
-          for (final segment in line.segments) {
-            buffer.write(segment.text);
-          }
-          buffer.writeln();
+        const encoder = HtmlEncoder();
+        final width = context?.totalWidth ?? preferredWidth;
+        final output = encoder.encode(document, level, width: width);
+        if (output.isNotEmpty) {
+          await file.writeAsString('$output\n', mode: io.FileMode.append);
         }
-
-        await file.writeAsString(buffer.toString(), mode: io.FileMode.append);
       } catch (e, s) {
         InternalLogger.log(
           LogLevel.error,
