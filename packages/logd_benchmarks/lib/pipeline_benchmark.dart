@@ -1,0 +1,119 @@
+import 'dart:async';
+// ignore_for_file: invalid_use_of_internal_member, implementation_imports
+import 'package:benchmark_harness/benchmark_harness.dart';
+import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
+import 'formatter_benchmark.dart';
+
+// No-op sink for benchmarking
+final class NullSink extends LogSink<LogDocument> {
+  const NullSink();
+
+  @override
+  int get preferredWidth => 80;
+
+  @override
+  Future<void> output(
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
+    // Consume nodes to force evaluation if lazy (nodes are List, so mostly instant)
+    for (final _ in document.nodes) {}
+  }
+}
+
+// Handler benchmark
+abstract class PipelineBenchmark extends BenchmarkBase {
+  PipelineBenchmark(super.name);
+
+  late LogEntry entry;
+  late Handler handler;
+
+  @override
+  void setup() {
+    entry = createEntry();
+    handler = createHandler();
+  }
+
+  Handler createHandler();
+
+  @override
+  void run() {
+    _manualPipelineRun();
+  }
+
+  void _manualPipelineRun() {
+    final filters = handler.filters;
+    if (filters.any((f) => !f.shouldLog(entry))) return;
+
+    final formatter = handler.formatter;
+    final decorators = handler.decorators;
+
+    // Replicate Handler.log logic
+    final totalWidth = 80;
+    var totalPadding = 0;
+    var structuralPadding = 0;
+
+    for (final decorator in decorators) {
+      final padding = decorator.paddingWidth(entry);
+      totalPadding += padding;
+      if (decorator is StructuralDecorator) {
+        structuralPadding += padding;
+      }
+    }
+
+    final context = LogContext(
+      availableWidth: (totalWidth - totalPadding).clamp(1, totalWidth),
+      totalWidth: totalWidth,
+      contentLimit: (totalWidth - structuralPadding).clamp(1, totalWidth),
+    );
+
+    var document = formatter.format(entry, context);
+
+    // Decorate
+    for (final decorator in decorators) {
+      document = decorator.decorate(document, entry, context);
+    }
+
+    if (document.nodes.isNotEmpty) {
+      // Consume
+      for (final _ in document.nodes) {}
+    }
+  }
+}
+
+class SimplePipelineBenchmark extends PipelineBenchmark {
+  SimplePipelineBenchmark() : super('Simple Pipeline (Plain)');
+
+  @override
+  Handler createHandler() {
+    return const Handler(
+      formatter: PlainFormatter(),
+      sink: NullSink(),
+    );
+  }
+}
+
+class ComplexPipelineBenchmark extends PipelineBenchmark {
+  ComplexPipelineBenchmark() : super('Complex Pipeline (Structure+Box+Style)');
+
+  @override
+  Handler createHandler() {
+    return const Handler(
+      formatter: StructuredFormatter(),
+      sink: NullSink(),
+      decorators: [
+        BoxDecorator(),
+        StyleDecorator(),
+        PrefixDecorator('APP | '),
+      ],
+    );
+  }
+}
+
+void runPipelineBenchmarks() {
+  print('\n--- E2E Pipeline Overhead ---');
+  SimplePipelineBenchmark().report();
+  ComplexPipelineBenchmark().report();
+}
