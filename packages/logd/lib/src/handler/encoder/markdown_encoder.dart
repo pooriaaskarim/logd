@@ -1,0 +1,100 @@
+part of '../handler.dart';
+
+/// An encoder that transforms [LogDocument] into Markdown (GFM) markup.
+///
+/// It translates the semantic structure of the log into Markdown elements:
+/// - [HeaderNode]: Headers (###)
+/// - [MessageNode]: Bold text (**message**)
+/// - [LogTag.collapsible]: `<details>` blocks for collapsible content.
+/// - [LogTag.stackFrame]: Code blocks (```).
+@immutable
+class MarkdownEncoder implements LogEncoder<String> {
+  /// Creates a [MarkdownEncoder].
+  const MarkdownEncoder();
+
+  @override
+  String encode(
+    final LogDocument document,
+    final LogLevel level, {
+    final int? width,
+  }) {
+    final buffer = StringBuffer();
+
+    for (final node in document.nodes) {
+      _renderNode(buffer, node);
+    }
+
+    return buffer.toString().trimRight();
+  }
+
+  void _renderNode(final StringBuffer buffer, final LogNode node) {
+    if (node.tags.contains(LogTag.collapsible)) {
+      _renderCollapsible(buffer, node);
+      return;
+    }
+
+    if (node is HeaderNode) {
+      buffer.writeln('### ${_renderContent(node)}');
+    } else if (node is MessageNode) {
+      buffer.writeln('\n**${_renderContent(node)}**');
+    } else if (node is ErrorNode) {
+      buffer.writeln('\n> [!ERROR]');
+      buffer.writeln('> ${_renderContent(node)}');
+    } else if (node is FooterNode) {
+      _renderFooter(buffer, node);
+    } else if (node is IndentationNode) {
+      for (final child in node.children) {
+        _renderNode(buffer, child);
+      }
+    } else if (node is DecoratedNode) {
+      for (final child in node.children) {
+        _renderNode(buffer, child);
+      }
+    } else if (node is GroupNode) {
+      for (final child in node.children) {
+        _renderNode(buffer, child);
+      }
+    } else if (node is ParagraphNode) {
+      for (final child in node.children) {
+        _renderNode(buffer, child);
+      }
+    }
+  }
+
+  void _renderCollapsible(final StringBuffer buffer, final LogNode node) {
+    final summary =
+        node.tags.contains(LogTag.stackFrame) ? 'Stack Trace' : 'Details';
+    buffer.writeln('\n<details>');
+    buffer.writeln('<summary>$summary</summary>\n');
+
+    if (node is ContentNode) {
+      if (node.tags.contains(LogTag.stackFrame)) {
+        buffer.writeln('```');
+        buffer.writeln(_renderContent(node));
+        buffer.writeln('```');
+      } else {
+        buffer.writeln(_renderContent(node));
+      }
+    } else if (node is LayoutNode) {
+      for (final child in node.children) {
+        _renderNode(buffer, child);
+      }
+    }
+
+    buffer.writeln('\n</details>');
+  }
+
+  void _renderFooter(final StringBuffer buffer, final FooterNode node) {
+    if (node.tags.contains(LogTag.stackFrame)) {
+      buffer.writeln('\n```');
+      buffer.write(_renderContent(node));
+      buffer.writeln('```');
+    } else {
+      buffer.writeln(_renderContent(node));
+    }
+  }
+
+  String _renderContent(final ContentNode node) {
+    return node.segments.map((final s) => s.text).join();
+  }
+}
