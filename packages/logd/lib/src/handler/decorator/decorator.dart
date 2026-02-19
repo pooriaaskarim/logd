@@ -10,11 +10,14 @@ sealed class LogDecorator {
   /// Constant constructor for subclasses.
   const LogDecorator();
 
-  /// Decorates the [lines] based on the [entry].
+  /// Decorates the [document] based on the [entry].
   ///
-  /// Returns an [Iterable] of decorated [LogLine]s.
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  /// Returns an decorated [LogDocument].
+  /// Decorates the [document] based on the [entry].
+  ///
+  /// Returns a modified [LogDocument].
+  LogDocument decorate(
+    final LogDocument document,
     final LogEntry entry,
     final LogContext context,
   );

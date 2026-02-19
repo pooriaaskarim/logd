@@ -24,10 +24,10 @@ final class JsonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  Iterable<LogLine> format(
+  LogDocument format(
     final LogEntry entry,
     final LogContext context,
-  ) sync* {
+  ) {
     final map = <String, dynamic>{
       'level': entry.level.name,
       'message': entry.message,
@@ -48,7 +48,21 @@ final class JsonFormatter implements LogFormatter {
     }
 
     final json = jsonEncode(map);
-    yield LogLine.text(json);
+
+    return LogDocument(
+      nodes: [
+        ParagraphNode(
+          children: [
+            MessageNode(
+              segments: [
+                StyledText(json, tags: const {}),
+              ],
+            ),
+          ],
+        ),
+      ],
+      metadata: const {'width': 10000},
+    );
   }
 
   @override
@@ -101,11 +115,10 @@ final class JsonPrettyFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  Iterable<LogLine> format(
+  LogDocument format(
     final LogEntry entry,
     final LogContext context,
-  ) sync* {
-    final width = context.availableWidth;
+  ) {
     final map = <String, Object?>{
       'level': entry.level.name,
       'message': entry.message,
@@ -138,210 +151,220 @@ final class JsonPrettyFormatter implements LogFormatter {
       fieldTags['stackTrace'] = LogTag.stackFrame;
     }
 
-    yield* _formatValue(map, 0, width, tags: fieldTags);
+    return LogDocument(
+      nodes: _buildNodes(
+        map,
+        0,
+        context: context,
+        fieldTags: fieldTags,
+        remainingWidth: context.availableWidth,
+      ),
+      metadata: {'width': context.totalWidth},
+    );
   }
 
-  Iterable<LogLine> _formatValue(
+  List<LogNode> _buildNodes(
     final Object? value,
-    final int depth,
-    final int width, {
-    final Map<String, LogTag>? tags,
-    final List<LogSegment>? keySegments,
-    final bool isLastValue = true,
-  }) sync* {
-    final prefix = indent * depth;
+    final int depth, {
+    required final LogContext context,
+    required final int remainingWidth, // Exact width available at this depth
+    final Map<String, LogTag>? fieldTags,
+    final String? currentKey,
+    final bool isLast = true,
+  }) {
+    // 1. Adaptive Nesting: If very narrow, stop auto-parsing nested JSON.
+    final canParseNested = remainingWidth > 15 && prettyPrintNestedJson;
+
+    // 2. Adaptive Indent: If space is tight, use a minimal 1-space indent.
+    final effectiveIndent =
+        (remainingWidth < 20 && indent.length > 1) ? ' ' : indent;
+
+    // Hierarchy overhead: IndentationNode usually adds '│ ' (2 chars)
+    final childRemainingWidth = remainingWidth - effectiveIndent.length - 2;
 
     if (value is Map) {
-      final entries = value.entries.toList();
-      // First line of Map (opening brace)
-      yield LogLine([
-        if (keySegments != null) ...keySegments,
-        LogSegment(
-          '{',
-          tags: color ? const {LogTag.punctuation} : const {},
+      final nodes = <LogNode>[
+        ParagraphNode(
+          children: [
+            HeaderNode(
+              segments: [
+                StyledText(
+                  '{',
+                  tags: color ? const {LogTag.punctuation} : const {},
+                ),
+              ],
+            ),
+          ],
         ),
-      ]);
+      ];
 
+      final entries = value.entries.toList();
+      final body = <LogNode>[];
       for (int i = 0; i < entries.length; i++) {
         final entry = entries[i];
-        final isLast = i == entries.length - 1;
+        final isEntryLast = i == entries.length - 1;
+        final entryVal = entry.value;
 
-        final segments = <LogSegment>[
-          // Combine key parts into single segment to prevent wrapping from
-          // splitting them and trimming the trailing space
-          LogSegment(
-            '$prefix$indent"${entry.key}": ',
-            tags: color ? const {LogTag.key, LogTag.punctuation} : const {},
-          ),
-        ];
+        // Try to parse nested JSON strings if space allows
+        final processedValue = (entryVal is String && canParseNested)
+            ? (_tryParseJson(entryVal) ?? entryVal)
+            : entryVal;
 
-        final val = entry.value;
-        final Object? processedValue;
-        if (val is String) {
-          processedValue = _tryParseJson(val) ?? val;
+        final keyText = '"${entry.key}": ';
+        final Set<LogTag> keyTag =
+            color ? const {LogTag.key, LogTag.punctuation} : const {};
+
+        // VIRTUAL MODE: If space is extremely limited (e.g. nested deeply),
+        // put key on its own line to save horizontal width.
+        if (remainingWidth < 25) {
+          body
+            ..add(
+              ParagraphNode(
+                children: [
+                  HeaderNode(
+                    segments: [StyledText(keyText, tags: keyTag)],
+                  ),
+                ],
+              ),
+            )
+            ..addAll(
+              _buildNodes(
+                processedValue,
+                depth + 1,
+                context: context,
+                remainingWidth: childRemainingWidth,
+                fieldTags: fieldTags,
+                isLast: isEntryLast,
+              ),
+            );
         } else {
-          processedValue = val;
+          body.add(
+            DecoratedNode(
+              leadingWidth: keyText.visibleLength,
+              leading: [StyledText(keyText, tags: keyTag)],
+              repeatLeading: false,
+              children: _buildNodes(
+                processedValue,
+                depth + 1,
+                context: context,
+                remainingWidth: childRemainingWidth - keyText.visibleLength,
+                fieldTags: fieldTags,
+                currentKey: entry.key,
+                isLast: isEntryLast,
+              ),
+            ),
+          );
         }
+      }
 
-        if (processedValue is Map || processedValue is List) {
-          yield* _formatValue(
-            processedValue,
-            depth + 1,
-            width,
-            tags: tags,
-            keySegments: segments,
-            isLastValue: isLast,
-          );
-        } else {
-          final currentPrefixWidth = segments.fold(
-            0,
-            (final s, final seg) => s + seg.text.visibleLength,
-          );
-
-          final valueStr = _valueString(val);
-          final valueTag = tags?[entry.key] ?? LogTag.value;
-
-          // Wrap the value with an indent that matches the key part
-          final valueLine = LogLine([
-            LogSegment(valueStr, tags: {valueTag}),
-          ]);
-          final valueLines =
-              valueLine.wrap(width, indent: ' ' * currentPrefixWidth).toList();
-
-          if (valueLines.isEmpty) {
-            yield LogLine([
-              ...segments,
-              LogSegment('', tags: {valueTag}),
-              if (!isLast)
-                LogSegment(
-                  ',',
+      nodes
+        ..add(
+          IndentationNode(
+            indentString: effectiveIndent,
+            children: body,
+          ),
+        )
+        ..add(
+          ParagraphNode(
+            children: [
+              HeaderNode(
+                segments: [
+                  StyledText(
+                    isLast ? '}' : '},',
+                    tags: color ? const {LogTag.punctuation} : const {},
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      return nodes;
+    } else if (value is List) {
+      final nodes = <LogNode>[
+        ParagraphNode(
+          children: [
+            HeaderNode(
+              segments: [
+                StyledText(
+                  '[',
                   tags: color ? const {LogTag.punctuation} : const {},
                 ),
-            ]);
-          } else {
-            // First line has the key prepended
-            yield LogLine([
-              ...segments,
-              ...valueLines[0].segments,
-              if (valueLines.length == 1 && !isLast)
-                LogSegment(
-                  ',',
-                  tags: color ? const {LogTag.punctuation} : const {},
-                ),
-            ]);
+              ],
+            ),
+          ],
+        ),
+      ];
 
-            // Subsequent lines already have the correct indent from wrap()
-            for (int j = 1; j < valueLines.length; j++) {
-              final isValueLast = j == valueLines.length - 1;
-              yield LogLine([
-                ...valueLines[j].segments,
-                if (isValueLast && !isLast)
-                  LogSegment(
+      final body = <LogNode>[];
+      for (int i = 0; i < value.length; i++) {
+        final isEntryLast = i == value.length - 1;
+        final entryVal = value[i];
+        final processedValue = (entryVal is String)
+            ? (_tryParseJson(entryVal) ?? entryVal)
+            : entryVal;
+
+        body.add(
+          GroupNode(
+            children: _buildNodes(
+              processedValue,
+              depth + 1,
+              context: context,
+              remainingWidth: childRemainingWidth,
+              fieldTags: fieldTags,
+              isLast: isEntryLast,
+            ),
+          ),
+        );
+      }
+
+      nodes
+        ..add(
+          IndentationNode(
+            indentString: effectiveIndent,
+            children: body,
+          ),
+        )
+        ..add(
+          ParagraphNode(
+            children: [
+              HeaderNode(
+                segments: [
+                  StyledText(
+                    isLast ? ']' : '],',
+                    tags: color ? const {LogTag.punctuation} : const {},
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      return nodes;
+    } else {
+      // Scalar value
+      final valStr = _valueString(value);
+      final valueTag = (fieldTags != null && currentKey != null)
+          ? (fieldTags[currentKey] ?? (color ? LogTag.value : null))
+          : (color ? LogTag.value : null);
+
+      return [
+        ParagraphNode(
+          children: [
+            MessageNode(
+              segments: [
+                StyledText(
+                  valStr,
+                  tags: valueTag != null ? {valueTag} : const {},
+                ),
+                if (!isLast)
+                  StyledText(
                     ',',
                     tags: color ? const {LogTag.punctuation} : const {},
                   ),
-              ]);
-            }
-          }
-        }
-      }
-
-      // Closing brace
-      yield LogLine([
-        LogSegment(
-          '$prefix}',
-          tags: color ? const {LogTag.punctuation} : const {},
-        ),
-        if (!isLastValue)
-          LogSegment(
-            ',',
-            tags: color ? const {LogTag.punctuation} : const {},
-          ),
-      ]);
-    } else if (value is List) {
-      // First line of List (opening bracket)
-      yield LogLine([
-        if (keySegments != null) ...keySegments,
-        LogSegment(
-          '[',
-          tags: color ? const {LogTag.punctuation} : const {},
-        ),
-      ]);
-      for (int i = 0; i < value.length; i++) {
-        final isLast = i == value.length - 1;
-        final val = value[i];
-        final Object? processedValue;
-        if (val is String) {
-          processedValue = _tryParseJson(val) ?? val;
-        } else {
-          processedValue = val;
-        }
-
-        if (processedValue is Map || processedValue is List) {
-          yield* _formatValue(
-            processedValue,
-            depth + 1,
-            width,
-            tags: tags,
-            isLastValue: isLast,
-          );
-        } else {
-          final prefixStr = '$prefix$indent';
-          final segments = [
-            LogSegment(
-              prefixStr,
-              tags: const {},
+              ],
             ),
-          ];
-          final currentPrefixWidth = prefixStr.visibleLength;
-
-          final valueStr = _valueString(val);
-          final valueTag = color ? {LogTag.value} : <LogTag>{};
-
-          // Wrap the value with an indent that matches the prefix
-          final valueLine = LogLine([LogSegment(valueStr, tags: valueTag)]);
-          final valueLines =
-              valueLine.wrap(width, indent: ' ' * currentPrefixWidth).toList();
-
-          if (valueLines.isNotEmpty) {
-            yield LogLine([
-              ...segments,
-              ...valueLines[0].segments,
-              if (valueLines.length == 1 && !isLast)
-                LogSegment(
-                  ',',
-                  tags: color ? const {LogTag.punctuation} : const {},
-                ),
-            ]);
-
-            if (valueLines.length > 1) {
-              for (int j = 1; j < valueLines.length; j++) {
-                final isValueLast = j == valueLines.length - 1;
-                yield LogLine([
-                  ...valueLines[j].segments,
-                  if (isValueLast && !isLast)
-                    LogSegment(
-                      ',',
-                      tags: color ? const {LogTag.punctuation} : const {},
-                    ),
-                ]);
-              }
-            }
-          }
-        }
-      }
-      // Closing bracket
-      yield LogLine([
-        LogSegment(
-          '$prefix]',
-          tags: color ? const {LogTag.punctuation} : const {},
+          ],
         ),
-        if (!isLastValue)
-          LogSegment(
-            ',',
-            tags: color ? const {LogTag.punctuation} : const {},
-          ),
-      ]);
+      ];
     }
   }
 
