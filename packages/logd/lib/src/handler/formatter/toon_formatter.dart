@@ -50,62 +50,64 @@ final class ToonFormatter implements LogFormatter {
   final bool multiline;
 
   @override
-  Iterable<LogLine> format(
+  LogDocument format(
     final LogEntry entry,
     final LogContext context,
-  ) sync* {
-    // Header includes metadata followed by crucial fields
+  ) {
+    final nodes = <LogNode>[];
+
+    // 1. Header (Static metadata structure)
     final metaNames = metadata.map((final m) => m.name).join(',');
     const crucialNames = 'level,message,error,stackTrace';
     final headerStr =
         '$arrayName[]{$metaNames${metaNames.isNotEmpty ? ',' : ''}'
         '$crucialNames}:';
 
-    final headerLine = color
-        ? LogLine([
-            LogSegment(headerStr, tags: const {LogTag.header}),
-          ])
-        : LogLine.text(headerStr);
+    nodes.add(
+      HeaderNode(
+        segments: [
+          StyledText(
+            headerStr,
+            tags: color ? const {LogTag.header} : const {},
+          ),
+        ],
+      ),
+    );
 
-    yield* headerLine.wrap(context.availableWidth);
-
-    final rowLine = color ? _formatColorizedRow(entry) : _formatPlainRow(entry);
-
-    yield* rowLine.wrap(context.availableWidth);
-  }
-
-  LogLine _formatPlainRow(final LogEntry entry) {
-    final values = [
-      ...metadata.map((final m) => m.getValue(entry)),
-      entry.level.name,
-      entry.message,
-      entry.error?.toString() ?? '',
-      entry.stackTrace?.toString() ?? '',
-    ];
-
-    return LogLine.text(values.map(_escapeAndQuote).join(delimiter));
-  }
-
-  LogLine _formatColorizedRow(final LogEntry entry) {
-    final segments = <LogSegment>[];
-
+// 2. Row (The log entry itself)
+    final segments = <StyledText>[];
     void add(final String val, final LogTag tag) {
       if (segments.isNotEmpty) {
-        segments.add(LogSegment(delimiter, tags: const {LogTag.punctuation}));
+        segments.add(
+          StyledText(
+            delimiter,
+            tags: color ? {LogTag.punctuation} : {},
+          ),
+        );
       }
-      segments.add(LogSegment(_escapeAndQuote(val), tags: {tag}));
+      segments.add(
+        StyledText(
+          _escapeAndQuote(val),
+          tags: color ? {tag} : {},
+        ),
+      );
     }
 
     for (final meta in metadata) {
       add(meta.getValue(entry), meta.tag);
     }
 
-    add(entry.level.name, LogTag.level);
+    add(entry.level.name.toUpperCase(), LogTag.level);
     add(entry.message, LogTag.message);
     add(entry.error?.toString() ?? '', LogTag.error);
     add(entry.stackTrace?.toString() ?? '', LogTag.stackFrame);
 
-    return LogLine(segments);
+    nodes.add(MessageNode(segments: segments));
+
+    return LogDocument(
+      nodes: nodes,
+      metadata: {'width': context.totalWidth},
+    );
   }
 
   String _escapeAndQuote(final String value) {
