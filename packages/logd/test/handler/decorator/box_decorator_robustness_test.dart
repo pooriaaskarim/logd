@@ -1,4 +1,6 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:test/test.dart';
 
 void main() {
@@ -21,13 +23,17 @@ void main() {
       );
 
       final formatted = formatter.format(entry, context);
-      final boxed = box.decorate(formatted, entry, context).toList();
+      final boxed = box.decorate(formatted, entry, context);
+
+      final layout = TerminalLayout(width: 40);
+      final physical = layout.layout(boxed, LogLevel.info);
+      final boxedLines = physical.lines;
 
       // Check top/bottom border length
-      final topWidth = boxed[0].visibleLength;
+      final topWidth = boxedLines[0].visibleLength;
 
-      for (int i = 0; i < boxed.length; i++) {
-        final line = boxed[i];
+      for (int i = 0; i < boxedLines.length; i++) {
+        final line = boxedLines[i];
         print('Line $i: ${line.visibleLength} chars | $line');
         expect(
           line.visibleLength,
@@ -54,12 +60,16 @@ void main() {
       );
 
       final formatted = formatter.format(entry, context);
-      final boxed = box.decorate(formatted, entry, context).toList();
+      final boxed = box.decorate(formatted, entry, context);
+
+      final layout = TerminalLayout(width: 30);
+      final physical = layout.layout(boxed, LogLevel.info);
+      final boxedLines = physical.lines;
 
       // Box should have consistent width across all lines
-      final boxWidth = boxed[0].visibleLength;
-      for (int i = 0; i < boxed.length; i++) {
-        final line = boxed[i];
+      final boxWidth = boxedLines[0].visibleLength;
+      for (int i = 0; i < boxedLines.length; i++) {
+        final line = boxedLines[i];
         expect(
           line.visibleLength,
           equals(boxWidth),

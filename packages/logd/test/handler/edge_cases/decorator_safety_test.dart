@@ -1,5 +1,9 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('Decorator Safety & Composition', () {
@@ -66,8 +70,12 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final lines = [LogLine.text('very long message that exceeds 5 chars')];
-      final boxed = box.decorate(lines, entry, context).toList();
+      final lines = ['very long message that exceeds 5 chars'];
+      final doc = createTestDocument(lines);
+      final decorated = box.decorate(doc, entry, context);
+
+      final layout = TerminalLayout(width: 5);
+      final boxed = layout.layout(decorated, LogLevel.info).lines;
 
       expect(boxed, isNotEmpty);
       final topWidth = boxed[0].visibleLength;
@@ -87,24 +95,32 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final lines = [LogLine.text('\x1B[31m\x1B[0m')]; // Red color then reset
-      final boxed = box.decorate(lines, entry, context).toList();
+      final lines = ['\x1B[31m\x1B[0m']; // Red color then reset
+      final doc = createTestDocument(lines);
+      final decorated = box.decorate(doc, entry, context);
+
+      final layout = TerminalLayout(width: 20);
+      final boxed = layout.layout(decorated, LogLevel.info).lines;
       expect(boxed, isNotEmpty);
     });
   });
 }
 
-final class _MemorySink extends LogSink {
-  final List<List<LogLine>> outputs = [];
+final class _MemorySink extends LogSink<LogDocument> {
+  final List<List<String>> outputs = [];
 
   @override
   int get preferredWidth => 80;
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
-    outputs.add(lines.toList());
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
+    final layout = TerminalLayout(width: preferredWidth);
+    final physical = layout.layout(document, level);
+    // Convert PhysicalLines to Strings for inspection
+    outputs.add(physical.lines.map((final l) => l.toString()).toList());
   }
 }

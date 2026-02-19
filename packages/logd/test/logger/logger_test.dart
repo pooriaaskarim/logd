@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:logd/logd.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:test/test.dart';
 
 void main() {
@@ -210,26 +212,33 @@ void main() {
 
       buffer.sink();
 
-      expect(logCollector.logs, containsAll(['[INFO] line 1', 'line 2']));
+      expect(
+          logCollector.logs, containsAll(['[INFO] line 1', '       line 2']));
     });
   });
 
   group('InternalLogger', () {
+    setUp(() {
+      Logger.clearRegistry();
+    });
+
     test('InternalLogger does not recursively log when a handler fails',
         () async {
-      final failingHandler = Handler(
-        formatter: const PlainFormatter(),
-        sink: FailingSink(),
-      );
+      await runZoned(() async {
+        final failingHandler = Handler(
+          formatter: const PlainFormatter(),
+          sink: FailingSink(),
+        );
 
-      Logger.configure('global', handlers: [failingHandler]);
+        Logger.configure('global', handlers: [failingHandler]);
 
-      // This should NOT cause a stack overflow
-      Logger.get().info('trigger failure');
-
-      // If it didn't throw/overflow, we are good.
-      // InternalLogger should have logged the error to Console
-      // (default) or wherever it's configured.
+        // This should NOT cause a stack overflow
+        Logger.get().info('trigger failure');
+      }, zoneSpecification: ZoneSpecification(
+        print: (final self, final parent, final zone, final line) {
+          // Suppress printing
+        },
+      ));
     });
   });
 
@@ -378,20 +387,21 @@ void main() {
 
 class LoggerHierarchyEdgeCases {}
 
-base class FailingSink extends LogSink {
+base class FailingSink extends LogSink<LogDocument> {
   @override
   int get preferredWidth => 80;
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
     throw Exception('Simulated failure');
   }
 }
 
-base class LogCollector extends LogSink {
+base class LogCollector extends LogSink<LogDocument> {
   final List<String> logs = [];
 
   @override
@@ -399,9 +409,16 @@ base class LogCollector extends LogSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
-    logs.addAll(lines.map((final l) => l.toString()));
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
+    // For tests, we convert back to lines but without wrapping logic,
+    // reflecting how it was designed to be captured.
+    final layout = TerminalLayout(width: 80);
+    logs.addAll(layout
+        .layout(document, level)
+        .lines
+        .map((final l) => l.toString().trimRight()));
   }
 }

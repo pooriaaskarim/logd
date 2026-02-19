@@ -1,5 +1,7 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/core/utils/utils.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -62,19 +64,22 @@ void main() {
   });
 }
 
-final class MemorySink extends LogSink {
+final class MemorySink extends LogSink<LogDocument> {
   MemorySink(this.onLog);
-  final Function(LogLine) onLog;
+  final Function(Object) onLog;
 
   @override
   int get preferredWidth => 80;
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
-    for (final line in lines) {
+    final LogDocument document,
+    final LogLevel level, {
+    final LogContext? context,
+  }) async {
+    final layout = TerminalLayout(width: context?.totalWidth ?? preferredWidth);
+    final physical = layout.layout(document, level);
+    for (final line in physical.lines) {
       onLog(line);
     }
   }

@@ -1,3 +1,4 @@
+import 'package:logd/src/logger/logger.dart';
 import 'package:logd/logd.dart';
 import 'package:test/test.dart';
 import 'mock_context.dart';
@@ -95,24 +96,37 @@ void main() {
       const decorator =
           StyleDecorator(theme: LogTheme(colorScheme: customScheme));
 
-      final lines = [
-        const LogLine([
-          LogSegment('2024-01-01', tags: {LogTag.header, LogTag.timestamp}),
-          LogSegment(' [INFO] ', tags: {LogTag.header, LogTag.level}),
-          LogSegment('Message', tags: {LogTag.message}),
-        ]),
-      ];
+      // Create a document with specific tags
+      final doc = LogDocument(
+        nodes: [
+          HeaderNode(
+            segments: [
+              StyledText('2024-01-01', tags: {LogTag.header, LogTag.timestamp}),
+              StyledText(' [INFO] ', tags: {LogTag.header, LogTag.level}),
+            ],
+          ),
+          MessageNode(
+            segments: [
+              StyledText('Message', tags: {LogTag.message}),
+            ],
+          ),
+        ],
+      );
 
-      final decorated =
-          decorator.decorate(lines, infoEntry, mockContext).toList();
+      final decorated = decorator.decorate(doc, infoEntry, mockContext);
       final rendered = renderLines(decorated);
 
+      // Rendered output might be split or joined depending on layout.
+      // renderLines produces a List<String>.
+      // We check if the expected ANSI codes are present in the output.
+      final fullOutput = rendered.join('\n');
+
       // Timestamp should be dimmed (2) + brightBlack (90)
-      expect(rendered[0], contains('\x1B[2m\x1B[90m'));
+      expect(fullOutput, contains('\x1B[2m\x1B[90m'));
       // Level should be bold (1) + brightCyan (96)
-      expect(rendered[0], contains('\x1B[1m\x1B[96m'));
+      expect(fullOutput, contains('\x1B[1m\x1B[96m'));
       // Message should be blue (34)
-      expect(rendered[0], contains('\x1B[34m'));
+      expect(fullOutput, contains('\x1B[34m'));
     });
 
     test('LogTheme respects custom logic via subclass', () {

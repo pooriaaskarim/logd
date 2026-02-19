@@ -1,6 +1,8 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../decorator/mock_context.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('PlainFormatter', () {
@@ -14,7 +16,7 @@ void main() {
 
     test('formats basic entry correctly with default metadata', () {
       const formatter = PlainFormatter();
-      final lines = formatter.format(entry, mockContext).toList();
+      final lines = renderLines(formatter.format(entry, mockContext));
 
       expect(lines.length, equals(1));
       expect(
@@ -29,7 +31,7 @@ void main() {
       const formatter = PlainFormatter(
         metadata: {LogMetadata.logger},
       );
-      final lines = formatter.format(entry, mockContext).toList();
+      final lines = renderLines(formatter.format(entry, mockContext));
 
       // [INFO] is mandatory
       expect(
@@ -49,8 +51,11 @@ void main() {
         stackTrace: StackTrace.fromString('stack line 1'),
       );
 
-      const formatter = PlainFormatter();
-      final lines = formatter.format(errorEntry, mockContext).toList();
+      const formatter = PlainFormatter(
+        metadata: {LogMetadata.logger},
+      );
+
+      final lines = renderLines(formatter.format(errorEntry, mockContext));
 
       expect(lines.length, equals(3));
       expect(lines[1].toString(), equals('Error: Some error'));

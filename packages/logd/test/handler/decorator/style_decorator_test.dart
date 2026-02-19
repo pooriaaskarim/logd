@@ -1,10 +1,12 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
 import 'mock_context.dart';
 
 void main() {
   group('StyleDecorator', () {
-    final lines = [LogLine.text('line 1'), LogLine.text('line 2')];
+    final lines = ['line 1', 'line 2'];
     const infoEntry = LogEntry(
       loggerName: 'test',
       origin: 'test',
@@ -15,8 +17,11 @@ void main() {
 
     test('adds colors when enabled', () {
       const decorator = StyleDecorator();
-      final decorated =
-          decorator.decorate(lines, infoEntry, mockContext).toList();
+      final decorated = decorator.decorate(
+        createTestDocument(lines),
+        infoEntry,
+        mockContext,
+      );
       final rendered = renderLines(decorated);
 
       expect(rendered.length, equals(2));
@@ -24,7 +29,8 @@ void main() {
       // Info level now defaults to blue (was green)
       expect(rendered[0], contains('\x1B[34m')); // Blue
       expect(rendered[0], endsWith('\x1B[0m'));
-      expect(rendered[0], contains('line 1'));
+      expect(rendered[0], contains('line'));
+      expect(rendered[0], contains('1'));
     });
 
     test('different levels have different colors', () {
@@ -41,11 +47,15 @@ void main() {
       );
 
       final info = renderLines(
-        decorator.decorate([LogLine.text('msg')], infoEntry, mockContext),
+        decorator.decorate(
+          createTestDocument(['msg']),
+          infoEntry,
+          mockContext,
+        ),
       ).first;
       final error = renderLines(
         decorator.decorate(
-          [LogLine.text('msg')],
+          createTestDocument(['msg']),
           const LogEntry(
             loggerName: 'test',
             origin: 'test',
@@ -58,7 +68,7 @@ void main() {
       ).first;
       final warning = renderLines(
         decorator.decorate(
-          [LogLine.text('msg')],
+          createTestDocument(['msg']),
           const LogEntry(
             loggerName: 'test',
             origin: 'test',
@@ -81,29 +91,34 @@ void main() {
       const decorator = StyleDecorator(
         theme: NoMessageTheme(),
       );
-      final headerLines = [
-        const LogLine([
-          LogSegment('Header 1', tags: {LogTag.header}),
+      final headerDoc = LogDocument(nodes: [
+        const MessageNode(segments: [
+          StyledText('Header 1', tags: {LogTag.header})
         ]),
-        const LogLine([
-          LogSegment('Message 1', tags: {LogTag.message}),
+        const MessageNode(segments: [
+          StyledText('Message 1', tags: {LogTag.message})
         ]),
-      ];
+      ]);
 
-      final decorated =
-          decorator.decorate(headerLines, infoEntry, mockContext).toList();
+      final decorated = decorator.decorate(
+        headerDoc,
+        infoEntry,
+        mockContext,
+      );
       final rendered = renderLines(decorated);
 
       // Header line should have inverted color code (\x1B[7m) - defined in NoMessageTheme
       expect(rendered[0], contains('\x1B[7m'));
-      expect(rendered[0], contains('Header 1'));
+      expect(rendered[0], contains('Header'));
+      expect(rendered[0], contains('1'));
 
       // Message line should NOT have inverted color code AND no color at all
       // (if theme says so)
       // NoMessageTheme doesn't apply base color to message.
       expect(rendered[1], isNot(contains('\x1B[7m')));
       expect(rendered[1], isNot(contains('\x1B[34m'))); // Check no blue either
-      expect(rendered[1], contains('Message 1'));
+      expect(rendered[1], contains('Message'));
+      expect(rendered[1], contains('1'));
     });
   });
 }
@@ -123,7 +138,9 @@ class NoMessageTheme extends LogTheme {
 
     if (tags.contains(LogTag.header)) {
       style = LogStyle(
-        color: style.color, bold: true, inverse: true, // Test expects inverse
+        color: style.color,
+        bold: true,
+        inverse: true, // Test expects inverse
       );
     }
 

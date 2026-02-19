@@ -1,6 +1,8 @@
 // Tests for null safety, empty messages, and corner cases across formatters
 // and decorators.
 import 'package:logd/logd.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../decorator/mock_context.dart';
 
@@ -19,7 +21,9 @@ void main() {
         stackTrace: null,
       );
 
-      final lines = formatter.format(entry, mockContext).toList();
+      final doc = formatter.format(entry, mockContext);
+      final layout = TerminalLayout(width: 80);
+      final lines = layout.layout(doc, LogLevel.info).lines;
       expect(lines, isNotEmpty);
       expect(lines.any((final l) => l.toString().contains('Error:')), isFalse);
     });
@@ -36,7 +40,9 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final lines = formatter.format(entry, context).toList();
+      final doc = formatter.format(entry, context);
+      final layout = TerminalLayout(width: 40);
+      final lines = layout.layout(doc, LogLevel.info).lines;
       expect(lines, isNotEmpty);
       for (final line in lines) {
         expect(line.visibleLength, lessThanOrEqualTo(60));
@@ -68,10 +74,13 @@ void main() {
 
       const context = LogContext(availableWidth: 40);
       final formatted = handler.formatter.format(entry, context);
-      var lines = formatted;
+      var document = formatted;
       for (final decorator in handler.decorators) {
-        lines = decorator.decorate(lines, entry, context);
+        document = decorator.decorate(document, entry, context);
       }
+      // Use TerminalLayout
+      final layout = TerminalLayout(width: 40);
+      final lines = layout.layout(document, LogLevel.info).lines;
 
       final result = resultLines(lines);
       expect(result.length, greaterThanOrEqualTo(3)); // Box should still form
@@ -89,12 +98,14 @@ void main() {
         error: null,
       );
 
-      final lines = formatter.format(entry, mockContext).toList();
+      final doc = formatter.format(entry, mockContext);
+      final layout = TerminalLayout(width: 80);
+      final lines = layout.layout(doc, LogLevel.info).lines;
       final json = lines.map((final l) => l.toString()).join('\n');
       expect(json, isNot(contains('"error":')));
     });
   });
 }
 
-List<String> resultLines(final Iterable<LogLine> lines) =>
+List<String> resultLines(final Iterable<Object> lines) =>
     lines.map((final l) => l.toString()).toList();
