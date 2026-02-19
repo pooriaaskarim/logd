@@ -34,15 +34,15 @@ void main() async {
 
   const htmlSink =
       HTMLSink(filePath: '$basePath/dashboard.html', darkMode: true);
-  const htmlHandler = Handler(
-    formatter: HTMLFormatter(),
-    sink: htmlSink,
-  );
+  // const htmlHandler = Handler(
+  //   formatter: HTMLFormatter(),
+  //   sink: htmlSink,
+  // );
 
-  final markdownHandler = Handler(
-    formatter: const MarkdownFormatter(headingLevel: 2),
-    sink: FileSink('$basePath/report.md'),
-  );
+  // final markdownHandler = Handler(
+  //   formatter: const MarkdownFormatter(headingLevel: 2),
+  //   sink: FileSink('$basePath/report.md'),
+  // );
 
   final semanticHandler = Handler(
     formatter: const JsonPrettyFormatter(),
@@ -59,8 +59,8 @@ void main() async {
     'theatre',
     handlers: [
       consoleHandler,
-      htmlHandler,
-      markdownHandler,
+      // htmlHandler,
+      // markdownHandler,
       semanticHandler,
       toonHandler,
     ],

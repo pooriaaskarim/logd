@@ -42,9 +42,7 @@ void main() async {
     decorators: [
       StyleDecorator(theme: _JsonInspectorTheme()),
       HierarchyDepthPrefixDecorator(indent: '│ '),
-      PrefixDecorator(
-        ' [AUDIT]',
-      ),
+      PrefixDecorator(' [AUDIT]'),
       SuffixDecorator(' [AUDIT]', aligned: true),
       BoxDecorator(borderStyle: BorderStyle.sharp),
     ],

@@ -68,6 +68,7 @@ void main() {
       SuffixDecorator('|TOON_END', aligned: false), // Attached
     ],
     sink: ConsoleSink(),
+    lineLength: 40,
   );
 
   Logger.configure('machine', handlers: [machineHandler]);
