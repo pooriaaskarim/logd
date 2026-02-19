@@ -11,9 +11,5 @@ abstract interface class LogFormatter {
   /// Contextual metadata to include in the output.
   final Set<LogMetadata> metadata;
 
-  /// Formats the [entry] into an [Iterable] of [LogLine]s.
-  ///
-  /// Using [Iterable] enables lazy evaluation and efficient processing when
-  /// chaining multiple formatters or applying decorators.
-  Iterable<LogLine> format(final LogEntry entry, final LogContext context);
+  LogDocument format(final LogEntry entry, final LogContext context);
 }
