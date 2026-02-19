@@ -1,0 +1,168 @@
+part of '../handler.dart';
+
+/// A leaf node containing actual text content.
+///
+/// [ContentNode]s hold a list of [StyledText] segments. They represent the
+/// payload of the log, such as the timestamp, severity level, or the message itself.
+@immutable
+sealed class ContentNode extends LogNode {
+  /// Creates a [ContentNode].
+  const ContentNode({
+    required this.segments,
+    super.tags,
+  });
+
+  /// The list of styled text segments that make up this content.
+  final List<StyledText> segments;
+
+  /// Creates a copy of this node with optional new segments or tags.
+  ContentNode copyWith({
+    final List<StyledText>? segments,
+    final Set<LogTag>? tags,
+  });
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is ContentNode &&
+          runtimeType == other.runtimeType &&
+          listEquals(segments, other.segments) &&
+          setEquals(tags, other.tags);
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, Object.hashAll(segments), Object.hashAll(tags));
+
+  @override
+  String toString() => segments.map((final s) => s.text).join();
+}
+
+/// Primary metadata section (timestamp, level, logger).
+final class HeaderNode extends ContentNode {
+  /// Creates a [HeaderNode].
+  const HeaderNode({
+    required super.segments,
+    super.tags = const {LogTag.header},
+  });
+
+  @override
+  HeaderNode copyWith({
+    final List<StyledText>? segments,
+    final Set<LogTag>? tags,
+  }) =>
+      HeaderNode(
+        segments: segments ?? this.segments,
+        tags: tags ?? this.tags,
+      );
+}
+
+/// The main log message.
+final class MessageNode extends ContentNode {
+  /// Creates a [MessageNode].
+  const MessageNode({
+    required super.segments,
+    super.tags = const {LogTag.message},
+  });
+
+  @override
+  MessageNode copyWith({
+    final List<StyledText>? segments,
+    final Set<LogTag>? tags,
+  }) =>
+      MessageNode(
+        segments: segments ?? this.segments,
+        tags: tags ?? this.tags,
+      );
+}
+
+/// Error information.
+final class ErrorNode extends ContentNode {
+  /// Creates an [ErrorNode].
+  const ErrorNode({
+    required super.segments,
+    super.tags = const {LogTag.error},
+  });
+
+  @override
+  ErrorNode copyWith({
+    final List<StyledText>? segments,
+    final Set<LogTag>? tags,
+  }) =>
+      ErrorNode(
+        segments: segments ?? this.segments,
+        tags: tags ?? this.tags,
+      );
+}
+
+/// Supplementary info (origin, stack trace).
+final class FooterNode extends ContentNode {
+  /// Creates a [FooterNode].
+  const FooterNode({required super.segments, super.tags});
+
+  @override
+  FooterNode copyWith({
+    final List<StyledText>? segments,
+    final Set<LogTag>? tags,
+  }) =>
+      FooterNode(
+        segments: segments ?? this.segments,
+        tags: tags ?? this.tags,
+      );
+}
+
+/// Diagnostic metadata sections.
+final class MetadataNode extends ContentNode {
+  /// Creates a [MetadataNode].
+  const MetadataNode({required super.segments, super.tags});
+
+  @override
+  MetadataNode copyWith({
+    final List<StyledText>? segments,
+    final Set<LogTag>? tags,
+  }) =>
+      MetadataNode(
+        segments: segments ?? this.segments,
+        tags: tags ?? this.tags,
+      );
+}
+
+/// A node that fills remaining line width with a character.
+@immutable
+final class FillerNode extends LogNode {
+  /// Creates a [FillerNode].
+  const FillerNode(this.char, {super.tags, this.style});
+
+  /// The character used to fill the space.
+  final String char;
+
+  /// Optional visual style for the filler characters.
+  final LogStyle? style;
+
+  /// Creates a copy of this node with optional new values.
+  FillerNode copyWith({
+    final String? char,
+    final Set<LogTag>? tags,
+    final LogStyle? style,
+  }) =>
+      FillerNode(
+        char ?? this.char,
+        tags: tags ?? this.tags,
+        style: style ?? this.style,
+      );
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is FillerNode &&
+          runtimeType == other.runtimeType &&
+          char == other.char &&
+          setEquals(tags, other.tags) &&
+          style == other.style;
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, char, Object.hashAll(tags), style);
+
+  @override
+  String toString() => char;
+}

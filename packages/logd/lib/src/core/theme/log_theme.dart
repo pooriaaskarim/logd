@@ -47,6 +47,14 @@ enum LogTag {
 
   /// Structural punctuation (e.g. braces, commas, delimiters).
   punctuation,
+
+  /// Optimization hint: Content should not be wrapped by the layout engine.
+  /// Used for machine-readable formats (JSON, TOON) where structure is critical.
+  noWrap,
+
+  /// Semantic hint: Content is suitable for a collapsible/expandable section
+  /// (e.g., <details> in HTML/Markdown).
+  collapsible,
 }
 
 /// Visual style suggestion for a log segment.
@@ -60,6 +68,7 @@ class LogStyle {
     this.dim,
     this.italic,
     this.inverse,
+    this.underline,
   });
 
   /// The suggested foreground color.
@@ -80,6 +89,9 @@ class LogStyle {
   /// Whether the text/background color should be inverted.
   final bool? inverse;
 
+  /// Whether the text should be underlined.
+  final bool? underline;
+
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
@@ -90,11 +102,19 @@ class LogStyle {
           bold == other.bold &&
           dim == other.dim &&
           italic == other.italic &&
-          inverse == other.inverse;
+          inverse == other.inverse &&
+          underline == other.underline;
 
   @override
-  int get hashCode =>
-      Object.hash(color, backgroundColor, bold, dim, italic, inverse);
+  int get hashCode => Object.hash(
+        color,
+        backgroundColor,
+        bold,
+        dim,
+        italic,
+        inverse,
+        underline,
+      );
 }
 
 /// Abstract color definitions for log rendering.
