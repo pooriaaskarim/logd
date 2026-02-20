@@ -26,9 +26,8 @@ abstract base class LogSink<T> {
   Future<void> output(
     final T data,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  });
+    final LogLevel level,
+  );
 
   /// Performs cleanup, such as closing file handles or network connections.
   ///

@@ -30,7 +30,7 @@ final class StyleDecorator extends VisualDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
+    
   ) =>
       document.copyWith(
         nodes: document.nodes

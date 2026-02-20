@@ -80,9 +80,8 @@ abstract base class NetworkSink extends EncodingSink<String> {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     if (!enabled) {
       return;
     }
@@ -193,9 +192,8 @@ base class HttpSink extends NetworkSink {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     if (!enabled || isDisposed) {
       return;
     }
@@ -203,7 +201,7 @@ base class HttpSink extends NetworkSink {
     _ensureActive();
 
     // Use parent's output logic which calls enqueue
-    await super.output(document, entry, level, context: context);
+    await super.output(document, entry, level);
 
     if (_state.buffer.length >= batchSize) {
       _triggerFlush();
@@ -336,15 +334,14 @@ base class SocketSink extends NetworkSink {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     if (!enabled || isDisposed) {
       return;
     }
 
     // Use parent logic to get encoded data and put in buffer
-    await super.output(document, entry, level, context: context);
+    await super.output(document, entry, level);
 
     if (_socketState.isConnected) {
       _drainBuffer();

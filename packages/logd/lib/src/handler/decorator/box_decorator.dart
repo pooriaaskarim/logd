@@ -35,7 +35,7 @@ final class BoxDecorator extends StructuralDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
+    
   ) =>
       document.copyWith(
         nodes: [

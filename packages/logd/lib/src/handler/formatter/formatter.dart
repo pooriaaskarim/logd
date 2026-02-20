@@ -11,5 +11,5 @@ abstract interface class LogFormatter {
   /// Contextual metadata to include in the output.
   final Set<LogMetadata> metadata;
 
-  LogDocument format(final LogEntry entry, final LogContext context);
+  LogDocument format(final LogEntry entry);
 }

@@ -19,7 +19,7 @@ final class PrefixDecorator extends ContentDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
+    
   ) {
     if (prefix.isEmpty) {
       return document;

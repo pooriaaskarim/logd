@@ -25,7 +25,7 @@ final class PlainFormatter implements LogFormatter {
   @override
   LogDocument format(
     final LogEntry entry,
-    final LogContext context,
+    
   ) {
     final nodes = <LogNode>[];
 

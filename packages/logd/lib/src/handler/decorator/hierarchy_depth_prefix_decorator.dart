@@ -23,7 +23,7 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
+    
   ) {
     if (entry.hierarchyDepth <= 0) {
       return document;

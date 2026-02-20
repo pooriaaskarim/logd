@@ -19,7 +19,6 @@ sealed class LogDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
   );
 
   /// Returns the width in terminal cells this decorator adds to each line.

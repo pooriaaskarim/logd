@@ -28,7 +28,7 @@ final class SuffixDecorator extends ContentDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
+    
   ) {
     if (suffix.isEmpty) {
       return document;

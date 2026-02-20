@@ -36,7 +36,7 @@ final class ToonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry, final LogContext context) {
+  LogDocument format(final LogEntry entry) {
     final map = <String, Object?>{};
     final columns = <String>[];
 
@@ -125,7 +125,7 @@ final class ToonPrettyFormatter implements LogFormatter {
   final int maxDepth;
 
   @override
-  LogDocument format(final LogEntry entry, final LogContext context) {
+  LogDocument format(final LogEntry entry) {
     final map = <String, Object?>{};
     final columns = <String>[];
     final tags = <String, LogTag>{};

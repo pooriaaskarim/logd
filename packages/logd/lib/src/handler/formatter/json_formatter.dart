@@ -25,7 +25,7 @@ final class JsonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry, final LogContext context) {
+  LogDocument format(final LogEntry entry) {
     final map = <String, dynamic>{
       'level': entry.level.name,
       'message': entry.message,
@@ -127,7 +127,7 @@ final class JsonPrettyFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry, final LogContext context) {
+  LogDocument format(final LogEntry entry) {
     final map = <String, Object?>{
       'level': entry.level.name,
       'message': entry.message,
@@ -161,14 +161,13 @@ final class JsonPrettyFormatter implements LogFormatter {
     }
 
     return LogDocument(
-      nodes: _buildNodes(map, 0, context: context, fieldTags: fieldTags),
+      nodes: _buildNodes(map, 0, fieldTags: fieldTags),
     );
   }
 
   List<LogNode> _buildNodes(
     final Object? value,
     final int depth, {
-    required final LogContext context,
     final Map<String, LogTag>? fieldTags,
     final String? currentKey,
     final bool isLast = true,
@@ -271,7 +270,6 @@ final class JsonPrettyFormatter implements LogFormatter {
               _buildNodes(
                 processedValue,
                 depth + 1,
-                context: context,
                 fieldTags: fieldTags,
                 isLast: isEntryLast,
               ),
@@ -285,7 +283,6 @@ final class JsonPrettyFormatter implements LogFormatter {
               children: _buildNodes(
                 processedValue,
                 depth + 1,
-                context: context,
                 fieldTags: fieldTags,
                 currentKey: entry.key,
                 isLast: isEntryLast,
@@ -341,7 +338,6 @@ final class JsonPrettyFormatter implements LogFormatter {
             children: _buildNodes(
               processedValue,
               depth + 1,
-              context: context,
               fieldTags: fieldTags,
               isLast: isEntryLast,
             ),

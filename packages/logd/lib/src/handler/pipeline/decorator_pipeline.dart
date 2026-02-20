@@ -24,7 +24,6 @@ class DecoratorPipeline {
   LogDocument apply(
     final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
   ) {
     if (decorators.isEmpty) {
       return document;
@@ -51,7 +50,7 @@ class DecoratorPipeline {
 
     var result = document;
     for (final decorator in sortedDecorators) {
-      result = decorator.decorate(result, entry, context);
+      result = decorator.decorate(result, entry);
     }
 
     return result;
