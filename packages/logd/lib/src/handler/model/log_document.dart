@@ -44,8 +44,14 @@ class LogDocument {
           mapEquals(metadata, other.metadata);
 
   @override
-  int get hashCode =>
-      Object.hash(Object.hashAll(nodes), mapEquals(metadata, metadata));
+  int get hashCode => Object.hash(
+        Object.hashAll(nodes),
+        Object.hashAll(
+          (metadata.entries.toList()
+                ..sort((final a, final b) => a.key.compareTo(b.key)))
+              .map((final e) => Object.hash(e.key, e.value)),
+        ),
+      );
 }
 
 /// The base class for all nodes in a [LogDocument] tree.

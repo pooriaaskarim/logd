@@ -190,8 +190,15 @@ final class MapNode extends LogNode {
           setEquals(tags, other.tags);
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, mapEquals(map, map), Object.hashAll(tags));
+  int get hashCode => Object.hash(
+        runtimeType,
+        Object.hashAll(
+          (map.entries.toList()
+                ..sort((final a, final b) => a.key.compareTo(b.key)))
+              .map((final e) => Object.hash(e.key, e.value)),
+        ),
+        Object.hashAll(tags),
+      );
 
   @override
   String toString() => convert.jsonEncode(map);
