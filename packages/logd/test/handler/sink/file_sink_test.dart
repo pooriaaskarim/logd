@@ -6,6 +6,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/core/context/clock/clock.dart';
 import 'package:logd/src/core/context/context.dart';
 import 'package:logd/src/core/context/io/file_system.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -182,10 +183,19 @@ void main() {
       expect(() => FileSink('dir/'), throwsArgumentError);
     });
 
+    const testEntry = LogEntry(
+      loggerName: 'test',
+      origin: 'main',
+      level: LogLevel.info,
+      message: 'msg',
+      timestamp: '2025-01-01',
+    );
+
     test('output writes to file', () async {
       final sink = FileSink('test.log');
       await sink.output(
         createTestDocument(['Hello', 'World']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -202,6 +212,7 @@ void main() {
       // 10:00 - Log 1
       await sink.output(
         createTestDocument(['Log 1']),
+        testEntry,
         LogLevel.info,
       );
       final file = fs.files['app.log']!;
@@ -211,6 +222,7 @@ void main() {
       clock.set(DateTime(2025, 1, 1, 12, 0));
       await sink.output(
         createTestDocument(['Log 2']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -234,6 +246,7 @@ void main() {
       // '123456' + \n = 7 bytes
       await sink.output(
         createTestDocument(['123456']),
+        testEntry,
         LogLevel.info,
       );
       final file = fs.files['size.log']!;
@@ -242,6 +255,7 @@ void main() {
       // Append 5 bytes ('7890' + \n) -> 12 bytes total > 10 -> Rotate
       await sink.output(
         createTestDocument(['7890']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -274,6 +288,7 @@ void main() {
       // Now trigger rotation
       await sink.output(
         createTestDocument(['trigger']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -295,10 +310,12 @@ void main() {
 
       await sink.output(
         createTestDocument(['data']),
+        testEntry,
         LogLevel.info,
       );
       await sink.output(
         createTestDocument(['rotate']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -323,6 +340,7 @@ void main() {
       // 10:00 - Initial log
       await sink.output(
         createTestDocument(['Initial']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -330,6 +348,7 @@ void main() {
       clock.set(DateTime(2025, 1, 2, 11, 0));
       await sink.output(
         createTestDocument(['Second']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -341,6 +360,7 @@ void main() {
       clock.set(DateTime(2025, 1, 3, 12, 0));
       await sink.output(
         createTestDocument(['Third']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -368,10 +388,12 @@ void main() {
       // Trigger rotation
       await sink.output(
         createTestDocument(['data']),
+        testEntry,
         LogLevel.info,
       );
       await sink.output(
         createTestDocument(['rotate']),
+        testEntry,
         LogLevel.info,
       );
 

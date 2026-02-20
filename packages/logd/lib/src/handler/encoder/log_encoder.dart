@@ -10,48 +10,29 @@ part of '../handler.dart';
 /// - [PlainTextEncoder]: Converts lines to a simple string.
 /// - [AnsiEncoder]: Translates [LogStyle]s to ANSI escape codes.
 /// - [HtmlEncoder]: Translates structure to HTML5 elements.
+/// - [MarkdownEncoder]: Translates structure to Markdown.
+/// - [JsonEncoder]: Produces structured JSON.
+/// - [ToonEncoder]: Produces TOON-formatted rows.
 abstract interface class LogEncoder<T> {
-  /// Encodes the [document] into a format [T].
+  /// Returns the document start (e.g., HTML header or TOON header), if
+  /// applicable.
   ///
-  /// The [level] is provided to allow encoders to style the entire document
-  /// based on severity (e.g. coloring the border of an HTML details
-  /// implementation), though many encoders may ignore it.
+  /// The [document] parameter allows encoders to access metadata (like
+  /// column names or array titles) required for session-level headers.
+  T? preamble(final LogLevel level, {final LogDocument? document}) => null;
+
+  /// Returns the document end (e.g., HTML footer), if applicable.
+  T? postamble(final LogLevel level) => null;
+
+  /// Encodes the [document] into a format [T], using the original [entry] for
+  /// data access.
+  ///
+  /// The [level] is typically derived from entry.level but provided
+  /// explicitly for convenience in styling.
   T encode(
+    final LogEntry entry,
     final LogDocument document,
     final LogLevel level, {
     final int? width,
   });
-}
-
-/// A simple encoder that joins lines with newlines, ignoring styles.
-///
-/// This is the default encoder for file sinks where usually raw text is
-/// preferred over ANSI codes.
-class PlainTextEncoder implements LogEncoder<String> {
-  /// Creates a [PlainTextEncoder].
-  const PlainTextEncoder();
-
-  @override
-  String encode(
-    final LogDocument document,
-    final LogLevel level, {
-    final int? width,
-  }) {
-    if (document.nodes.isEmpty) {
-      return '';
-    }
-
-    // 1. Calculate physical layout
-    final totalWidth = width ?? 80;
-    final layoutEngine = TerminalLayout(width: totalWidth);
-    final physicalDoc = layoutEngine.layout(document, level);
-
-    // 2. Encode
-    final buffer = StringBuffer();
-    for (final line in physicalDoc.lines) {
-      buffer.writeln(line.toString());
-    }
-
-    return buffer.toString().trimRight();
-  }
 }

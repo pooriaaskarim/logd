@@ -167,3 +167,57 @@ final class FillerNode extends LogNode {
   @override
   String toString() => char;
 }
+
+/// A node that carries raw structured data as a mapping.
+///
+/// This is used by formatters that want to pass semantic data to specialized
+/// encoders (like `JsonEncoder`) while allowing fallback rendering by generic
+/// encoders.
+@immutable
+final class MapNode extends LogNode {
+  /// Creates a [MapNode].
+  const MapNode(this.map, {super.tags});
+
+  /// The raw mapping data.
+  final Map<String, Object?> map;
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is MapNode &&
+          runtimeType == other.runtimeType &&
+          mapEquals(map, other.map) &&
+          setEquals(tags, other.tags);
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, mapEquals(map, map), Object.hashAll(tags));
+
+  @override
+  String toString() => convert.jsonEncode(map);
+}
+
+/// A node that carries raw structured data as a list.
+@immutable
+final class ListNode extends LogNode {
+  /// Creates a [ListNode].
+  const ListNode(this.list, {super.tags});
+
+  /// The raw list data.
+  final List<Object?> list;
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is ListNode &&
+          runtimeType == other.runtimeType &&
+          listEquals(list, other.list) &&
+          setEquals(tags, other.tags);
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, Object.hashAll(list), Object.hashAll(tags));
+
+  @override
+  String toString() => convert.jsonEncode(list);
+}

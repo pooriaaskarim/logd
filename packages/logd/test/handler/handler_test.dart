@@ -23,6 +23,7 @@ final class MockSink extends LogSink<LogDocument> {
   @override
   Future<void> output(
     final LogDocument document,
+    final LogEntry entry,
     final LogLevel level, {
     final LogContext? context,
   }) async {

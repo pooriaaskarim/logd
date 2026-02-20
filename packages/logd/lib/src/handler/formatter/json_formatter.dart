@@ -45,19 +45,9 @@ final class JsonFormatter implements LogFormatter {
       map['stackTrace'] = entry.stackTrace.toString();
     }
 
-    final json = jsonEncode(map);
-
     return LogDocument(
       nodes: [
-        ParagraphNode(
-          children: [
-            MessageNode(
-              segments: [
-                StyledText(json, tags: const {}),
-              ],
-            ),
-          ],
-        ),
+        MapNode(map),
       ],
     );
   }
@@ -482,9 +472,9 @@ final class JsonPrettyFormatter implements LogFormatter {
                   a.key.toString().compareTo(b.key.toString()),
             ),
         );
-        return jsonEncode(sortedMap);
+        return convert.jsonEncode(sortedMap);
       }
-      return jsonEncode(value);
+      return convert.jsonEncode(value);
     } else {
       return value.toString();
     }
@@ -500,7 +490,7 @@ final class JsonPrettyFormatter implements LogFormatter {
       return null;
     }
     try {
-      return jsonDecode(trimmed);
+      return convert.jsonDecode(trimmed);
     } catch (_) {
       return null;
     }

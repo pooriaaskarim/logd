@@ -18,11 +18,14 @@ abstract base class LogSink<T> {
 
   /// Outputs the [data] to the destination.
   ///
+  /// The [entry] is the original log entry that produced this data.
+  ///
   /// The [level] indicates the severity of the log entry that produced these
   /// lines, which can be used by the sink for destination-specific logic (e.g.,
   /// using different output streams for errors).
   Future<void> output(
     final T data,
+    final LogEntry entry,
     final LogLevel level, {
     final LogContext? context,
   });

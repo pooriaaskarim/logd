@@ -25,7 +25,7 @@ void main() {
       expect(document.nodes[1], isA<MessageNode>());
 
       const encoder = MarkdownEncoder();
-      final output = encoder.encode(document, LogLevel.info);
+      final output = encoder.encode(entry, document, LogLevel.info);
 
       expect(output, contains('### ℹ️ INFO'));
       expect(output, contains('**Hello Markdown**'));
@@ -53,7 +53,7 @@ void main() {
       expect(document.nodes[3].tags, contains(LogTag.collapsible));
 
       const encoder = MarkdownEncoder();
-      final output = encoder.encode(document, LogLevel.error);
+      final output = encoder.encode(entry, document, LogLevel.error);
 
       expect(output, contains('### ❌ ERROR'));
       expect(output, contains('> [!ERROR]'));

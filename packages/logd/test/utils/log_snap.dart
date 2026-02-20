@@ -17,7 +17,16 @@ class LogSnap {
     final LogEncoder<String> encoder =
         useAnsi ? const AnsiEncoder() : const PlainTextEncoder();
 
-    return encoder.encode(document, level, width: width);
+    // Dummy entry for capture
+    final entry = LogEntry(
+      level: level,
+      message: 'capture',
+      timestamp: DateTime.now().toIso8601String(),
+      loggerName: 'test',
+      origin: 'LogSnap.capture',
+    );
+
+    return encoder.encode(entry, document, level, width: width);
   }
 
   /// Captures the output of a full [Handler] pipeline for a given [entry].
@@ -48,7 +57,7 @@ class LogSnap {
     final LogEncoder<String> encoder =
         useAnsi ? const AnsiEncoder() : const PlainTextEncoder();
 
-    return encoder.encode(sink.lastDocument!, entry.level, width: width);
+    return encoder.encode(entry, sink.lastDocument!, entry.level, width: width);
   }
 }
 
@@ -61,6 +70,7 @@ base class _CaptureSink extends LogSink<LogDocument> {
   @override
   Future<void> output(
     final LogDocument document,
+    final LogEntry entry,
     final LogLevel level, {
     final LogContext? context,
   }) async {

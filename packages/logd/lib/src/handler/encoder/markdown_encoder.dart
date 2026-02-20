@@ -13,7 +13,14 @@ class MarkdownEncoder implements LogEncoder<String> {
   const MarkdownEncoder();
 
   @override
+  String? preamble(final LogLevel level, {final LogDocument? document}) => null;
+
+  @override
+  String? postamble(final LogLevel level) => null;
+
+  @override
   String encode(
+    final LogEntry entry,
     final LogDocument document,
     final LogLevel level, {
     final int? width,

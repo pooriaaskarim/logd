@@ -54,6 +54,16 @@ class TerminalLayout {
         return _renderFiller(n, availableWidth);
       case final RowNode n:
         return _renderRow(n, level, availableWidth);
+      case final MapNode n:
+        return _renderContent(
+          HeaderNode(segments: [StyledText(n.toString())]),
+          availableWidth,
+        );
+      case final ListNode n:
+        return _renderContent(
+          HeaderNode(segments: [StyledText(n.toString())]),
+          availableWidth,
+        );
     }
   }
 

@@ -111,11 +111,12 @@ final class _MemorySink extends LogSink<LogDocument> {
   @override
   Future<void> output(
     final LogDocument document,
+    final LogEntry entry,
     final LogLevel level, {
     final LogContext? context,
   }) async {
     const encoder = PlainTextEncoder();
-    final output = encoder.encode(document, level, width: 80);
+    final output = encoder.encode(entry, document, level, width: 80);
     outputs.add(output.split('\n'));
   }
 }

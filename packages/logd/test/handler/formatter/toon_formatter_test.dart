@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
@@ -17,8 +16,8 @@ void main() {
 
     test('Output header once then rows with TAB delimiter (default)', () {
       const formatter = ToonFormatter();
-
-      final lines = renderLines(formatter.format(entry, mockContext));
+      final doc = formatter.format(entry, mockContext);
+      final lines = renderToon(doc, entry, LogLevel.info);
 
       // Header includes: timestamp,logger,origin,level,message,error,stackTrace
       expect(lines.length, equals(2));
@@ -38,29 +37,14 @@ void main() {
 
     test('Respects custom metadata selection', () {
       const formatter = ToonFormatter(metadata: {LogMetadata.logger});
-      final lines = renderLines(formatter.format(entry, mockContext));
+      final doc = formatter.format(entry, mockContext);
+      final lines = renderToon(doc, entry, LogLevel.info);
 
       expect(
         lines[0],
         equals('logs[]{logger,level,message,error,stackTrace}:'),
       );
       expect(lines[1], equals('test\tINFO\tmsg\t\t'));
-    });
-
-    test('Color=true emits semantic tags in ToonPrettyFormatter', () {
-      const formatter =
-          ToonPrettyFormatter(metadata: {LogMetadata.logger}, color: true);
-      const layout = TerminalLayout(width: 80);
-      final lines = layout
-          .layout(formatter.format(entry, mockContext), LogLevel.info)
-          .lines;
-
-      final row = lines[1];
-      final rowSegs = row.segments;
-
-      expect(rowSegs[0].text, equals('test'));
-      expect(rowSegs[2].tags, contains(LogTag.level));
-      expect(rowSegs[2].text, equals('INFO'));
     });
 
     test('ToonPrettyFormatter recursively formats Map/List', () {
@@ -77,7 +61,8 @@ void main() {
         },
       );
 
-      final lines = renderLines(formatter.format(complexEntry, mockContext));
+      final doc = formatter.format(complexEntry, mockContext);
+      final lines = renderToon(doc, complexEntry, LogLevel.info);
       // INFO \t msg \t {a:1,b:[2,3]} \t
       expect(lines[1], contains('{a:1,b:[2,3]}'));
     });
@@ -93,7 +78,8 @@ void main() {
         error: {'z': 1, 'a': 2},
       );
 
-      final lines = renderLines(formatter.format(complexEntry, mockContext));
+      final doc = formatter.format(complexEntry, mockContext);
+      final lines = renderToon(doc, complexEntry, LogLevel.info);
       expect(lines[1], contains('{a:2,z:1}'));
     });
 
@@ -110,8 +96,24 @@ void main() {
         },
       );
 
-      final lines = renderLines(formatter.format(complexEntry, mockContext));
+      final doc = formatter.format(complexEntry, mockContext);
+      final lines = renderToon(doc, complexEntry, LogLevel.info);
       expect(lines[1], contains('{a:...}'));
     });
   });
+}
+
+List<String> renderToon(
+  final LogDocument doc,
+  final LogEntry entry,
+  final LogLevel level,
+) {
+  const encoder = ToonEncoder();
+  final header = encoder.preamble(level, document: doc);
+  final row = encoder.encode(entry, doc, level);
+
+  return [
+    if (header != null) header,
+    row,
+  ];
 }

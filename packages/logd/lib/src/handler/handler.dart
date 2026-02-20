@@ -2,11 +2,11 @@
 ///
 /// This library defines the [Handler] and the core models for processing
 /// logs. It uses a structured [LogDocument] as the intermediate representation.
-/// 
+///
 library;
 
 import 'dart:async';
-import 'dart:convert';
+import 'dart:convert' as convert;
 import 'dart:io' as io;
 import 'dart:math';
 
@@ -40,10 +40,14 @@ part 'formatter/metadata/log_metadata.dart';
 part 'formatter/plain_formatter.dart';
 part 'formatter/structured_formatter.dart';
 part 'encoder/ansi_encoder.dart';
+part 'encoder/auto_console_encoder.dart';
 part 'encoder/html_encoder.dart';
+part 'encoder/json_encoder.dart';
 part 'encoder/log_encoder.dart';
 part 'encoder/markdown_encoder.dart';
+part 'encoder/plain_text_encoder.dart';
 part 'encoder/terminal_layout.dart';
+part 'encoder/toon_encoder.dart';
 part 'formatter/toon_formatter.dart';
 part 'model/log_content.dart';
 part 'model/log_document.dart';
@@ -55,9 +59,7 @@ part 'encoder/adapter/ansi_encoder_adapter.dart';
 part 'sink/console_sink.dart';
 part 'sink/encoding_sink.dart';
 part 'sink/file_sink.dart';
-part 'sink/html_sink.dart';
 part 'sink/multi_sink.dart';
-part 'sink/markdown_sink.dart';
 part 'sink/network_sink.dart';
 part 'sink/sink.dart';
 
@@ -112,7 +114,7 @@ class Handler {
 
     // 5. Output: Emission
     if (decorated.nodes.isNotEmpty) {
-      await sink.output(decorated, entry.level, context: context);
+      await sink.output(decorated, entry, entry.level, context: context);
     }
   }
 

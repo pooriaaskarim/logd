@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -17,6 +18,14 @@ class MockWebSocketSink extends Mock implements WebSocketSink {}
 void main() {
   const httpUrl = 'https://example.com/logs';
   const wsUrl = 'ws://example.com/logs';
+
+  const testEntry = LogEntry(
+    loggerName: 'test',
+    origin: 'main',
+    level: LogLevel.info,
+    message: 'msg',
+    timestamp: '2025-01-01',
+  );
 
   group('HttpSink', () {
     late MockHttpClient mockClient;
@@ -43,10 +52,12 @@ void main() {
 
       await sink.output(
         createTestDocument(['log1']),
+        testEntry,
         LogLevel.info,
       );
       await sink.output(
         createTestDocument(['log2']),
+        testEntry,
         LogLevel.info,
       );
       verifyNever(
@@ -59,6 +70,7 @@ void main() {
 
       await sink.output(
         createTestDocument(['log3']),
+        testEntry,
         LogLevel.info,
       );
       await Future.delayed(Duration.zero);
@@ -89,6 +101,7 @@ void main() {
 
       await sink.output(
         createTestDocument(['queued']),
+        testEntry,
         LogLevel.info,
       );
       await Future.delayed(const Duration(milliseconds: 100));
@@ -129,6 +142,7 @@ void main() {
 
       await sink.output(
         createTestDocument(['retry-me']),
+        testEntry,
         LogLevel.info,
       );
       await Future.delayed(const Duration(milliseconds: 600));
@@ -158,6 +172,7 @@ void main() {
 
       await sink.output(
         createTestDocument(['instant']),
+        testEntry,
         LogLevel.info,
       );
       await Future.delayed(Duration.zero);
@@ -178,6 +193,7 @@ void main() {
       // don't await because it will block on readyCompleter
       final f = sink.output(
         createTestDocument(['buffered']),
+        testEntry,
         LogLevel.info,
       );
 
@@ -218,14 +234,17 @@ void main() {
 
       await sink.output(
         createTestDocument(['first']),
+        testEntry,
         LogLevel.info,
       );
       await sink.output(
         createTestDocument(['second']),
+        testEntry,
         LogLevel.info,
       );
       await sink.output(
         createTestDocument(['third']),
+        testEntry,
         LogLevel.info,
       ); // Should be dropped
 
@@ -259,6 +278,7 @@ void main() {
 
       await sink.output(
         createTestDocument(['ignored']),
+        testEntry,
         LogLevel.info,
       );
       await Future.delayed(Duration.zero);
@@ -289,6 +309,7 @@ void main() {
 
       await sink.output(
         createTestDocument(['pending']),
+        testEntry,
         LogLevel.info,
       );
       verifyNever(

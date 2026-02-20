@@ -82,6 +82,8 @@ final class StyleDecorator extends VisualDecorator {
         final FillerNode n => n.copyWith(
             style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
           ),
+        final MapNode n => n,
+        final ListNode n => n,
       };
 
   StyledText _styleStyledText(final StyledText s, final LogLevel level) {

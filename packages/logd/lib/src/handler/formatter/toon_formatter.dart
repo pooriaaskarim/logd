@@ -37,54 +37,31 @@ final class ToonFormatter implements LogFormatter {
 
   @override
   LogDocument format(final LogEntry entry, final LogContext context) {
-    final nodes = <LogNode>[];
+    final map = <String, Object?>{};
+    final columns = <String>[];
 
-    // 1. Header
-    final metaNames = metadata.map((final m) => m.name).join(',');
-    const crucialNames = 'level,message,error,stackTrace';
-    final headerStr = '$arrayName[]'
-        '{$metaNames${metaNames.isNotEmpty ? ',' : ''}$crucialNames}:';
-
-    nodes.add(HeaderNode(segments: [StyledText(headerStr)]));
-
-    // 2. Row
-    final segments = <StyledText>[];
-    void add(final String val) {
-      if (segments.isNotEmpty) {
-        segments.add(StyledText(delimiter));
-      }
-      segments.add(StyledText(_escapeRaw(val)));
+    void add(final String key, final Object? value) {
+      columns.add(key);
+      map[key] = value;
     }
 
     for (final meta in metadata) {
-      add(meta.getValue(entry));
+      add(meta.name, meta.getValue(entry));
     }
 
-    add(entry.level.name.toUpperCase());
-    add(entry.message);
-    add(entry.error?.toString() ?? '');
-    add(entry.stackTrace?.toString() ?? '');
+    add('level', entry.level.name.toUpperCase());
+    add('message', entry.message);
+    add('error', entry.error?.toString() ?? '');
+    add('stackTrace', entry.stackTrace?.toString() ?? '');
 
-    nodes.add(MessageNode(segments: segments));
-
-    return LogDocument(nodes: nodes);
-  }
-
-  String _escapeRaw(final String value) {
-    if (value.isEmpty) {
-      return '';
-    }
-    if (!value.contains(delimiter) &&
-        !value.contains('\n') &&
-        !value.contains('\r') &&
-        !value.contains('"') &&
-        !value.contains(':')) {
-      return value;
-    }
-    return '"${value.replaceAll('"', r'\"').replaceAll(
-          '\n',
-          r'\n',
-        ).replaceAll('\r', r'\r')}"';
+    return LogDocument(
+      nodes: [MapNode(map)],
+      metadata: {
+        'toon_array': arrayName,
+        'toon_delimiter': delimiter,
+        'toon_columns': columns,
+      },
+    );
   }
 
   @override
@@ -104,12 +81,7 @@ final class ToonFormatter implements LogFormatter {
 /// A [LogFormatter] for TOON with "Wise" object representation.
 ///
 /// TOON-Pretty enhances basic TOON by recursively formatting complex objects
-/// (Maps and Lists) inside columns using a compact, token-efficient notation:
-/// - Maps: `{key:val,key2:val2}`
-/// - Lists: `[val1,val2]`
-///
-/// It also supports hierarchical metadata tagging for coloring and respects
-/// "Wisdom" principles like key sorting and depth control.
+/// (Maps and Lists) inside columns using a compact, token-efficient notation.
 @immutable
 final class ToonPrettyFormatter implements LogFormatter {
   /// Creates a [ToonPrettyFormatter].
@@ -154,109 +126,39 @@ final class ToonPrettyFormatter implements LogFormatter {
 
   @override
   LogDocument format(final LogEntry entry, final LogContext context) {
-    final nodes = <LogNode>[];
+    final map = <String, Object?>{};
+    final columns = <String>[];
+    final tags = <String, LogTag>{};
 
-    // 1. Header
-    final metaNames = metadata.map((final m) => m.name).join(',');
-    const crucialNames = 'level,message,error,stackTrace';
-    final headerStr = '$arrayName[]'
-        '{$metaNames${metaNames.isNotEmpty ? ',' : ''}$crucialNames}:';
-
-    nodes.add(
-      HeaderNode(
-        segments: [
-          StyledText(headerStr, tags: color ? const {LogTag.header} : const {}),
-        ],
-      ),
-    );
-
-    // 2. Row
-    final segments = <StyledText>[];
-    void add(final Object? val, final LogTag tag) {
-      if (segments.isNotEmpty) {
-        segments.add(
-          StyledText(
-            delimiter,
-            tags: color ? {LogTag.punctuation} : const {},
-          ),
-        );
-      }
-      segments.add(
-        StyledText(_formatValue(val, 0), tags: color ? {tag} : const {}),
-      );
+    void add(final String key, final Object? value, final LogTag tag) {
+      columns.add(key);
+      map[key] = value;
+      tags[key] = tag;
     }
 
     for (final meta in metadata) {
-      add(meta.getValue(entry), meta.tag);
+      add(meta.name, meta.getValue(entry), meta.tag);
     }
 
-    add(entry.level.name.toUpperCase(), LogTag.level);
-    add(entry.message, LogTag.message);
-    add(entry.error, LogTag.error);
-    add(entry.stackTrace, LogTag.stackFrame);
+    add('level', entry.level.name.toUpperCase(), LogTag.level);
+    add('message', entry.message, LogTag.message);
+    add('error', entry.error, LogTag.error);
+    add('stackTrace', entry.stackTrace, LogTag.stackFrame);
 
-    nodes.add(MessageNode(segments: segments));
-
-    return LogDocument(nodes: nodes);
-  }
-
-  String _formatValue(final Object? value, final int depth) {
-    if (value == null) {
-      return '';
-    }
-    if (depth >= maxDepth && (value is Map || value is List)) {
-      return '...';
-    }
-
-    if (value is Map) {
-      final entries = value.entries.toList();
-      if (sortKeys) {
-        entries.sort(
-          (final a, final b) => a.key.toString().compareTo(b.key.toString()),
-        );
-      }
-      final items = entries
-          .map(
-            (final e) => '${_formatValue(e.key, depth + 1)}:${_formatValue(
-              e.value,
-              depth + 1,
-            )}',
-          )
-          .join(',');
-      return '{$items}';
-    } else if (value is List) {
-      final items =
-          value.map((final e) => _formatValue(e, depth + 1)).join(',');
-      return '[$items]';
-    }
-
-    return _escape(value.toString());
-  }
-
-  String _escape(final String value) {
-    if (value.isEmpty) {
-      return '';
-    }
-    final hasDelimiter = value.contains(delimiter);
-    final hasNewline = value.contains('\n') || value.contains('\r');
-    final hasSpecial = value.contains('{') ||
-        value.contains('}') ||
-        value.contains('[') ||
-        value.contains(']') ||
-        value.contains(':') ||
-        value.contains(',');
-
-    if (!hasDelimiter && !hasNewline && !hasSpecial && !value.contains('"')) {
-      return value;
-    }
-
-    return '"${value.replaceAll('"', r'\"').replaceAll(
-          '\n',
-          r'\n',
-        ).replaceAll(
-          '\r',
-          r'\r',
-        )}"';
+    return LogDocument(
+      nodes: [
+        MapNode(map, tags: color ? {LogTag.message} : const {}),
+      ],
+      metadata: {
+        'toon_array': arrayName,
+        'toon_delimiter': delimiter,
+        'toon_columns': columns,
+        'toon_tags': tags,
+        'toon_sort_keys': sortKeys,
+        'toon_max_depth': maxDepth,
+        'toon_color': color,
+      },
+    );
   }
 
   @override

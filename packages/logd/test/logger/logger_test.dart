@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -395,6 +396,7 @@ base class FailingSink extends LogSink<LogDocument> {
   @override
   Future<void> output(
     final LogDocument document,
+    final LogEntry entry,
     final LogLevel level, {
     final LogContext? context,
   }) async {
@@ -408,13 +410,14 @@ base class _MemorySink extends LogSink<LogDocument> {
   @override
   Future<void> output(
     final LogDocument document,
+    final LogEntry entry,
     final LogLevel level, {
     final LogContext? context,
   }) async {
     // For tests, we convert back to lines but without wrapping logic,
     // reflecting how it was designed to be captured.
     const encoder = PlainTextEncoder();
-    final output = encoder.encode(document, level, width: 80);
+    final output = encoder.encode(entry, document, level, width: 80);
     outputs.add(output.split('\n'));
   }
 }

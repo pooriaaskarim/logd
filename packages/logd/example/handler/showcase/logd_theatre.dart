@@ -33,10 +33,13 @@ void main() async {
     ),
   );
 
-  const htmlSink =
-      HTMLSink(filePath: '$basePath/dashboard.html', darkMode: true);
-  const htmlHandler = Handler(
-    formatter: StructuredFormatter(),
+  final htmlSink = FileSink(
+    '$basePath/dashboard.html',
+    encoder: const HtmlEncoder(darkMode: true),
+    strategy: WrappingStrategy.document,
+  );
+  final htmlHandler = Handler(
+    formatter: const StructuredFormatter(),
     sink: htmlSink,
   );
 
@@ -120,7 +123,7 @@ void main() async {
   await Future.delayed(const Duration(milliseconds: 500));
 
   // Finalize sinks
-  await htmlSink.close();
+  await htmlSink.dispose();
 
   print('\n✅ Showcase Complete!');
   print('-----------------------------------------');

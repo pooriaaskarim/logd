@@ -1,15 +1,23 @@
 # Changelog
 
-## 0.6.5: Geometric Decoupling & "Wise" Formatting Engine
+## 0.6.5: Semantic Encoding & Architectural Inversion
 
 - ### Breaking Changes (Phase 8)
   - **Ownership Migration**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic. Existing code passing `lineLength` to `Handler` must migrate to sink-level configuration.
   - **Geometric Cleanup**: Removed `availableWidth`, `totalWidth`, and `contentLimit` from `LogContext` and `Handler`. Geometric metadata is now handled late at the emission stage.
 
-- ### Architectural Refactor (Phase 8-12)
-  - **Geometric Decoupling**: Fully decoupled formatters and decorators from physical terminal constraints. Formatters are now "Semantic Authors", while `LogSink`s act as "Physical Publishers".
-  - **Multi-Backend Efficiency**: Re-engineered `Handler.log` to formulate and decorate the `LogDocument` exactly once, broadcasting the single result to all attached sinks—dramatically reducing costs for multi-sink configurations.
-  - **Semantic Wrapping Engine**: Introduced a tiered wrapping logic that preserves semantic tags (colors, styles) across line breaks and handles TAB-aware indentation (8-cell stops).
+- ### Semantic Encoding Inversion (Phase 9)
+  - **Intent vs. Serialization**: Decoupled formatting intent from physical serialization. Formatters (`JsonFormatter`, `ToonFormatter`) now produce semantic Intermediate Representation (IR) via `LogDocument`, `MapNode`, and `ListNode`.
+  - **Protocol-Agnostic Sinks**: Refactored `EncodingSink`, `HttpSink`, and `SocketSink` to be protocol-agnostic. They now delegate serialization to interchangeable `LogEncoder`s.
+  - **Specialized Encoders**:
+    - **`JsonEncoder`**: High-performance serialization of semantic nodes into structured JSON.
+    - **`ToonEncoder`**: Implements the Token-Oriented Object Notation protocol with metadata-aware headers and recursive row escaping.
+    - **`AnsiEncoder`**: Translates `LogStyle` metadata into ANSI escape codes, supporting "Style-Aware Wrapping" through `TerminalLayout`.
+
+- ### Internal Modularity & Consistency
+  - **Encoder Extraction**: Refactored the encoder directory, extracting individual implementations into dedicated files (`json_encoder.dart`, `toon_encoder.dart`, `plain_text_encoder.dart`, `auto_console_encoder.dart`) for improved maintainability.
+  - **Naming Standardization**: Renamed `LogJsonEncoder` to `JsonEncoder` for library-wide consistency. Resolved naming conflicts with `dart:convert` via a unified internal `convert` prefix.
+  - **Project-Wide Literacy**: Synchronized all documentation (`architecture.md`, `philosophy.md`, `README.md`) and docstrings with the new Semantic Encoding paradigm.
 
 - ### "Wise" Object Representation (Phase 13-17)
   - **JsonPrettyFormatter Evolution**:
@@ -21,10 +29,9 @@
     - `ToonPrettyFormatter`: A "Wise" human-readable version with recursive serialization, sorting, and depth-sensing.
 
 - ### Improvements & Fixes
-  - **Project-Wide Literacy**: Synchronized all internal docstrings with the "Width-Agnostic" paradigm and refined nomenclature across the codebase.
   - **Narrow-Terminal Resilience**: Enhanced fallback logic for layouts as narrow as 12-20 characters.
   - **ANSI Visible Length**: Improved accuracy of width calculations for complex ANSI sequences and double-width characters.
-  - **Lint Resolution**: Resolved all project-wide analyzer warnings, including `avoid_dynamic_calls` and `parameter_assignments`.
+
 
 ## 0.6.4: LogBuffer Enhancements & Project-Wide Refactor
 - ### LogBuffer Enhancement & Safety
