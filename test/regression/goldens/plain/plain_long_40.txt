@@ -1,0 +1,5 @@
+[WARNING] 2025-01-01 12:00:01 [LongSnap]
+
+A very long message that should trigger
+wrapping across multiple lines to verify
+structural integrity and spacing.

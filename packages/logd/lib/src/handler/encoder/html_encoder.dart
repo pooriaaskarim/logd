@@ -60,21 +60,100 @@ ${_css()}
   }
 
   void _renderNode(final StringBuffer buffer, final LogNode node) {
-    if (node is ParagraphNode) {
-      _renderContainer(buffer, node.children, node.tags, 'div');
-    } else if (node is GroupNode) {
-      _renderContainer(buffer, node.children, node.tags, 'div');
-    } else if (node is IndentationNode) {
-      for (final child in node.children) {
-        _renderNode(buffer, child);
-      }
-    } else if (node is DecoratedNode) {
-      for (final child in node.children) {
-        _renderNode(buffer, child);
-      }
-    } else if (node is ContentNode) {
-      _renderContent(buffer, node);
+    switch (node) {
+      case BoxNode():
+        _renderBox(buffer, node);
+      case IndentationNode():
+        _renderIndentation(buffer, node);
+      case DecoratedNode():
+        _renderDecorated(buffer, node);
+      case RowNode():
+        _renderRow(buffer, node);
+      case FillerNode():
+        _renderFiller(buffer);
+      case ParagraphNode():
+        _renderContainer(buffer, node.children, node.tags, 'p');
+      case GroupNode():
+        _renderContainer(buffer, node.children, node.tags, 'div');
+      case MapNode():
+        buffer.write('<pre class="log-line log-map">');
+        buffer.write(_escapeHtml(node.toString()));
+        buffer.writeln('</pre>');
+      case ListNode():
+        buffer.write('<pre class="log-line log-list">');
+        buffer.write(_escapeHtml(node.toString()));
+        buffer.writeln('</pre>');
+      case ContentNode():
+        buffer.write('<p class="log-line">');
+        _renderContent(buffer, node);
+        buffer.writeln('</p>');
     }
+  }
+
+  void _renderBox(final StringBuffer buffer, final BoxNode node) {
+    buffer.write('<fieldset class="log-box">');
+    if (node.title != null) {
+      final titleClasses = _getClasses(node.title!.tags, isContainer: false);
+      buffer.write('<legend');
+      if (titleClasses.isNotEmpty) {
+        buffer.write(' class="$titleClasses"');
+      }
+      buffer.write('>${_escapeHtml(node.title!.text)}</legend>');
+    }
+    for (final child in node.children) {
+      _renderNode(buffer, child);
+    }
+    buffer.writeln('</fieldset>');
+  }
+
+  void _renderIndentation(
+    final StringBuffer buffer,
+    final IndentationNode node,
+  ) {
+    buffer.write('<blockquote class="log-indent">');
+    for (final child in node.children) {
+      _renderNode(buffer, child);
+    }
+    buffer.writeln('</blockquote>');
+  }
+
+  void _renderDecorated(final StringBuffer buffer, final DecoratedNode node) {
+    buffer.write('<div class="log-decorated">');
+    final leading = node.leading;
+    if (leading != null && leading.isNotEmpty) {
+      buffer.write('<span class="log-leading" aria-hidden="true">');
+      for (final segment in leading) {
+        final classes = _getClasses(segment.tags, isContainer: false);
+        final text = _escapeHtml(segment.text);
+        if (classes.isNotEmpty) {
+          buffer.write('<span class="$classes">$text</span>');
+        } else {
+          buffer.write(text);
+        }
+      }
+      buffer.write('</span>');
+    }
+    buffer.write('<div class="log-decorated-content">');
+    for (final child in node.children) {
+      _renderNode(buffer, child);
+    }
+    buffer
+      ..writeln('</div>')
+      ..writeln('</div>');
+  }
+
+  void _renderRow(final StringBuffer buffer, final RowNode node) {
+    buffer.write('<div class="log-row">');
+    for (final child in node.children) {
+      buffer.write('<span class="log-row-cell">');
+      _renderNode(buffer, child);
+      buffer.write('</span>');
+    }
+    buffer.writeln('</div>');
+  }
+
+  void _renderFiller(final StringBuffer buffer) {
+    buffer.writeln('<hr class="log-filler" aria-hidden="true">');
   }
 
   void _renderContainer(
@@ -238,6 +317,58 @@ ${_css()}
     .stack-frame {
       margin: 0.15rem 0;
       font-family: monospace;
+    }
+    /* --- Layout node elements --- */
+    fieldset.log-box {
+      border: 1px solid ${darkMode ? '#4b5563' : '#d1d5db'};
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      margin: 0.25rem 0;
+    }
+    fieldset.log-box legend {
+      font-size: 0.85em;
+      font-weight: 600;
+      padding: 0 0.25rem;
+      opacity: 0.8;
+    }
+    blockquote.log-indent {
+      margin: 0.1rem 0 0.1rem 1.5rem;
+      padding: 0;
+      border-left: 2px solid ${darkMode ? '#4b5563' : '#d1d5db'};
+      padding-left: 0.5rem;
+    }
+    .log-decorated {
+      display: flex;
+      gap: 0.25rem;
+      align-items: flex-start;
+    }
+    .log-leading {
+      flex-shrink: 0;
+      opacity: 0.6;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+    .log-decorated-content {
+      flex: 1;
+    }
+    .log-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      align-items: baseline;
+    }
+    .log-row-cell {
+      display: inline-block;
+    }
+    hr.log-filler {
+      border: none;
+      border-top: 1px solid ${darkMode ? '#4b5563' : '#d1d5db'};
+      margin: 0.25rem 0;
+    }
+    p.log-line {
+      margin: 0.1rem 0;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     ''';
   }
