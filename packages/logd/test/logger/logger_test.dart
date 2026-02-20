@@ -397,9 +397,8 @@ base class FailingSink extends LogSink<LogDocument> {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     throw Exception('Simulated failure');
   }
 }
@@ -411,9 +410,8 @@ base class _MemorySink extends LogSink<LogDocument> {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     // For tests, we convert back to lines but without wrapping logic,
     // reflecting how it was designed to be captured.
     const encoder = PlainTextEncoder();

@@ -2,7 +2,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
-import 'mock_context.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('LogColorScheme Tag-Specific Overrides', () {
@@ -114,7 +114,7 @@ void main() {
         ],
       );
 
-      final decorated = decorator.decorate(doc, infoEntry, mockContext);
+      final decorated = decorator.decorate(doc, infoEntry);
       final rendered = renderLines(decorated);
 
       // Rendered output might be split or joined depending on layout.

@@ -2,7 +2,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
-import 'mock_context.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('StyleDecorator', () {
@@ -20,7 +20,6 @@ void main() {
       final decorated = decorator.decorate(
         createTestDocument(lines),
         infoEntry,
-        mockContext,
       );
       final rendered = renderLines(decorated);
 
@@ -50,7 +49,6 @@ void main() {
         decorator.decorate(
           createTestDocument(['msg']),
           infoEntry,
-          mockContext,
         ),
       ).first;
       final error = renderLines(
@@ -63,7 +61,6 @@ void main() {
             message: 'msg',
             timestamp: 'now',
           ),
-          mockContext,
         ),
       ).first;
       final warning = renderLines(
@@ -76,7 +73,6 @@ void main() {
             message: 'msg',
             timestamp: 'now',
           ),
-          mockContext,
         ),
       ).first;
 
@@ -109,7 +105,6 @@ void main() {
       final decorated = decorator.decorate(
         headerDoc,
         infoEntry,
-        mockContext,
       );
       final rendered = renderLines(decorated);
 

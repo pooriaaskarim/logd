@@ -31,9 +31,8 @@ class MultiSinkBenchmark extends BenchmarkBase {
 
   void _manualPipelineRun() {
     // ... setup context ...
-    final context = const LogContext();
 
-    final document = handler.formatter.format(entry, context);
+    final document = handler.formatter.format(entry);
 
     // Simulate MultiSink behavior
     for (var i = 0; i < sinkCount; i++) {

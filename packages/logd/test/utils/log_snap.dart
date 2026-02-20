@@ -71,9 +71,8 @@ base class _CaptureSink extends LogSink<LogDocument> {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     lastDocument = document;
   }
 }

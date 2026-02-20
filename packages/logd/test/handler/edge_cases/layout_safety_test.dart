@@ -9,7 +9,6 @@ void main() {
   group('Layout & Encoding Safety', () {
     test('Unicode and Emoji handle widths correctly in BoxDecorator', () {
       const box = BoxDecorator(borderStyle: BorderStyle.rounded);
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -20,7 +19,7 @@ void main() {
 
       final lines = ['你好世界 🌍', 'ASCII Test'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry, context);
+      final decorated = box.decorate(doc, entry);
 
       const layout = TerminalLayout(width: 40);
       final result = layout.layout(decorated, LogLevel.info).lines;
@@ -37,7 +36,6 @@ void main() {
 
     test('ANSI preservation across wrapping in BoxDecorator', () {
       const box = BoxDecorator(borderStyle: BorderStyle.double);
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -49,7 +47,7 @@ void main() {
       // Colored message
       final lines = ['\x1B[31mThis is red\x1B[0m'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry, context);
+      final decorated = box.decorate(doc, entry);
 
       const layout = TerminalLayout(width: 20);
       final result = layout.layout(decorated, LogLevel.info).lines;
@@ -62,7 +60,6 @@ void main() {
 
     test('Very long words without spaces are forced to wrap', () {
       const formatter = StructuredFormatter();
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -71,7 +68,7 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final doc = formatter.format(entry, context);
+      final doc = formatter.format(entry);
       const layout = TerminalLayout(width: 20);
       final lines = layout.layout(doc, LogLevel.info).lines;
       for (final line in lines) {

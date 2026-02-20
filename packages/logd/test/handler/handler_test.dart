@@ -12,7 +12,7 @@ class MockFormatter implements LogFormatter {
 
   final LogDocument Function(LogEntry) formatFn;
   @override
-  LogDocument format(final LogEntry entry, final LogContext context) =>
+  LogDocument format(final LogEntry entry) =>
       formatFn(entry);
 }
 
@@ -24,9 +24,8 @@ final class MockSink extends LogSink<LogDocument> {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     outputs.add(renderLines(document));
     levels.add(level);
   }

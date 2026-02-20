@@ -10,7 +10,6 @@ void main() {
     test('appends fixed suffix to each log line (alignToEnd: false)', () {
       const suffix = ' [SUFFIX]';
       const decorator = SuffixDecorator(suffix, aligned: false);
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -21,7 +20,7 @@ void main() {
 
       final lines = ['line 1', 'line 2'];
       final doc = createTestDocument(lines);
-      final decoratedDoc = decorator.decorate(doc, entry, context);
+      final decoratedDoc = decorator.decorate(doc, entry);
 
       const layout = TerminalLayout(width: 80);
       final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
@@ -35,7 +34,6 @@ void main() {
       const suffix = '!!';
       const decorator = SuffixDecorator(suffix, aligned: true);
       // Total area is 20. Suffix is 2. Formatter gets 18.
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -46,7 +44,7 @@ void main() {
 
       final lines = ['12345']; // Length 5
       final doc = createTestDocument(lines);
-      final decoratedDoc = decorator.decorate(doc, entry, context);
+      final decoratedDoc = decorator.decorate(doc, entry);
 
       const layout = TerminalLayout(width: 20);
       final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
@@ -75,7 +73,6 @@ void main() {
       const box = BoxDecorator();
       const suffix = ' !!';
       const decorator = SuffixDecorator(suffix, aligned: false);
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -88,8 +85,8 @@ void main() {
       // StructuralDecorator (Box)
       final lines = ['test'];
       final suffixed =
-          decorator.decorate(createTestDocument(lines), entry, context);
-      final boxedDoc = box.decorate(suffixed, entry, context);
+          decorator.decorate(createTestDocument(lines), entry);
+      final boxedDoc = box.decorate(suffixed, entry);
 
       const layout = TerminalLayout(width: 22);
       final boxed = layout.layout(boxedDoc, LogLevel.info).lines;

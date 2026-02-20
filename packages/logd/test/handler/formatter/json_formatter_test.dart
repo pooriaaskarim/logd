@@ -4,7 +4,6 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import '../decorator/mock_context.dart';
 
 void main() {
   group('JsonFormatter', () {
@@ -18,7 +17,7 @@ void main() {
 
     test('outputs compact JSON with default metadata', () {
       const formatter = JsonFormatter();
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
       final lines = render(doc);
 
       expect(lines.length, equals(1));
@@ -50,7 +49,7 @@ void main() {
       );
 
       const formatter = JsonFormatter(metadata: {});
-      final doc = formatter.format(errorEntry, mockContext);
+      final doc = formatter.format(errorEntry);
       final lines = render(doc);
 
       expect(lines.length, equals(1));
@@ -79,7 +78,7 @@ void main() {
 
     test('outputs formatted JSON with indentation', () {
       const formatter = JsonPrettyFormatter();
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
       final lines = render(doc);
 
       expect(lines.length, greaterThan(1));
@@ -104,7 +103,7 @@ void main() {
 
     test('emits semantic tags when color is true', () {
       const formatter = JsonPrettyFormatter(color: true);
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
       final lines =
           const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
 
@@ -144,7 +143,7 @@ void main() {
       const formatter = JsonFormatter(
         metadata: {LogMetadata.timestamp},
       );
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
       final lines = render(doc);
 
       final json = lines.first;
@@ -164,7 +163,7 @@ void main() {
 
     test('empty metadata list still includes level and message', () {
       const formatter = JsonFormatter(metadata: {});
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
       final lines = render(doc);
 
       final json = lines.first;
@@ -187,7 +186,7 @@ void main() {
 
     test('default does not use noWrap tag', () {
       const formatter = JsonFormatter();
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
       final lines =
           const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
       final segment = lines.first.segments.first;

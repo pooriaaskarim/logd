@@ -1,7 +1,8 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import 'mock_context.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('BoxDecorator', () {
@@ -19,7 +20,6 @@ void main() {
       final boxed = decorator.decorate(
         createTestDocument(lines),
         entry,
-        const LogContext(),
       );
       final rendered = renderLines(boxed);
 
@@ -36,7 +36,6 @@ void main() {
       final boxed = decorator.decorate(
         createTestDocument(lines),
         entry,
-        const LogContext(),
       );
       final rendered = renderLines(boxed);
 
@@ -51,7 +50,6 @@ void main() {
       final boxed = decorator.decorate(
         createTestDocument(lines),
         entry,
-        const LogContext(),
       );
       final rendered = renderLines(boxed);
 

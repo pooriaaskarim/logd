@@ -44,7 +44,6 @@ void main() {
               test('Width: $width', () {
                 final doc = formatter.format(
                   currentEntry,
-                  const LogContext(),
                 );
 
                 final output = LogSnap.capture(
@@ -83,6 +82,66 @@ void main() {
           });
         }
       });
+    }
+  });
+
+  group('Html Goldens (Baseline)', () {
+    const entry = LogEntry(
+      loggerName: 'HtmlTest',
+      origin: 'html.dart:5:1',
+      level: LogLevel.info,
+      message: 'Html golden message for regression.',
+      timestamp: '2025-01-01 12:00:00',
+    );
+
+    const errorEntry = LogEntry(
+      loggerName: 'HtmlTest',
+      origin: 'html.dart:10:1',
+      level: LogLevel.error,
+      message: 'An error occurred during processing.',
+      timestamp: '2025-01-01 12:00:05',
+    );
+
+    const encoder = HtmlEncoder(darkMode: true);
+
+    final htmlFormatters = {
+      'plain': const PlainFormatter(),
+      'structured': const StructuredFormatter(),
+      'toon': const ToonFormatter(),
+    };
+
+    for (final testEntry in {'standard': entry, 'error': errorEntry}.entries) {
+      final entryName = testEntry.key;
+      final currentEntry = testEntry.value;
+
+      for (final fEntry in htmlFormatters.entries) {
+        final formatterName = fEntry.key;
+        final formatter = fEntry.value;
+
+        test('HtmlEncoder $formatterName $entryName', () {
+          final doc = formatter.format(currentEntry);
+          final html = encoder.encode(currentEntry, doc, currentEntry.level);
+
+          final fileName = 'html_${formatterName}_$entryName.html';
+          final file = File(
+            'test/regression/goldens/html/$fileName',
+          );
+
+          if (!file.existsSync()) {
+            file.parent.createSync(recursive: true);
+            file.writeAsStringSync(html);
+            print('Generated HTML golden: ${file.path}');
+          } else {
+            final expected = file.readAsStringSync();
+            expect(
+              html,
+              expected,
+              reason: 'HTML output mismatch for $formatterName | $entryName. '
+                  'If intentional, delete the golden file and re-run.',
+            );
+          }
+        });
+      }
     }
   });
 }

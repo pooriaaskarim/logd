@@ -10,7 +10,6 @@ void main() {
         'not break the box', () {
       const formatter = PlainFormatter();
       const box = BoxDecorator();
-      const context = LogContext();
 
       const entry = LogEntry(
         loggerName: 'test',
@@ -22,8 +21,8 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = formatter.format(entry, context);
-      final boxed = box.decorate(formatted, entry, context);
+      final formatted = formatter.format(entry);
+      final boxed = box.decorate(formatted, entry);
 
       const layout = TerminalLayout(width: 40);
       final physical = layout.layout(boxed, LogLevel.info);
@@ -49,7 +48,6 @@ void main() {
         'wrap internal content', () {
       const formatter = JsonFormatter();
       const box = BoxDecorator();
-      const context = LogContext();
 
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_will_push_json_over_the_limit',
@@ -59,8 +57,8 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = formatter.format(entry, context);
-      final boxed = box.decorate(formatted, entry, context);
+      final formatted = formatter.format(entry);
+      final boxed = box.decorate(formatted, entry);
 
       const layout = TerminalLayout(width: 30);
       final physical = layout.layout(boxed, LogLevel.info);

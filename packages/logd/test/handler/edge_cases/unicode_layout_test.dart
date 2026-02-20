@@ -72,9 +72,8 @@ final class MemorySink extends LogSink<LogDocument> {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     const encoder = AnsiEncoder();
     final output =
         encoder.encode(entry, document, level, width: preferredWidth);

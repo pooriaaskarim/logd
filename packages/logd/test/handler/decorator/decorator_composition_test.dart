@@ -1,7 +1,8 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import 'mock_context.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('Decorator Composition', () {
@@ -18,8 +19,8 @@ void main() {
       const box = BoxDecorator();
       const color = StyleDecorator();
 
-      final boxed = box.decorate(createTestDocument(lines), entry, mockContext);
-      final colored = color.decorate(boxed, entry, mockContext);
+      final boxed = box.decorate(createTestDocument(lines), entry);
+      final colored = color.decorate(boxed, entry);
       final rendered = renderLines(colored);
 
       // Should have top border, 2 content lines, bottom border = 4 lines
@@ -42,9 +43,8 @@ void main() {
       const color = StyleDecorator();
       const box = BoxDecorator();
 
-      final colored =
-          color.decorate(createTestDocument(lines), entry, mockContext);
-      final boxed = box.decorate(colored, entry, mockContext);
+      final colored = color.decorate(createTestDocument(lines), entry);
+      final boxed = box.decorate(colored, entry);
       final rendered = renderLines(boxed);
 
       expect(rendered.length, equals(4));
@@ -69,15 +69,13 @@ void main() {
       const decorator2 = PrefixDecorator('P2: ');
 
       final result = decorator2.decorate(
-        decorator1.decorate(createTestDocument(['msg']), entry, mockContext),
+        decorator1.decorate(createTestDocument(['msg']), entry),
         entry,
-        mockContext,
       );
 
       // Note: PrefixDecorator adds header LogSegment, LogLine.toString() joins
       // them.
       // renderLines also joins them.
-      // If mockContext.supportsAnsi is true, and header is colored?
       // PrefixDecorator uses `LogTag.header`. StyleDecorator is NOT involved
       // here?
       // Wait, PrefixDecorator assigns `tags: {LogTag.header}`.
@@ -92,9 +90,8 @@ void main() {
       const color = StyleDecorator();
       const box = BoxDecorator();
 
-      final colored =
-          color.decorate(createTestDocument(['abc']), entry, mockContext);
-      final boxed = box.decorate(colored, entry, mockContext);
+      final colored = color.decorate(createTestDocument(['abc']), entry);
+      final boxed = box.decorate(colored, entry);
       final rendered = renderLines(boxed);
 
       final middleLine = rendered[1]; // Use rendered string for check
@@ -135,10 +132,9 @@ void main() {
       // Pipeline execution
       // Pipeline execution: Box -> Color -> Hierarchy to ensure borders are
       // colored
-      final s1 =
-          box.decorate(createTestDocument(lines), deepEntry, mockContext);
-      final s2 = ansi.decorate(s1, deepEntry, mockContext);
-      final finalOutput = hierarchy.decorate(s2, deepEntry, mockContext);
+      final s1 = box.decorate(createTestDocument(lines), deepEntry);
+      final s2 = ansi.decorate(s1, deepEntry);
+      final finalOutput = hierarchy.decorate(s2, deepEntry);
       final rendered = renderLines(finalOutput);
 
       expect(rendered.length, equals(4));

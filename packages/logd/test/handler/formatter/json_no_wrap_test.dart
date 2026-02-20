@@ -16,11 +16,10 @@ void main() {
       );
 
       // Width 10 is very small.
-      const narrowContext = LogContext();
 
       const layout = TerminalLayout(width: 10);
       final lines = layout
-          .layout(formatter.format(entryLong, narrowContext), LogLevel.info)
+          .layout(formatter.format(entryLong), LogLevel.info)
           .lines;
 
       // Because it wraps paragraph-style, it might produce multiple lines

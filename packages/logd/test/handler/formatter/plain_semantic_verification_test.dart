@@ -3,8 +3,6 @@ import 'package:logd/src/handler/handler.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
-import '../decorator/mock_context.dart';
-
 void main() {
   group('PlainFormatter Semantic Verification', () {
     // A standard entry with a long message
@@ -20,7 +18,7 @@ void main() {
 
     test('maintains hanging indent in normal conditions', () {
       const formatter = PlainFormatter();
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
 
       // Use TerminalLayout directly to verify output
       const layout = TerminalLayout(width: 60);
@@ -45,7 +43,7 @@ void main() {
 
     test('falls back to vertical stack in narrow width', () {
       const formatter = PlainFormatter();
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
 
       // Force narrow width where header (31 chars) > available width (30)
       const layout = TerminalLayout(width: 30);

@@ -10,12 +10,8 @@ final class NullSink extends LogSink<LogDocument> {
   const NullSink();
 
   @override
-  Future<void> output(
-    final LogDocument document,
-    final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+  Future<void> output(final LogDocument document, final LogEntry entry,
+      final LogLevel level) async {
     // Consume nodes to force evaluation if lazy (nodes are List, so mostly instant)
     for (final _ in document.nodes) {}
   }
@@ -48,13 +44,11 @@ abstract class PipelineBenchmark extends BenchmarkBase {
     final formatter = handler.formatter;
     final decorators = handler.decorators;
 
-    final context = const LogContext();
-
-    var document = formatter.format(entry, context);
+    var document = formatter.format(entry);
 
     // Decorate
     for (final decorator in decorators) {
-      document = decorator.decorate(document, entry, context);
+      document = decorator.decorate(document, entry);
     }
 
     if (document.nodes.isNotEmpty) {

@@ -4,7 +4,6 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import '../decorator/mock_context.dart';
 
 void main() {
   group('Null Safety & Empty Handling', () {
@@ -21,7 +20,7 @@ void main() {
         stackTrace: null,
       );
 
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
       const layout = TerminalLayout(width: 80);
       final lines = layout.layout(doc, LogLevel.info).lines;
       expect(lines, isNotEmpty);
@@ -31,7 +30,6 @@ void main() {
     test('StructuredFormatter handles very long logger name by wrapping header',
         () {
       const formatter = StructuredFormatter();
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_exceeds_line_length',
         origin: 'test',
@@ -40,7 +38,7 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final doc = formatter.format(entry, context);
+      final doc = formatter.format(entry);
       const layout = TerminalLayout(width: 40);
       final lines = layout.layout(doc, LogLevel.info).lines;
       expect(lines, isNotEmpty);
@@ -71,11 +69,10 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      const context = LogContext();
-      final formatted = handler.formatter.format(entry, context);
+      final formatted = handler.formatter.format(entry);
       var document = formatted;
       for (final decorator in handler.decorators) {
-        document = decorator.decorate(document, entry, context);
+        document = decorator.decorate(document, entry);
       }
       // Use TerminalLayout
       const layout = TerminalLayout(width: 40);
@@ -97,7 +94,7 @@ void main() {
         error: null,
       );
 
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
       const layout = TerminalLayout(width: 80);
       final lines = layout.layout(doc, LogLevel.info).lines;
       final json = lines.map((final l) => l.toString()).join('\n');

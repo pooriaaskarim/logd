@@ -17,7 +17,6 @@ void main() {
 
       final document = formatter.format(
         entry,
-        const LogContext(),
       );
 
       expect(document.nodes, hasLength(2));
@@ -44,7 +43,6 @@ void main() {
 
       final document = formatter.format(
         entry,
-        const LogContext(),
       );
 
       expect(document.nodes, hasLength(4));

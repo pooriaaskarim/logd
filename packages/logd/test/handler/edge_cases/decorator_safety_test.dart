@@ -59,7 +59,6 @@ void main() {
 
     test('BoxDecorator handles very small lineLength', () {
       const box = BoxDecorator();
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -70,7 +69,7 @@ void main() {
 
       final lines = ['very long message that exceeds 5 chars'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry, context);
+      final decorated = box.decorate(doc, entry);
 
       const layout = TerminalLayout(width: 5);
       final boxed = layout.layout(decorated, LogLevel.info).lines;
@@ -84,7 +83,6 @@ void main() {
 
     test('BoxDecorator handles lines with only ANSI codes', () {
       const box = BoxDecorator();
-      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -95,7 +93,7 @@ void main() {
 
       final lines = ['\x1B[31m\x1B[0m']; // Red color then reset
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry, context);
+      final decorated = box.decorate(doc, entry);
 
       const layout = TerminalLayout(width: 20);
       final boxed = layout.layout(decorated, LogLevel.info).lines;
@@ -112,9 +110,8 @@ final class _MemorySink extends LogSink<LogDocument> {
   Future<void> output(
     final LogDocument document,
     final LogEntry entry,
-    final LogLevel level, {
-    final LogContext? context,
-  }) async {
+    final LogLevel level,
+  ) async {
     const encoder = PlainTextEncoder();
     final output = encoder.encode(entry, document, level, width: 80);
     outputs.add(output.split('\n'));

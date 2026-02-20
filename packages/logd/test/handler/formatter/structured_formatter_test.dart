@@ -1,7 +1,7 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import '../decorator/mock_context.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('StructuredFormatter', () {
@@ -15,7 +15,7 @@ void main() {
 
     test('formats header with correct sequence', () {
       const formatter = StructuredFormatter();
-      final lines = renderLines(formatter.format(entry, mockContext));
+      final lines = renderLines(formatter.format(entry));
 
       // Line 0: Timestamp
       expect(lines[0], startsWith('____'));
@@ -41,7 +41,9 @@ void main() {
         timestamp: 'ts',
       );
       final lines = renderLines(
-        formatter.format(longEntry, const LogContext()),
+        formatter.format(
+          longEntry,
+        ),
         width: 20,
       );
 

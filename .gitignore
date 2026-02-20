@@ -37,3 +37,4 @@ __pycache__/
 *$py.class
 *.pyc
 *.swp
+.agents/

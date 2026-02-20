@@ -5,7 +5,6 @@ import 'package:test/test.dart';
 
 void main() {
   group('JsonPrettyFormatter Wisdom', () {
-    const context = LogContext();
 
     test('compacts small composites onto a single line', () {
       const formatter = JsonPrettyFormatter(color: false);
@@ -18,7 +17,7 @@ void main() {
         error: {'id': 1, 'v': 'a'},
       );
 
-      final doc = formatter.format(entry, context);
+      final doc = formatter.format(entry);
       final output = render(doc, width: 80);
 
       // Should find "id":1 (compacted JSON doesn't always have spaces)
@@ -36,7 +35,7 @@ void main() {
         error: {'z': 1, 'a': 2},
       );
 
-      final doc = formatter.format(entry, context);
+      final doc = formatter.format(entry);
       final output = render(doc, width: 80).replaceAll(' ', '');
 
       final aIdx = output.indexOf('"a":2');
@@ -59,7 +58,7 @@ void main() {
         },
       );
 
-      final doc = formatter.format(entry, context);
+      final doc = formatter.format(entry);
       final output = render(doc, width: 80);
 
       // "long_key" (length 10) > 5, so it should be followed by a newline
@@ -79,7 +78,7 @@ void main() {
         error: {'stack': 'line 1\nline 2'},
       );
 
-      final doc = formatter.format(entry, context);
+      final doc = formatter.format(entry);
       final output = render(doc, width: 80);
 
       expect(output, contains('line 1'));

@@ -3,8 +3,6 @@ import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
-import '../decorator/mock_context.dart';
-
 void main() {
   group('JsonPrettyFormatter Semantic Verification', () {
     test('deeply nested object has correct semantic structure', () {
@@ -31,7 +29,7 @@ void main() {
       );
 
       const formatter = JsonPrettyFormatter(color: true);
-      final doc = formatter.format(entry, mockContext);
+      final doc = formatter.format(entry);
 
       // Verify structure via lines (end-to-end)
       // Verify structure via lines (end-to-end)
@@ -73,9 +71,8 @@ void main() {
       );
 
       // Use a narrow width to force wrapping
-      const narrowContext = LogContext();
       const formatter = JsonPrettyFormatter();
-      final doc = formatter.format(entry, narrowContext);
+      final doc = formatter.format(entry);
 
       // Use helper to simulate terminal
       // But verify logic relied on spaces...
