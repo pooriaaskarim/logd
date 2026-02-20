@@ -2,6 +2,12 @@
 
 ## 0.6.5: Semantic Encoding & Architectural Inversion
 
+- ### Structural Correctness & API Hygiene
+  - **`LogDocument.hashCode` & `MapNode.hashCode`**: Fixed a hash/equals contract violation where `mapEquals` was incorrectly used on the same instance. Hash codes are now deterministic, sorting entries by key before hashing.
+  - **`DecorationHint` Standardization**: Extracted magic strings (`'structured_header'`, etc.) into a shared `DecorationHint` class, decoupling `StructuredFormatter` from `TerminalLayout`.
+  - **`LogContext` Removal**: Excised the redundant `LogContext` class and its parameters from the entire pipeline (`format`, `decorate`, `output`) across 37 files, significantly reducing API noise.
+  - **`HtmlEncoder` Fidelity**: Completed rendering for all `LogNode` types. `BoxNode` now maps to `<fieldset>`, `IndentationNode` to `<blockquote>`, and `DecoratedNode` to flex-containers with leading spans. Added CSS rules and HTML regression goldens.
+
 - ### Breaking Changes (Phase 8)
   - **Ownership Migration**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic. Existing code passing `lineLength` to `Handler` must migrate to sink-level configuration.
   - **Geometric Cleanup**: Removed `availableWidth`, `totalWidth`, and `contentLimit` from `LogContext` and `Handler`. Geometric metadata is now handled late at the emission stage.
