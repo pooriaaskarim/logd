@@ -2,7 +2,8 @@ part of '../handler.dart';
 
 /// An intermediate representation (IR) of a structured log entry.
 ///
-/// [LogDocument] captures the semantic structure of a log (headers, body, boxes,
+/// [LogDocument] captures the semantic structure of a log (headers, body,
+/// boxes,
 /// indentation) as a tree of [LogNode]s, rather than a flat string.
 ///
 /// This structure allows for:
@@ -50,7 +51,7 @@ class LogDocument {
 /// The base class for all nodes in a [LogDocument] tree.
 ///
 /// Nodes are either:
-/// - **Content**: [TextNode], [MessageNode] (leaf nodes with text).
+/// - **Content**: [ErrorNode], [MessageNode] (leaf nodes with text).
 /// - **Layout**: [BoxNode], [IndentationNode] (container nodes with children).
 @immutable
 sealed class LogNode {

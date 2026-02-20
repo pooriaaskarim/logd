@@ -2,7 +2,6 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../decorator/mock_context.dart';
-import '../test_helpers.dart';
 
 void main() {
   group('PlainFormatter', () {
@@ -20,24 +19,17 @@ void main() {
 
       expect(lines.length, equals(1));
       expect(
-        lines.first.toString(),
-        equals(
-          '[INFO] 2025-01-01 12:00:00 [test.logger] Hello World',
-        ),
+        lines.first,
+        equals('[INFO] 2025-01-01 12:00:00 [test.logger] Hello World'),
       );
     });
 
     test('can select metadata', () {
-      const formatter = PlainFormatter(
-        metadata: {LogMetadata.logger},
-      );
+      const formatter = PlainFormatter(metadata: {LogMetadata.logger});
       final lines = renderLines(formatter.format(entry, mockContext));
 
       // [INFO] is mandatory
-      expect(
-        lines.first.toString(),
-        equals('[INFO] [test.logger] Hello World'),
-      );
+      expect(lines.first, equals('[INFO] [test.logger] Hello World'));
     });
 
     test('includes error and stack trace', () {
@@ -58,8 +50,8 @@ void main() {
       final lines = renderLines(formatter.format(errorEntry, mockContext));
 
       expect(lines.length, equals(3));
-      expect(lines[1].toString(), equals('Error: Some error'));
-      expect(lines[2].toString(), contains('stack line 1'));
+      expect(lines[1], equals('Error: Some error'));
+      expect(lines[2], contains('stack line 1'));
     });
   });
 }

@@ -9,8 +9,7 @@ void main() {
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40,
+    sink: ConsoleSink(lineLength: 40),
   );
 
   Logger.configure('tab', handlers: [tabBoxHandler]);

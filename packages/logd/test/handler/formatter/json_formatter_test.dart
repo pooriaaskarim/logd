@@ -22,7 +22,7 @@ void main() {
       final lines = render(doc);
 
       expect(lines.length, equals(1));
-      final json = lines.first.toString();
+      final json = lines.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Metadata
@@ -54,7 +54,7 @@ void main() {
       final lines = render(doc);
 
       expect(lines.length, equals(1));
-      final json = lines.first.toString();
+      final json = lines.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Crucial content always present
@@ -83,7 +83,7 @@ void main() {
       final lines = render(doc);
 
       expect(lines.length, greaterThan(1));
-      final output = lines.map((final l) => l.toString()).join('\n');
+      final output = lines.map((final l) => l).join('\n');
 
       expect(output, contains('  "timestamp": '));
       expect(output, contains('  "level": '));
@@ -105,7 +105,8 @@ void main() {
     test('emits semantic tags when color is true', () {
       const formatter = JsonPrettyFormatter(color: true);
       final doc = formatter.format(entry, mockContext);
-      final lines = TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
+      final lines =
+          const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
 
       expect(lines.length, greaterThan(0));
       bool foundKey = false;
@@ -146,7 +147,7 @@ void main() {
       final doc = formatter.format(entry, mockContext);
       final lines = render(doc);
 
-      final json = lines.first.toString();
+      final json = lines.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Metadata specified
@@ -166,7 +167,7 @@ void main() {
       final doc = formatter.format(entry, mockContext);
       final lines = render(doc);
 
-      final json = lines.first.toString();
+      final json = lines.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['level'], equals('info'));
@@ -187,7 +188,8 @@ void main() {
     test('default does not use noWrap tag', () {
       const formatter = JsonFormatter();
       final doc = formatter.format(entry, mockContext);
-      final lines = TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
+      final lines =
+          const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
       final segment = lines.first.segments.first;
       expect(segment.tags, isNot(contains(LogTag.noWrap)));
     });
@@ -196,7 +198,7 @@ void main() {
 
 List<String> render(final LogDocument doc) {
   // Use large width to prevent wrapping of JSON output
-  final layout = TerminalLayout(width: 4096);
+  const layout = TerminalLayout(width: 4096);
   return layout
       .layout(doc, LogLevel.info)
       .lines

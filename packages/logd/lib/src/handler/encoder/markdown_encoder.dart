@@ -38,8 +38,9 @@ class MarkdownEncoder implements LogEncoder<String> {
     } else if (node is MessageNode) {
       buffer.writeln('\n**${_renderContent(node)}**');
     } else if (node is ErrorNode) {
-      buffer.writeln('\n> [!ERROR]');
-      buffer.writeln('> ${_renderContent(node)}');
+      buffer
+        ..writeln('\n> [!ERROR]')
+        ..writeln('> ${_renderContent(node)}');
     } else if (node is FooterNode) {
       _renderFooter(buffer, node);
     } else if (node is IndentationNode) {
@@ -64,14 +65,16 @@ class MarkdownEncoder implements LogEncoder<String> {
   void _renderCollapsible(final StringBuffer buffer, final LogNode node) {
     final summary =
         node.tags.contains(LogTag.stackFrame) ? 'Stack Trace' : 'Details';
-    buffer.writeln('\n<details>');
-    buffer.writeln('<summary>$summary</summary>\n');
+    buffer
+      ..writeln('\n<details>')
+      ..writeln('<summary>$summary</summary>\n');
 
     if (node is ContentNode) {
       if (node.tags.contains(LogTag.stackFrame)) {
-        buffer.writeln('```');
-        buffer.writeln(_renderContent(node));
-        buffer.writeln('```');
+        buffer
+          ..writeln('```')
+          ..writeln(_renderContent(node))
+          ..writeln('```');
       } else {
         buffer.writeln(_renderContent(node));
       }
@@ -86,15 +89,15 @@ class MarkdownEncoder implements LogEncoder<String> {
 
   void _renderFooter(final StringBuffer buffer, final FooterNode node) {
     if (node.tags.contains(LogTag.stackFrame)) {
-      buffer.writeln('\n```');
-      buffer.write(_renderContent(node));
-      buffer.writeln('```');
+      buffer
+        ..writeln('\n```')
+        ..write(_renderContent(node))
+        ..writeln('```');
     } else {
       buffer.writeln(_renderContent(node));
     }
   }
 
-  String _renderContent(final ContentNode node) {
-    return node.segments.map((final s) => s.text).join();
-  }
+  String _renderContent(final ContentNode node) =>
+      node.segments.map((final s) => s.text).join();
 }

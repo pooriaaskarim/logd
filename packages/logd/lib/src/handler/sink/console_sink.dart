@@ -3,11 +3,14 @@ part of '../handler.dart';
 /// A [LogSink] that outputs formatted log lines to the system console.
 @immutable
 base class ConsoleSink extends LogSink<LogDocument> {
-  const ConsoleSink({super.enabled});
+  const ConsoleSink({this.lineLength, super.enabled});
 
-  @override
-  int get preferredWidth =>
-      io.stdout.hasTerminal ? io.stdout.terminalColumns : 80;
+  /// The maximum line length for the output.
+  final int? lineLength;
+
+  /// The width this sink prefers for its output.
+  int get resolvedWidth =>
+      lineLength ?? (io.stdout.hasTerminal ? io.stdout.terminalColumns : 80);
 
   @override
   Future<void> output(
@@ -23,8 +26,8 @@ base class ConsoleSink extends LogSink<LogDocument> {
       final LogEncoder<String> encoder =
           supportsAnsi ? const AnsiEncoder() : const PlainTextEncoder();
 
-      final totalWidth = context?.totalWidth ?? preferredWidth;
-      final output = encoder.encode(document, level, width: totalWidth);
+      final width = resolvedWidth;
+      final output = encoder.encode(document, level, width: width);
       io.stdout.writeln(output);
     } catch (e, s) {
       InternalLogger.log(

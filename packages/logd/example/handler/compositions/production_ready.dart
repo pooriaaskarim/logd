@@ -12,6 +12,8 @@
 import 'package:logd/logd.dart';
 
 void main() async {
+  print('=== Logd / Production Setup Showcase ===\n');
+
   // Console handler: Structured, colored, boxed
   const consoleHandler = Handler(
     formatter: StructuredFormatter(),
@@ -22,8 +24,7 @@ void main() async {
       ),
       HierarchyDepthPrefixDecorator(),
     ],
-    sink: ConsoleSink(),
-    lineLength: 100,
+    sink: ConsoleSink(lineLength: 100),
   );
 
   // File handler: Plain format, all levels

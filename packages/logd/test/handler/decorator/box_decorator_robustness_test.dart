@@ -1,6 +1,6 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -10,7 +10,7 @@ void main() {
         'not break the box', () {
       const formatter = PlainFormatter();
       const box = BoxDecorator();
-      const context = LogContext(availableWidth: 40);
+      const context = LogContext();
 
       const entry = LogEntry(
         loggerName: 'test',
@@ -25,7 +25,7 @@ void main() {
       final formatted = formatter.format(entry, context);
       final boxed = box.decorate(formatted, entry, context);
 
-      final layout = TerminalLayout(width: 40);
+      const layout = TerminalLayout(width: 40);
       final physical = layout.layout(boxed, LogLevel.info);
       final boxedLines = physical.lines;
 
@@ -49,7 +49,7 @@ void main() {
         'wrap internal content', () {
       const formatter = JsonFormatter();
       const box = BoxDecorator();
-      const context = LogContext(availableWidth: 30);
+      const context = LogContext();
 
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_will_push_json_over_the_limit',
@@ -62,7 +62,7 @@ void main() {
       final formatted = formatter.format(entry, context);
       final boxed = box.decorate(formatted, entry, context);
 
-      final layout = TerminalLayout(width: 30);
+      const layout = TerminalLayout(width: 30);
       final physical = layout.layout(boxed, LogLevel.info);
       final boxedLines = physical.lines;
 

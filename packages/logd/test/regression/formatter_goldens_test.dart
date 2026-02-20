@@ -44,21 +44,23 @@ void main() {
               test('Width: $width', () {
                 final doc = formatter.format(
                   currentEntry,
-                  LogContext(availableWidth: width),
+                  const LogContext(),
                 );
 
                 final output = LogSnap.capture(
                   doc,
                   currentEntry.level,
                   width: width,
-                  useAnsi:
-                      false, // Plain text for goldens to avoid escape code noise
+                  useAnsi: false, // Plain text for goldens to avoid escape code
+                  // noise
                 );
 
                 final fileName =
-                    '${formatterName.toLowerCase()}_${entryName.toLowerCase()}_${width}.txt';
+                    '${formatterName.toLowerCase()}_${entryName.toLowerCase()}'
+                    '_$width.txt';
                 final file = File(
-                    'test/regression/goldens/${formatterName.toLowerCase()}/$fileName');
+                  'test/regression/goldens/${formatterName.toLowerCase()}/$fileName',
+                );
 
                 if (!file.existsSync()) {
                   file.parent
@@ -67,10 +69,14 @@ void main() {
                   print('Generated golden: ${file.path}');
                 } else {
                   final expected = file.readAsStringSync();
-                  expect(output, expected,
-                      reason:
-                          'Output mismatch for $formatterName | $entryName | $width. '
-                          'If this is an intentional change, delete the golden file and re-run.');
+                  expect(
+                    output,
+                    expected,
+                    reason: 'Output mismatch for $formatterName | $entryName | '
+                        '$width. '
+                        'If this is an intentional change, delete the golden'
+                        ' file and re-run.',
+                  );
                 }
               });
             }

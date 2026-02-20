@@ -3,6 +3,8 @@ import 'package:logd/src/logger/logger.dart';
 
 /// A utility to capture snapshots of log output for verification.
 class LogSnap {
+  const LogSnap._();
+
   /// Captures the output of a [LogDocument] rendered at a specific [width].
   ///
   /// Uses [AnsiEncoder] by default to capture styles and layout.
@@ -35,7 +37,6 @@ class LogSnap {
       sink: sink,
       filters: handler.filters,
       decorators: handler.decorators,
-      lineLength: width,
     );
 
     await captureHandler.log(entry);
@@ -56,9 +57,6 @@ base class _CaptureSink extends LogSink<LogDocument> {
 
   final int width;
   LogDocument? lastDocument;
-
-  @override
-  int get preferredWidth => width;
 
   @override
   Future<void> output(

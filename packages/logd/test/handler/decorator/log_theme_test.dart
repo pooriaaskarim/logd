@@ -1,6 +1,7 @@
-import 'package:logd/src/logger/logger.dart';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
 import 'mock_context.dart';
 
 void main() {
@@ -97,7 +98,7 @@ void main() {
           StyleDecorator(theme: LogTheme(colorScheme: customScheme));
 
       // Create a document with specific tags
-      final doc = LogDocument(
+      const doc = LogDocument(
         nodes: [
           HeaderNode(
             segments: [

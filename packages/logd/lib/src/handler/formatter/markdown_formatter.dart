@@ -6,7 +6,7 @@ part of '../handler.dart';
 /// It structures log entries into semantic sections (Header, Message, Error,
 /// StackTrace) and marks supplementary information (like stack traces) as
 /// [LogTag.collapsible] to allow [MarkdownEncoder] to render them as GFM
-/// <details> blocks.
+/// \<details\> blocks.
 @immutable
 final class MarkdownFormatter implements LogFormatter {
   /// Creates a [MarkdownFormatter].
@@ -45,16 +45,17 @@ final class MarkdownFormatter implements LogFormatter {
       }
     }
 
-    nodes.add(HeaderNode(segments: headerSegments));
+    nodes
+      ..add(HeaderNode(segments: headerSegments))
 
-    // 2. Message
-    nodes.add(
-      MessageNode(
-        segments: [
-          StyledText(entry.message, tags: const {LogTag.message}),
-        ],
-      ),
-    );
+      // 2. Message
+      ..add(
+        MessageNode(
+          segments: [
+            StyledText(entry.message, tags: const {LogTag.message}),
+          ],
+        ),
+      );
 
     // 3. Error
     if (entry.error != null) {
@@ -98,19 +99,16 @@ final class MarkdownFormatter implements LogFormatter {
 
     return LogDocument(
       nodes: nodes,
-      metadata: {'width': context.totalWidth},
     );
   }
 
-  String _levelEmoji(final LogLevel level) {
-    return switch (level) {
-      LogLevel.trace => '🧬',
-      LogLevel.debug => '🔍',
-      LogLevel.info => 'ℹ️',
-      LogLevel.warning => '⚠️',
-      LogLevel.error => '❌',
-    };
-  }
+  String _levelEmoji(final LogLevel level) => switch (level) {
+        LogLevel.trace => '🧬',
+        LogLevel.debug => '🔍',
+        LogLevel.info => 'ℹ️',
+        LogLevel.warning => '⚠️',
+        LogLevel.error => '❌',
+      };
 
   @override
   bool operator ==(final Object other) =>

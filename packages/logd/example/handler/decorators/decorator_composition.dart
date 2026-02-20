@@ -41,8 +41,7 @@ void main() async {
         ),
       ),
     ],
-    sink: ConsoleSink(),
-    lineLength: 70,
+    sink: ConsoleSink(lineLength: 70),
   );
 
   Logger.configure('orchestrator', handlers: [dashboardHandler]);
@@ -63,8 +62,7 @@ void main() async {
       SuffixDecorator(' <AUDIT-END>', aligned: true),
       BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
-    sink: ConsoleSink(),
-    lineLength: 60,
+    sink: ConsoleSink(lineLength: 60),
   );
 
   Logger.configure('auth.service', handlers: [auditHandler]);

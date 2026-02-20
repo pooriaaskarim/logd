@@ -164,10 +164,12 @@ void main() {
     late MockFileSystem fs;
 
     setUp(() {
-      clock = MockClock(DateTime(2025, 1, 1, 10, 0));
+      Timezone.ensureInitialized();
+      clock = MockClock(DateTime(2025, 1, 1, 10, 0), 'Etc/UTC');
       fs = MockFileSystem(clock);
       Context.setClock(clock);
       Context.setFileSystem(fs);
+      Timezone.resetLocalCache();
     });
 
     tearDown(() {

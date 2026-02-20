@@ -3,7 +3,8 @@ part of '../handler.dart';
 /// A leaf node containing actual text content.
 ///
 /// [ContentNode]s hold a list of [StyledText] segments. They represent the
-/// payload of the log, such as the timestamp, severity level, or the message itself.
+/// payload of the log, such as the timestamp, severity level, or the message
+/// itself.
 @immutable
 sealed class ContentNode extends LogNode {
   /// Creates a [ContentNode].

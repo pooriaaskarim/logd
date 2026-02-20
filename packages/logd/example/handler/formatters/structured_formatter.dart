@@ -25,8 +25,9 @@ void main() async {
       StyleDecorator(theme: _EliteDashboardTheme()),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 80,
+    sink: ConsoleSink(
+      lineLength: 80,
+    ),
   );
 
   // ---------------------------------------------------------------------------
@@ -43,8 +44,9 @@ void main() async {
       BoxDecorator(borderStyle: BorderStyle.rounded),
       HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40, // Extreme squeeze for Framed Header + Box + Indent
+    sink: ConsoleSink(
+      lineLength: 40, // Extreme squeeze for Framed Header + Box + Indent
+    ),
   );
 
   // Configure loggers

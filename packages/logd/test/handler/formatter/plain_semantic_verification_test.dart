@@ -1,13 +1,14 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:logd/src/handler/handler.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
 import '../decorator/mock_context.dart';
 
 void main() {
   group('PlainFormatter Semantic Verification', () {
     // A standard entry with a long message
-    final entry = LogEntry(
+    const entry = LogEntry(
       loggerName: 'test.logger',
       origin: 'main.dart',
       level: LogLevel.info,
@@ -22,13 +23,15 @@ void main() {
       final doc = formatter.format(entry, mockContext);
 
       // Use TerminalLayout directly to verify output
-      final layout = TerminalLayout(width: 60);
+      const layout = TerminalLayout(width: 60);
       final lines = layout.layout(doc, LogLevel.info).lines;
 
       // Line 1: Header + Message Part 1
       // Header: "[INFO] 2025-01-01 [test.logger] " (~31 chars)
-      expect(lines[0].toString(),
-          contains('[INFO] 2025-01-01 [test.logger] Message line 1.'));
+      expect(
+        lines[0].toString(),
+        contains('[INFO] 2025-01-01 [test.logger] Message line 1.'),
+      );
 
       // Line 2: indentation + Message Part 2
       // expect indentation of ~31 spaces
@@ -45,14 +48,15 @@ void main() {
       final doc = formatter.format(entry, mockContext);
 
       // Force narrow width where header (31 chars) > available width (30)
-      final layout = TerminalLayout(width: 30);
+      const layout = TerminalLayout(width: 30);
       final lines = layout.layout(doc, LogLevel.info).lines;
 
       // Should NOT have big hanging indent because it falls back.
       // Line 1: Header part 1
       expect(lines[0].toString(), contains('[INFO]'));
 
-      // Subsequent lines should contain message, but NOT indented by header width.
+      // Subsequent lines should contain message, but NOT indented by header
+      // width.
       final msgLineIndex = lines
           .indexWhere((final l) => l.toString().contains('Message line 1'));
       expect(msgLineIndex, greaterThan(0));
@@ -67,11 +71,14 @@ void main() {
 
     test('calculates tab width correctly inside BoxDecorator', () {
       // Verify PhysicalLine.getVisibleLength logic directly
-      // This ensures that when content is shifted (e.g. by Frame border + space),
+      // This ensures that when content is shifted (e.g. by Frame border +
+      // space),
       // the tab expansion accounts for the shift.
-      final line = PhysicalLine(segments: [
-        const StyledText('\t', tags: {}),
-      ]);
+      const line = PhysicalLine(
+        segments: [
+          StyledText('\t', tags: {}),
+        ],
+      );
 
       // Start 0: \t -> 8
       expect(line.getVisibleLength(startX: 0), 8);
@@ -90,10 +97,12 @@ void main() {
       // Total visible: 14.
       // Wait. [INFO] is 7 chars.
       // Text: "[INFO] "
-      final line2 = PhysicalLine(segments: [
-        const StyledText('[INFO] ', tags: {}),
-        const StyledText('\t', tags: {}),
-      ]);
+      const line2 = PhysicalLine(
+        segments: [
+          StyledText('[INFO] ', tags: {}),
+          StyledText('\t', tags: {}),
+        ],
+      );
 
       // Start 0: [INFO] (7) -> 7. Tab at 7 snaps to 8 (delta 1). Total 8.
       expect(line2.getVisibleLength(startX: 0), 8);

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.6.5: Geometric Decoupling & "Wise" Formatting Engine
+
+- ### Breaking Changes (Phase 8)
+  - **Ownership Migration**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic. Existing code passing `lineLength` to `Handler` must migrate to sink-level configuration.
+  - **Geometric Cleanup**: Removed `availableWidth`, `totalWidth`, and `contentLimit` from `LogContext` and `Handler`. Geometric metadata is now handled late at the emission stage.
+
+- ### Architectural Refactor (Phase 8-12)
+  - **Geometric Decoupling**: Fully decoupled formatters and decorators from physical terminal constraints. Formatters are now "Semantic Authors", while `LogSink`s act as "Physical Publishers".
+  - **Multi-Backend Efficiency**: Re-engineered `Handler.log` to formulate and decorate the `LogDocument` exactly once, broadcasting the single result to all attached sinks—dramatically reducing costs for multi-sink configurations.
+  - **Semantic Wrapping Engine**: Introduced a tiered wrapping logic that preserves semantic tags (colors, styles) across line breaks and handles TAB-aware indentation (8-cell stops).
+
+- ### "Wise" Object Representation (Phase 13-17)
+  - **JsonPrettyFormatter Evolution**:
+    - **Composite Compaction**: Automatically renders small Maps/Lists on a single line for better density.
+    - **Adaptive Stacking**: Key/value stacking is now threshold-driven, preventing squeezed layouts in narrow terminals.
+    - **Structural Safety**: Added `maxDepth` guards and `sortKeys` for predictable, stable output.
+  - **TOON Hierarchy Split**:
+    - `ToonFormatter`: High-efficiency, flat-row format optimized for LLM token budgets.
+    - `ToonPrettyFormatter`: A "Wise" human-readable version with recursive serialization, sorting, and depth-sensing.
+
+- ### Improvements & Fixes
+  - **Project-Wide Literacy**: Synchronized all internal docstrings with the "Width-Agnostic" paradigm and refined nomenclature across the codebase.
+  - **Narrow-Terminal Resilience**: Enhanced fallback logic for layouts as narrow as 12-20 characters.
+  - **ANSI Visible Length**: Improved accuracy of width calculations for complex ANSI sequences and double-width characters.
+  - **Lint Resolution**: Resolved all project-wide analyzer warnings, including `avoid_dynamic_calls` and `parameter_assignments`.
+
 ## 0.6.4: LogBuffer Enhancements & Project-Wide Refactor
 - ### LogBuffer Enhancement & Safety
   - **Error/StackTrace Support**: Added ability to capture `error` and `stackTrace` within `LogBuffer` for more robust multi-line error reporting.

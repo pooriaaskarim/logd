@@ -5,7 +5,7 @@ part of '../handler.dart';
 /// [TerminalLayout] flattens the logical [LogDocument] tree into a sequence
 /// of physical lines based on a target width. It handles structural elements
 /// like boxes, indentation, and decorations, as well as content elements
-/// like word-wrapped text.
+/// like word-wrapped text using adaptive, width-agnostic logic.
 @internal
 class TerminalLayout {
   /// Creates a [TerminalLayout].
@@ -67,7 +67,8 @@ class TerminalLayout {
     }
 
     // For a row, we want everything on one line if possible.
-    // If it exceeds width, we fall back to paragraph-style wrapping.
+    // If it exceeds width, we fall back to paragraph-style wrapping
+    //(Adaptive Stacking).
     final segments = <StyledText>[];
     String? fillerChar;
     Set<LogTag> fillerTags = {};
@@ -173,10 +174,13 @@ class TerminalLayout {
             currentLength = 0;
           }
           final lineText = physicalLines[l];
-          if (lineText.isEmpty) continue;
+          if (lineText.isEmpty) {
+            continue;
+          }
 
           currentLine.add(
-              StyledText(lineText, style: segment.style, tags: segment.tags));
+            StyledText(lineText, style: segment.style, tags: segment.tags),
+          );
           currentLength += _getVisibleLength(lineText, currentLength);
         }
         continue;
@@ -291,11 +295,8 @@ class TerminalLayout {
       }
 
       final newSegments = List<StyledText>.from(line.segments);
-      newSegments[newSegments.length - 1] = StyledText(
-        trimmedText,
-        style: last.style,
-        tags: last.tags,
-      );
+      newSegments[newSegments.length - 1] =
+          StyledText(trimmedText, style: last.style, tags: last.tags);
       return PhysicalLine(segments: newSegments);
     }).toList();
   }
@@ -370,7 +371,8 @@ class TerminalLayout {
         final line = rawLine.truncate(contentWidth, startX: 2);
         final sideChar = border.getChar(BoxBorderPosition.vertical);
 
-        // Calculate visible length assuming line starts at index 2 (border + space)
+        // Calculate visible length assuming line starts at index 2
+        // (border + space)
         // This is crucial for correct TAB expansion inside boxes.
         final visibleLen = line.getVisibleLength(startX: 2);
 
@@ -446,14 +448,11 @@ class TerminalLayout {
     for (final child in node.children) {
       final childContentWidth =
           (availableWidth - indentWidth).clamp(0, 1000000);
-      final rawLines = _renderNode(
-        child,
-        level,
-        childContentWidth,
-      );
+      final rawLines = _renderNode(child, level, childContentWidth);
       for (final rawLine in rawLines) {
         if (childContentWidth <= 0) {
-          // Narrow space recovery: Drop indent if it would push content off-screen
+          // Narrow space recovery: Drop indent if it would push content
+          // off-screen
           lines.add(rawLine);
         } else {
           final line = rawLine.truncate(childContentWidth);
@@ -477,20 +476,22 @@ class TerminalLayout {
     final int availableWidth,
   ) {
     final lines = <PhysicalLine>[];
-    var contentWidth = (availableWidth - node.leadingWidth - node.trailingWidth)
-        .clamp(0, 1000000);
+    final contentWidth =
+        (availableWidth - node.leadingWidth - node.trailingWidth)
+            .clamp(0, 1000000);
 
-    // Fallback: If decoration consumes too much space, switch to vertical stack.
-    // This is crucial for PlainFormatter's hanging indents in narrow/deep layouts.
-    // We only do this if repeatLeading is false (typical for headers),
-    // because repeating prefixes meant for every line generally shouldn't be stack-broken.
-    if (contentWidth < 1 && !node.repeatLeading && node.leading != null) {
-      final lines = <PhysicalLine>[];
+    // Fallback: If decoration consumes too much space, switch to vertical
+    // stack. This is crucial for PlainFormatter's hanging indents in
+    // narrow/deep layouts. We only do this if repeatLeading is false
+    // (typical for headers), because repeating prefixes meant for every line
+    // generally shouldn't be stack-broken.
+    // We use a threshold of 12 to ensure content has enough space to
+    // be readable.
+    if (contentWidth < 12 && !node.repeatLeading && node.leading != null) {
       // 1. Render Leading (Header) with full width
-      lines.addAll(_renderContent(
-        HeaderNode(segments: node.leading!),
-        availableWidth,
-      ));
+      final lines = <PhysicalLine>[
+        ..._renderContent(HeaderNode(segments: node.leading!), availableWidth),
+      ];
       // 2. Render Children (Message) with full width
       final childLines = node.children
           .expand((final c) => _renderNode(c, level, availableWidth))

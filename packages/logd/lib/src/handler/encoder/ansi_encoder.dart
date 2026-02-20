@@ -28,7 +28,7 @@ class AnsiEncoder implements LogEncoder<String> {
     }
 
     // 1. Calculate physical layout
-    final totalWidth = width ?? document.metadata['width'] as int? ?? 80;
+    final totalWidth = width ?? 80;
     final layoutEngine = TerminalLayout(width: totalWidth);
     final physicalDoc = layoutEngine.layout(document, level);
 
@@ -45,11 +45,7 @@ class AnsiEncoder implements LogEncoder<String> {
     final buffer = StringBuffer();
     for (final segment in line.segments) {
       final style = segment.style ?? theme.getStyle(level, segment.tags);
-      if (style != null) {
-        buffer.write(_applyStyle(segment.text, style));
-      } else {
-        buffer.write(segment.text);
-      }
+      buffer.write(_applyStyle(segment.text, style));
     }
     return buffer.toString();
   }

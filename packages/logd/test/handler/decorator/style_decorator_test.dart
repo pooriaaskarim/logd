@@ -91,14 +91,20 @@ void main() {
       const decorator = StyleDecorator(
         theme: NoMessageTheme(),
       );
-      final headerDoc = LogDocument(nodes: [
-        const MessageNode(segments: [
-          StyledText('Header 1', tags: {LogTag.header})
-        ]),
-        const MessageNode(segments: [
-          StyledText('Message 1', tags: {LogTag.message})
-        ]),
-      ]);
+      const headerDoc = LogDocument(
+        nodes: [
+          MessageNode(
+            segments: [
+              StyledText('Header 1', tags: {LogTag.header}),
+            ],
+          ),
+          MessageNode(
+            segments: [
+              StyledText('Message 1', tags: {LogTag.message}),
+            ],
+          ),
+        ],
+      );
 
       final decorated = decorator.decorate(
         headerDoc,

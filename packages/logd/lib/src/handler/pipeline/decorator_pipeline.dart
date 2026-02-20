@@ -22,7 +22,7 @@ class DecoratorPipeline {
   /// 4. [VisualDecorator] (applies styles)
   /// 5. Others (outermost)
   LogDocument apply(
-    LogDocument document,
+    final LogDocument document,
     final LogEntry entry,
     final LogContext context,
   ) {
@@ -49,11 +49,12 @@ class DecoratorPipeline {
     final sortedDecorators =
         indexedDecorators.map((final e) => e.value).toList();
 
+    var result = document;
     for (final decorator in sortedDecorators) {
-      document = decorator.decorate(document, entry, context);
+      result = decorator.decorate(result, entry, context);
     }
 
-    return document;
+    return result;
   }
 
   /// Calculates the total padding width required by all decorators.

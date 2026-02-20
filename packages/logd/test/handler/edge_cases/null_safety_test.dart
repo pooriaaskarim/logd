@@ -22,7 +22,7 @@ void main() {
       );
 
       final doc = formatter.format(entry, mockContext);
-      final layout = TerminalLayout(width: 80);
+      const layout = TerminalLayout(width: 80);
       final lines = layout.layout(doc, LogLevel.info).lines;
       expect(lines, isNotEmpty);
       expect(lines.any((final l) => l.toString().contains('Error:')), isFalse);
@@ -31,7 +31,7 @@ void main() {
     test('StructuredFormatter handles very long logger name by wrapping header',
         () {
       const formatter = StructuredFormatter();
-      const context = LogContext(availableWidth: 40);
+      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_exceeds_line_length',
         origin: 'test',
@@ -41,7 +41,7 @@ void main() {
       );
 
       final doc = formatter.format(entry, context);
-      final layout = TerminalLayout(width: 40);
+      const layout = TerminalLayout(width: 40);
       final lines = layout.layout(doc, LogLevel.info).lines;
       expect(lines, isNotEmpty);
       for (final line in lines) {
@@ -61,7 +61,6 @@ void main() {
           BoxDecorator(borderStyle: BorderStyle.rounded),
         ],
         sink: ConsoleSink(),
-        lineLength: 40,
       );
 
       const entry = LogEntry(
@@ -72,14 +71,14 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      const context = LogContext(availableWidth: 40);
+      const context = LogContext();
       final formatted = handler.formatter.format(entry, context);
       var document = formatted;
       for (final decorator in handler.decorators) {
         document = decorator.decorate(document, entry, context);
       }
       // Use TerminalLayout
-      final layout = TerminalLayout(width: 40);
+      const layout = TerminalLayout(width: 40);
       final lines = layout.layout(document, LogLevel.info).lines;
 
       final result = resultLines(lines);
@@ -99,7 +98,7 @@ void main() {
       );
 
       final doc = formatter.format(entry, mockContext);
-      final layout = TerminalLayout(width: 80);
+      const layout = TerminalLayout(width: 80);
       final lines = layout.layout(doc, LogLevel.info).lines;
       final json = lines.map((final l) => l.toString()).join('\n');
       expect(json, isNot(contains('"error":')));

@@ -1,7 +1,7 @@
+import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
-import 'package:logd/logd.dart';
 import 'mock_context.dart';
 
 void main() {
@@ -24,7 +24,10 @@ void main() {
     test('adds no indentation at depth 0', () {
       const decorator = HierarchyDepthPrefixDecorator();
       final decorated = decorator.decorate(
-          createTestDocument(lines), createEntry(0), mockContext);
+        createTestDocument(lines),
+        createEntry(0),
+        mockContext,
+      );
       final rendered = renderLines(decorated);
       expect(rendered.first, equals('msg'));
     });
@@ -32,7 +35,10 @@ void main() {
     test('adds indentation at depth 2 (default indent)', () {
       const decorator = HierarchyDepthPrefixDecorator();
       final decorated = decorator.decorate(
-          createTestDocument(lines), createEntry(2), mockContext);
+        createTestDocument(lines),
+        createEntry(2),
+        mockContext,
+      );
       final rendered = renderLines(decorated);
       // Default is '│ ' (2 chars) * 2 = '│ │ '
       expect(rendered.first, equals('│ │ msg'));
@@ -41,13 +47,16 @@ void main() {
     test('respects custom indent', () {
       const decorator = HierarchyDepthPrefixDecorator(indent: '-');
       final decorated = decorator.decorate(
-          createTestDocument(lines), createEntry(3), mockContext);
+        createTestDocument(lines),
+        createEntry(3),
+        mockContext,
+      );
       final rendered = renderLines(decorated);
       expect(rendered.first, equals('---msg'));
     });
 
     test('preserves tags', () {
-      final doc = LogDocument(
+      const doc = LogDocument(
         nodes: [
           MessageNode(
             segments: [

@@ -14,10 +14,10 @@ class HtmlEncoder implements LogEncoder<String> {
     final LogLevel level, {
     final int? width,
   }) {
-    final buffer = StringBuffer();
+    final buffer = StringBuffer()
 
-    // Root entry container
-    buffer.writeln('<div class="log-entry log-${level.name}">');
+      // Root entry container
+      ..writeln('<div class="log-entry log-${level.name}">');
 
     for (final node in document.nodes) {
       _renderNode(buffer, node);
@@ -77,16 +77,32 @@ class HtmlEncoder implements LogEncoder<String> {
     }
   }
 
-  String _getClasses(final Set<LogTag> tags,
-      {required final bool isContainer}) {
+  String _getClasses(
+    final Set<LogTag> tags, {
+    required final bool isContainer,
+  }) {
     final classes = <String>[];
-    if (tags.contains(LogTag.header)) classes.add('log-header');
-    if (tags.contains(LogTag.timestamp)) classes.add('log-timestamp');
-    if (tags.contains(LogTag.level)) classes.add('log-level');
-    if (tags.contains(LogTag.loggerName)) classes.add('log-logger');
-    if (tags.contains(LogTag.origin)) classes.add('log-origin');
-    if (tags.contains(LogTag.message)) classes.add('log-message');
-    if (tags.contains(LogTag.error)) classes.add('log-error');
+    if (tags.contains(LogTag.header)) {
+      classes.add('log-header');
+    }
+    if (tags.contains(LogTag.timestamp)) {
+      classes.add('log-timestamp');
+    }
+    if (tags.contains(LogTag.level)) {
+      classes.add('log-level');
+    }
+    if (tags.contains(LogTag.loggerName)) {
+      classes.add('log-logger');
+    }
+    if (tags.contains(LogTag.origin)) {
+      classes.add('log-origin');
+    }
+    if (tags.contains(LogTag.message)) {
+      classes.add('log-message');
+    }
+    if (tags.contains(LogTag.error)) {
+      classes.add('log-error');
+    }
 
     if (tags.contains(LogTag.stackFrame)) {
       if (tags.contains(LogTag.hierarchy)) {

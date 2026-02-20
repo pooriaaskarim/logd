@@ -31,12 +31,7 @@ class MultiSinkBenchmark extends BenchmarkBase {
 
   void _manualPipelineRun() {
     // ... setup context ...
-    final totalWidth = 80;
-    final context = LogContext(
-      availableWidth: totalWidth,
-      totalWidth: totalWidth,
-      contentLimit: totalWidth,
-    );
+    final context = const LogContext();
 
     final document = handler.formatter.format(entry, context);
 

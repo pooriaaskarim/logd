@@ -41,7 +41,7 @@ class PhysicalLine {
 
   /// Returns the total visible length of the line (excluding escape codes).
   ///
-  /// If [startX] is provided, it accounts for the absolute position for correct
+  /// If startX is provided, it accounts for the absolute position for correct
   /// TAB expansion.
   int get visibleLength => getVisibleLength(startX: 0);
 
@@ -82,9 +82,9 @@ class PhysicalLine {
   /// This is used to ensure physical integrity of structural elements (like
   /// boxes) when content overflows.
   ///
-  /// [startX] specifies the starting visual offset (default 0). This is critical
-  /// for accurate truncation of content containing tabs, as their width varies
-  /// based on position.
+  /// [startX] specifies the starting visual offset (default 0). This is
+  /// critical for accurate truncation of content containing tabs, as their
+  /// width varies based on position.
   PhysicalLine truncate(final int targetWidth, {final int startX = 0}) {
     if (getVisibleLength(startX: startX) <= targetWidth) {
       return this;

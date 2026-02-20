@@ -1,6 +1,6 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -16,16 +16,17 @@ void main() {
       );
 
       // Width 10 is very small.
-      const context = LogContext(availableWidth: 10);
+      const narrowContext = LogContext();
 
-      final layout = TerminalLayout(width: 10);
+      const layout = TerminalLayout(width: 10);
       final lines = layout
-          .layout(formatter.format(entryLong, context), LogLevel.info)
+          .layout(formatter.format(entryLong, narrowContext), LogLevel.info)
           .lines;
 
       // Because it wraps paragraph-style, it might produce multiple lines
       // if the layout engine decides to wrap the StyledText segments.
-      // However, StyledText wrapping happens in TerminalLayout, NOT in format().
+      // However, StyledText wrapping happens in TerminalLayout, NOT in
+      // format().
       // format() returns a ParagraphNode.
       // So here we check tags to ensure NO noWrap tag is present.
 

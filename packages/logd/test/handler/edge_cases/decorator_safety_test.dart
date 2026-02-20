@@ -16,7 +16,6 @@ void main() {
           StyleDecorator(), // Duplicate
         ],
         sink: sink,
-        lineLength: 80,
       );
 
       const entry = LogEntry(
@@ -42,7 +41,6 @@ void main() {
           StyleDecorator(),
         ],
         sink: sink,
-        lineLength: 60,
       );
 
       const entry = LogEntry(
@@ -56,12 +54,12 @@ void main() {
       await handler.log(entry);
       final output = sink.outputs.first;
       // Depth prefix should be outermost
-      expect(output.first.toString(), startsWith('>> '));
+      expect(output.first, startsWith('>> '));
     });
 
     test('BoxDecorator handles very small lineLength', () {
       const box = BoxDecorator();
-      const context = LogContext(availableWidth: 5);
+      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -74,7 +72,7 @@ void main() {
       final doc = createTestDocument(lines);
       final decorated = box.decorate(doc, entry, context);
 
-      final layout = TerminalLayout(width: 5);
+      const layout = TerminalLayout(width: 5);
       final boxed = layout.layout(decorated, LogLevel.info).lines;
 
       expect(boxed, isNotEmpty);
@@ -86,7 +84,7 @@ void main() {
 
     test('BoxDecorator handles lines with only ANSI codes', () {
       const box = BoxDecorator();
-      const context = LogContext(availableWidth: 20);
+      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -99,7 +97,7 @@ void main() {
       final doc = createTestDocument(lines);
       final decorated = box.decorate(doc, entry, context);
 
-      final layout = TerminalLayout(width: 20);
+      const layout = TerminalLayout(width: 20);
       final boxed = layout.layout(decorated, LogLevel.info).lines;
       expect(boxed, isNotEmpty);
     });
@@ -107,10 +105,8 @@ void main() {
 }
 
 final class _MemorySink extends LogSink<LogDocument> {
+  _MemorySink();
   final List<List<String>> outputs = [];
-
-  @override
-  int get preferredWidth => 80;
 
   @override
   Future<void> output(
@@ -118,9 +114,8 @@ final class _MemorySink extends LogSink<LogDocument> {
     final LogLevel level, {
     final LogContext? context,
   }) async {
-    final layout = TerminalLayout(width: preferredWidth);
-    final physical = layout.layout(document, level);
-    // Convert PhysicalLines to Strings for inspection
-    outputs.add(physical.lines.map((final l) => l.toString()).toList());
+    const encoder = PlainTextEncoder();
+    final output = encoder.encode(document, level, width: 80);
+    outputs.add(output.split('\n'));
   }
 }

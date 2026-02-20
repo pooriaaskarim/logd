@@ -1,7 +1,8 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
 import '../decorator/mock_context.dart';
 
 void main() {
@@ -14,10 +15,10 @@ void main() {
             'list': [
               1,
               2,
-              {'nested': true}
-            ]
-          }
-        }
+              {'nested': true},
+            ],
+          },
+        },
       };
 
       final entry = LogEntry(
@@ -34,7 +35,7 @@ void main() {
 
       // Verify structure via lines (end-to-end)
       // Verify structure via lines (end-to-end)
-      final layout = TerminalLayout(width: 80);
+      const layout = TerminalLayout(width: 80);
       final lines = layout.layout(doc, LogLevel.info).lines;
       final output = lines.join('\n');
 
@@ -51,8 +52,10 @@ void main() {
       // Verify tags on a specific line
       final keyLine =
           lines.firstWhere((final l) => l.toString().contains('"level1":'));
-      expect(keyLine.segments.any((final s) => s.tags.contains(LogTag.key)),
-          isTrue);
+      expect(
+        keyLine.segments.any((final s) => s.tags.contains(LogTag.key)),
+        isTrue,
+      );
     });
 
     test('hanging indent for long values via DecoratedNode', () {
@@ -70,7 +73,7 @@ void main() {
       );
 
       // Use a narrow width to force wrapping
-      final narrowContext = LogContext(availableWidth: 30);
+      const narrowContext = LogContext();
       const formatter = JsonPrettyFormatter();
       final doc = formatter.format(entry, narrowContext);
 
@@ -80,14 +83,14 @@ void main() {
       // But if formatting uses SPACES for indentation, they are in the string.
       // We need to match legacy behavior which might have used 'asLines'.
       // If we use TerminalLayout with width 30:
-      final layout = TerminalLayout(width: 30);
+      const layout = TerminalLayout(width: 30);
       final lines = layout
           .layout(doc, LogLevel.info)
           .lines
-          .map((l) => l.toString())
+          .map((final l) => l.toString())
           .toList();
 
-      /* 
+      /*
       Expected (approximate):
       {
         "longKey": "This is a very
@@ -96,11 +99,11 @@ void main() {
       */
 
       for (final line in lines) {
-        if (line.toString().contains('long text')) {
+        if (line.contains('long text')) {
           // Continuation lines should be indented by '  "longKey": '.length
           // spaces
           expect(
-            line.toString().startsWith('           '),
+            line.startsWith('           '),
             isTrue,
           );
         }

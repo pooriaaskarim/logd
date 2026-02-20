@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 import '../../../logd.dart';
 
-/// Semantic tags describing the content of a [LogSegment].
+/// Semantic tags describing the content of a [LogNode].
 enum LogTag {
   /// General metadata like timestamp, level, or logger name.
   header,
@@ -49,11 +49,12 @@ enum LogTag {
   punctuation,
 
   /// Optimization hint: Content should not be wrapped by the layout engine.
-  /// Used for machine-readable formats (JSON, TOON) where structure is critical.
+  /// Used for machine-readable formats (JSON, TOON) where structure is
+  /// critical.
   noWrap,
 
   /// Semantic hint: Content is suitable for a collapsible/expandable section
-  /// (e.g., <details> in HTML/Markdown).
+  /// (e.g., \<details\> in HTML/Markdown).
   collapsible,
 }
 

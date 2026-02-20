@@ -1,6 +1,6 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -10,7 +10,7 @@ void main() {
     test('appends fixed suffix to each log line (alignToEnd: false)', () {
       const suffix = ' [SUFFIX]';
       const decorator = SuffixDecorator(suffix, aligned: false);
-      const context = LogContext(availableWidth: 100);
+      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -23,7 +23,7 @@ void main() {
       final doc = createTestDocument(lines);
       final decoratedDoc = decorator.decorate(doc, entry, context);
 
-      final layout = TerminalLayout(width: context.totalWidth);
+      const layout = TerminalLayout(width: 80);
       final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
 
       expect(decorated.length, equals(2));
@@ -35,7 +35,7 @@ void main() {
       const suffix = '!!';
       const decorator = SuffixDecorator(suffix, aligned: true);
       // Total area is 20. Suffix is 2. Formatter gets 18.
-      const context = LogContext(availableWidth: 18, contentLimit: 20);
+      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -48,7 +48,7 @@ void main() {
       final doc = createTestDocument(lines);
       final decoratedDoc = decorator.decorate(doc, entry, context);
 
-      final layout = TerminalLayout(width: context.contentLimit);
+      const layout = TerminalLayout(width: 20);
       final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
 
       // Content (5) + Padding (13) + Suffix (2) = 20 total (contentLimit)
@@ -75,7 +75,7 @@ void main() {
       const box = BoxDecorator();
       const suffix = ' !!';
       const decorator = SuffixDecorator(suffix, aligned: false);
-      const context = LogContext(availableWidth: 20);
+      const context = LogContext();
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -91,7 +91,7 @@ void main() {
           decorator.decorate(createTestDocument(lines), entry, context);
       final boxedDoc = box.decorate(suffixed, entry, context);
 
-      final layout = TerminalLayout(width: context.contentLimit + 2);
+      const layout = TerminalLayout(width: 22);
       final boxed = layout.layout(boxedDoc, LogLevel.info).lines;
 
       // Box width: availableWidth (20) + 2 border = 22 total

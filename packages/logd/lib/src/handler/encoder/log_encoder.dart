@@ -42,7 +42,7 @@ class PlainTextEncoder implements LogEncoder<String> {
     }
 
     // 1. Calculate physical layout
-    final totalWidth = width ?? document.metadata['width'] as int? ?? 80;
+    final totalWidth = width ?? 80;
     final layoutEngine = TerminalLayout(width: totalWidth);
     final physicalDoc = layoutEngine.layout(document, level);
 

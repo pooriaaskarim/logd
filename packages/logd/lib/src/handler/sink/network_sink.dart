@@ -48,9 +48,6 @@ abstract base class NetworkSink extends LogSink<LogDocument> {
   /// Returns `true` if the sink has been disposed.
   bool get isDisposed => _state.isDisposed;
 
-  @override
-  int get preferredWidth => 120;
-
   /// Safely adds a line to the buffer according to the [dropPolicy].
   @protected
   void enqueue(final String line) {
@@ -154,7 +151,7 @@ final class HttpSink extends NetworkSink {
     _ensureActive();
 
     const encoder = PlainTextEncoder();
-    final width = context?.totalWidth ?? preferredWidth;
+    const width = 120;
     final formatted = encoder.encode(document, level, width: width);
     enqueue(formatted);
 
@@ -287,7 +284,7 @@ final class SocketSink extends NetworkSink {
     }
 
     const encoder = PlainTextEncoder();
-    final width = context?.totalWidth ?? preferredWidth;
+    const width = 120;
     final formatted = encoder.encode(document, level, width: width);
 
     if (_socketState.isConnected) {

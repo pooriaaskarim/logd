@@ -4,7 +4,8 @@ part of '../handler.dart';
 /// a single-line JSON string.
 ///
 /// The output is compact and suitable for machine parsing or structured logging
-/// backends.
+/// backends. For a human-friendly pretty-printed version, see
+/// [JsonPrettyFormatter].
 @immutable
 final class JsonFormatter implements LogFormatter {
   /// Creates a [JsonFormatter].
@@ -24,10 +25,7 @@ final class JsonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(
-    final LogEntry entry,
-    final LogContext context,
-  ) {
+  LogDocument format(final LogEntry entry, final LogContext context) {
     final map = <String, dynamic>{
       'level': entry.level.name,
       'message': entry.message,
@@ -61,7 +59,6 @@ final class JsonFormatter implements LogFormatter {
           ],
         ),
       ],
-      metadata: const {'width': 10000},
     );
   }
 
@@ -82,6 +79,9 @@ final class JsonFormatter implements LogFormatter {
 /// Each part of the JSON (keys, values, punctuation) is tagged with semantic
 /// tags like [LogTag.key], [LogTag.value], [LogTag.punctuation], etc.
 /// when [color] is enabled.
+///
+/// This "Wise" formatter uses adaptive layout logic to preserve readability on
+/// narrow terminals by stacking keys or compacting small composites.
 @immutable
 final class JsonPrettyFormatter implements LogFormatter {
   /// Creates a [JsonPrettyFormatter].
@@ -99,6 +99,10 @@ final class JsonPrettyFormatter implements LogFormatter {
       LogMetadata.logger,
       LogMetadata.origin,
     },
+    this.keyWrapThreshold = 40,
+    this.stackThreshold = 20,
+    this.sortKeys = false,
+    this.maxDepth = 10,
   });
 
   /// Indentation string (default: two spaces).
@@ -110,15 +114,30 @@ final class JsonPrettyFormatter implements LogFormatter {
   /// Whether to detect and pretty-print nested JSON strings.
   final bool prettyPrintNestedJson;
 
+  /// The threshold for breaking long keys onto their own lines (Structural
+  /// Hint).
+  ///
+  /// This applies to scalar values. For composite values, [stackThreshold] is
+  /// used.
+  final int keyWrapThreshold;
+
+  /// The threshold for stacking keys above composite values (Maps/Lists).
+  ///
+  /// If the key length exceeds this, it moves above the '{' or '['.
+  final int stackThreshold;
+
+  /// Whether to sort Map keys alphabetically.
+  final bool sortKeys;
+
+  /// Maximum depth to recurse into JSON structures (default: 10).
+  final int maxDepth;
+
   /// The contextual metadata to include in the output.
   @override
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(
-    final LogEntry entry,
-    final LogContext context,
-  ) {
+  LogDocument format(final LogEntry entry, final LogContext context) {
     final map = <String, Object?>{
       'level': entry.level.name,
       'message': entry.message,
@@ -152,14 +171,7 @@ final class JsonPrettyFormatter implements LogFormatter {
     }
 
     return LogDocument(
-      nodes: _buildNodes(
-        map,
-        0,
-        context: context,
-        fieldTags: fieldTags,
-        remainingWidth: context.availableWidth,
-      ),
-      metadata: {'width': context.totalWidth},
+      nodes: _buildNodes(map, 0, context: context, fieldTags: fieldTags),
     );
   }
 
@@ -167,20 +179,23 @@ final class JsonPrettyFormatter implements LogFormatter {
     final Object? value,
     final int depth, {
     required final LogContext context,
-    required final int remainingWidth, // Exact width available at this depth
     final Map<String, LogTag>? fieldTags,
     final String? currentKey,
     final bool isLast = true,
   }) {
-    // 1. Adaptive Nesting: If very narrow, stop auto-parsing nested JSON.
-    final canParseNested = remainingWidth > 15 && prettyPrintNestedJson;
+    if (depth > maxDepth) {
+      return [
+        const ParagraphNode(
+          children: [
+            MessageNode(segments: [StyledText('...')]),
+          ],
+        ),
+      ];
+    }
 
-    // 2. Adaptive Indent: If space is tight, use a minimal 1-space indent.
-    final effectiveIndent =
-        (remainingWidth < 20 && indent.length > 1) ? ' ' : indent;
-
-    // Hierarchy overhead: IndentationNode usually adds '│ ' (2 chars)
-    final childRemainingWidth = remainingWidth - effectiveIndent.length - 2;
+    // 1. Adaptive Indent: If space is tight, use a minimal 1-space indent.
+    // NOTE: Simplified to always use provided indent for semantic consistency.
+    final effectiveIndent = indent;
 
     if (value is Map) {
       final nodes = <LogNode>[
@@ -199,6 +214,12 @@ final class JsonPrettyFormatter implements LogFormatter {
       ];
 
       final entries = value.entries.toList();
+      if (sortKeys) {
+        entries.sort(
+          (final a, final b) => a.key.toString().compareTo(b.key.toString()),
+        );
+      }
+
       final body = <LogNode>[];
       for (int i = 0; i < entries.length; i++) {
         final entry = entries[i];
@@ -206,24 +227,53 @@ final class JsonPrettyFormatter implements LogFormatter {
         final entryVal = entry.value;
 
         // Try to parse nested JSON strings if space allows
-        final processedValue = (entryVal is String && canParseNested)
+        final processedValue = (entryVal is String)
             ? (_tryParseJson(entryVal) ?? entryVal)
             : entryVal;
 
+        final isComposite = processedValue is Map || processedValue is List;
         final keyText = '"${entry.key}": ';
         final Set<LogTag> keyTag =
             color ? const {LogTag.key, LogTag.punctuation} : const {};
 
-        // VIRTUAL MODE: If space is extremely limited (e.g. nested deeply),
-        // put key on its own line to save horizontal width.
-        if (remainingWidth < 25) {
+        // WISDOM: Check if we can compact this composite into a single line
+        // Only compact if the key itself isn't too long to force stacking.
+        if (_isSmallComposite(processedValue) &&
+            keyText.visibleLength <= stackThreshold) {
+          final scalarStr = _valueString(processedValue);
+          body.add(
+            ParagraphNode(
+              children: [
+                MessageNode(
+                  segments: [
+                    StyledText(keyText, tags: keyTag),
+                    StyledText(
+                      scalarStr,
+                      tags: color ? {LogTag.value} : const {},
+                    ),
+                    if (!isEntryLast)
+                      StyledText(
+                        ',',
+                        tags: color ? const {LogTag.punctuation} : const {},
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+          continue;
+        }
+
+        // VIRTUAL MODE: Put key on its own line if it's too long (Structural
+        // Hint)
+        final threshold = isComposite ? stackThreshold : keyWrapThreshold;
+
+        if (keyText.visibleLength > threshold) {
           body
             ..add(
               ParagraphNode(
                 children: [
-                  HeaderNode(
-                    segments: [StyledText(keyText, tags: keyTag)],
-                  ),
+                  HeaderNode(segments: [StyledText(keyText, tags: keyTag)]),
                 ],
               ),
             )
@@ -232,7 +282,6 @@ final class JsonPrettyFormatter implements LogFormatter {
                 processedValue,
                 depth + 1,
                 context: context,
-                remainingWidth: childRemainingWidth,
                 fieldTags: fieldTags,
                 isLast: isEntryLast,
               ),
@@ -247,7 +296,6 @@ final class JsonPrettyFormatter implements LogFormatter {
                 processedValue,
                 depth + 1,
                 context: context,
-                remainingWidth: childRemainingWidth - keyText.visibleLength,
                 fieldTags: fieldTags,
                 currentKey: entry.key,
                 isLast: isEntryLast,
@@ -258,12 +306,7 @@ final class JsonPrettyFormatter implements LogFormatter {
       }
 
       nodes
-        ..add(
-          IndentationNode(
-            indentString: effectiveIndent,
-            children: body,
-          ),
-        )
+        ..add(IndentationNode(indentString: effectiveIndent, children: body))
         ..add(
           ParagraphNode(
             children: [
@@ -309,7 +352,6 @@ final class JsonPrettyFormatter implements LogFormatter {
               processedValue,
               depth + 1,
               context: context,
-              remainingWidth: childRemainingWidth,
               fieldTags: fieldTags,
               isLast: isEntryLast,
             ),
@@ -318,12 +360,7 @@ final class JsonPrettyFormatter implements LogFormatter {
       }
 
       nodes
-        ..add(
-          IndentationNode(
-            indentString: effectiveIndent,
-            children: body,
-          ),
-        )
+        ..add(IndentationNode(indentString: effectiveIndent, children: body))
         ..add(
           ParagraphNode(
             children: [
@@ -345,6 +382,29 @@ final class JsonPrettyFormatter implements LogFormatter {
       final valueTag = (fieldTags != null && currentKey != null)
           ? (fieldTags[currentKey] ?? (color ? LogTag.value : null))
           : (color ? LogTag.value : null);
+
+      if (valStr.contains('\n')) {
+        // WISDOM: Handle multiline strings as a block
+        return [
+          ParagraphNode(
+            children: [
+              MessageNode(
+                segments: [
+                  StyledText(
+                    valStr,
+                    tags: valueTag != null ? {valueTag} : const {},
+                  ),
+                  if (!isLast)
+                    StyledText(
+                      ',',
+                      tags: color ? const {LogTag.punctuation} : const {},
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ];
+      }
 
       return [
         ParagraphNode(
@@ -368,11 +428,63 @@ final class JsonPrettyFormatter implements LogFormatter {
     }
   }
 
+  /// WISDOM: Determines if a composite value should be rendered on a single
+  /// line.
+  bool _isSmallComposite(final Object? value) {
+    if (value is Map) {
+      if (value.isEmpty) {
+        return true;
+      }
+      if (value.length > 3) {
+        return false;
+      }
+      // Check if all values are simple scalars
+      for (final v in value.values) {
+        if (v is Map || v is List) {
+          return false;
+        }
+        if (v is String && v.contains('\n')) {
+          return false;
+        }
+      }
+      return _valueString(value).visibleLength < 40;
+    } else if (value is List) {
+      if (value.isEmpty) {
+        return true;
+      }
+      if (value.length > 5) {
+        return false;
+      }
+      for (final v in value) {
+        if (v is Map || v is List) {
+          return false;
+        }
+        if (v is String && v.contains('\n')) {
+          return false;
+        }
+      }
+      return _valueString(value).visibleLength < 40;
+    }
+    return false;
+  }
+
   String _valueString(final Object? value) {
     if (value == null) {
       return 'null';
     } else if (value is String) {
       return '"$value"';
+    } else if (value is Map || value is List) {
+      if (sortKeys && value is Map) {
+        final sortedMap = Map.fromEntries(
+          value.entries.toList()
+            ..sort(
+              (final a, final b) =>
+                  a.key.toString().compareTo(b.key.toString()),
+            ),
+        );
+        return jsonEncode(sortedMap);
+      }
+      return jsonEncode(value);
     } else {
       return value.toString();
     }
@@ -401,12 +513,20 @@ final class JsonPrettyFormatter implements LogFormatter {
           runtimeType == other.runtimeType &&
           indent == other.indent &&
           color == other.color &&
+          keyWrapThreshold == other.keyWrapThreshold &&
+          stackThreshold == other.stackThreshold &&
+          sortKeys == other.sortKeys &&
+          maxDepth == other.maxDepth &&
           setEquals(metadata, other.metadata);
 
   @override
   int get hashCode => Object.hash(
         indent,
         color,
+        keyWrapThreshold,
+        stackThreshold,
+        sortKeys,
+        maxDepth,
         Object.hashAll(metadata),
       );
 }

@@ -1,2 +1,12 @@
-logs[]{timestamp,logger,origin,level,message,error,stackTrace}:
-"2025-01-01 12:00:00"	SnapTest	"snap.dart:10:5"	INFO	This is a standard log message for golden verification.
+logs[]{timestamp,log
+ger,origin,level,mes
+sage,error,stackTrac
+e}:
+"2025-01-01
+12:00:00"	
+SnapTest	
+"snap.dart:10:5"
+	INFO	This
+is a standard log
+message for golden
+verification.

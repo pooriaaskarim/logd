@@ -120,7 +120,6 @@ final class PlainFormatter implements LogFormatter {
 
     return LogDocument(
       nodes: nodes,
-      metadata: {'width': context.totalWidth},
     );
   }
 

@@ -26,12 +26,6 @@ base class MultiSink extends LogSink<LogDocument> {
     }
   }
 
-  @override
-  int get preferredWidth => sinks.fold(
-        1000,
-        (final min, final s) => s.preferredWidth < min ? s.preferredWidth : min,
-      );
-
   /// The list of child sinks to which log lines are broadcast.
   final List<LogSink<LogDocument>> sinks;
 
@@ -51,7 +45,9 @@ base class MultiSink extends LogSink<LogDocument> {
 
     await Future.wait(
       sinks.where((final sink) => sink.enabled).map(
-          (final sink) => _safeOutput(sink, document, level, context: context)),
+            (final sink) =>
+                _safeOutput(sink, document, level, context: context),
+          ),
     );
   }
 

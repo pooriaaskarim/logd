@@ -139,11 +139,10 @@ final consoleHandler = Handler(
     StyleDecorator(),
     SuffixDecorator(
       label: '[v1.0.2]',
-      align: ture,
+      align: true,
     ),
   ],
-  sink: const ConsoleSink(),
-  lineLength: 80,
+  sink: const ConsoleSink(lineLength: 80),
 );
 
 final fileHandler = Handler(
@@ -159,7 +158,7 @@ Or use a multi-sink in a handler:
 final multiSinkHandler = Handler(
   formatter: PlainFormatter(),
   sink: MultiSink(sinks: [
-    ConsoleSinK(),
+    ConsoleSink(),
     FileSink('logs/app.log'),
     ],
   ),
@@ -225,8 +224,7 @@ Logger.configure('global', handlers: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
       StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
     ],
-    sink: ConsoleSink(),
-    lineLength: 80,
+    sink: const ConsoleSink(lineLength: 80),
   ),
 ]);
 ```
@@ -258,7 +256,7 @@ Logger.configure('ai.agent', handlers: [
 ]);
 ```
 
-**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. The header is emitted only when the configuration changes.
+**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. The header is emitted only when the configuration changes. For human-readable structural TOON, use `ToonPrettyFormatter`.
 
 
 ### Network Logging

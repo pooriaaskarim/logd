@@ -167,7 +167,6 @@ final class StructuredFormatter implements LogFormatter {
 
     return LogDocument(
       nodes: nodes,
-      metadata: {'width': context.totalWidth},
     );
   }
 

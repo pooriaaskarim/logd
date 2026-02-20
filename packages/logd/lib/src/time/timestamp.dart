@@ -327,10 +327,9 @@ class TimestampFormatter {
           segments.add(_FormatSegment(potentialToken, isToken: true));
         } else {
           throw FormatException(
-            'Unrecognized sequence of letters "$potentialToken" in timestamp'
-            ' format: "$format".'
-            ' Non-token words must be escaped with single quotes.',
-          );
+              'Unrecognized sequence of letters "$potentialToken" in timestamp'
+              ' format: "$format".'
+              ' Non-token words must be escaped with single quotes.');
         }
       } else {
         // Buffer literals (non-letters, non-quotes)

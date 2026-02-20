@@ -16,8 +16,11 @@ void main() {
 
     test('adds rounded borders by default', () {
       const decorator = BoxDecorator();
-      final boxed = decorator.decorate(createTestDocument(lines), entry,
-          const LogContext(availableWidth: 20));
+      final boxed = decorator.decorate(
+        createTestDocument(lines),
+        entry,
+        const LogContext(),
+      );
       final rendered = renderLines(boxed);
 
       expect(rendered.first, startsWith('╭'));
@@ -30,8 +33,11 @@ void main() {
       const decorator = BoxDecorator(
         borderStyle: BorderStyle.sharp,
       );
-      final boxed = decorator.decorate(createTestDocument(lines), entry,
-          const LogContext(availableWidth: 20));
+      final boxed = decorator.decorate(
+        createTestDocument(lines),
+        entry,
+        const LogContext(),
+      );
       final rendered = renderLines(boxed);
 
       expect(rendered.first, startsWith('┌'));
@@ -42,8 +48,11 @@ void main() {
       const decorator = BoxDecorator(
         borderStyle: BorderStyle.double,
       );
-      final boxed = decorator.decorate(createTestDocument(lines), entry,
-          const LogContext(availableWidth: 20));
+      final boxed = decorator.decorate(
+        createTestDocument(lines),
+        entry,
+        const LogContext(),
+      );
       final rendered = renderLines(boxed);
 
       expect(rendered.first, startsWith('╔'));

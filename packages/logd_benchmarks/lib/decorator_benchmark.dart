@@ -17,7 +17,7 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
   void setup() {
     entry = createEntry();
     formatter = const PlainFormatter();
-    final layout = TerminalLayout(width: 80);
+    final layout = const TerminalLayout(width: 80);
     baseLines = layout
         .layout(formatter.format(entry, context), LogLevel.info)
         .lines
@@ -36,7 +36,7 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
     final document = LogDocument(nodes: nodes);
     final decorated = decorator.decorate(document, entry, context);
 
-    final layout = TerminalLayout(width: 80);
+    final layout = const TerminalLayout(width: 80);
     final lines = layout.layout(decorated, LogLevel.info).lines;
     for (final _ in lines) {}
   }

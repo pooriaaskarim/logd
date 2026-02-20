@@ -17,18 +17,14 @@ void main() {
 
       final document = formatter.format(
         entry,
-        const LogContext(
-          availableWidth: 80,
-          totalWidth: 80,
-          contentLimit: 80,
-        ),
+        const LogContext(),
       );
 
       expect(document.nodes, hasLength(2));
       expect(document.nodes[0], isA<HeaderNode>());
       expect(document.nodes[1], isA<MessageNode>());
 
-      final encoder = const MarkdownEncoder();
+      const encoder = MarkdownEncoder();
       final output = encoder.encode(document, LogLevel.info);
 
       expect(output, contains('### ℹ️ INFO'));
@@ -48,11 +44,7 @@ void main() {
 
       final document = formatter.format(
         entry,
-        const LogContext(
-          availableWidth: 80,
-          totalWidth: 80,
-          contentLimit: 80,
-        ),
+        const LogContext(),
       );
 
       expect(document.nodes, hasLength(4));
@@ -60,7 +52,7 @@ void main() {
       expect(document.nodes[3], isA<FooterNode>());
       expect(document.nodes[3].tags, contains(LogTag.collapsible));
 
-      final encoder = const MarkdownEncoder();
+      const encoder = MarkdownEncoder();
       final output = encoder.encode(document, LogLevel.error);
 
       expect(output, contains('### ❌ ERROR'));

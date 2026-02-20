@@ -10,9 +10,6 @@ final class NullSink extends LogSink<LogDocument> {
   const NullSink();
 
   @override
-  int get preferredWidth => 80;
-
-  @override
   Future<void> output(
     final LogDocument document,
     final LogLevel level, {
@@ -50,24 +47,7 @@ abstract class PipelineBenchmark extends BenchmarkBase {
     final formatter = handler.formatter;
     final decorators = handler.decorators;
 
-    // Replicate Handler.log logic
-    final totalWidth = 80;
-    var totalPadding = 0;
-    var structuralPadding = 0;
-
-    for (final decorator in decorators) {
-      final padding = decorator.paddingWidth(entry);
-      totalPadding += padding;
-      if (decorator is StructuralDecorator) {
-        structuralPadding += padding;
-      }
-    }
-
-    final context = LogContext(
-      availableWidth: (totalWidth - totalPadding).clamp(1, totalWidth),
-      totalWidth: totalWidth,
-      contentLimit: (totalWidth - structuralPadding).clamp(1, totalWidth),
-    );
+    final context = const LogContext();
 
     var document = formatter.format(entry, context);
 

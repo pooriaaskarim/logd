@@ -328,12 +328,17 @@ base class FileSink extends LogSink<LogDocument> {
   ///   to a filename, not a directory.
   /// - [fileRotation]: An optional policy for rotating the log file.
   /// - [enabled]: Whether the sink is currently active.
-  FileSink(this.basePath, {this.fileRotation, super.enabled = true}) {
+  FileSink(
+    this.basePath, {
+    this.fileRotation,
+    this.lineLength,
+    super.enabled = true,
+  }) {
     _validateBasePath(basePath);
   }
 
-  @override
-  int get preferredWidth => 120;
+  /// The maximum line length for the output.
+  final int? lineLength;
 
   /// The path to the active log file (e.g., 'logs/app.log').
   final String basePath;
@@ -419,7 +424,7 @@ base class FileSink extends LogSink<LogDocument> {
     }
 
     const encoder = PlainTextEncoder();
-    final width = context?.totalWidth ?? preferredWidth;
+    final width = lineLength ?? 120;
     final encoded = encoder.encode(document, level, width: width);
     if (encoded.isEmpty) {
       return;

@@ -3,12 +3,12 @@ part of '../handler.dart';
 /// A [LogSink] that encodes logs using a [LogEncoder] before writing to an
 /// output.
 ///
-/// This serves as an adapter between the structured [LogLine] world and
+/// This serves as an adapter between the structured [LogDocument] world and
 /// raw transport mechanism (File, Socket, Console).
 base class EncodingSink<T> extends LogSink<LogDocument> {
   /// Creates an [EncodingSink].
   ///
-  /// - [encoder]: The encoder to serialize LogLines into [T].
+  /// - [encoder]: The encoder to serialize LogDocuments into [T].
   /// - [delegate]: The callback to transport the encoded data.
   /// - [preferredWidth]: The preferred width for wrapping logs (default: 100).
   EncodingSink({
@@ -24,8 +24,8 @@ base class EncodingSink<T> extends LogSink<LogDocument> {
   /// The transport callback.
   final Future<void> Function(T data) delegate;
 
-  @override
-  final int preferredWidth;
+  /// The maximum line length for the output.
+  final int? preferredWidth;
 
   @override
   Future<void> output(
@@ -36,7 +36,7 @@ base class EncodingSink<T> extends LogSink<LogDocument> {
     if (!enabled) {
       return;
     }
-    final width = context?.totalWidth ?? preferredWidth;
+    final width = preferredWidth;
     final data = encoder.encode(document, level, width: width);
     await delegate(data);
   }

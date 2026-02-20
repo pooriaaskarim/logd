@@ -16,11 +16,7 @@ LogEntry createEntry() {
 }
 
 // Dummy LogContext
-final context = const LogContext(
-  availableWidth: 80,
-  totalWidth: 80,
-  contentLimit: 80,
-);
+final context = const LogContext();
 
 abstract class FormatterBenchmark extends BenchmarkBase {
   FormatterBenchmark(super.name);
@@ -39,7 +35,7 @@ abstract class FormatterBenchmark extends BenchmarkBase {
   @override
   void run() {
     // Consume the iterable to force execution
-    final layout = TerminalLayout(width: 80);
+    final layout = const TerminalLayout(width: 80);
     final lines =
         layout.layout(formatter.format(entry, context), LogLevel.info).lines;
     for (final _ in lines) {}

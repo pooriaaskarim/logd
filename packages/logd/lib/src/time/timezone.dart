@@ -61,12 +61,11 @@ class Timezone {
     final systemTimezoneOffset = systemTime.timeZoneOffset;
 
     InternalLogger.log(
-      LogLevel.warning,
-      'Timezone "$systemTimezoneName" not found in database. '
-      'Using fixed offset ${systemTimezoneOffset.formatOffset}. '
-      'DST transitions will not be handled automatically. '
-      'Ensure Timezone.ensureInitialized() is called or the name is valid.',
-    );
+        LogLevel.warning,
+        'Timezone "$systemTimezoneName" not found in database. '
+        'Using fixed offset ${systemTimezoneOffset.formatOffset}. '
+        'DST transitions will not be handled automatically. '
+        'Ensure Timezone.ensureInitialized() is called or the name is valid.');
 
     return _localCache = Timezone._fixed(
       systemTimezoneOffset,
@@ -95,18 +94,17 @@ class Timezone {
     final Duration offset, {
     final String name = 'Fixed',
   }) {
-    final fixedLocation = tz.Location(
-      name,
-      [tz.minTime],
-      [0],
-      [
-        tz.TimeZone(
-          offset,
-          isDst: false,
-          abbreviation: 'FIX',
-        ),
-      ],
-    );
+    final fixedLocation = tz.Location(name, [
+      tz.minTime,
+    ], [
+      0,
+    ], [
+      tz.TimeZone(
+        offset,
+        isDst: false,
+        abbreviation: 'FIX',
+      ),
+    ]);
     return Timezone._(fixedLocation);
   }
 

@@ -3,7 +3,7 @@ part of '../handler.dart';
 /// A sink that writes HTML-formatted logs to files.
 ///
 /// Automatically wraps logs with complete HTML document structure including
-/// embedded CSS for styling. Use with [HTMLFormatter] for styled HTML log
+/// embedded CSS for styling. Use with [HtmlEncoder] for styled HTML log
 /// files.
 ///
 /// **Important**: Call [close()] when done logging to write the HTML footer.
@@ -12,7 +12,7 @@ part of '../handler.dart';
 /// ```dart
 /// final sink = HTMLSink(filePath: 'logs/app.html');
 /// final handler = Handler(
-///   formatter: const HTMLFormatter(),
+///   formatter: const StructuredFormatter(),
 ///   sink: sink,
 /// );
 /// // ... log entries ...
@@ -28,9 +28,6 @@ final class HTMLSink extends LogSink<LogDocument> {
     required this.filePath,
     this.darkMode = true,
   });
-
-  @override
-  int get preferredWidth => 100;
 
   /// Path to the HTML file.
   final String filePath;
@@ -71,7 +68,7 @@ final class HTMLSink extends LogSink<LogDocument> {
 
         // Append log entries
         const encoder = HtmlEncoder();
-        final width = context?.totalWidth ?? preferredWidth;
+        const width = 1200; // HTML maximum container width hint
         final output = encoder.encode(document, level, width: width);
         if (output.isNotEmpty) {
           await file.writeAsString('$output\n', mode: io.FileMode.append);

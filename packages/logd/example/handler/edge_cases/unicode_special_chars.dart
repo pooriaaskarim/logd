@@ -18,8 +18,9 @@ void main() async {
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: ConsoleSink(),
-    lineLength: 60,
+    sink: ConsoleSink(
+      lineLength: 60,
+    ),
   );
 
   Logger.configure('example.unicode', handlers: [handler]);
@@ -38,7 +39,19 @@ void main() async {
     ..info('Mixed: Hello 世界! 🎉 Special: !@#')
 
     // Long unicode string
-    ..info('长文本：这是一个非常长的中文消息，应该正确换行');
+    ..info('长文本：这是一个非常长的中文消息，应该正确换行')
+
+    // Multi-byte characters
+    ..info('Hello 🌍! This is Unicode test.')
+
+    // Emojis with modifiers (ZWJ)
+    ..info('Family: 👨‍👩‍👧‍👦 (counts as 1 cluster)')
+
+    // Combining characters
+    ..info('Accents: é, ñ, ü')
+
+    // Mixed scripts
+    ..info('Scripts: 日本語, فارسی, English');
 
   print('Verify that unicode and special characters are handled correctly');
 }

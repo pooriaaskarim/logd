@@ -1,11 +1,8 @@
 /// The orchestration layer for the Logd pipeline.
 ///
 /// This library defines the [Handler] and the core models for processing
-/// logs:
-/// - [LogFormatter] for structure.
-/// - [LogDecorator] for layout and style.
-/// - [LogSink] for output.
-/// - [LogDocument] as the intermediate representation.
+/// logs. It uses a structured [LogDocument] as the intermediate representation.
+/// 
 library;
 
 import 'dart:async';
@@ -78,7 +75,6 @@ class Handler {
     required this.sink,
     this.filters = const [],
     this.decorators = const [],
-    this.lineLength,
   });
 
   /// The formatter used to transform a [LogEntry] into a sequence of lines.
@@ -95,11 +91,6 @@ class Handler {
   /// A list of decorators applied to the formatted lines in order.
   final List<LogDecorator> decorators;
 
-  /// The maximum line length for the output.
-  ///
-  /// If provided, this overrides [LogSink.preferredWidth].
-  final int? lineLength;
-
   /// Process the entry: filter, format, decorate, output.
   @internal
   Future<void> log(final LogEntry entry) async {
@@ -107,31 +98,21 @@ class Handler {
       return;
     }
 
-    /// Context for the pipeline, merging handler config and sink capabilities.
-    final totalWidth = lineLength ?? sink.preferredWidth;
+    // 1. Context for the pipeline
+    const context = LogContext();
 
-    // Delegate decorator logic to pipeline component.
+    // 2. Delegate decorator logic to pipeline component
     final pipeline = DecoratorPipeline(decorators);
 
-    // Calculate total width consumed by ALL decorators per line.
-    final totalPadding = pipeline.calculateTotalPadding(entry);
-    final structuralPadding = pipeline.calculateStructuralPadding(entry);
+    // 3. Format: Document production (Level 2: Semantic Literacy)
+    final document = formatter.format(entry, context);
 
-    final context = LogContext(
-      availableWidth: (totalWidth - totalPadding).clamp(1, totalWidth),
-      totalWidth: totalWidth,
-      contentLimit: (totalWidth - structuralPadding).clamp(1, totalWidth),
-    );
+    // 4. Decorate: Document transformation
+    final decorated = pipeline.apply(document, entry, context);
 
-    // 1. Format: Document production (Level 2: Semantic Literacy)
-    var document = formatter.format(entry, context);
-
-    // 2. Decorate: Document transformation (Level 4: Structural Power)
-    document = pipeline.apply(document, entry, context);
-
-    // 3. Sink: Document emission
-    if (document.nodes.isNotEmpty) {
-      await sink.output(document, entry.level, context: context);
+    // 5. Output: Emission
+    if (decorated.nodes.isNotEmpty) {
+      await sink.output(decorated, entry.level, context: context);
     }
   }
 
@@ -155,34 +136,18 @@ class Handler {
 
 /// Shared context passed through the logging pipeline.
 ///
-/// The [LogContext] acts as the authoritative source of truth for layout and
-/// presentation constraints (e.g., [availableWidth]) during the formatting
-/// and decoration stages.
+/// The [LogContext] acts as a transport for semantic metadata and arbitrary
+/// user data through the formatting and decoration stages. It is purposefully
+/// width-agnostic, as geometric constraints are handled at the emission layer.
+///
+/// Currently [LogContext] is not really used by any formatter or decorator. it
+/// is kept merly for probable future extensibility.
 @immutable
 class LogContext {
   /// Creates a [LogContext].
   const LogContext({
-    required this.availableWidth,
-    final int? totalWidth,
-    final int? contentLimit,
     this.arbitraryData = const {},
-  })  : totalWidth = totalWidth ?? availableWidth,
-        contentLimit = contentLimit ?? (totalWidth ?? availableWidth);
-
-  /// The total terminal/configured width for the log entry.
-  final int availableWidth;
-
-  /// The total terminal/configured width for the log entry.
-  final int totalWidth;
-
-  /// The layout width limit derived from [totalWidth] minus structural
-  /// overheads
-  /// (e.g. Box borders).
-  ///
-  /// Decorators that align content (like Suffix) or wrap structure (like Box)
-  /// should respect this limit to ensure the final composition fits the
-  /// display.
-  final int contentLimit;
+  });
 
   /// Additional arbitrary data for extensibility.
   final Map<String, Object?> arbitraryData;
