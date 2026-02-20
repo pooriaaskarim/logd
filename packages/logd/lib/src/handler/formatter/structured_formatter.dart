@@ -23,7 +23,7 @@ final class StructuredFormatter implements LogFormatter {
   @override
   LogDocument format(
     final LogEntry entry,
-    final LogContext context,
+    
   ) {
     final nodes = <LogNode>[];
 
@@ -76,7 +76,7 @@ final class StructuredFormatter implements LogFormatter {
     nodes.add(
       DecoratedNode(
         leadingWidth: 5,
-        leadingHint: 'structured_message',
+        leadingHint: DecorationHint.structuredMessage,
         leading: const [
           StyledText('----|', tags: {LogTag.header}),
         ],
@@ -95,7 +95,7 @@ final class StructuredFormatter implements LogFormatter {
       nodes.add(
         DecoratedNode(
           leadingWidth: 5,
-          leadingHint: 'structured_message',
+          leadingHint: DecorationHint.structuredMessage,
           leading: const [
             StyledText('----|', tags: {LogTag.header}),
           ],
@@ -118,7 +118,7 @@ final class StructuredFormatter implements LogFormatter {
         nodes.add(
           DecoratedNode(
             leadingWidth: 5,
-            leadingHint: 'structured_message',
+            leadingHint: DecorationHint.structuredMessage,
             leading: const [
               StyledText('----|', tags: {LogTag.header}),
             ],
@@ -145,7 +145,7 @@ final class StructuredFormatter implements LogFormatter {
         nodes.add(
           DecoratedNode(
             leadingWidth: 5,
-            leadingHint: 'structured_message',
+            leadingHint: DecorationHint.structuredMessage,
             leading: const [
               StyledText('----|', tags: {LogTag.header}),
             ],
@@ -172,7 +172,7 @@ final class StructuredFormatter implements LogFormatter {
 
   LogNode _buildHeaderNode(final List<StyledText> segments) => DecoratedNode(
         leadingWidth: 4,
-        leadingHint: 'structured_header',
+        leadingHint: DecorationHint.structuredHeader,
         leading: const [
           StyledText('____', tags: {LogTag.header}),
         ],

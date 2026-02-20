@@ -559,7 +559,8 @@ class TerminalLayout {
 
       final paddingNeeded =
           contentWidth - line.getVisibleLength(startX: node.leadingWidth);
-      final padChar = node.leadingHint == 'structured_separator' ? '_' : ' ';
+      final padChar =
+          node.leadingHint == DecorationHint.structuredSeparator ? '_' : ' ';
       final padding = (node.alignTrailing && paddingNeeded > 0)
           ? (padChar * paddingNeeded)
           : '';
@@ -572,8 +573,6 @@ class TerminalLayout {
           ...trailingSegments,
         ],
       );
-      // print('DEBUG: Decorated line: "${pLine.toString()}"
-      // len: ${pLine.visibleLength}');
       lines.add(pLine);
     }
 
@@ -588,16 +587,16 @@ class TerminalLayout {
     if (width <= 0) {
       return '';
     }
-    if (hint == 'structured_separator') {
+    if (hint == DecorationHint.structuredSeparator) {
       return '_' * width;
     }
-    if (hint == 'structured_header') {
+    if (hint == DecorationHint.structuredHeader) {
       return '_' * width;
     }
-    if (hint == 'structured_message' && isContinuation) {
+    if (hint == DecorationHint.structuredMessage && isContinuation) {
       return ' ' * width;
     }
-    if (hint == 'hierarchy_trace') {
+    if (hint == DecorationHint.hierarchyTrace) {
       return isContinuation ? '│${' ' * (width - 1)}' : '│${' ' * (width - 1)}';
     }
     return ' ' * width;

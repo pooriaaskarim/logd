@@ -50,6 +50,7 @@ part 'encoder/terminal_layout.dart';
 part 'encoder/toon_encoder.dart';
 part 'formatter/toon_formatter.dart';
 part 'model/log_content.dart';
+part 'model/decoration_hint.dart';
 part 'model/log_document.dart';
 part 'model/log_layout.dart';
 part 'model/physical_document.dart';
@@ -100,21 +101,18 @@ class Handler {
       return;
     }
 
-    // 1. Context for the pipeline
-    const context = LogContext();
-
-    // 2. Delegate decorator logic to pipeline component
+    // 1. Delegate decorator logic to pipeline component
     final pipeline = DecoratorPipeline(decorators);
 
-    // 3. Format: Document production (Level 2: Semantic Literacy)
-    final document = formatter.format(entry, context);
+    // 2. Format: Document production (Level 2: Semantic Literacy)
+    final document = formatter.format(entry);
 
-    // 4. Decorate: Document transformation
-    final decorated = pipeline.apply(document, entry, context);
+    // 3. Decorate: Document transformation
+    final decorated = pipeline.apply(document, entry);
 
-    // 5. Output: Emission
+    // 4. Output: Emission
     if (decorated.nodes.isNotEmpty) {
-      await sink.output(decorated, entry, entry.level, context: context);
+      await sink.output(decorated, entry, entry.level);
     }
   }
 
@@ -134,23 +132,4 @@ class Handler {
       sink.hashCode ^
       Object.hashAll(filters) ^
       Object.hashAll(decorators);
-}
-
-/// Shared context passed through the logging pipeline.
-///
-/// The [LogContext] acts as a transport for semantic metadata and arbitrary
-/// user data through the formatting and decoration stages. It is purposefully
-/// width-agnostic, as geometric constraints are handled at the emission layer.
-///
-/// Currently [LogContext] is not really used by any formatter or decorator. it
-/// is kept merly for probable future extensibility.
-@immutable
-class LogContext {
-  /// Creates a [LogContext].
-  const LogContext({
-    this.arbitraryData = const {},
-  });
-
-  /// Additional arbitrary data for extensibility.
-  final Map<String, Object?> arbitraryData;
 }
