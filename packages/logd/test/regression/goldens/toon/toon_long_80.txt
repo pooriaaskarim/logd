@@ -1,4 +1,4 @@
-logs[]{timestamp,logger,origin,level,message,error,stackTrace}:
-"2025-01-01 12:00:01"	LongSnap	long.dart	WARNING	A very long
-message that should trigger wrapping across multiple lines to verify structural
-integrity and spacing.
+{"timestamp":"2025-01-01
+12:00:01","logger":"LongSnap","origin":"long.dart","level":"WARNING","message":"
+A very long message that should trigger wrapping across multiple lines to verify
+structural integrity and spacing.","error":"","stackTrace":""}

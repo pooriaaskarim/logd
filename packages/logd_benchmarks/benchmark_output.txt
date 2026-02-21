@@ -2,20 +2,23 @@ Running Baseline Benchmarks...
 ==============================
 
 --- Formatter Throughput ---
-PlainFormatter(RunTime): 145.68710422409296 us.
-StructuredFormatter(RunTime): 415.72691597414587 us.
-ToonFormatter(RunTime): 359.13154731238194 us.
-JsonFormatter(RunTime): 277.0512125728221 us.
+PlainFormatter(RunTime): 147.45385291532375 us.
+StructuredFormatter(RunTime): 478.7181818181818 us.
+ToonFormatter(RunTime): 294.8256622761581 us.
+JsonFormatter(RunTime): 268.10475007168117 us.
 
 --- Decorator Overhead ---
-BoxDecorator(RunTime): 558.7845 us.
-PrefixDecorator(RunTime): 548.3531428571429 us.
-StyleDecorator(RunTime): 368.03937007874015 us.
+BoxDecorator(RunTime): 542.7585106382978 us.
+PrefixDecorator(RunTime): 555.848 us.
+StyleDecorator(RunTime): 342.5595517802277 us.
 
 --- E2E Pipeline Overhead ---
-Simple Pipeline (Plain)(RunTime): 12.167279665440669 us.
-Complex Pipeline (Structure+Box+Style)(RunTime): 79.32289810464928 us.
+Simple Pipeline (Plain)(RunTime): 11.87089375 us.
+Complex Pipeline (Structure+Box+Style)(RunTime): 74.32371941024472 us.
 
 --- Multi-Sink Scaling ---
-MultiSink (x1)(RunTime): 6.902283333333333 us.
-MultiSink (x2)(RunTime): 6.8807095239216975 us.
+MultiSink (x1)(RunTime): 6.9986607523436835 us.
+MultiSink (x2)(RunTime): 6.351941296117408 us.
+MultiSink (x4)(RunTime): 6.2635650387611825 us.
+==============================
+Benchmarks Complete.
