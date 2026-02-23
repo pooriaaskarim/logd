@@ -17,6 +17,8 @@ class NetworkTestUtils {
       }
     }
     throw StateError(
-        'Could not find an available port in range $basePort-${basePort + 100}');
+      'Could not find an available port in range '
+      '$basePort-${basePort + 100}',
+    );
   }
 }
