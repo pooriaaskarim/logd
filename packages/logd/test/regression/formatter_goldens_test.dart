@@ -54,12 +54,16 @@ void main() {
                   // noise
                 );
 
+                // Detect package root to avoid pollution when run from workspace root
+                final baseDir = File('lib/logd.dart').existsSync()
+                    ? 'test/regression/goldens'
+                    : 'packages/logd/test/regression/goldens';
+
                 final fileName =
                     '${formatterName.toLowerCase()}_${entryName.toLowerCase()}'
                     '_$width.txt';
-                final file = File(
-                  'test/regression/goldens/${formatterName.toLowerCase()}/$fileName',
-                );
+                final file =
+                    File('$baseDir/${formatterName.toLowerCase()}/$fileName');
 
                 if (!file.existsSync()) {
                   file.parent
@@ -122,10 +126,13 @@ void main() {
           final doc = formatter.format(currentEntry);
           final html = encoder.encode(currentEntry, doc, currentEntry.level);
 
+          // Detect package root
+          final baseDir = File('lib/logd.dart').existsSync()
+              ? 'test/regression/goldens'
+              : 'packages/logd/test/regression/goldens';
+
           final fileName = 'html_${formatterName}_$entryName.html';
-          final file = File(
-            'test/regression/goldens/html/$fileName',
-          );
+          final file = File('$baseDir/html/$fileName');
 
           if (!file.existsSync()) {
             file.parent.createSync(recursive: true);

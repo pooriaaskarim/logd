@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.6.5: Semantic Encoding & Architectural Inversion
+
+- ### Structural Correctness & API Hygiene
+  - **`LogDocument.hashCode` & `MapNode.hashCode`**: Fixed a hash/equals contract violation where `mapEquals` was incorrectly used on the same instance. Hash codes are now deterministic, sorting entries by key before hashing.
+  - **`DecorationHint` Standardization**: Extracted magic strings (`'structured_header'`, etc.) into a shared `DecorationHint` class, decoupling `StructuredFormatter` from `TerminalLayout`.
+  - **`LogContext` Removal**: Excised the redundant `LogContext` class and its parameters from the entire pipeline (`format`, `decorate`, `output`) across 37 files, significantly reducing API noise.
+  - **`HtmlEncoder` Fidelity**: Completed rendering for all `LogNode` types. `BoxNode` now maps to `<fieldset>`, `IndentationNode` to `<blockquote>`, and `DecoratedNode` to flex-containers with leading spans. Added CSS rules and HTML regression goldens.
+
+- ### Breaking Changes (Phase 8)
+  - **Ownership Migration**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic. Existing code passing `lineLength` to `Handler` must migrate to sink-level configuration.
+  - **Geometric Cleanup**: Removed `availableWidth`, `totalWidth`, and `contentLimit` from `LogContext` and `Handler`. Geometric metadata is now handled late at the emission stage.
+
+- ### Semantic Encoding Inversion (Phase 9)
+  - **Intent vs. Serialization**: Decoupled formatting intent from physical serialization. Formatters (`JsonFormatter`, `ToonFormatter`) now produce semantic Intermediate Representation (IR) via `LogDocument`, `MapNode`, and `ListNode`.
+  - **Protocol-Agnostic Sinks**: Refactored `EncodingSink`, `HttpSink`, and `SocketSink` to be protocol-agnostic. They now delegate serialization to interchangeable `LogEncoder`s.
+  - **Specialized Encoders**:
+    - **`JsonEncoder`**: High-performance serialization of semantic nodes into structured JSON.
+    - **`ToonEncoder`**: Implements the Token-Oriented Object Notation protocol with metadata-aware headers and recursive row escaping.
+    - **`AnsiEncoder`**: Translates `LogStyle` metadata into ANSI escape codes, supporting "Style-Aware Wrapping" through `TerminalLayout`.
+
+- ### Internal Modularity & Consistency
+  - **Encoder Extraction**: Refactored the encoder directory, extracting individual implementations into dedicated files (`json_encoder.dart`, `toon_encoder.dart`, `plain_text_encoder.dart`, `auto_console_encoder.dart`) for improved maintainability.
+  - **Naming Standardization**: Renamed `LogJsonEncoder` to `JsonEncoder` for library-wide consistency. Resolved naming conflicts with `dart:convert` via a unified internal `convert` prefix.
+  - **Project-Wide Literacy**: Synchronized all documentation (`architecture.md`, `philosophy.md`, `README.md`) and docstrings with the new Semantic Encoding paradigm.
+
+- ### "Wise" Object Representation (Phase 13-17)
+  - **JsonPrettyFormatter Evolution**:
+    - **Composite Compaction**: Automatically renders small Maps/Lists on a single line for better density.
+    - **Adaptive Stacking**: Key/value stacking is now threshold-driven, preventing squeezed layouts in narrow terminals.
+    - **Structural Safety**: Added `maxDepth` guards and `sortKeys` for predictable, stable output.
+  - **TOON Hierarchy Split**:
+    - `ToonFormatter`: High-efficiency, flat-row format optimized for LLM token budgets.
+    - `ToonPrettyFormatter`: A "Wise" human-readable version with recursive serialization, sorting, and depth-sensing.
+
+- ### Improvements & Fixes
+  - **Narrow-Terminal Resilience**: Enhanced fallback logic for layouts as narrow as 12-20 characters.
+  - **ANSI Visible Length**: Improved accuracy of width calculations for complex ANSI sequences and double-width characters.
+
+
 ## 0.6.4: LogBuffer Enhancements & Project-Wide Refactor
 - ### LogBuffer Enhancement & Safety
   - **Error/StackTrace Support**: Added ability to capture `error` and `stackTrace` within `LogBuffer` for more robust multi-line error reporting.
