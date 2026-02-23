@@ -2,41 +2,37 @@
 
 ## 0.6.5: Semantic Encoding & Architectural Inversion
 
-- ### Structural Correctness & API Hygiene
-  - **`LogDocument.hashCode` & `MapNode.hashCode`**: Fixed a hash/equals contract violation where `mapEquals` was incorrectly used on the same instance. Hash codes are now deterministic, sorting entries by key before hashing.
-  - **`DecorationHint` Standardization**: Extracted magic strings (`'structured_header'`, etc.) into a shared `DecorationHint` class, decoupling `StructuredFormatter` from `TerminalLayout`.
-  - **`LogContext` Removal**: Excised the redundant `LogContext` class and its parameters from the entire pipeline (`format`, `decorate`, `output`) across 37 files, significantly reducing API noise.
-  - **`HtmlEncoder` Fidelity**: Completed rendering for all `LogNode` types. `BoxNode` now maps to `<fieldset>`, `IndentationNode` to `<blockquote>`, and `DecoratedNode` to flex-containers with leading spans. Added CSS rules and HTML regression goldens.
+> [!IMPORTANT]
+> **Breaking Changes & Requirements**
+> - **Dart SDK 3.6.0+**: This version requires Dart 3.6.0 or higher to support new language features and monorepo workspace configuration.
+> - **LogContext Removal**: The `LogContext` class and its parameters have been removed from the entire pipeline (`format`, `decorate`, `output`). Metadata is now handled via `LogLine` and `LogDocument` IR.
+> - **Ownership Migration**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic. Existing code passing `lineLength` to `Handler` must migrate to sink-level configuration.
 
-- ### Breaking Changes (Phase 8)
-  - **Ownership Migration**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic. Existing code passing `lineLength` to `Handler` must migrate to sink-level configuration.
-  - **Geometric Cleanup**: Removed `availableWidth`, `totalWidth`, and `contentLimit` from `LogContext` and `Handler`. Geometric metadata is now handled late at the emission stage.
+- ### Monorepo Migration & Structure
+  - **Workspace Consolidation**: Converted the project into a structured monorepo using Dart workspaces, improved dependency management across packages.
+  - **Package Reorganization**: Separated `logd` core from `benchmarks` and `examples`. Overhauled `scripts/` for better contributor ergonomics.
+  - **Agentic Development**: Integrated specialized `.agents` workflows and development rules to standardize AI-assisted coding and architectural integrity.
 
-- ### Semantic Encoding Inversion (Phase 9)
+- ### Semantic Encoding Inversion (Phase 8-12)
   - **Intent vs. Serialization**: Decoupled formatting intent from physical serialization. Formatters (`JsonFormatter`, `ToonFormatter`) now produce semantic Intermediate Representation (IR) via `LogDocument`, `MapNode`, and `ListNode`.
-  - **Protocol-Agnostic Sinks**: Refactored `EncodingSink`, `HttpSink`, and `SocketSink` to be protocol-agnostic. They now delegate serialization to interchangeable `LogEncoder`s.
-  - **Specialized Encoders**:
-    - **`JsonEncoder`**: High-performance serialization of semantic nodes into structured JSON.
-    - **`ToonEncoder`**: Implements the Token-Oriented Object Notation protocol with metadata-aware headers and recursive row escaping.
-    - **`AnsiEncoder`**: Translates `LogStyle` metadata into ANSI escape codes, supporting "Style-Aware Wrapping" through `TerminalLayout`.
+  - **Geometric Layout Engine**: Implemented `TerminalLayout` as the sole authority on physical wrapping, TAB-stops, and ANSI segment slicing.
+  - **HtmlEncoder Overhaul**: Complete rewrite of the HTML logging pipeline with high-fidelity rendering for all `LogNode` types. `BoxNode` now maps to `<fieldset>`, `IndentationNode` to `<blockquote>`.
 
-- ### Internal Modularity & Consistency
-  - **Encoder Extraction**: Refactored the encoder directory, extracting individual implementations into dedicated files (`json_encoder.dart`, `toon_encoder.dart`, `plain_text_encoder.dart`, `auto_console_encoder.dart`) for improved maintainability.
-  - **Naming Standardization**: Renamed `LogJsonEncoder` to `JsonEncoder` for library-wide consistency. Resolved naming conflicts with `dart:convert` via a unified internal `convert` prefix.
-  - **Project-Wide Literacy**: Synchronized all documentation (`architecture.md`, `philosophy.md`, `README.md`) and docstrings with the new Semantic Encoding paradigm.
+- ### Performance & Benchmarking
+  - **Standardized Performance Ledger**: Introduced a centralized ledger in `packages/benchmarks/records/README.md` for tracking performance milestones and preventing regressions.
+  - **AOT Stress Test Suite**: Developed a comprehensive AOT-compiled stress test suite (`stress_test.dart`) for high-throughput validation.
+  - **Bitmask Optimizations**: Leveraged `int` bitmasks for `LogTag` handling, significantly reducing overhead in hot paths and guaranteeing `>5%` throughput stability.
 
 - ### "Wise" Object Representation (Phase 13-17)
-  - **JsonPrettyFormatter Evolution**:
-    - **Composite Compaction**: Automatically renders small Maps/Lists on a single line for better density.
-    - **Adaptive Stacking**: Key/value stacking is now threshold-driven, preventing squeezed layouts in narrow terminals.
-    - **Structural Safety**: Added `maxDepth` guards and `sortKeys` for predictable, stable output.
-  - **TOON Hierarchy Split**:
-    - `ToonFormatter`: High-efficiency, flat-row format optimized for LLM token budgets.
-    - `ToonPrettyFormatter`: A "Wise" human-readable version with recursive serialization, sorting, and depth-sensing.
+  - **JsonPrettyFormatter Evolution**: Added adaptive stacking (threshold-driven), composite compaction (single-line maps/lists), and structural safety guards (`maxDepth`).
+  - **TOON Hierarchy**: Split into `ToonFormatter` (flat-row, token-optimized) and `ToonPrettyFormatter` (recursive, human-readable).
 
-- ### Improvements & Fixes
-  - **Narrow-Terminal Resilience**: Enhanced fallback logic for layouts as narrow as 12-20 characters.
-  - **ANSI Visible Length**: Improved accuracy of width calculations for complex ANSI sequences and double-width characters.
+- ### API Hygiene & Internal Quality
+  - **Structural Correctness**: Fixed a hash/equals contract violation in `LogDocument` and `MapNode`.
+  - **DecorationHint Standardization**: Extracted magic strings into a shared `DecorationHint` class.
+  - **Encoder Extraction**: Refactored the encoder directory, extracting individual implementations into dedicated files for improved maintainability.
+  - **Naming Standardization**: Renamed `LogJsonEncoder` to `JsonEncoder` and resolved naming conflicts with `dart:convert`.
+  - **ANSI Resilience**: Improved accuracy of width calculations for complex ANSI sequences and double-width characters. Fallback logic for layouts as narrow as 12-20 characters is now more robust.
 
 
 ## 0.6.4: LogBuffer Enhancements & Project-Wide Refactor
