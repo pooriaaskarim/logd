@@ -5,3 +5,4 @@ environment:
 
 workspace:
   - packages/logd
+  - packages/benchmarks
