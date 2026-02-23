@@ -1,6 +1,7 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'formatter_benchmark.dart';
 import 'pipeline_benchmark.dart'; // Reuse NullSink
 
@@ -29,13 +30,14 @@ class MultiSinkBenchmark extends BenchmarkBase {
   }
 
   void _manualPipelineRun() {
-    final context = const LogContext(availableWidth: 80);
-    final lines = handler.formatter.format(entry, context).toList();
+    // ... setup context ...
+
+    final document = handler.formatter.format(entry);
 
     // Simulate MultiSink behavior
     for (var i = 0; i < sinkCount; i++) {
-      // Just consume lines, mimicking output()
-      for (final _ in lines) {}
+      // Just consume nodes, mimicking output()
+      for (final _ in document.nodes) {}
     }
   }
 }

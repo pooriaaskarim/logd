@@ -4,11 +4,11 @@ This document details the internal processing pipeline of the `Handler` module.
 
 ## The Pipeline
 
-The `Handler` class acts as an orchestrator. When `handler.log(entry)` is called, data flows through four distinct stages.
+The `Handler` class acts as an orchestrator. When `handler.log(entry)` is called, data flows through five distinct stages.
 
 ```mermaid
 flowchart LR
-    Entry --> Filter --> Format --> Wrap --> Dec --> Sink --> IO
+    Entry --> Filter --> Format --> Dec --> Encode --> Sink --> IO
 ```
 
 ### The Life of a Log entry (Sequence)
@@ -20,18 +20,21 @@ sequenceDiagram
     participant F as Formatter
     participant D as Decorator
     participant S as Sink
+    participant E as Encoder (with Layout)
 
     L->>H: log(LogEntry)
     H->>H: Filter Check
     alt Should remain?
         H->>F: format(entry, context)
-        F-->>H: Iterable<LogLine>
-        H->>H: wrap(availableWidth)
+        F-->>H: LogDocument (Semantic IR)
         loop Each Decorator
-            H->>D: decorate(lines, entry, context)
-            D-->>H: Iterable<LogLine>
+            H->>D: apply(document, entry, context)
+            D-->>H: LogDocument
         end
-        H->>S: output(lines, level)
+        H->>S: output(document, entry, level)
+        S->>E: encode(entry, document, level)
+        Note over E: Physical Layout & Wrapping
+        E-->>S: T (Serialized Data)
         S-->>H: Future<void>
     end
 ```
@@ -40,9 +43,8 @@ The `Handler` initializes a `LogContext` for every entry, ensuring **Unified Lay
 - **totalWidth**: The authoritative spatial limit (from sink or user).
 - **paddingWidth**: Calculated as the sum of all structural decorator footprints.
 - **availableWidth**: The remaining slot for initial content (`totalWidth - paddingWidth`).
-- **contentLimit**: The boundary for aligned metadata (e.g. suffixes).
 
-Formatters wrap content to `availableWidth` *before* decorators run, eliminating layout conflicts.
+Wrapping is no longer a top-level stage in the `Handler`. Instead, it is deferred to the **Encoding** phase, where the `LogEncoder` (typically using `TerminalLayout`) calculates the final physical geometry based on the `LogDocument` and the `totalWidth`. This ensures that wrapping happens with full knowledge of the target medium's constraints.
 
 ### Stage 1: Filtering
 **Component**: `LogFilter`
@@ -52,22 +54,21 @@ Formatters wrap content to `availableWidth` *before* decorators run, eliminating
 Filters are deeply efficient checks run before any string manipulation occurs. If any filter returns `false`, processing stops immediately to save CPU cycles.
 - *Example*: `LevelFilter` (ignore DEBUG logs), `RegexFilter` (ignore logs containing "password").
 
-### Stage 2: Formatting
+### Stage 2: Formatting (Semantic Literacy)
 **Component**: `LogFormatter`
-**Data Interface**: `LogField`
 **Input**: `LogEntry`, `LogContext`
-**Output**: `Iterable<LogLine>`
+**Output**: `LogDocument` (Semantic Intermediate Representation)
  
-The formatter transforms the structured log entry into a list of semantic lines (`LogLine`). To ensure consistency, all formatters use the `LogField` system for field-safe data extraction from `LogEntry`.
+The formatter transforms the structured log entry into a semantic `LogDocument`. This document contains a sequence of `LogNode`s (like `MessageNode`, `MapNode`, or `ListNode`) that carry the "intent" of the log without being tied to a specific physical representation.
 
-- **Layout Alignment**: Formatters strictly rely on `context.availableWidth` provided by the handler to perform internal wrapping and alignment.
-- **StructuredFormatter**: Detailed layout (header, origin, message) with fine-grained semantic tagging. **(Preferred for human reading)**
-- **ToonFormatter**: Token-Oriented Object Notation. Highly efficient for LLM consumption. **(Preferred for AI agents)**
-- **JsonFormatter**: Compact JSON serialization. Supports field customization via `LogField`.
-- **JsonPrettyFormatter**: Pretty-printed JSON with semantic tagging.
-- **MarkdownFormatter**: Generates structured Markdown output.
-- **HTMLFormatter**: Produces semantic HTML segments.
-- **PlainFormatter**: Standard `[timestamp] level: message` format.
+- **Semantic IR**: Formatters like `JsonFormatter` and `ToonFormatter` no longer emit raw strings. They emit `MapNode`s containing the raw data, allowing specialized encoders to handle the physical serialization.
+- **Geometric Agnosticism**: Most formatters are now width-agnostic. They structure logs into semantic nodes (headers, messages, data blocks), delegating the final word-wrapping and alignment to the layout engine during encoding.
+- **StructuredFormatter**: Detailed layout (header, origin, message) with fine-grained semantic tagging. **(Best for Console)**
+- **ToonFormatter**: Produces a `MapNode` with TOON-specific metadata. **(Best for LLM/Streaming)**
+- **JsonFormatter**: Produces a `MapNode` for pure structured logging. **(Best for HTTP/Storage)**
+- **JsonPrettyFormatter**: Produces a `MapNode` tagged for recursive, styled JSON inspection.
+- **MarkdownFormatter**: Generates structured Markdown nodes (headers, lists, collapsible blocks).
+- **PlainFormatter**: Streamlined semantic nodes for simple text output.
 
 ### Semantic Tagging (`LogTag`)
 
@@ -89,10 +90,10 @@ The bridge between Stage 2 (Formatting) and Stage 3 (Decoration) is the `LogTag`
 
 ### Stage 3: Decoration
 **Component**: `LogDecorator`
-**Input**: `Iterable<LogLine>`
-**Output**: `Iterable<LogLine>`
+**Input**: `LogDocument`
+**Output**: `LogDocument`
 
-Decorators apply post-formatting transformations, often leveraging `LogContext.availableWidth` for dynamic adjustments. They are composable and execute in the order they appear in the `decorators` list (auto-sorted by type).
+Decorators apply post-formatting transformations at the semantic level. They are composable and execute in the order they appear in the `decorators` list.
 - **BoxDecorator**: Adds ASCII borders around the lines. It is now decoupled from the layout logic.
 - **StyleDecorator**: The primary engine for visual transformations. Unlike simple colorizers, it:
     - Resolves semantic **LogStyles** from a **LogTheme** using both the `LogLevel` and the segment's `LogTag`s.
@@ -102,16 +103,26 @@ Decorators apply post-formatting transformations, often leveraging `LogContext.a
 
 For a deep dive into how decorators interact, see [Decorator Composition](decorator_compositions.md).
 
-### Stage 4: Output (Sinking)
+### Stage 4: Encoding (Physical Serialization)
+**Components**: `LogEncoder`, `TerminalLayout`
+**Input**: `LogDocument`, `LogEntry`, `LogLevel`
+**Output**: `T` (Serialized Data: String, Map, etc.)
+
+This stage transforms the semantic `LogDocument` into the final physical protocol. It is the final "Geometric Resolution" point.
+
+- **TerminalLayout**: For text-based formats (ANSI, Plain), the encoder uses `TerminalLayout` to perform word-wrapping, ASCII box rendering, and indentation based on the `totalWidth`.
+- **Inversion of Control**: Sinks delegate to specialized encoders (`JsonEncoder`, `ToonEncoder`, `AnsiEncoder`), keeping the transport medium agnostic of the data format.
+
+### Stage 5: Output (Sinking)
 **Component**: `LogSink`
-**Input**: `Iterable<LogLine>`, `LogLevel`
+**Input**: `T` (Serialized Data), `LogLevel`
 **Output**: `Future<void>` (I/O Side Effect)
  
-The sink handles the physical write operation. Sinks are designed to be robust and isolated from the main application flow.
+The sink handles the physical write operation to the medium (Console, File, Network). Sinks are designed to be robust and isolated.
 
-- **Preferred Width**: Each sink reports its `preferredWidth` (e.g., terminal width or default 80). The `Handler` uses this to initialize `LogContext.availableWidth` if a manual `lineLength` is not provided.
-- **Fail-Safe Processing**: Sinks are wrapped in internal error handlers. If a `FileSink` fails (e.g., Disk Full), the error is routed to `InternalLogger` and does not crash the calling thread.
-- **Concurrency**: Most sinks (except simple console wrappers) utilize an internal task queue (mutex) to serialize writes, preventing race conditions during rapid logging.
+- **Preferred Width**: Each sink reports its `preferredWidth`, which the `Handler` uses to initialize the layout engine.
+- **Fail-Safe Processing**: Sinks are wrapped in internal error handlers to prevent I/O failures from crashing the main logic.
+- **Concurrency**: Sinks utilize an internal task queue (mutex) to serialize writes, preventing log interleaving.
 
 ## Class Diagram
 

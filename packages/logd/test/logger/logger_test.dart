@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -189,7 +191,7 @@ void main() {
   group('Logger.infoBuffer', () {
     test('LogBuffer stores lines and sinks to logger', () async {
       final logger = Logger.get('buffer_test');
-      final logCollector = LogCollector();
+      final logCollector = _MemorySink();
       Logger.configure(
         'buffer_test',
         handlers: [
@@ -206,30 +208,44 @@ void main() {
         ..writeln('line 1')
         ..writeln('line 2');
 
-      expect(logCollector.logs, isEmpty); // Not sunk yet
+      expect(logCollector.outputs, isEmpty); // Not sunk yet
 
       buffer.sink();
 
-      expect(logCollector.logs, containsAll(['[INFO] line 1', 'line 2']));
+      expect(
+        logCollector.outputs,
+        containsAll([
+          ['[INFO] line 1', '       line 2'],
+        ]),
+      );
     });
   });
 
   group('InternalLogger', () {
+    setUp(() {
+      Logger.clearRegistry();
+    });
+
     test('InternalLogger does not recursively log when a handler fails',
         () async {
-      final failingHandler = Handler(
-        formatter: const PlainFormatter(),
-        sink: FailingSink(),
+      await runZoned(
+        () async {
+          final failingHandler = Handler(
+            formatter: const PlainFormatter(),
+            sink: FailingSink(),
+          );
+
+          Logger.configure('global', handlers: [failingHandler]);
+
+          // This should NOT cause a stack overflow
+          Logger.get().info('trigger failure');
+        },
+        zoneSpecification: ZoneSpecification(
+          print: (final self, final parent, final zone, final line) {
+            // Suppress printing
+          },
+        ),
       );
-
-      Logger.configure('global', handlers: [failingHandler]);
-
-      // This should NOT cause a stack overflow
-      Logger.get().info('trigger failure');
-
-      // If it didn't throw/overflow, we are good.
-      // InternalLogger should have logged the error to Console
-      // (default) or wherever it's configured.
     });
   });
 
@@ -352,7 +368,7 @@ void main() {
     });
 
     test('logger.info(null) produces output with empty message', () async {
-      final logCollector = LogCollector();
+      final logCollector = _MemorySink();
       Logger.configure(
         'null_test',
         handlers: [
@@ -369,39 +385,37 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       // Should produce output (not skip), with empty message content
-      expect(logCollector.logs, isNotEmpty);
+      expect(logCollector.outputs, isNotEmpty);
       // The log should contain [INFO] but the message part is empty
-      expect(logCollector.logs.first, contains('[INFO]'));
+      expect(logCollector.outputs.first.first, contains('[INFO]'));
     });
   });
 }
 
-class LoggerHierarchyEdgeCases {}
-
-base class FailingSink extends LogSink {
-  @override
-  int get preferredWidth => 80;
-
+base class FailingSink extends LogSink<LogDocument> {
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
+    final LogEntry entry,
     final LogLevel level,
   ) async {
     throw Exception('Simulated failure');
   }
 }
 
-base class LogCollector extends LogSink {
-  final List<String> logs = [];
-
-  @override
-  int get preferredWidth => 80;
+base class _MemorySink extends LogSink<LogDocument> {
+  final List<List<String>> outputs = [];
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
+    final LogEntry entry,
     final LogLevel level,
   ) async {
-    logs.addAll(lines.map((final l) => l.toString()));
+    // For tests, we convert back to lines but without wrapping logic,
+    // reflecting how it was designed to be captured.
+    const encoder = PlainTextEncoder();
+    final output = encoder.encode(entry, document, level, width: 80);
+    outputs.add(output.split('\n'));
   }
 }

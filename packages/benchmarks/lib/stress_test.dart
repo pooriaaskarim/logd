@@ -1,10 +1,11 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'dart:io';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 
 final entry = const LogEntry(
-  loggerName:
-      'bench.logger.a.b.c', // Depth = 5 (global, bench, logger, a, b, c) -> depth 5
+  loggerName: 'bench.logger.a.b.c',
   level: LogLevel.info,
   message:
       'This is a realistic benchmark log payload to test throughput limits.',
@@ -18,7 +19,12 @@ class Metrics {
   final int allocatedBytesPer10k;
 
   Metrics(
-      this.opsPerSec, this.p90, this.p95, this.p99, this.allocatedBytesPer10k);
+    this.opsPerSec,
+    this.p90,
+    this.p95,
+    this.p99,
+    this.allocatedBytesPer10k,
+  );
 
   @override
   String toString() {
@@ -33,20 +39,21 @@ Metrics profilePipeline(
   required LogFormatter formatter,
   List<LogDecorator> decorators = const [],
   int width = 80,
-  int iterations = 50000,
+  int iterations = 10000, // Reduced for interactive speed, usually 50k
 }) {
   print('Profiling: $name ...');
 
   final latencies = <int>[];
-  final context = LogContext(availableWidth: width);
+  final layout = TerminalLayout(width: width);
 
   // Warmup
-  for (int i = 0; i < 5000; i++) {
-    var lines = formatter.format(entry, context);
+  for (int i = 0; i < 1000; i++) {
+    var doc = formatter.format(entry);
     for (final decorator in decorators) {
-      lines = decorator.decorate(lines, entry, context);
+      doc = decorator.decorate(doc, entry);
     }
-    for (final line in lines) {
+    final physical = layout.layout(doc, entry.level);
+    for (final line in physical.lines) {
       line.toString();
     }
   }
@@ -62,13 +69,14 @@ Metrics profilePipeline(
     iterWatch.reset();
     iterWatch.start();
 
-    var lines = formatter.format(entry, context);
+    var doc = formatter.format(entry);
     for (final decorator in decorators) {
-      lines = decorator.decorate(lines, entry, context);
+      doc = decorator.decorate(doc, entry);
     }
 
-    // Simulate sink encoding (to string)
-    for (final line in lines) {
+    // Simulate physical layout and encoding
+    final physical = layout.layout(doc, entry.level);
+    for (final line in physical.lines) {
       line.toString();
     }
 

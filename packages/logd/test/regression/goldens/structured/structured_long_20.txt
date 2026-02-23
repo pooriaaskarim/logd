@@ -1,0 +1,14 @@
+____2025-01-01______
+____12:00:01________
+____[WARNING] ______
+____[LongSnap]______
+____[long.dart]_____
+----|A very long    
+     message that   
+     should trigger 
+     wrapping across
+     multiple lines 
+     to verify      
+     structural     
+     integrity and  
+     spacing.

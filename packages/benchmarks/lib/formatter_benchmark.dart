@@ -1,6 +1,8 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 
 // Helper to create a dummy LogEntry
 LogEntry createEntry() {
@@ -29,8 +31,9 @@ abstract class FormatterBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    final context = const LogContext(availableWidth: 80);
-    final lines = formatter.format(entry, context);
+    // Consume the iterable to force execution
+    final layout = const TerminalLayout(width: 80);
+    final lines = layout.layout(formatter.format(entry), LogLevel.info).lines;
     for (final _ in lines) {}
   }
 }
@@ -63,10 +66,26 @@ class JsonFormatterBenchmark extends FormatterBenchmark {
   LogFormatter createFormatter() => const JsonFormatter();
 }
 
+class JsonPrettyFormatterBenchmark extends FormatterBenchmark {
+  JsonPrettyFormatterBenchmark() : super('JsonPrettyFormatter');
+
+  @override
+  LogFormatter createFormatter() => const JsonPrettyFormatter();
+}
+
+class MarkdownFormatterBenchmark extends FormatterBenchmark {
+  MarkdownFormatterBenchmark() : super('MarkdownFormatter');
+
+  @override
+  LogFormatter createFormatter() => const MarkdownFormatter();
+}
+
 void runFormatterBenchmarks() {
   print('\n--- Formatter Throughput ---');
   PlainFormatterBenchmark().report();
   StructuredFormatterBenchmark().report();
   ToonFormatterBenchmark().report();
   JsonFormatterBenchmark().report();
+  JsonPrettyFormatterBenchmark().report();
+  MarkdownFormatterBenchmark().report();
 }
