@@ -8,10 +8,10 @@ The stack_trace module is organized into 4 files:
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| [`stack_trace.dart`](../../lib/src/stack_trace/stack_trace.dart) | 9 | Part file aggregator |
-| [`callback_info.dart`](../../lib/src/stack_trace/callback_info.dart) | 52 | Immutable data class for parsed frame information |
-| [`stack_frame_set.dart`](../../lib/src/stack_trace/stack_frame_set.dart) | 20 | Immutable result container for single-pass parsing |
-| [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart) | 116 | Core parsing engine with regex-based frame extraction |
+| [`stack_trace.dart`](../../packages/logd/lib/src/stack_trace/stack_trace.dart) | 9 | Part file aggregator |
+| [`callback_info.dart`](../../packages/logd/lib/src/stack_trace/callback_info.dart) | 52 | Immutable data class for parsed frame information |
+| [`stack_frame_set.dart`](../../packages/logd/lib/src/stack_trace/stack_frame_set.dart) | 20 | Immutable result container for single-pass parsing |
+| [`stack_trace_parser.dart`](../../packages/logd/lib/src/stack_trace/stack_trace_parser.dart) | 116 | Core parsing engine with regex-based frame extraction |
 
 ## System Components
 
@@ -22,7 +22,7 @@ The stack_trace module consists of three primary components:
 
 ### 1. StackTraceParser
 
-**Location**: `StackTraceParser` class in [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart)
+**Location**: `StackTraceParser` class in [`stack_trace_parser.dart`](../../packages/logd/lib/src/stack_trace/stack_trace_parser.dart)
 
 The parser is the core engine that converts raw stack trace strings into structured `CallbackInfo` objects.
 
@@ -34,7 +34,7 @@ The parser is the core engine that converts raw stack trace strings into structu
 
 ### 2. StackFrameSet
 
-**Location**: `StackFrameSet` class in [`stack_frame_set.dart`](../../lib/src/stack_trace/stack_frame_set.dart)
+**Location**: `StackFrameSet` class in [`stack_frame_set.dart`](../../packages/logd/lib/src/stack_trace/stack_frame_set.dart)
 
 An immutable result container returned by `StackTraceParser.parse()`.
 
@@ -44,7 +44,7 @@ An immutable result container returned by `StackTraceParser.parse()`.
 
 ### 3. CallbackInfo
 
-**Location**: `CallbackInfo` class in [`callback_info.dart`](../../lib/src/stack_trace/callback_info.dart)
+**Location**: `CallbackInfo` class in [`callback_info.dart`](../../packages/logd/lib/src/stack_trace/callback_info.dart)
 
 An immutable data class representing a single parsed stack frame.
 
@@ -90,7 +90,7 @@ flowchart TD
 
 ### Extraction Algorithm
 
-**Location**: `StackTraceParser.parse()` in [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart)
+**Location**: `StackTraceParser.parse()` in [`stack_trace_parser.dart`](../../packages/logd/lib/src/stack_trace/stack_trace_parser.dart)
 
 ```dart
 StackFrameSet parse({
@@ -132,7 +132,7 @@ StackFrameSet parse({
 
 ### Frame Filtering
 
-**Location**: `StackTraceParser._shouldIgnoreFrame()` in [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart)
+**Location**: `StackTraceParser._shouldIgnoreFrame()` in [`stack_trace_parser.dart`](../../packages/logd/lib/src/stack_trace/stack_trace_parser.dart)
 
 Frames are skipped if:
 1. **Custom filter rejects** - `customFilter` returns `false`
@@ -149,7 +149,7 @@ bool _shouldIgnoreFrame(String frame) {
 
 ### Frame Parsing
 
-**Location**: `StackTraceParser._parseFrame()` (private) in [`stack_trace_parser.dart`](../../lib/src/stack_trace/stack_trace_parser.dart)
+**Location**: `StackTraceParser._parseFrame()` (private) in [`stack_trace_parser.dart`](../../packages/logd/lib/src/stack_trace/stack_trace_parser.dart)
 
 **Dart VM Stack Format**:
 ```

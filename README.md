@@ -1,360 +1,64 @@
-# logd
+<h1 style="margin-bottom: 20px; text-align: left;font-weight: bold; width:" > logd Monorepo <img src="https://img.shields.io/pub/v/logd?logo=dart" alt="Pub Version" title="Pub Version"> <img src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg" alt="License: BSD 3-Clause" title="License: BSD 3-Clause"> <img src="https://img.shields.io/badge/maintained%20with-melos-f7bf7f.svg" alt="Maintained with Melos" title="Maintained with Melos"> </h1>
 
-A **modular** **hierarchical** logger for Dart and Flutter. Build structured logs, control output destinations, and keep overhead minimal.
 
-[![Pub Version](https://img.shields.io/pub/v/logd.svg)](https://pub.dev/packages/logd)  
-[![Pub Points](https://img.shields.io/pub/points/logd.svg)](https://pub.dev/packages/logd/score)  
-[![License: BSD 3‑Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+![logd Hero](https://raw.githubusercontent.com/pooriaaskarim/logd/refs/heads/master/assets/img/logd_hero.webp)
 
-## Why logd?
 
-- **Hierarchical configuration** – Loggers are named with dot‑separated paths (`app.network.http`). Settings propagate from parents to children unless overridden.
-- **Zero‑boilerplate** – Simple `Logger.get('app')` gives a fully‑configured logger.
-- **Performance‑first** – Lazy resolution, aggressive caching, and optional inheritance freezing keep the cost of a disabled logger essentially zero.
-- **Flexible output** – Choose between console, file, network, HTML, or any custom sink; format logs as text, structured JSON, HTML, Markdown or **LLM‑optimized TOON**.
-- **Layout Sovereignty** – A centralized engine guarantees structural integrity (e.g., perfect boxes) across all terminal widths.
-- **Platform‑agnostic styling** – Decouple visual intent from representation using the semantic `LogTheme` system.
+<p style="width: 100%; margin-bottom: 30px; text-align: left; font-weight: normal; font-size: 18px;">Welcome to the <b>logd</b> monorepo. This workspace contains the core <b>logd</b> library, performance benchmarks, and shared development scripts.</p>
 
-## Getting Started
 
-Add `logd` to your project:
 
-```yaml
-dependencies:
-  logd: ^latest_version
-```
 
-Then run:
+## Project Structure
+
+This project is organized as a **Native Dart Workspace** managed with [Melos](https://melos.invertase.dev/).
+
+- **[packages/logd](packages/logd)**: The core hierarchical logging engine.
+- **[doc/](doc)**: Deep-dive technical documentation (Philosophy, Architecture, Roadmaps).
+- **[scripts/](scripts)**: Infrastructure for testing and network logging simulations.
+- **[example/](packages/logd/example)**: Comprehensive tutorial and usage showcases.
+
+## Development Guide
+
+### Prerequisites
+
+Ensure you have the Dart SDK (3.6.0+) and [Melos](https://pub.dev/packages/melos) installed:
+
 ```bash
-dart pub get  # or flutter pub get
+dart pub global activate melos
 ```
 
-### Quick Example
+### Common Commands
 
-```dart
-import 'package:logd/logd.dart';
+We use Melos to orchestrate tasks across the workspace:
 
-void main() {
-  final logger = Logger.get('app');
+| Command | Description |
+|---------|-------------|
+| `melos bootstrap` | Initialize the workspace and link packages |
+| `melos run test` | Run all unit and integration tests |
+| `melos run get` | Run `pub get` in all packages |
+| `melos clean` | Clean build artifacts and dependencies |
 
-  logger.info('Application started');
-  logger.debug('Debug message');
-  logger.warning('Low disk space');
-  logger.error('Connection failed',
-    error: exception,
-    stackTrace: stack,
-  );
-}
+### Running the Showcase
+
+The definitive tutorial-style example is located in the core package:
+
+```bash
+dart run packages/logd/example/main.dart
 ```
 
-**Typical console output**
+## Documentation Source of Truth
 
-```
-[app][INFO] 2025-01-23 05:30:12.456
-  --example/main.dart:12 (main)
-  ----Application started
-```
+Technical depth is maintained in the root `/doc` directory:
 
-> *Tip*: Use `Logger.configure` to set global log‑levels, handlers, or timestamps. `logd` uses **Deep Equality** to ensure that re-configuring with identical values results in zero performance overhead.
-
-## Core Concepts
-
-### Hierarchical Loggers
-
-Loggers inherit configuration from their ancestors.
-
-```dart
-// Configure the entire app
-Logger.configure('app', logLevel: LogLevel.warning);
-
-// Override a subsystem
-Logger.configure('app.network', logLevel: LogLevel.debug);
-
-// Create a logger deep in the tree
-final uiLogger = Logger.get('app.ui.button');  // inherits WARNING
-final httpLogger = Logger.get('app.network.http'); // inherits DEBUG
-```
-
-### Log levels
-
-| Level | Description |
-|-------|-------------|
-| `trace` | Diagnostic noise |
-| `debug` | Developer debugging |
-| `info`  | Informational |
-| `warning` | Potential issue |
-| `error` | Failure |
-
-## Advanced Features
-
-### Custom Handlers
-
-Create complex pipelines of formatters and sinks:
-
-```dart
-final jsonHandler = Handler(
-  formatter: const JsonFormatter(
-    metadata: {LogMetadata.timestamp, LogMetadata.logger},
-  ),
-  sink: FileSink(
-    'logs/app.log',
-    fileRotation: TimeRotation(
-      interval: Duration(days: 1),
-      timestamp: Timestamp(formatter: 'yyyy-MM-dd'),
-      backupCount: 7,
-      compress: true,
-    ),
-  ),
-  filters: [LevelFilter(LogLevel.info)],
-);
-
-Logger.configure('app', handlers: [jsonHandler]);
-```
-
-**Result**: JSON logs written to `logs/app.log`, rotated daily, keeping 7 compressed backups.  
-> [!NOTE]  
-> Modern formatters (v0.6.1+) automatically include mandatory data like `level`, `message`, `error`, and `stackTrace`. The `metadata` parameter is used only for additional context like timestamps or logger names.
-
-### Atomic multi‑line logs
-
-Prevent interleaving in concurrent environments:
-
-```dart
-final buffer = logger.infoBuffer;
-buffer?.writeln('=== User Session ===');
-buffer?.writeln('User ID: ${user.id}');
-buffer?.writeln('Login time: ${DateTime.now()}');
-buffer?.writeln('IP: ${request.ip}');
-buffer?.sink(); // writes atomically
-```
-
-### Multiple Outputs
-
-You can either use multiple handlers:
-```dart
-final consoleHandler = Handler(
-  formatter: const StructuredFormatter(),
-  decorators: const [
-    BoxDecorator(),
-    StyleDecorator(),
-    SuffixDecorator(
-      label: '[v1.0.2]',
-      align: ture,
-    ),
-  ],
-  sink: const ConsoleSink(),
-  lineLength: 80,
-);
-
-final fileHandler = Handler(
-  formatter: const PlainFormatter(),
-  sink: FileSink('logs/app.log'),
-);
-
-Logger.configure('global', handlers: [consoleHandler, fileHandler]);
-```
-
-Or use a multi-sink in a handler:
-```dart
-final multiSinkHandler = Handler(
-  formatter: PlainFormatter(),
-  sink: MultiSink(sinks: [
-    ConsoleSinK(),
-    FileSink('logs/app.log'),
-    ],
-  ),
-);
-```
-
-### Filtering
-
-Control which logs reach which handlers:
-
-```dart
-// Level-based filtering
-final errorHandler = Handler(
-  formatter: JsonFormatter(),
-  sink: FileSink('logs/errors.log'),
-  filters: [LevelFilter(LogLevel.error)],  // Errors only
-);
-
-// Regex-based filtering (exclude sensitive data)
-final publicHandler = Handler(
-  formatter: PlainFormatter(),
-  sink: FileSink('logs/public.log'),
-  filters: [
-    RegexFilter(r'password|secret|token', exclude: true),
-  ],
-);
-```
-
-### Timezone & Timestamp
-
-```dart
-final timestamp = Timestamp(
-  formatter: 'yyyy-MM-dd HH:mm:ss.SSS Z',
-  timezone: Timezone.named('America/New_York'),
-);
-
-Logger.configure('app', timestamp: timestamp);
-```
-
-### File Rotation
-
-| Strategy | Example |
-|---------|--------|
-| Size | `FileSink('logs/app.log', fileRotation: SizeRotation(maxSize: '10 MB', backupCount: 5, compress: true))` |
-| Time | `FileSink('logs/app.log', fileRotation: TimeRotation(interval: Duration(hours: 1), timestamp: Timestamp(formatter: 'yyyy-MM-dd_HH'), backupCount: 24))` |
-
-### Performance Tuning
-
-```dart
-Logger.get('app').freezeInheritance();   // snapshot config, eliminate runtime look‑ups
-```
-
-## Use Cases
-
-### Development Console
-
-```dart
-Logger.configure('global', handlers: [
-  const Handler(
-    formatter: StructuredFormatter(),
-    decorators: [
-      HierarchyDepthPrefixDecorator(indent: '│ '),
-      BoxDecorator(borderStyle: BorderStyle.rounded),
-      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
-    ],
-    sink: ConsoleSink(),
-    lineLength: 80,
-  ),
-]);
-```
-
-### Production JSON
-
-```dart
-Logger.configure('global', handlers: [
-  Handler(
-    formatter: JsonFormatter(),
-    sink: FileSink('logs/production.log'),
-    ),
-]);
-```
-
-### LLM-Native Logging (TOON)
-
-Optimize logs for consumption by AI agents by using the Token-Oriented Object Notation:
-
-```dart
-Logger.configure('ai.agent', handlers: [
-  Handler(
-    formatter: const ToonFormatter(
-      arrayName: 'context',
-      metadata: {LogMetadata.timestamp},
-    ),
-    sink: FileSink('logs/ai_feed.toon'),
-  ),
-]);
-```
-
-**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. The header is emitted only when the configuration changes.
-
-
-### Network Logging
-
-Ship logs to remote servers with built-in resilience:
-
-```dart
-const httpSink = HttpSink(
-  url: 'https://logs.api.com',
-  batchSize: 50,
-  flushInterval: Duration(seconds: 10),
-  dropPolicy: DropPolicy.discardOldest,
-);
-
-Logger.configure('app', handlers: [
-  Handler(formatter: JsonFormatter(), sink: httpSink),
-]);
-```
-
-Supported sinks: `HttpSink` (batching & retries), `SocketSink` (real-time streaming).
-
-```dart
-// For real-time streaming to a WebSocket server:
-const socketSink = SocketSink(
-  url: 'wss://monitor.example.com/logs',
-);
-```
-
-
-### Microservice Logging
-
-```dart
-Logger.configure('api', handlers: [
-  Handler(formatter: JsonFormatter(), sink: FileSink('logs/api.log')),
-]);
-
-Logger.configure('database', handlers: [
-  Handler(formatter: JsonFormatter(), sink: FileSink('logs/db.log')),
-]);
-
-Logger.configure('auth', handlers: [
-  Handler(
-    formatter: JsonFormatter(),
-    sink: FileSink('logs/security.log'),
-    filters: [LevelFilter(LogLevel.warning)],
-  ),
-]);
-```
-
-## Flutter integration
-
-Capture framework errors and async errors:
-
-```dart
-void main() {
-  Logger.attachToFlutterErrors(); // listens to all uncaught Flutter errors
-
-  runZonedGuarded(
-    () => runApp(MyApp()),
-    (error, stack) {
-      Logger.get('app.crash').error(
-        'Uncaught error',
-        error: error,
-        stackTrace: stack,
-      );
-    },
-  );
-}
-```
-
-## Documentation
-
-- **[Documentation Index](doc/README.md)** - Overview and navigation
-- **[Logger Philosophy](doc/logger/philosophy.md)** - Design principles and rationale
-- **[Logger Architecture](doc/logger/architecture.md)** - Implementation details
-- **[Handler Guide](doc/handler/architecture.md)** - Pipeline and sink customization
-- **[Migration Guide](doc/handler/migration.md)** - Upgrading from legacy components
-- **[Decorator Composition](doc/handler/decorator_compositions.md)** - Execution priority and flow
-- **[Time Module](doc/time/architecture.md)** - Timestamp and timezone handling
-- **[Roadmap](doc/logger/roadmap.md)** - Planned features and vision
-
----
+- [**Documentation Index**](doc/README.md)
+- [**Design Philosophy**](doc/logger/philosophy.md)
+- [**Architecture Overview**](doc/logger/architecture.md)
 
 ## Contributing
 
-- Report bugs or suggest features via [GitHub Issues](https://github.com/pooriaaskarim/logd/issues).  
-- Share ideas in [Discussions](https://github.com/pooriaaskarim/logd/discussions).  
-
-All contributions should follow the guidelines in [CONTRIBUTING.md](CONTRIBUTING.md) and, for docs, [docs/CONTRIBUTING_DOCS.md](doc/CONTRIBUTING_DOCS.md).
+Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Documentation Standards](doc/CONTRIBUTING_DOCS.md) before submitting pull requests.
 
 ## License
 
-This project is licensed under the **BSD 3-Clause License**. See the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- Issues: [GitHub Issues](/issues)  
-- Discussions: [GitHub Discussions](/discussions)  
-- Package page: [logd on pub.dev](https://pub.dev/packages/logd)
+All packages in this monorepo are licensed under the **BSD 3-Clause License**. See the [LICENSE](LICENSE) file for details.

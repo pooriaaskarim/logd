@@ -62,6 +62,16 @@
 ### ✅ P1: Recursive JSON Inspection
 - [x] Implement recursive detection in `JsonPrettyFormatter`
 - [x] Add tab-to-space normalization for environmental stability
+
+### ✅ P1: Network Sinks (HttpSink & SocketSink)
+**Context**: Users require reliable network logging for centralized log aggregation and real-time monitoring.
+
+**Result**: Implemented specialized network sinks extending `NetworkSink` base class.
+- [x] `HttpSink`: POST logs to REST endpoint with batching and exponential backoff retries
+- [x] `SocketSink`: Real-time WebSocket streaming with auto-reconnection
+- [x] `DropPolicy` for memory-safe buffer management (`discardOldest`, `discardNewest`)
+- [x] Dependency injection support for testability (`client` and `channel` parameters)
+- [x] Comprehensive test coverage (8 tests passing)
 ---
 
 ## Active Development
@@ -77,16 +87,6 @@
 - [ ] Benchmark performance improvement on large objects
 
 ---
-
-### ✅ P1: Network Sinks (HttpSink & SocketSink)
-**Context**: Users require reliable network logging for centralized log aggregation and real-time monitoring.
-
-**Result**: Implemented specialized network sinks extending `NetworkSink` base class.
-- [x] `HttpSink`: POST logs to REST endpoint with batching and exponential backoff retries
-- [x] `SocketSink`: Real-time WebSocket streaming with auto-reconnection
-- [x] `DropPolicy` for memory-safe buffer management (`discardOldest`, `discardNewest`)
-- [x] Dependency injection support for testability (`client` and `channel` parameters)
-- [x] Comprehensive test coverage (8 tests passing)
 
 ---
 

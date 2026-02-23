@@ -118,7 +118,7 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 **Issue**: Cache invalidation scans entire cache on every `configure()`.
 
-**Location**: `LoggerCache.invalidate()` in [`logger.dart`](../../lib/src/logger/logger.dart)
+**Location**: `LoggerCache.invalidate()` in [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)
 
 **Current Complexity**: O(n × m) where n = cache size, m = key length
 
@@ -393,6 +393,7 @@ Resolved by switch to `parse()` — configured parser is always used.
 | Null-message behavior | v0.6.3 | Decision: `null` → empty string, documented in `_log()` |
 | Regex caching (stack_trace) | v0.6.3 | Regex compiled once as `static final _frameRegex` |
 | Redundant parsing elimination | v0.6.3 | `StackFrameSet` + `parse()` — single-pass parsing |
+| LogBuffer leak protection | v0.6.4 | Finalizer-based detection and atomic error/stackTrace support |
 
 ---
 
