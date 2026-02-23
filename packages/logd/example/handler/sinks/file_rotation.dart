@@ -10,6 +10,11 @@
 
 import 'package:logd/logd.dart';
 
+/// This example demonstrates how to use `FileSink` with `FileRotation`.
+///
+/// Logd supports two types of rotation:
+/// 1. `SizeRotation`: Rotates files when they reach a certain size.
+/// 2. `TimeRotation`: Rotates files based on time intervals (daily, hourly, etc.).
 void main() async {
   // Size-based rotation
   final sizeRotationHandler = Handler(

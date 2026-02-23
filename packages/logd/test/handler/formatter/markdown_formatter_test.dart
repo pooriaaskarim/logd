@@ -1,117 +1,64 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/stack_trace/stack_trace.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-
-import '../decorator/mock_context.dart';
 
 void main() {
   group('MarkdownFormatter', () {
-    const entry = LogEntry(
-      loggerName: 'test.logger',
-      origin: 'main.dart:10:5',
-      level: LogLevel.error,
-      message: 'Critical failure detected',
-      timestamp: '2025-01-01 10:00:00',
-    );
+    const formatter = MarkdownFormatter(metadata: {});
 
-    test('formats identity header with default profound style', () {
-      const formatter = MarkdownFormatter();
-      final lines = formatter.format(entry, mockContext).toList();
-
-      expect(
-        lines[0].toString(),
-        contains('### ❌ ERROR | test.logger | 2025-01-01 10:00:00'),
+    test('structures basic log entry with level emoji', () {
+      const entry = LogEntry(
+        level: LogLevel.info,
+        message: 'Hello Markdown',
+        loggerName: 'test',
+        timestamp: '2023-10-27T10:00:00.000Z',
+        origin: 'test.dart:42',
       );
-      expect(lines[1].toString(), contains('*Origin: main.dart:10:5*'));
-    });
 
-    test('respects headingLevel configuration', () {
-      const formatter = MarkdownFormatter(headingLevel: 1);
-      final lines = formatter.format(entry, mockContext).toList();
-
-      expect(lines[0].toString(), startsWith('# ❌ ERROR'));
-    });
-
-    test('respects LogMetadata selection', () {
-      const formatter = MarkdownFormatter(
-        metadata: {LogMetadata.logger}, // No timestamp, no origin
+      final document = formatter.format(
+        entry,
       );
-      final lines = formatter.format(entry, mockContext).toList();
 
-      expect(lines[0].toString(), contains('ERROR | test.logger'));
-      expect(lines[0].toString(), isNot(contains('| 2025-01-01')));
-      expect(lines.any((final l) => l.toString().contains('Origin')), isFalse);
+      expect(document.nodes, hasLength(2));
+      expect(document.nodes[0], isA<HeaderNode>());
+      expect(document.nodes[1], isA<MessageNode>());
+
+      const encoder = MarkdownEncoder();
+      final output = encoder.encode(entry, document, LogLevel.info);
+
+      expect(output, contains('### ℹ️ INFO'));
+      expect(output, contains('**Hello Markdown**'));
     });
 
-    test('formats message as blockquote', () {
-      const formatter = MarkdownFormatter();
-      final lines = formatter.format(entry, mockContext).toList();
-
-      expect(
-        lines.any((final l) => l.toString() == '> Critical failure detected'),
-        isTrue,
-      );
-    });
-
-    test('handles multiline messages beautifully', () {
-      const multilineEntry = LogEntry(
-        loggerName: 'test.logger',
-        origin: 'main.dart:10:5',
+    test('structures error and stack trace with collapsible tags', () {
+      final entry = LogEntry(
         level: LogLevel.error,
-        message: 'Line 1\nLine 2',
-        timestamp: '2025-01-01 10:00:00',
+        message: 'Fatal Error',
+        loggerName: 'test',
+        timestamp: '2023-10-27T10:00:00.000Z',
+        origin: 'test.dart:42',
+        error: 'System failure',
+        stackTrace: StackTrace.fromString('line 1\nline 2'),
       );
-      const formatter = MarkdownFormatter();
-      final lines = formatter.format(multilineEntry, mockContext).toList();
 
-      expect(lines.any((final l) => l.toString() == '> Line 1'), isTrue);
-      expect(lines.any((final l) => l.toString() == '> Line 2'), isTrue);
-    });
-
-    test('formats collapsible stack traces', () {
-      const entryWithStack = LogEntry(
-        loggerName: 'test.logger',
-        origin: 'main.dart:10:5',
-        level: LogLevel.error,
-        message: 'Stack Test',
-        timestamp: '2025-01-01 10:00:00',
-        stackFrames: [
-          CallbackInfo(
-            className: '',
-            methodName: 'main',
-            fullMethod: 'main',
-            filePath: 'main.dart',
-            lineNumber: 10,
-          ),
-        ],
+      final document = formatter.format(
+        entry,
       );
-      const formatter = MarkdownFormatter();
-      final lines = formatter
-          .format(entryWithStack, mockContext)
-          .map((final l) => l.toString())
-          .toList();
 
-      expect(lines, contains('<details>'));
-      expect(lines, contains('<summary>Stack Trace</summary>'));
-      expect(lines, contains('at main (main.dart:10)'));
-      expect(lines, contains('</details>'));
-    });
+      expect(document.nodes, hasLength(4));
+      expect(document.nodes[2], isA<ErrorNode>());
+      expect(document.nodes[3], isA<FooterNode>());
+      expect((document.nodes[3].tags & LogTag.collapsible) != 0, isTrue);
 
-    test('formats errors as bold blockquotes', () {
-      const errorEntry = LogEntry(
-        loggerName: 'test.logger',
-        origin: 'main.dart:10:5',
-        level: LogLevel.error,
-        message: 'Msg',
-        timestamp: '2025-01-01',
-        error: 'Serious Error',
-      );
-      const formatter = MarkdownFormatter();
-      final lines = formatter
-          .format(errorEntry, mockContext)
-          .map((final l) => l.toString())
-          .toList();
-      expect(lines, contains('> **Error:** Serious Error'));
+      const encoder = MarkdownEncoder();
+      final output = encoder.encode(entry, document, LogLevel.error);
+
+      expect(output, contains('### ❌ ERROR'));
+      expect(output, contains('> [!ERROR]'));
+      expect(output, contains('<details>'));
+      expect(output, contains('<summary>Stack Trace</summary>'));
+      expect(output, contains('```'));
+      expect(output, contains('line 1'));
     });
   });
 }

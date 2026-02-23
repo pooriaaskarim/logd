@@ -40,8 +40,7 @@ Future<void> main() async {
       ),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 50,
+    sink: ConsoleSink(lineLength: 50),
   );
 
   Logger.configure('boxed', handlers: [boxedHandler]);

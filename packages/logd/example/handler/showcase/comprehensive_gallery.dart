@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:logd/logd.dart';
 
 void main() async {
@@ -28,8 +27,7 @@ void main() async {
       ),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 80,
+    sink: ConsoleSink(lineLength: 80),
   );
 
   Logger.configure('backend', handlers: [cloudHandler]);
@@ -47,7 +45,7 @@ void main() async {
   // 2. THE DATA SCIENTIST (Toon + Custom Prefix + Style)
   // ===========================================================================
   const dataHandler = Handler(
-    formatter: ToonFormatter(
+    formatter: ToonPrettyFormatter(
       color: true,
       metadata: {LogMetadata.timestamp},
     ),
@@ -71,7 +69,7 @@ void main() async {
       .warning('Reactor Core | temp=1240K | cooling=offline');
 
   // ===========================================================================
-  // 3. THE INSPECTOR (JsonPretty + Nested + Color + Box + Hierarchy)
+  // 3. THE INSPECTOR (JsonPretty + Nested Expansion + Hierarchy + Double Box)
   // ===========================================================================
   const inspectorHandler = Handler(
     formatter: JsonPrettyFormatter(
@@ -87,8 +85,7 @@ void main() async {
       ),
       BoxDecorator(borderStyle: BorderStyle.double),
     ],
-    sink: ConsoleSink(),
-    lineLength: 65,
+    sink: ConsoleSink(lineLength: 65),
   );
 
   Logger.configure('proxy', handlers: [inspectorHandler]);
@@ -99,25 +96,20 @@ void main() async {
 
   final payload = {
     'request': {
-      'id': 'REQ-778',
-      'headers': {'auth': 'bearer ****', 'type': 'json'},
-      'body': jsonEncode({
-        'action': 'sync',
-        'items': [1, 2, 3],
-        'metadata': {'v': 1.2, 'stable': true},
-      }),
+      'method': 'POST',
+      'body':
+          '{"user": "pooria", "action": "login"}', // Nested stringified JSON
     },
-    'response_time': '45ms',
+    'response': {'status': 200, 'headers': 'Content-Type: application/json'}
   };
 
-  Logger.get('proxy.spy.net')
-      .info('API Transaction intercepted.', error: payload);
+  Logger.get('proxy.ingress').info('Intercepted packet flow', error: payload);
 
   // ===========================================================================
-  // 4. THE MINIMALIST (Plain + Hierarchy)
+  // 4. THE MINIMALIST (Plain + Minimal Meta + Depth)
   // ===========================================================================
   const debugHandler = Handler(
-    formatter: PlainFormatter(metadata: {LogMetadata.timestamp}),
+    formatter: PlainFormatter(metadata: {}),
     decorators: [
       HierarchyDepthPrefixDecorator(
         indent: '│   ',
@@ -136,7 +128,7 @@ void main() async {
   Logger.get('app.task.deep').debug('Deep sub-task');
 
   // ===========================================================================
-  // 5. THE SURVIVOR (Plain + Prefix + Suffix + Box + Style - Chaos Mode)
+  // 5. THE SURVIVOR (CHAOS MODE: 35 chars + Sharp Box + Prefix + Suffix)
   // ===========================================================================
   const chaosHandler = Handler(
     formatter: PlainFormatter(metadata: {}),
@@ -155,13 +147,11 @@ void main() async {
       BoxDecorator(borderStyle: BorderStyle.sharp),
       StyleDecorator(),
     ],
-    sink: ConsoleSink(),
-    lineLength: 35,
+    sink: ConsoleSink(lineLength: 35),
   );
 
   Logger.configure('chaos', handlers: [chaosHandler]);
   print('\n--- GALLERY 5: THE SURVIVOR (CHAOS MODE) ---');
-  print('(Multi-Decorator + 35 Width Extreme Wrapping)\n');
 
   Logger.get('chaos').warning(
     'Stability alert! Message forced to wrap inside a tiny box with both'
@@ -180,17 +170,12 @@ void main() async {
 }
 
 class _InspectorTheme extends LogTheme {
-  const _InspectorTheme() : super(colorScheme: LogColorScheme.darkScheme);
+  const _InspectorTheme() : super(colorScheme: LogColorScheme.defaultScheme);
+
   @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
-    if (tags.contains(LogTag.key)) {
-      return const LogStyle(color: LogColor.magenta, bold: true);
-    }
-    if (tags.contains(LogTag.punctuation)) {
-      return const LogStyle(color: LogColor.blue, dim: true);
-    }
-    if (tags.contains(LogTag.value)) {
-      return const LogStyle(color: LogColor.green);
+  LogStyle getStyle(final LogLevel level, final int tags) {
+    if (((tags & LogTag.key) != 0)) {
+      return const LogStyle(color: LogColor.blue, bold: true);
     }
     return super.getStyle(level, tags);
   }

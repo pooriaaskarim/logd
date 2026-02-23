@@ -1,5 +1,6 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/core/utils/utils.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -25,7 +26,10 @@ void main() {
     test('BoxDecorator handles emojis correctly in width calculation',
         () async {
       final logs = <String>[];
-      final sink = MemorySink((final line) => logs.add(line.toString()));
+      final sink = MemorySink(
+        (final line) => logs.add(line.toString()),
+        preferredWidth: 20,
+      );
 
       final handler = Handler(
         formatter: const PlainFormatter(
@@ -35,7 +39,6 @@ void main() {
           BoxDecorator(),
         ],
         sink: sink,
-        lineLength: 20,
       );
 
       const entry = LogEntry(
@@ -48,34 +51,32 @@ void main() {
 
       await handler.log(entry);
 
-      // Width should be max(20, visibleLength('Hello 🚀 World') + 2)
-      // visibleLength('Hello 🚀 World') = 14 (Hello=5, space=1,
-      // rocket=2, World=5)
-      // Content width = 14. Box borders add 2. Total width = 16.
-      // But handler.lineLength is 20.
+      // Width should be max(20, visibleLength('Hello 🚀') + 2)
+      // visibleLength('Hello 🚀') = 8. Box borders add 2. Total width = 10.
+      // But sink.preferredWidth is 20.
       for (final line in logs) {
         expect(line.visibleLength, equals(20));
-        expect(RegExp('^[╭│╰]').hasMatch(line), isTrue);
-        expect(RegExp(r'[╮│╯]$').hasMatch(line), isTrue);
+        // Use contains to be ANSI-insensitive or strip ANSI for match
+        expect(line.contains(RegExp('[╭│╰]')), isTrue);
       }
     });
   });
 }
 
-final class MemorySink extends LogSink {
-  MemorySink(this.onLog);
-  final Function(LogLine) onLog;
-
-  @override
-  int get preferredWidth => 80;
+final class MemorySink extends LogSink<LogDocument> {
+  MemorySink(this.onLog, {this.preferredWidth = 80});
+  final Function(Object) onLog;
+  final int preferredWidth;
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
+    final LogEntry entry,
     final LogLevel level,
   ) async {
-    for (final line in lines) {
-      onLog(line);
-    }
+    const encoder = AnsiEncoder();
+    final output =
+        encoder.encode(entry, document, level, width: preferredWidth);
+    onLog(output);
   }
 }

@@ -1,11 +1,14 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('Layout & Encoding Safety', () {
     test('Unicode and Emoji handle widths correctly in BoxDecorator', () {
       const box = BoxDecorator(borderStyle: BorderStyle.rounded);
-      const context = LogContext(availableWidth: 40);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -14,8 +17,12 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final lines = [LogLine.text('你好世界 🌍'), LogLine.text('ASCII Test')];
-      final result = box.decorate(lines, entry, context).toList();
+      final lines = ['你好世界 🌍', 'ASCII Test'];
+      final doc = createTestDocument(lines);
+      final decorated = box.decorate(doc, entry);
+
+      const layout = TerminalLayout(width: 40);
+      final result = layout.layout(decorated, LogLevel.info).lines;
 
       final topWidth = result[0].visibleLength;
       for (final line in result) {
@@ -29,7 +36,6 @@ void main() {
 
     test('ANSI preservation across wrapping in BoxDecorator', () {
       const box = BoxDecorator(borderStyle: BorderStyle.double);
-      const context = LogContext(availableWidth: 20);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -39,10 +45,14 @@ void main() {
       );
 
       // Colored message
-      final lines = [LogLine.text('\x1B[31mThis is red\x1B[0m')];
-      final result = box.decorate(lines, entry, context).toList();
+      final lines = ['\x1B[31mThis is red\x1B[0m'];
+      final doc = createTestDocument(lines);
+      final decorated = box.decorate(doc, entry);
 
-      expect(result.length, equals(3));
+      const layout = TerminalLayout(width: 20);
+      final result = layout.layout(decorated, LogLevel.info).lines;
+
+      expect(result.length, equals(4));
       // Each wrapped line should start with red color (if preserved)
       // Note: Current naive implementation preserves ANSI at start of each wrap
       expect(result[1].toString(), contains('\x1B[31m'));
@@ -50,7 +60,6 @@ void main() {
 
     test('Very long words without spaces are forced to wrap', () {
       const formatter = StructuredFormatter();
-      const context = LogContext(availableWidth: 20);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
@@ -59,7 +68,9 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final lines = formatter.format(entry, context).toList();
+      final doc = formatter.format(entry);
+      const layout = TerminalLayout(width: 20);
+      final lines = layout.layout(doc, LogLevel.info).lines;
       for (final line in lines) {
         expect(line.visibleLength, lessThanOrEqualTo(20));
       }
@@ -69,9 +80,13 @@ void main() {
     });
 
     test('Malformed ANSI codes do not crash the system', () {
-      final lines = [LogLine.text('Normal \x1B[999;999;999m Malformed')];
+      final lines = ['Normal \x1B[999;999;999m Malformed'];
       // Should not crash visibleLength calculation
-      expect(lines.first.visibleLength, isPositive);
+      // We can use TerminalLayout to simulate rendering which calculates
+      // visibleLength
+      const layout = TerminalLayout(width: 80);
+      final physical = layout.layout(createTestDocument(lines), LogLevel.info);
+      expect(physical.lines.first.visibleLength, isPositive);
     });
   });
 }

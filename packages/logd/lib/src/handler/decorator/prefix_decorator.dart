@@ -16,15 +16,26 @@ final class PrefixDecorator extends ContentDecorator {
   final LogStyle? style;
 
   @override
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  LogDocument decorate(
+    final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
   ) {
-    final prefixSegment =
-        LogSegment(prefix, tags: const {LogTag.prefix}, style: style);
+    if (prefix.isEmpty) {
+      return document;
+    }
 
-    return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
+    return document.copyWith(
+      nodes: [
+        DecoratedNode(
+          leadingWidth: prefix.visibleLength,
+          leading: [
+            StyledText(prefix, tags: LogTag.prefix, style: style),
+          ],
+          repeatLeading: true,
+          children: document.nodes,
+        ),
+      ],
+    );
   }
 
   @override

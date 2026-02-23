@@ -1,10 +1,12 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import 'mock_context.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('HierarchyDepthPrefixDecorator', () {
-    final lines = [LogLine.text('msg')];
+    final lines = ['msg'];
 
     LogEntry createEntry(final int depth) {
       final name = depth == 0
@@ -21,16 +23,20 @@ void main() {
 
     test('adds no indentation at depth 0', () {
       const decorator = HierarchyDepthPrefixDecorator();
-      final decorated =
-          decorator.decorate(lines, createEntry(0), mockContext).toList();
+      final decorated = decorator.decorate(
+        createTestDocument(lines),
+        createEntry(0),
+      );
       final rendered = renderLines(decorated);
       expect(rendered.first, equals('msg'));
     });
 
     test('adds indentation at depth 2 (default indent)', () {
       const decorator = HierarchyDepthPrefixDecorator();
-      final decorated =
-          decorator.decorate(lines, createEntry(2), mockContext).toList();
+      final decorated = decorator.decorate(
+        createTestDocument(lines),
+        createEntry(2),
+      );
       final rendered = renderLines(decorated);
       // Default is '│ ' (2 chars) * 2 = '│ │ '
       expect(rendered.first, equals('│ │ msg'));
@@ -38,25 +44,47 @@ void main() {
 
     test('respects custom indent', () {
       const decorator = HierarchyDepthPrefixDecorator(indent: '-');
-      final decorated =
-          decorator.decorate(lines, createEntry(3), mockContext).toList();
+      final decorated = decorator.decorate(
+        createTestDocument(lines),
+        createEntry(3),
+      );
       final rendered = renderLines(decorated);
       expect(rendered.first, equals('---msg'));
     });
 
     test('preserves tags', () {
-      final taggedLines = [
-        const LogLine([
-          LogSegment('content', tags: {LogTag.message}),
-        ]),
-      ];
+      const doc = LogDocument(
+        nodes: [
+          MessageNode(
+            segments: [
+              StyledText('content', tags: LogTag.message),
+            ],
+          ),
+        ],
+      );
+
       const decorator = HierarchyDepthPrefixDecorator();
-      final decorated =
-          decorator.decorate(taggedLines, createEntry(1), mockContext).toList();
+      final decorated = decorator.decorate(doc, createEntry(1));
+      // final rendered = renderLines(decorated); // Not used
 
       // Check if any segment has the tag
-      final hasTag = decorated.first.segments
-          .any((final s) => s.tags.contains(LogTag.message));
+      bool hasTag = false;
+      for (final node in decorated.nodes) {
+        if (node is MessageNode) {
+          if (node.segments.any((final s) => (s.tags & LogTag.message) != 0)) {
+            hasTag = true;
+          }
+        } else if (node is LayoutNode) {
+          for (final child in node.children) {
+            if (child is MessageNode) {
+              if (child.segments
+                  .any((final s) => (s.tags & LogTag.message) != 0)) {
+                hasTag = true;
+              }
+            }
+          }
+        }
+      }
       expect(hasTag, isTrue);
     });
   });

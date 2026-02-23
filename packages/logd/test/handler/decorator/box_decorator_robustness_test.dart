@@ -1,4 +1,6 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -8,7 +10,6 @@ void main() {
         'not break the box', () {
       const formatter = PlainFormatter();
       const box = BoxDecorator();
-      const context = LogContext(availableWidth: 40);
 
       const entry = LogEntry(
         loggerName: 'test',
@@ -20,14 +21,18 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = formatter.format(entry, context);
-      final boxed = box.decorate(formatted, entry, context).toList();
+      final formatted = formatter.format(entry);
+      final boxed = box.decorate(formatted, entry);
+
+      const layout = TerminalLayout(width: 40);
+      final physical = layout.layout(boxed, LogLevel.info);
+      final boxedLines = physical.lines;
 
       // Check top/bottom border length
-      final topWidth = boxed[0].visibleLength;
+      final topWidth = boxedLines[0].visibleLength;
 
-      for (int i = 0; i < boxed.length; i++) {
-        final line = boxed[i];
+      for (int i = 0; i < boxedLines.length; i++) {
+        final line = boxedLines[i];
         print('Line $i: ${line.visibleLength} chars | $line');
         expect(
           line.visibleLength,
@@ -43,7 +48,6 @@ void main() {
         'wrap internal content', () {
       const formatter = JsonFormatter();
       const box = BoxDecorator();
-      const context = LogContext(availableWidth: 30);
 
       const entry = LogEntry(
         loggerName: 'very_long_logger_name_that_will_push_json_over_the_limit',
@@ -53,13 +57,17 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = formatter.format(entry, context);
-      final boxed = box.decorate(formatted, entry, context).toList();
+      final formatted = formatter.format(entry);
+      final boxed = box.decorate(formatted, entry);
+
+      const layout = TerminalLayout(width: 30);
+      final physical = layout.layout(boxed, LogLevel.info);
+      final boxedLines = physical.lines;
 
       // Box should have consistent width across all lines
-      final boxWidth = boxed[0].visibleLength;
-      for (int i = 0; i < boxed.length; i++) {
-        final line = boxed[i];
+      final boxWidth = boxedLines[0].visibleLength;
+      for (int i = 0; i < boxedLines.length; i++) {
+        final line = boxedLines[i];
         expect(
           line.visibleLength,
           equals(boxWidth),

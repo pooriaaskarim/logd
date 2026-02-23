@@ -1,29 +1,31 @@
 part of '../handler.dart';
 
-/// Base class for log line decorators, formally classified by their effect.
+/// Base class for log document decorators, formally classified by their effect.
 ///
-/// Decorators allow for post-processing log lines after they have been
-/// formatted. This hierarchy is [sealed] to ensure that all decorators
+/// Decorators allow for post-processing the [LogDocument] after it has been
+/// constructed. This hierarchy is [sealed] to ensure that all decorators
 /// fall into one of the known categories, enabling automatic handling
 /// of composition complexities.
 sealed class LogDecorator {
   /// Constant constructor for subclasses.
   const LogDecorator();
 
-  /// Decorates the [lines] based on the [entry].
+  /// Decorates the [document] based on the [entry].
   ///
-  /// Returns an [Iterable] of decorated [LogLine]s.
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  /// Returns an decorated [LogDocument].
+  /// Decorates the [document] based on the [entry].
+  ///
+  /// Returns a modified [LogDocument].
+  LogDocument decorate(
+    final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
   );
 
   /// Returns the width in terminal cells this decorator adds to each line.
   int paddingWidth(final LogEntry entry) => 0;
 }
 
-/// A decorator that modifies the content or metadata of log lines.
+/// A decorator that modifies the content or metadata of a [LogDocument].
 /// Examples: masking PII, adding prefixes [PrefixDecorator].
 abstract class ContentDecorator extends LogDecorator {
   /// Constant constructor for subclasses.

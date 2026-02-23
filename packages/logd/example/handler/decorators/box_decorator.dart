@@ -36,8 +36,7 @@ void main() async {
       BoxDecorator(borderStyle: BorderStyle.rounded),
       HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],
-    sink: ConsoleSink(),
-    lineLength: 60,
+    sink: ConsoleSink(lineLength: 60),
   );
 
   Logger.configure('box.full', handlers: [fullStackHandler]);
@@ -61,8 +60,7 @@ void main() async {
       StyleDecorator(),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 35, // Very tight for metadata + box
+    sink: ConsoleSink(lineLength: 35),
   );
 
   Logger.configure('box.pressure', handlers: [pressureHandler]);
@@ -78,8 +76,7 @@ Future<void> _showBorder(final BorderStyle style, final String label) async {
   final handler = Handler(
     formatter: const PlainFormatter(metadata: {}),
     decorators: [BoxDecorator(borderStyle: style)],
-    sink: const ConsoleSink(),
-    lineLength: 50,
+    sink: const ConsoleSink(lineLength: 50),
   );
   // Using a unique logger for style matrix comparison
   final name = 'style.${style.name}';

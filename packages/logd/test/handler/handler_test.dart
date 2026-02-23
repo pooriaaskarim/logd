@@ -1,5 +1,8 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
+import 'test_helpers.dart';
 
 class MockFormatter implements LogFormatter {
   const MockFormatter(this.formatFn, {this.metadata = const {}});
@@ -7,25 +10,23 @@ class MockFormatter implements LogFormatter {
   @override
   final Set<LogMetadata> metadata;
 
-  final Iterable<LogLine> Function(LogEntry) formatFn;
+  final LogDocument Function(LogEntry) formatFn;
   @override
-  Iterable<LogLine> format(final LogEntry entry, final LogContext context) =>
+  LogDocument format(final LogEntry entry) =>
       formatFn(entry);
 }
 
-final class MockSink extends LogSink {
-  final List<List<LogLine>> outputs = [];
+final class MockSink extends LogSink<LogDocument> {
+  final List<List<String>> outputs = [];
   final List<LogLevel> levels = [];
 
   @override
-  int get preferredWidth => 80;
-
-  @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
+    final LogEntry entry,
     final LogLevel level,
   ) async {
-    outputs.add(lines.toList());
+    outputs.add(renderLines(document));
     levels.add(level);
   }
 }
@@ -46,7 +47,7 @@ void main() {
     setUp(() {
       sink = MockSink();
       formatter = MockFormatter(
-        (final entry) => [LogLine.text('formatted: ${entry.message}')],
+        (final entry) => createTestDocument(['formatted: ${entry.message}']),
       );
       testEntry = LogEntry(
         loggerName: 'test',
@@ -62,12 +63,15 @@ void main() {
       await handler.log(testEntry);
 
       expect(sink.outputs.length, equals(1));
-      expect(sink.outputs.first.first.toString(), equals('formatted: hello'));
+      expect(sink.outputs.first.first, equals('formatted: hello'));
       expect(sink.levels.first, equals(LogLevel.info));
     });
 
     test('Handler skips sink if formatter returns empty list', () async {
-      final emptyFormatter = MockFormatter((final _) => []);
+      // LogDocument with no nodes is considered "empty" in a way?
+      // Handler implementation checks `if (document.nodes.isNotEmpty)`.
+      final emptyFormatter =
+          MockFormatter((final _) => const LogDocument(nodes: []));
       final handler = Handler(formatter: emptyFormatter, sink: sink);
       await handler.log(testEntry);
 

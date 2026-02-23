@@ -1,81 +1,40 @@
 part of '../handler.dart';
 
-/// A [LogSink] that outputs formatted log lines to the system console.
+/// A [LogSink] that encodes and outputs logs to the system console.
 @immutable
-base class ConsoleSink extends LogSink {
-  const ConsoleSink({super.enabled});
+base class ConsoleSink extends EncodingSink<String> {
+  /// Creates a [ConsoleSink].
+  ///
+  /// - [lineLength]: The max line length. If null, terminal width is used.
+  /// - [encoder]: The encoder used to serialize logs (default:
+  ///   [AutoConsoleEncoder]).
+  /// - [enabled]: Whether the sink is currently active.
+  const ConsoleSink({
+    this.lineLength,
+    super.encoder = const AutoConsoleEncoder(),
+    super.enabled,
+  }) : super(
+          delegate: _staticWrite,
+          preferredWidth: lineLength,
+        );
+
+  /// The maximum line length for the output.
+  final int? lineLength;
+
+  static void _staticWrite(final String data) => io.stdout.writeln(data);
 
   @override
-  int get preferredWidth =>
-      io.stdout.hasTerminal ? io.stdout.terminalColumns : 80;
-
-  @override
-  Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
-  ) async {
-    if (!enabled) {
-      return;
-    }
-    try {
-      final supportsAnsi = io.stdout.supportsAnsiEscapes;
-
-      for (final line in lines) {
-        final buffer = StringBuffer();
-        for (final segment in line.segments) {
-          final style = segment.style;
-          if (supportsAnsi && style != null) {
-            // Apply ANSI codes
-            if (style.bold == true) {
-              buffer.write(AnsiStyle.bold.sequence);
-            }
-            if (style.dim == true) {
-              buffer.write(AnsiStyle.dim.sequence);
-            }
-            if (style.italic == true) {
-              buffer.write(AnsiStyle.italic.sequence);
-            }
-            if (style.inverse == true) {
-              buffer.write('\x1B[7m'); // Hardcoded inverse for now
-            }
-            if (style.color != null) {
-              final ansiCode = AnsiColorCode.fromLogColor(style.color!);
-              buffer.write(ansiCode.foreground);
-            }
-            if (style.backgroundColor != null) {
-              final ansiCode =
-                  AnsiColorCode.fromLogColor(style.backgroundColor!);
-              buffer.write(ansiCode.background);
-            }
-
-            buffer
-              ..write(segment.text)
-
-              // Reset
-              ..write(AnsiStyle.reset.sequence);
-          } else {
-            buffer.write(segment.text);
-          }
-        }
-        print(buffer);
-      }
-    } catch (e, s) {
-      InternalLogger.log(
-        LogLevel.error,
-        'ConsoleSink output failed',
-        error: e,
-        stackTrace: s,
-      );
-    }
-  }
+  int? get preferredWidth =>
+      lineLength ?? (io.stdout.hasTerminal ? io.stdout.terminalColumns : 80);
 
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
       other is ConsoleSink &&
           runtimeType == other.runtimeType &&
+          lineLength == other.lineLength &&
           enabled == other.enabled;
 
   @override
-  int get hashCode => Object.hash(runtimeType, enabled);
+  int get hashCode => Object.hash(runtimeType, lineLength, enabled);
 }

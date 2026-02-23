@@ -19,8 +19,7 @@ void main() async {
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: FileSink('logs/concurrent.log'),
-    lineLength: 80,
+    sink: FileSink('logs/concurrent.log', lineLength: 80),
   );
 
   Logger.configure('example.concurrent', handlers: [handler]);

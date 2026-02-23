@@ -111,7 +111,7 @@ class SizeRotation extends FileRotation {
   ) async {
     final currentLength =
         await currentFile.exists() ? await currentFile.length() : 0;
-    final newDataSize = utf8.encode(newData).length;
+    final newDataSize = convert.utf8.encode(newData).length;
     return currentLength + newDataSize > maxBytes;
   }
 
@@ -312,7 +312,7 @@ class TimeRotation extends FileRotation {
   }
 }
 
-/// A [LogSink] that appends formatted log lines to a local file.
+/// A [LogSink] that encodes and appends logs to a local file.
 ///
 /// It supports various file rotation policies (size-based, time-based) and
 /// optional GZip compression of rotated backups. Parent directories are
@@ -321,24 +321,43 @@ class TimeRotation extends FileRotation {
 /// This sink uses internal synchronization to ensure that concurrent write
 /// operations are serialized, preventing data loss when logging operations
 /// happen rapidly (e.g., in a loop).
-base class FileSink extends LogSink {
+base class FileSink extends EncodingSink<String> {
   /// Creates a [FileSink] at the specified [basePath].
   ///
   /// - [basePath]: The relative or absolute path to the log file. Must point
   ///   to a filename, not a directory.
+  /// - [encoder]: The encoder used to serialize logs
+  /// (default: [PlainTextEncoder]).
   /// - [fileRotation]: An optional policy for rotating the log file.
+  /// - [strategy]: The wrapping strategy for this sink
+  /// (default: [WrappingStrategy.none]).
+  /// - [lineLength]: The maximum line length for the output (default: 120).
   /// - [enabled]: Whether the sink is currently active.
-  FileSink(this.basePath, {this.fileRotation, super.enabled = true}) {
+  FileSink(
+    this.basePath, {
+    super.encoder = const PlainTextEncoder(),
+    this.fileRotation,
+    super.strategy = WrappingStrategy.none,
+    final int? lineLength,
+    super.enabled = true,
+  }) : super(
+          preferredWidth: lineLength ?? 120,
+          delegate: (final data) async => _staticWrite(
+            basePath,
+            data,
+            fileRotation,
+          ),
+        ) {
     _validateBasePath(basePath);
   }
-
-  @override
-  int get preferredWidth => 120;
 
   /// The path to the active log file (e.g., 'logs/app.log').
   final String basePath;
 
-  void _validateBasePath(final String basePath) {
+  /// The rotation policy applied to this sink (null for no rotation).
+  final FileRotation? fileRotation;
+
+  static void _validateBasePath(final String basePath) {
     if (basePath.isEmpty) {
       throw ArgumentError('Invalid basePath: empty string. '
           'Examples: "app.log" or "some/dir/app.log".');
@@ -356,100 +375,68 @@ base class FileSink extends LogSink {
     }
   }
 
-  /// The rotation policy applied to this sink (null for no rotation).
-  final FileRotation? fileRotation;
+  /// Map of active write locks per file path to serialize concurrent writes.
+  static final Map<String, Future<void>> _locks = {};
 
-  /// Internal mutex to serialize write operations and prevent race conditions.
-  ///
-  /// Uses a Completer-based queue to ensure all write operations are executed
-  /// sequentially, even when called concurrently (e.g., from a loop).
-  Future<void>? _writeLock;
-
-  @override
-  Future<void> output(
-    final Iterable<LogLine> lines,
-    final LogLevel level,
+  /// Performs the actual file write operation with rotation and locking.
+  static Future<void> _staticWrite(
+    final String basePath,
+    final String data,
+    final FileRotation? fileRotation,
   ) async {
-    if (!enabled) {
-      return;
-    }
-
-    // Serialize all write operations using a mutex
-    final previousLock = _writeLock;
+    final lock = _locks[basePath];
     final completer = Completer<void>();
-    _writeLock = completer.future;
+    _locks[basePath] = completer.future;
 
-    // Wait for previous write to complete
-    if (previousLock != null) {
-      await previousLock;
+    if (lock != null) {
+      await lock;
     }
 
     try {
-      await _performWrite(lines);
-      completer.complete();
-    } catch (e, s) {
-      completer.completeError(e, s);
-      InternalLogger.log(
-        LogLevel.error,
-        'FileSink error',
-        error: e,
-        stackTrace: s,
+      final file = Context.fileSystem.file(basePath);
+      final parentDir = file.parent;
+      if (!await parentDir.exists()) {
+        await parentDir.create(recursive: true);
+      }
+
+      if (data.isEmpty) {
+        return;
+      }
+      final newData = '$data\n';
+
+      File targetFile = file;
+      if (fileRotation != null &&
+          await fileRotation.needsRotation(file, newData)) {
+        try {
+          await fileRotation.rotate(basePath);
+          targetFile = Context.fileSystem.file(basePath);
+        } catch (rotationError, rotationStack) {
+          InternalLogger.log(
+            LogLevel.warning,
+            'File rotation failed, continuing with write to original file',
+            error: rotationError,
+            stackTrace: rotationStack,
+          );
+        }
+      }
+
+      await targetFile.writeAsString(
+        newData,
+        mode: io.FileMode.append,
+        flush: true,
       );
+
+      if (fileRotation is TimeRotation) {
+        final timeRotation = fileRotation;
+        if (await targetFile.exists()) {
+          timeRotation.lastRotation = await targetFile.lastModified();
+        }
+      }
     } finally {
-      // Clear lock if this was the last operation
-      if (_writeLock == completer.future) {
-        _writeLock = null;
+      if (_locks[basePath] == completer.future) {
+        unawaited(_locks.remove(basePath));
       }
-    }
-  }
-
-  /// Performs the actual file write operation.
-  ///
-  /// This method is called from [output] after acquiring the write lock.
-  Future<void> _performWrite(final Iterable<LogLine> lines) async {
-    final file = Context.fileSystem.file(basePath);
-    final parentDir = file.parent;
-    if (!await parentDir.exists()) {
-      await parentDir.create(recursive: true);
-    }
-
-    final linesList = lines.toList();
-    if (linesList.isEmpty) {
-      return;
-    }
-    final newData = '${linesList.map((final l) => l.toString()).join('\n')}\n';
-
-    File targetFile = file;
-    if (fileRotation != null &&
-        await fileRotation!.needsRotation(file, newData)) {
-      try {
-        await fileRotation!.rotate(basePath);
-        targetFile = Context.fileSystem.file(basePath);
-      } catch (rotationError, rotationStack) {
-        // If rotation fails, log the error but continue with write to original
-        // file This ensures log entries aren't lost due to rotation failures
-        InternalLogger.log(
-          LogLevel.warning,
-          'File rotation failed, continuing with write to original file',
-          error: rotationError,
-          stackTrace: rotationStack,
-        );
-        // Continue with original file - don't fail the entire write operation
-      }
-    }
-    await targetFile.writeAsString(
-      newData,
-      mode: io.FileMode.append,
-      flush: true,
-    );
-
-    // Update TimeRotation's lastRotation after write to track file's new
-    // lastModified time This ensures time-based rotation works correctly
-    if (fileRotation is TimeRotation) {
-      final timeRotation = fileRotation! as TimeRotation;
-      if (await targetFile.exists()) {
-        timeRotation.lastRotation = await targetFile.lastModified();
-      }
+      completer.complete();
     }
   }
 }

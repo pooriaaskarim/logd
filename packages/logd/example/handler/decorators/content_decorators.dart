@@ -14,7 +14,7 @@ void main() {
     decorators: [
       PrefixDecorator(' [NETWORK-IO] '),
     ],
-    sink: ConsoleSink(),
+    sink: ConsoleSink(lineLength: 60),
   );
 
   Logger.configure('network', handlers: [prefixHandler]);
@@ -30,8 +30,7 @@ void main() {
     decorators: [
       SuffixDecorator(' [v1.2.0-stable] ', aligned: true),
     ],
-    sink: ConsoleSink(),
-    lineLength: 70,
+    sink: ConsoleSink(lineLength: 70),
   );
 
   Logger.configure('status', handlers: [statusHandler]);
@@ -48,8 +47,7 @@ void main() {
       SuffixDecorator(' <<< ', aligned: true),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 50,
+    sink: ConsoleSink(lineLength: 50),
   );
 
   Logger.configure('combo', handlers: [comboHandler]);
@@ -67,7 +65,7 @@ void main() {
       PrefixDecorator('TOON_START|'),
       SuffixDecorator('|TOON_END', aligned: false), // Attached
     ],
-    sink: ConsoleSink(),
+    sink: ConsoleSink(lineLength: 40),
   );
 
   Logger.configure('machine', handlers: [machineHandler]);
@@ -82,8 +80,7 @@ void main() {
     decorators: [
       SuffixDecorator(' | TRACE-ID: 7a93f1', aligned: true),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40,
+    sink: ConsoleSink(lineLength: 40),
   );
 
   Logger.configure('trace', handlers: [multilineHandler]);
@@ -102,8 +99,7 @@ void main() {
       BoxDecorator(borderStyle: BorderStyle.double),
       StyleDecorator(),
     ],
-    sink: ConsoleSink(),
-    lineLength: 60,
+    sink: ConsoleSink(lineLength: 60),
   );
 
   Logger.configure('dashboard', handlers: [dashboardHandler]);

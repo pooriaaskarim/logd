@@ -1,12 +1,15 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('SuffixDecorator', () {
     test('appends fixed suffix to each log line (alignToEnd: false)', () {
       const suffix = ' [SUFFIX]';
       const decorator = SuffixDecorator(suffix, aligned: false);
-      const context = LogContext(availableWidth: 100);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -15,8 +18,12 @@ void main() {
         timestamp: '2025-01-01',
       );
 
-      final lines = [LogLine.text('line 1'), LogLine.text('line 2')];
-      final decorated = decorator.decorate(lines, entry, context).toList();
+      final lines = ['line 1', 'line 2'];
+      final doc = createTestDocument(lines);
+      final decoratedDoc = decorator.decorate(doc, entry);
+
+      const layout = TerminalLayout(width: 80);
+      final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
 
       expect(decorated.length, equals(2));
       expect(decorated[0].segments.last.text, equals(suffix));
@@ -27,7 +34,6 @@ void main() {
       const suffix = '!!';
       const decorator = SuffixDecorator(suffix, aligned: true);
       // Total area is 20. Suffix is 2. Formatter gets 18.
-      const context = LogContext(availableWidth: 18, contentLimit: 20);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -36,8 +42,12 @@ void main() {
         timestamp: 'now',
       );
 
-      final lines = [LogLine.text('12345')]; // Length 5
-      final decorated = decorator.decorate(lines, entry, context).toList();
+      final lines = ['12345']; // Length 5
+      final doc = createTestDocument(lines);
+      final decoratedDoc = decorator.decorate(doc, entry);
+
+      const layout = TerminalLayout(width: 20);
+      final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
 
       // Content (5) + Padding (13) + Suffix (2) = 20 total (contentLimit)
       expect(decorated[0].visibleLength, equals(20));
@@ -62,8 +72,7 @@ void main() {
     test('composes correctly with BoxDecorator (attached suffix)', () {
       const box = BoxDecorator();
       const suffix = ' !!';
-      const suffixDecorator = SuffixDecorator(suffix, aligned: false);
-      const context = LogContext(availableWidth: 20);
+      const decorator = SuffixDecorator(suffix, aligned: false);
       const entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
@@ -74,13 +83,17 @@ void main() {
 
       // Handler evaluation order: ContentDecorator (Suffix) ->
       // StructuralDecorator (Box)
-      final lines = [LogLine.text('test')];
-      final suffixed = suffixDecorator.decorate(lines, entry, context);
-      final boxed = box.decorate(suffixed, entry, context).toList();
+      final lines = ['test'];
+      final suffixed =
+          decorator.decorate(createTestDocument(lines), entry);
+      final boxedDoc = box.decorate(suffixed, entry);
+
+      const layout = TerminalLayout(width: 22);
+      final boxed = layout.layout(boxedDoc, LogLevel.info).lines;
 
       // Box width: availableWidth (20) + 2 border = 22 total
       expect(boxed[0].visibleLength, equals(22));
-      expect(boxed[1].segments[2].text, equals(' !!'));
+      expect(boxed[1].segments[3].text, equals(' !!'));
     });
   });
 }

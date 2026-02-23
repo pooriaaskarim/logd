@@ -1,36 +1,62 @@
-// Example: StructuredFormatter - Fine-Grained Semantic Styling
+// Example: Fine-Grained Coloring & Custom Themes
 //
 // Purpose:
-// Demonstrates how to use semantic tagging (LogTag) to create a highly refined
-// visual identity. We target specific parts of the log entry (Timestamp,
-// LoggerName, Borders) with unique colors and font styles.
-//
-// Key Benchmarks:
-// 1. Semantic Tagging (Unique colors per metadata type)
-// 2. Structural Framing (Rounded box with dimmed borders)
-// 3. Status Inversion (High-impact level indicators)
+// Demonstrates how to use semantic tagging and StyleDecorator to achieve
+// high-fidelity visual styling in the terminal.
 
 import 'package:logd/logd.dart';
 
-void main() {
+void main() async {
+  print('=== Logd / Fine-Grained Coloring & Custom Themes ===\n');
+
   // ---------------------------------------------------------------------------
-  // THE "VISUAL CONSOLE" HANDLER
-  // Goal: Maximize semantic clarity using the Styles engine.
+  // SCENARIO: The "Profound Console"
+  // Goal: Use a custom theme to highlight specific log elements (timestamps, logger names).
   // ---------------------------------------------------------------------------
-  const visualHandler = Handler(
+  print('=== Logd / Plain Formatter Fine Grained Coloring Benchmark ===\n');
+  final plainHandler = Handler(
+    formatter: const PlainFormatter(
+      metadata: {
+        LogMetadata.timestamp,
+        LogMetadata.logger,
+      },
+    ),
+    decorators: [
+      BoxDecorator(borderStyle: BorderStyle.rounded),
+      StyleDecorator(theme: _ProfoundConsoleTheme()),
+    ],
+    sink: const ConsoleSink(lineLength: 75),
+  );
+
+  Logger.configure('plain.console', handlers: [plainHandler]);
+
+  Logger.get('plain.console.core')
+    ..info('System core initialized. Environment: Sandbox-Alpha.')
+    ..debug('Verifying cryptographic checksums for module "Kernel"...')
+    ..warning('Throughput approaching 10k req/s. Auto-scaling pending.')
+    ..error(
+      'Authentication Fault!',
+      error: 'ChecksumMismatch: Expected 0xAF43, found 0x0000.',
+    );
+
+  print('\n=== Logd / Plain Formatter Fine Grained Coloring Benchmark Complete ===\n');
+
+  const structuredHandler = Handler(
     formatter: StructuredFormatter(),
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
       StyleDecorator(theme: _ProfoundConsoleTheme()),
     ],
-    sink: ConsoleSink(),
-    lineLength: 75,
+    sink: ConsoleSink(
+      lineLength: 75,
+    ),
   );
 
-  Logger.configure('visual.console', handlers: [visualHandler]);
-  final log = Logger.get('visual.console');
+  Logger.configure('structured.console', handlers: [structuredHandler]);
+  final log = Logger.get('structured.console');
 
-  print('=== Logd / Fine-Grained Styling Benchmark ===\n');
+  print(
+      '=== Logd / Structured Formatter Fine Grained Coloring Benchmark ===\n');
 
   log
     ..info('System core initialized. Environment: Sandbox-Alpha.')
@@ -41,53 +67,48 @@ void main() {
       error: 'ChecksumMismatch: Expected 0xAF43, found 0x0000.',
     );
 
-  print('\n=== Visual Styling Benchmark Complete ===');
+  print(
+      '\n=== Structured Formatter Fine Grained Coloring Benchmark Complete ===');
 }
 
-/// A "Profound" theme that targets every LogTag with a specific visual intent.
+/// A custom theme that overrides specific semantic colors.
 class _ProfoundConsoleTheme extends LogTheme {
-  const _ProfoundConsoleTheme() : super(colorScheme: LogColorScheme.darkScheme);
+  const _ProfoundConsoleTheme()
+      : super(colorScheme: LogColorScheme.defaultScheme);
 
   @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
-    // 1. Headers: Bold Yellow (Context focus)
-    if (tags.contains(LogTag.header) && !tags.contains(LogTag.level)) {
-      return const LogStyle(color: LogColor.yellow, bold: true);
+  LogStyle getStyle(final LogLevel level, final int tags) {
+    if (((tags & LogTag.timestamp) != 0)) {
+      return const LogStyle(color: LogColor.blue, dim: true);
     }
-
-    // 2. Timestamps: Dimmed White (Background data)
-    if (tags.contains(LogTag.timestamp)) {
-      return const LogStyle(color: LogColor.white, dim: true);
-    }
-
-    // 3. Logger Names: Bold Magenta (Identity focus)
-    if (tags.contains(LogTag.loggerName)) {
+    if (((tags & LogTag.loggerName) != 0)) {
       return const LogStyle(color: LogColor.magenta, bold: true);
     }
 
-    // 4. Borders: Dimmed Blue (Structural separation)
-    if (tags.contains(LogTag.border)) {
-      return const LogStyle(color: LogColor.blue, dim: true);
-    }
-
-    // 5. Level Status: Inverted bold (Status focus)
-    if (tags.contains(LogTag.level)) {
-      return LogStyle(color: _levelColor(level), inverse: true, bold: true);
+    switch (level) {
+      case LogLevel.info:
+        if (((tags & LogTag.level) != 0)) {
+          return const LogStyle(color: LogColor.green, bold: true);
+        }
+        break;
+      case LogLevel.warning:
+        if (((tags & LogTag.level) != 0)) {
+          return const LogStyle(color: LogColor.yellow, italic: true);
+        }
+        break;
+      case LogLevel.error:
+        if (((tags & LogTag.level) != 0)) {
+          return const LogStyle(
+            backgroundColor: LogColor.red,
+            color: LogColor.white,
+            bold: true,
+          );
+        }
+        break;
+      default:
+        break;
     }
 
     return super.getStyle(level, tags);
-  }
-
-  LogColor _levelColor(final LogLevel level) {
-    switch (level) {
-      case LogLevel.error:
-        return LogColor.red;
-      case LogLevel.warning:
-        return LogColor.yellow;
-      case LogLevel.info:
-        return LogColor.blue;
-      default:
-        return LogColor.cyan;
-    }
   }
 }

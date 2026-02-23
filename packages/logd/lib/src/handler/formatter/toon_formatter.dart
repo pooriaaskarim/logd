@@ -3,8 +3,11 @@ part of '../handler.dart';
 /// A [LogFormatter] that facilitates Token-Oriented Object Notation (TOON).
 ///
 /// TOON is a compact, token-efficient format designed for feeding logs into
-/// Large Language Models (LLMs). It uses a header definition followed by
-/// uniform rows of values separated by a delimiter (default: Tab).
+/// machine parsers or Large Language Models (LLMs). It uses a header definition
+/// followed by uniform rows of values separated by a delimiter (default: Tab).
+///
+/// This version is optimized for token efficiency and raw data transport.
+/// For a more human-friendly, structured version, use [ToonPrettyFormatter].
 @immutable
 final class ToonFormatter implements LogFormatter {
   /// Creates a [ToonFormatter].
@@ -12,13 +15,6 @@ final class ToonFormatter implements LogFormatter {
   /// - [delimiter]: The separator between values. Defaults to tab (`\t`).
   /// - [arrayName]: The name of the array in the header (e.g., 'logs').
   /// - [metadata]: Contextual metadata to include in the output columns.
-  /// - [color]: Whether to emit semantic tags for coloring.
-  ///   metadata: {LogMetadata.timestamp, LogMetadata.logger,
-  ///   LogMetadata.origin},
-  ///   color: true,
-  ///   multiline: true,
-  /// );
-  /// ```
   const ToonFormatter({
     this.delimiter = '\t',
     this.arrayName = 'logs',
@@ -27,8 +23,6 @@ final class ToonFormatter implements LogFormatter {
       LogMetadata.logger,
       LogMetadata.origin,
     },
-    this.color = false,
-    this.multiline = false,
   });
 
   /// The character used to separate values.
@@ -41,113 +35,33 @@ final class ToonFormatter implements LogFormatter {
   @override
   final Set<LogMetadata> metadata;
 
-  /// Whether to emit semantic tags for coloring.
-  final bool color;
-
-  /// Whether to allow actual newlines in strings (rather than escaping to \n).
-  /// Recommended for visual high-detail benchmarks but can break machine
-  /// parsers.
-  final bool multiline;
-
   @override
-  Iterable<LogLine> format(
-    final LogEntry entry,
-    final LogContext context,
-  ) sync* {
-    // Header includes metadata followed by crucial fields
-    final metaNames = metadata.map((final m) => m.name).join(',');
-    const crucialNames = 'level,message,error,stackTrace';
-    final headerStr =
-        '$arrayName[]{$metaNames${metaNames.isNotEmpty ? ',' : ''}'
-        '$crucialNames}:';
+  LogDocument format(final LogEntry entry) {
+    final map = <String, Object?>{};
+    final columns = <String>[];
 
-    final headerLine = color
-        ? LogLine([
-            LogSegment(headerStr, tags: const {LogTag.header}),
-          ])
-        : LogLine.text(headerStr);
-
-    yield* headerLine.wrap(context.availableWidth);
-
-    final rowLine = color ? _formatColorizedRow(entry) : _formatPlainRow(entry);
-
-    yield* rowLine.wrap(context.availableWidth);
-  }
-
-  LogLine _formatPlainRow(final LogEntry entry) {
-    final values = [
-      ...metadata.map((final m) => m.getValue(entry)),
-      entry.level.name,
-      entry.message,
-      entry.error?.toString() ?? '',
-      entry.stackTrace?.toString() ?? '',
-    ];
-
-    return LogLine.text(values.map(_escapeAndQuote).join(delimiter));
-  }
-
-  LogLine _formatColorizedRow(final LogEntry entry) {
-    final segments = <LogSegment>[];
-
-    void add(final String val, final LogTag tag) {
-      if (segments.isNotEmpty) {
-        segments.add(LogSegment(delimiter, tags: const {LogTag.punctuation}));
-      }
-      segments.add(LogSegment(_escapeAndQuote(val), tags: {tag}));
+    void add(final String key, final Object? value) {
+      columns.add(key);
+      map[key] = value;
     }
 
     for (final meta in metadata) {
-      add(meta.getValue(entry), meta.tag);
+      add(meta.name, meta.getValue(entry));
     }
 
-    add(entry.level.name, LogTag.level);
-    add(entry.message, LogTag.message);
-    add(entry.error?.toString() ?? '', LogTag.error);
-    add(entry.stackTrace?.toString() ?? '', LogTag.stackFrame);
+    add('level', entry.level.name.toUpperCase());
+    add('message', entry.message);
+    add('error', entry.error?.toString() ?? '');
+    add('stackTrace', entry.stackTrace?.toString() ?? '');
 
-    return LogLine(segments);
-  }
-
-  String _escapeAndQuote(final String value) {
-    if (value.isEmpty) {
-      return '';
-    }
-    final hasDelimiter = value.contains(delimiter);
-    final hasNewline = value.contains('\n') || value.contains('\r');
-    final hasQuote = value.contains('"');
-    final hasColon = value.contains(':');
-
-    if (!hasDelimiter && !hasNewline && !hasQuote && !hasColon) {
-      return value;
-    }
-
-    final buffer = StringBuffer('"');
-    for (var i = 0; i < value.length; i++) {
-      final char = value[i];
-      switch (char) {
-        case '"':
-          buffer.write(r'\"');
-          break;
-        case '\n':
-          if (multiline) {
-            buffer.write('\n');
-          } else {
-            buffer.write(r'\n');
-          }
-          break;
-        case '\r':
-          if (multiline) {
-            buffer.write('\r');
-          } else {
-            buffer.write(r'\r');
-          }
-          break;
-        default:
-          buffer.write(char);
-      }
-    }
-    buffer.write('"');
-    return buffer.toString();
+    return LogDocument(
+      nodes: [MapNode(map)],
+      metadata: {
+        'toon_array': arrayName,
+        'toon_delimiter': delimiter,
+        'toon_columns': columns,
+      },
+    );
   }
 
   @override
@@ -157,7 +71,106 @@ final class ToonFormatter implements LogFormatter {
           runtimeType == other.runtimeType &&
           delimiter == other.delimiter &&
           arrayName == other.arrayName &&
+          setEquals(metadata, other.metadata);
+
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, delimiter, arrayName, Object.hashAll(metadata));
+}
+
+/// A [LogFormatter] for TOON with "Wise" object representation.
+///
+/// TOON-Pretty enhances basic TOON by recursively formatting complex objects
+/// (Maps and Lists) inside columns using a compact, token-efficient notation.
+@immutable
+final class ToonPrettyFormatter implements LogFormatter {
+  /// Creates a [ToonPrettyFormatter].
+  ///
+  /// - [delimiter]: The separator between values. Defaults to tab (`\t`).
+  /// - [arrayName]: The name of the array in the header (e.g., 'logs').
+  /// - [color]: Whether to emit semantic tags for coloring.
+  /// - [metadata]: Contextual metadata to include.
+  /// - [sortKeys]: Whether to sort Map keys alphabetically.
+  /// - [maxDepth]: Maximum depth for recursive object serialization.
+  const ToonPrettyFormatter({
+    this.delimiter = '\t',
+    this.arrayName = 'logs',
+    this.color = true,
+    this.metadata = const {
+      LogMetadata.timestamp,
+      LogMetadata.logger,
+      LogMetadata.origin,
+    },
+    this.sortKeys = false,
+    this.maxDepth = 5,
+  });
+
+  /// The character used to separate values.
+  final String delimiter;
+
+  /// The name of the array in the header.
+  final String arrayName;
+
+  /// Whether to emit semantic tags for coloring.
+  final bool color;
+
+  /// Metadata to include.
+  @override
+  final Set<LogMetadata> metadata;
+
+  /// Whether to sort Map keys alphabetically.
+  final bool sortKeys;
+
+  /// Maximum depth for recursion.
+  final int maxDepth;
+
+  @override
+  LogDocument format(final LogEntry entry) {
+    final map = <String, Object?>{};
+    final columns = <String>[];
+    final tags = <String, int>{};
+
+    void add(final String key, final Object? value, final int tag) {
+      columns.add(key);
+      map[key] = value;
+      tags[key] = tag;
+    }
+
+    for (final meta in metadata) {
+      add(meta.name, meta.getValue(entry), meta.tag);
+    }
+
+    add('level', entry.level.name.toUpperCase(), LogTag.level);
+    add('message', entry.message, LogTag.message);
+    add('error', entry.error, LogTag.error);
+    add('stackTrace', entry.stackTrace, LogTag.stackFrame);
+
+    return LogDocument(
+      nodes: [
+        MapNode(map, tags: color ? LogTag.message : LogTag.none),
+      ],
+      metadata: {
+        'toon_array': arrayName,
+        'toon_delimiter': delimiter,
+        'toon_columns': columns,
+        'toon_tags': tags,
+        'toon_sort_keys': sortKeys,
+        'toon_max_depth': maxDepth,
+        'toon_color': color,
+      },
+    );
+  }
+
+  @override
+  bool operator ==(final Object other) =>
+      identical(this, other) ||
+      other is ToonPrettyFormatter &&
+          runtimeType == other.runtimeType &&
+          delimiter == other.delimiter &&
+          arrayName == other.arrayName &&
           color == other.color &&
+          sortKeys == other.sortKeys &&
+          maxDepth == other.maxDepth &&
           setEquals(metadata, other.metadata);
 
   @override
@@ -166,6 +179,8 @@ final class ToonFormatter implements LogFormatter {
         delimiter,
         arrayName,
         color,
+        sortKeys,
+        maxDepth,
         Object.hashAll(metadata),
       );
 }

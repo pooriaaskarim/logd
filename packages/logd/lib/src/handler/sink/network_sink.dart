@@ -15,20 +15,24 @@ enum DropPolicy {
 }
 
 /// A base class for network-based sinks that require an internal buffer.
-///
-/// Refactored to support `const` constructors by moving mutable state
-/// (buffer, disposal status) to a lazy-initialized [Expando].
-abstract base class NetworkSink extends LogSink {
+abstract base class NetworkSink extends EncodingSink<String> {
   /// Creates a [NetworkSink].
   ///
+  /// - [encoder]: The encoder used to serialize logs (default:
+  ///   [PlainTextEncoder]).
   /// - [maxBufferSize]: Max entries to hold in memory (default: 1000).
   /// - [dropPolicy]: Behavior when [maxBufferSize] is reached.
   /// - [enabled]: Whether the sink is active.
   const NetworkSink({
+    super.encoder = const PlainTextEncoder(),
     this.maxBufferSize = 1000,
     this.dropPolicy = DropPolicy.discardOldest,
     super.enabled,
-  });
+  }) : super(
+          delegate: _doNothing,
+        );
+
+  static void _doNothing(final String _) {}
 
   /// Max entries to hold in memory.
   final int maxBufferSize;
@@ -36,7 +40,7 @@ abstract base class NetworkSink extends LogSink {
   /// Behavior when [maxBufferSize] is reached.
   final DropPolicy dropPolicy;
 
-  /// Shared [Expando] to store mutable state for `const` sink instances.
+  /// Shared [Expando] to store mutable state for sink instances.
   static final Expando<_NetworkState> _states = Expando();
 
   _NetworkState get _state => _states[this] ??= _createState();
@@ -47,9 +51,6 @@ abstract base class NetworkSink extends LogSink {
 
   /// Returns `true` if the sink has been disposed.
   bool get isDisposed => _state.isDisposed;
-
-  @override
-  int get preferredWidth => 120;
 
   /// Safely adds a line to the buffer according to the [dropPolicy].
   @protected
@@ -75,24 +76,59 @@ abstract base class NetworkSink extends LogSink {
     }
   }
 
+  @override
+  Future<void> output(
+    final LogDocument document,
+    final LogEntry entry,
+    final LogLevel level,
+  ) async {
+    if (!enabled) {
+      return;
+    }
+
+    // Trigger preamble if needed
+    if (strategy == WrappingStrategy.document && !_preambleWritten) {
+      final preamble = encoder.preamble(level, document: document);
+      if (preamble != null) {
+        enqueue(preamble);
+      }
+      _preambleWritten = true;
+    }
+
+    final data = encoder.encode(
+      entry,
+      document,
+      level,
+      width: preferredWidth,
+    );
+
+    enqueue(data);
+  }
+
+  @override
+  @mustCallSuper
+  Future<void> dispose() async {
+    if (strategy == WrappingStrategy.document && _preambleWritten) {
+      final post = encoder.postamble(LogLevel.info);
+      if (post != null) {
+        enqueue(post);
+      }
+    }
+    await super.dispose();
+  }
+
   /// Returns and clears the current buffer.
   @protected
-  List<String> takeBuffer() {
+  List<String> flush() {
     final buffer = _state.buffer;
-    final batch = List<String>.from(buffer);
+    final lines = List<String>.from(buffer);
     buffer.clear();
-    return batch;
+    return lines;
   }
 
   /// Returns `true` if there are logs waiting in the buffer.
   @protected
   bool get hasBufferedLogs => _state.buffer.isNotEmpty;
-
-  @override
-  @mustCallSuper
-  Future<void> dispose() async {
-    _state.isDisposed = true;
-  }
 }
 
 /// Internal state for a [NetworkSink].
@@ -101,24 +137,35 @@ class _NetworkState {
   bool isDisposed = false;
 }
 
-/// A [LogSink] that ships logs in batches via HTTP POST requests.
-final class HttpSink extends NetworkSink {
+/// A [NetworkSink] that transmits logs via HTTP POST.
+base class HttpSink extends NetworkSink {
   /// Creates an [HttpSink].
   ///
-  /// - [url]: The endpoint URL (String to support const constructors).
+  /// - [url]: The destination endpoint.
+  /// - [encoder]: The encoder used to serialize logs (default:
+  ///   [PlainTextEncoder]).
+  /// - [headers]: Custom headers to include in the request.
+  /// - [batchSize]: Sink when this many logs are accumulated (default: 50).
+  /// - [flushInterval]: Sink interval (default: 60s).
+  /// - [maxRetries]: Max attempts for a single batch (default: 5).
+  /// - [client]: Optional external [http.Client].
+  /// - [maxBufferSize]: Max entries to hold in memory.
+  /// - [dropPolicy]: Behavior when [maxBufferSize] is reached.
+  /// - [enabled]: Whether the sink is active.
   const HttpSink({
     required this.url,
+    super.encoder = const PlainTextEncoder(),
     this.headers = const {},
     this.batchSize = 50,
     this.flushInterval = const Duration(seconds: 60),
     this.maxRetries = 5,
     this.client,
-    super.maxBufferSize,
-    super.dropPolicy,
+    super.maxBufferSize = 1000,
+    super.dropPolicy = DropPolicy.discardOldest,
     super.enabled,
   });
 
-  /// The endpoint URL.
+  /// The destination endpoint URL.
   final String url;
 
   /// Custom headers to include in the request.
@@ -143,7 +190,8 @@ final class HttpSink extends NetworkSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
+    final LogEntry entry,
     final LogLevel level,
   ) async {
     if (!enabled || isDisposed) {
@@ -152,8 +200,8 @@ final class HttpSink extends NetworkSink {
 
     _ensureActive();
 
-    final formatted = lines.map((final s) => s.toString()).join('\n');
-    enqueue(formatted);
+    // Use parent's output logic which calls enqueue
+    await super.output(document, entry, level);
 
     if (_state.buffer.length >= batchSize) {
       _triggerFlush();
@@ -176,7 +224,7 @@ final class HttpSink extends NetworkSink {
       return;
     }
 
-    final batch = takeBuffer();
+    final batch = flush();
     await _pushWithRetry(batch);
   }
 
@@ -193,7 +241,7 @@ final class HttpSink extends NetworkSink {
             'Content-Type': 'application/json',
             ...headers,
           },
-          body: jsonEncode(batch),
+          body: convert.jsonEncode(batch),
         );
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -229,7 +277,8 @@ final class HttpSink extends NetworkSink {
     _httpState.timer?.cancel();
     await _flush(); // Final drain before marking disposed
     _httpState.internalClient?.close();
-    await super.dispose(); // Set isDisposed = true last
+    _state.isDisposed = true;
+    await super.dispose();
   }
 }
 
@@ -239,24 +288,32 @@ class _HttpState extends _NetworkState {
   Uri? uri;
 }
 
-/// A [LogSink] that streams logs over a WebSocket connection in real-time.
-final class SocketSink extends NetworkSink {
+/// A [NetworkSink] that transmits logs via a WebSocket.
+base class SocketSink extends NetworkSink {
   /// Creates a [SocketSink].
   ///
-  /// - [url]: The WebSocket URL (String to support const constructors).
-  /// - [reconnectInterval]: Delay before attempting reconnection (default: 5s).
-  /// - [channel]: Optional external [WebSocketChannel].
+  /// - [url]: The WebSocket server URL.
+  /// - [headers]: Optional protocols/headers for the connection.
+  /// - [reconnectInterval]: Delay before attempting reconnection
+  /// (default: 15s).
+  /// - [channel]: Optional external WebSocketChannel.
+  /// - [encoder]: The encoder used to serialize logs (default:
+  ///   [PlainTextEncoder]).
+  /// - [maxBufferSize]: Max entries to hold in memory.
+  /// - [dropPolicy]: Behavior when [maxBufferSize] is reached.
+  /// - [enabled]: Whether the sink is active.
   const SocketSink({
     required this.url,
     this.headers = const {},
     this.reconnectInterval = const Duration(seconds: 15),
     this.channel,
-    super.maxBufferSize,
-    super.dropPolicy,
+    super.encoder = const PlainTextEncoder(),
+    super.maxBufferSize = 1000,
+    super.dropPolicy = DropPolicy.discardOldest,
     super.enabled,
   });
 
-  /// The WebSocket URL.
+  /// The WebSocket server URL.
   final String url;
 
   /// Optional protocols/headers for the connection.
@@ -275,22 +332,21 @@ final class SocketSink extends NetworkSink {
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
+    final LogEntry entry,
     final LogLevel level,
   ) async {
     if (!enabled || isDisposed) {
       return;
     }
 
-    final formatted = lines.map((final s) => s.toString()).join('\n');
+    // Use parent logic to get encoded data and put in buffer
+    await super.output(document, entry, level);
 
     if (_socketState.isConnected) {
-      _send(formatted);
-    } else {
-      enqueue(formatted);
-      if (!_socketState.isConnecting) {
-        await _connect();
-      }
+      _drainBuffer();
+    } else if (!_socketState.isConnecting) {
+      unawaited(_connect());
     }
   }
 
@@ -301,7 +357,17 @@ final class SocketSink extends NetworkSink {
       _handleFailure(e);
       _socketState.isConnected = false;
       enqueue(line);
-      _connect();
+      unawaited(_connect());
+    }
+  }
+
+  void _drainBuffer() {
+    if (!hasBufferedLogs) {
+      return;
+    }
+    final batch = flush();
+    for (final line in batch) {
+      _send(line);
     }
   }
 
@@ -319,13 +385,7 @@ final class SocketSink extends NetworkSink {
       _socketState.isConnected = true;
       _socketState.isConnecting = false;
 
-      // Drain buffer on connection
-      if (hasBufferedLogs) {
-        final batch = takeBuffer();
-        for (final line in batch) {
-          _send(line);
-        }
-      }
+      _drainBuffer();
     } catch (e) {
       _socketState.isConnecting = false;
       _socketState.isConnected = false;
@@ -344,10 +404,12 @@ final class SocketSink extends NetworkSink {
   }
 
   @override
+  @mustCallSuper
   Future<void> dispose() async {
-    await super.dispose();
+    _state.isDisposed = true;
     _socketState.isConnected = false;
     await _socketState.channel?.sink.close();
+    await super.dispose();
   }
 }
 

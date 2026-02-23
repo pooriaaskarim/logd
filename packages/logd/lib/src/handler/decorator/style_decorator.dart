@@ -1,6 +1,6 @@
 part of '../handler.dart';
 
-/// A [LogDecorator] that applies semantic styles to log lines based on a
+/// A [LogDecorator] that applies semantic styles to a [LogDocument] based on a
 /// [LogTheme].
 ///
 /// This decorator resolves the appropriate [LogStyle] for each segment using
@@ -27,26 +27,67 @@ final class StyleDecorator extends VisualDecorator {
   final LogTheme theme;
 
   @override
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  LogDocument decorate(
+    final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
-  ) sync* {
-    final level = entry.level;
+  ) =>
+      document.copyWith(
+        nodes: document.nodes
+            .map((final node) => _styleNode(node, entry.level))
+            .toList(),
+      );
 
-    for (final line in lines) {
-      final newSegments = <LogSegment>[];
-      for (final segment in line.segments) {
-        // Resolve style from theme
-        final themeStyle = theme.getStyle(level, segment.tags);
+  LogNode _styleNode(final LogNode node, final LogLevel level) =>
+      switch (node) {
+        final ContentNode n => n.copyWith(
+            segments: n.segments
+                .map((final s) => _styleStyledText(s, level))
+                .toList(),
+          ),
+        final BoxNode n => n.copyWith(
+            style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
+            title: n.title != null ? _styleStyledText(n.title!, level) : null,
+            children:
+                n.children.map((final c) => _styleNode(c, level)).toList(),
+          ),
+        final IndentationNode n => n.copyWith(
+            style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
+            children:
+                n.children.map((final c) => _styleNode(c, level)).toList(),
+          ),
+        final DecoratedNode n => n.copyWith(
+            style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
+            leading: n.leading
+                ?.map((final s) => _styleStyledText(s, level))
+                .toList(),
+            trailing: n.trailing
+                ?.map((final s) => _styleStyledText(s, level))
+                .toList(),
+            children:
+                n.children.map((final c) => _styleNode(c, level)).toList(),
+          ),
+        final GroupNode n => n.copyWith(
+            children:
+                n.children.map((final c) => _styleNode(c, level)).toList(),
+          ),
+        final ParagraphNode n => n.copyWith(
+            children:
+                n.children.map((final c) => _styleNode(c, level)).toList(),
+          ),
+        final RowNode n => n.copyWith(
+            children:
+                n.children.map((final c) => _styleNode(c, level)).toList(),
+          ),
+        final FillerNode n => n.copyWith(
+            style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
+          ),
+        final MapNode n => n,
+        final ListNode n => n,
+      };
 
-        // Merge with existing style
-        final combinedStyle = _mergeStyles(themeStyle, segment.style);
-
-        newSegments.add(segment.copyWith(style: combinedStyle));
-      }
-      yield LogLine(newSegments);
-    }
+  StyledText _styleStyledText(final StyledText s, final LogLevel level) {
+    final themeStyle = theme.getStyle(level, s.tags);
+    return s.copyWith(style: _mergeStyles(themeStyle, s.style));
   }
 
   LogStyle? _mergeStyles(final LogStyle themeStyle, final LogStyle? existing) {
@@ -80,13 +121,13 @@ final class StyleDecorator extends VisualDecorator {
 @Deprecated('Use [StyleDecorator] instead')
 typedef ColorDecorator = StyleDecorator;
 
-extension _LogSegmentCopy on LogSegment {
-  LogSegment copyWith({
+extension _StyledTextCopy on StyledText {
+  StyledText copyWith({
     final String? text,
-    final Set<LogTag>? tags,
+    final int? tags,
     final LogStyle? style,
   }) =>
-      LogSegment(
+      StyledText(
         text ?? this.text,
         tags: tags ?? this.tags,
         style: style ?? this.style,

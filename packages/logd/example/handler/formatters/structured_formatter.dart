@@ -25,8 +25,9 @@ void main() async {
       StyleDecorator(theme: _EliteDashboardTheme()),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 80,
+    sink: ConsoleSink(
+      lineLength: 80,
+    ),
   );
 
   // ---------------------------------------------------------------------------
@@ -43,8 +44,9 @@ void main() async {
       BoxDecorator(borderStyle: BorderStyle.rounded),
       HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40, // Extreme squeeze for Framed Header + Box + Indent
+    sink: ConsoleSink(
+      lineLength: 40, // Extreme squeeze for Framed Header + Box + Indent
+    ),
   );
 
   // Configure loggers
@@ -78,21 +80,21 @@ class _EliteDashboardTheme extends LogTheme {
   const _EliteDashboardTheme() : super(colorScheme: LogColorScheme.darkScheme);
 
   @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+  LogStyle getStyle(final LogLevel level, final int tags) {
     // Make headers stand out with bold/yellow
-    if (tags.contains(LogTag.header) && !tags.contains(LogTag.level)) {
+    if (((tags & LogTag.header) != 0) && !((tags & LogTag.level) != 0)) {
       return const LogStyle(color: LogColor.yellow, bold: true);
     }
     // Make Level names inverse for a "Status Indicator" feel
-    if (tags.contains(LogTag.level)) {
+    if (((tags & LogTag.level) != 0)) {
       return LogStyle(color: _levelColor(level), inverse: true, bold: true);
     }
     // Make specific logger names magenta
-    if (tags.contains(LogTag.loggerName)) {
+    if (((tags & LogTag.loggerName) != 0)) {
       return const LogStyle(color: LogColor.magenta);
     }
     // Dimmish borders
-    if (tags.contains(LogTag.border)) {
+    if (((tags & LogTag.border) != 0)) {
       return const LogStyle(color: LogColor.blue, dim: true);
     }
     return super.getStyle(level, tags);

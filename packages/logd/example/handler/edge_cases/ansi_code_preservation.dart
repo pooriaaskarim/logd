@@ -20,8 +20,9 @@ void main() async {
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: ConsoleSink(),
-    lineLength: 50,
+    sink: ConsoleSink(
+      lineLength: 50,
+    ),
   );
 
   Logger.configure('example.ansi', handlers: [handler]);

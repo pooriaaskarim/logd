@@ -20,20 +20,27 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
   final LogStyle? style;
 
   @override
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  LogDocument decorate(
+    final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
+    
   ) {
     if (entry.hierarchyDepth <= 0) {
-      return lines;
+      return document;
     }
 
-    final depthStr = indent * entry.hierarchyDepth;
-    final prefixSegment =
-        LogSegment(depthStr, tags: const {LogTag.hierarchy}, style: style);
+    var nodes = document.nodes;
+    for (var i = 0; i < entry.hierarchyDepth; i++) {
+      nodes = [
+        IndentationNode(
+          indentString: indent,
+          style: style,
+          children: nodes,
+        ),
+      ];
+    }
 
-    return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
+    return document.copyWith(nodes: nodes);
   }
 
   @override

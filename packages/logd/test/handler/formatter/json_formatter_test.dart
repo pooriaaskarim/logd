@@ -1,8 +1,9 @@
 import 'dart:convert';
 
 import 'package:logd/logd.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import '../decorator/mock_context.dart';
 
 void main() {
   group('JsonFormatter', () {
@@ -16,10 +17,11 @@ void main() {
 
     test('outputs compact JSON with default metadata', () {
       const formatter = JsonFormatter();
-      final lines = formatter.format(entry, mockContext).toList();
+      final doc = formatter.format(entry);
+      final lines = render(doc);
 
       expect(lines.length, equals(1));
-      final json = lines.first.toString();
+      final json = lines.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Metadata
@@ -47,10 +49,11 @@ void main() {
       );
 
       const formatter = JsonFormatter(metadata: {});
-      final lines = formatter.format(errorEntry, mockContext).toList();
+      final doc = formatter.format(errorEntry);
+      final lines = render(doc);
 
       expect(lines.length, equals(1));
-      final json = lines.first.toString();
+      final json = lines.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Crucial content always present
@@ -75,10 +78,11 @@ void main() {
 
     test('outputs formatted JSON with indentation', () {
       const formatter = JsonPrettyFormatter();
-      final lines = formatter.format(entry, mockContext).toList();
+      final doc = formatter.format(entry);
+      final lines = render(doc);
 
       expect(lines.length, greaterThan(1));
-      final output = lines.map((final l) => l.toString()).join('\n');
+      final output = lines.map((final l) => l).join('\n');
 
       expect(output, contains('  "timestamp": '));
       expect(output, contains('  "level": '));
@@ -99,7 +103,9 @@ void main() {
 
     test('emits semantic tags when color is true', () {
       const formatter = JsonPrettyFormatter(color: true);
-      final lines = formatter.format(entry, mockContext).toList();
+      final doc = formatter.format(entry);
+      final lines =
+          const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
 
       expect(lines.length, greaterThan(0));
       bool foundKey = false;
@@ -107,13 +113,13 @@ void main() {
       bool foundPunctuation = false;
       for (final line in lines) {
         for (final segment in line.segments) {
-          if (segment.tags.contains(LogTag.key)) {
+          if ((segment.tags & LogTag.key) != 0) {
             foundKey = true;
           }
-          if (segment.tags.contains(LogTag.level)) {
+          if ((segment.tags & LogTag.level) != 0) {
             foundLevel = true;
           }
-          if (segment.tags.contains(LogTag.punctuation)) {
+          if ((segment.tags & LogTag.punctuation) != 0) {
             foundPunctuation = true;
           }
         }
@@ -137,9 +143,10 @@ void main() {
       const formatter = JsonFormatter(
         metadata: {LogMetadata.timestamp},
       );
-      final lines = formatter.format(entry, mockContext).toList();
+      final doc = formatter.format(entry);
+      final lines = render(doc);
 
-      final json = lines.first.toString();
+      final json = lines.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       // Metadata specified
@@ -156,9 +163,10 @@ void main() {
 
     test('empty metadata list still includes level and message', () {
       const formatter = JsonFormatter(metadata: {});
-      final lines = formatter.format(entry, mockContext).toList();
+      final doc = formatter.format(entry);
+      final lines = render(doc);
 
-      final json = lines.first.toString();
+      final json = lines.first;
       final decoded = jsonDecode(json) as Map<String, dynamic>;
 
       expect(decoded['level'], equals('info'));
@@ -166,4 +174,33 @@ void main() {
       expect(decoded.length, equals(2));
     });
   });
+
+  group('JsonFormatter wrapping', () {
+    const entry = LogEntry(
+      loggerName: 'test',
+      origin: 'main.dart:10',
+      level: LogLevel.info,
+      message: 'Test message',
+      timestamp: '2025-01-01 10:00:00',
+    );
+
+    test('default does not use noWrap tag', () {
+      const formatter = JsonFormatter();
+      final doc = formatter.format(entry);
+      final lines =
+          const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
+      final segment = lines.first.segments.first;
+      expect((segment.tags & LogTag.noWrap) == 0, isTrue);
+    });
+  });
+}
+
+List<String> render(final LogDocument doc) {
+  // Use large width to prevent wrapping of JSON output
+  const layout = TerminalLayout(width: 4096);
+  return layout
+      .layout(doc, LogLevel.info)
+      .lines
+      .map((final l) => l.toString())
+      .toList();
 }

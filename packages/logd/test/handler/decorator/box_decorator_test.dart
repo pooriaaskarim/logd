@@ -1,10 +1,12 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import 'mock_context.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('BoxDecorator', () {
-    final lines = [LogLine.text('line 1'), LogLine.text('line 2')];
+    final lines = ['line 1', 'line 2'];
     const entry = LogEntry(
       loggerName: 'test',
       origin: 'test',
@@ -15,9 +17,10 @@ void main() {
 
     test('adds rounded borders by default', () {
       const decorator = BoxDecorator();
-      final boxed = decorator
-          .decorate(lines, entry, const LogContext(availableWidth: 20))
-          .toList();
+      final boxed = decorator.decorate(
+        createTestDocument(lines),
+        entry,
+      );
       final rendered = renderLines(boxed);
 
       expect(rendered.first, startsWith('╭'));
@@ -30,9 +33,10 @@ void main() {
       const decorator = BoxDecorator(
         borderStyle: BorderStyle.sharp,
       );
-      final boxed = decorator
-          .decorate(lines, entry, const LogContext(availableWidth: 20))
-          .toList();
+      final boxed = decorator.decorate(
+        createTestDocument(lines),
+        entry,
+      );
       final rendered = renderLines(boxed);
 
       expect(rendered.first, startsWith('┌'));
@@ -43,9 +47,10 @@ void main() {
       const decorator = BoxDecorator(
         borderStyle: BorderStyle.double,
       );
-      final boxed = decorator
-          .decorate(lines, entry, const LogContext(availableWidth: 20))
-          .toList();
+      final boxed = decorator.decorate(
+        createTestDocument(lines),
+        entry,
+      );
       final rendered = renderLines(boxed);
 
       expect(rendered.first, startsWith('╔'));

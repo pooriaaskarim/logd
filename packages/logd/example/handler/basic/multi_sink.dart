@@ -14,13 +14,12 @@ void main() async {
   final multiHandler = Handler(
     formatter: const StructuredFormatter(),
     sink: MultiSink([
-      const ConsoleSink(), // Console with structured format
+      const ConsoleSink(lineLength: 80), // Console with structured format
       FileSink(
         'logs/multi_sink.log',
         fileRotation: SizeRotation(maxSize: '10 KB'),
       ), // File with same format
     ]),
-    lineLength: 80,
   );
 
   Logger.configure(

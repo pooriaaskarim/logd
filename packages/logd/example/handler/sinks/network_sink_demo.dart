@@ -98,18 +98,18 @@ void main() async {
     Logger.configure('app.cloud', handlers: [toonHandler]);
 
     // --- CASE 5: Documentation Stream (Socket + Markdown) ---
-    final docsHandler = Handler(
-      formatter: const MarkdownFormatter(),
-      sink: SocketSink(url: 'ws://127.0.0.1:$socketPort'),
-    );
-    Logger.configure('dev.docs', handlers: [docsHandler]);
+    // final docsHandler = Handler(
+    //   formatter: const MarkdownFormatter(),
+    //   sink: SocketSink(url: 'ws://127.0.0.1:$socketPort'),
+    // );
+    // Logger.configure('dev.docs', handlers: [docsHandler]);
 
     // 4. Execution
     final tLog = Logger.get('sys.terminal');
     final jLog = Logger.get('api.raw');
     final pLog = Logger.get('api.pretty');
     final cLog = Logger.get('app.cloud');
-    final mLog = Logger.get('dev.docs');
+    // final mLog = Logger.get('dev.docs');
 
     print(
       '\n\x1B[1m[PHASE 1] Terminal Monitoring (Style + Box + Socket)\x1B[0m',
@@ -131,12 +131,12 @@ void main() async {
     pLog.info('Payload analysis', error: {'status': 'nominal', 'load': 0.42});
     await _delay();
 
-    print('\n\x1B[1m[PHASE 4] Documentation Stream (Markdown + Socket)\x1B[0m');
-    mLog.info(
-      '# Security Audit\n\n- **Status**: Secure\n- **Signature**:'
-      ' `sha256:abcd...`',
-    );
-    await _delay();
+    // print('\n\x1B[1m[PHASE 4] Documentation Stream (Markdown + Socket)\x1B[0m');
+    // mLog.info(
+    //   '# Security Audit\n\n- **Status**: Secure\n- **Signature**:'
+    //   ' `sha256:abcd...`',
+    // );
+    // await _delay();
 
     print('\n\x1B[1m[PHASE 5] LLM Telemetry (TOON + HTTP Batching)\x1B[0m');
     cLog
@@ -151,7 +151,7 @@ void main() async {
       jsonHandler.sink.dispose(),
       prettyJsonHandler.sink.dispose(),
       toonHandler.sink.dispose(),
-      docsHandler.sink.dispose(),
+      // docsHandler.sink.dispose(),
     ]);
 
     print('\n\x1B[32mShowcase complete.\x1B[0m');
