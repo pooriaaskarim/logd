@@ -1,52 +1,64 @@
 import 'package:meta/meta.dart';
 import '../../../logd.dart';
 
-/// Semantic tags describing the content of a [LogSegment].
-enum LogTag {
+/// Semantic tags describing the content of a [LogNode].
+abstract class LogTag {
+  /// No tags.
+  static const int none = 0;
+
   /// General metadata like timestamp, level, or logger name.
-  header,
+  static const int header = 1 << 0;
 
   /// Information about where the log was emitted (file, line, function).
-  origin,
+  static const int origin = 1 << 1;
 
   /// The primary log message body.
-  message,
+  static const int message = 1 << 2;
 
   /// Error information (exception message).
-  error,
+  static const int error = 1 << 3;
 
   /// Individual frame in a stack trace.
-  stackFrame,
+  static const int stackFrame = 1 << 4;
 
   /// Content related to the log level (e.g. the "[[INFO]]" text).
-  level,
-
-  /// Content related to the timestamp.
-  timestamp,
-
-  /// Content related to the logger name.
-  loggerName,
+  static const int level = 1 << 5;
 
   /// Structural lines like box borders or dividers.
-  border,
+  static const int border = 1 << 6;
+
+  /// Content related to the timestamp.
+  static const int timestamp = 1 << 7;
+
+  /// Content related to the logger name.
+  static const int loggerName = 1 << 8;
 
   /// Tree-like hierarchy prefix.
-  hierarchy,
+  static const int hierarchy = 1 << 9;
 
   /// Content Prefix
-  prefix,
+  static const int prefix = 1 << 10;
 
   /// Content Suffix
-  suffix,
+  static const int suffix = 1 << 11;
 
   /// Semantic key (e.g. JSON key, TOON field name).
-  key,
+  static const int key = 1 << 12;
 
   /// Generic data value.
-  value,
+  static const int value = 1 << 13;
 
   /// Structural punctuation (e.g. braces, commas, delimiters).
-  punctuation,
+  static const int punctuation = 1 << 14;
+
+  /// Optimization hint: Content should not be wrapped by the layout engine.
+  /// Used for machine-readable formats (JSON, TOON) where structure is
+  /// critical.
+  static const int noWrap = 1 << 15;
+
+  /// Semantic hint: Content is suitable for a collapsible/expandable section
+  /// (e.g., \<details\> in HTML/Markdown).
+  static const int collapsible = 1 << 16;
 }
 
 /// Visual style suggestion for a log segment.
@@ -60,6 +72,7 @@ class LogStyle {
     this.dim,
     this.italic,
     this.inverse,
+    this.underline,
   });
 
   /// The suggested foreground color.
@@ -80,6 +93,9 @@ class LogStyle {
   /// Whether the text/background color should be inverted.
   final bool? inverse;
 
+  /// Whether the text should be underlined.
+  final bool? underline;
+
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
@@ -90,11 +106,19 @@ class LogStyle {
           bold == other.bold &&
           dim == other.dim &&
           italic == other.italic &&
-          inverse == other.inverse;
+          inverse == other.inverse &&
+          underline == other.underline;
 
   @override
-  int get hashCode =>
-      Object.hash(color, backgroundColor, bold, dim, italic, inverse);
+  int get hashCode => Object.hash(
+        color,
+        backgroundColor,
+        bold,
+        dim,
+        italic,
+        inverse,
+        underline,
+      );
 }
 
 /// Abstract color definitions for log rendering.
@@ -168,24 +192,24 @@ class LogColorScheme {
   /// Get color for a specific tag set at a given level.
   ///
   /// Priority: specific tag overrides > base level color.
-  LogColor colorFor(final LogLevel level, final Set<LogTag> tags) {
+  LogColor colorFor(final LogLevel level, final int tags) {
     // Check for specific tag overrides first
-    if (tags.contains(LogTag.timestamp) && timestampColor != null) {
+    if ((tags & LogTag.timestamp) != 0 && timestampColor != null) {
       return timestampColor!;
     }
-    if (tags.contains(LogTag.loggerName) && loggerNameColor != null) {
+    if ((tags & LogTag.loggerName) != 0 && loggerNameColor != null) {
       return loggerNameColor!;
     }
-    if (tags.contains(LogTag.level) && levelColor != null) {
+    if ((tags & LogTag.level) != 0 && levelColor != null) {
       return levelColor!;
     }
-    if (tags.contains(LogTag.border) && borderColor != null) {
+    if ((tags & LogTag.border) != 0 && borderColor != null) {
       return borderColor!;
     }
-    if (tags.contains(LogTag.stackFrame) && stackFrameColor != null) {
+    if ((tags & LogTag.stackFrame) != 0 && stackFrameColor != null) {
       return stackFrameColor!;
     }
-    if (tags.contains(LogTag.hierarchy) && hierarchyColor != null) {
+    if ((tags & LogTag.hierarchy) != 0 && hierarchyColor != null) {
       return hierarchyColor!;
     }
 
@@ -311,58 +335,58 @@ class LogTheme {
   final LogStyle? hierarchyStyle;
 
   /// Resolves the style for a given segment based on level and tags.
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+  LogStyle getStyle(final LogLevel level, final int tags) {
     // 1. Start with base color for the level
     // Exception: Hierarchy lines should NOT take level color by default.
-    final baseColor = tags.contains(LogTag.hierarchy)
+    final baseColor = (tags & LogTag.hierarchy) != 0
         ? null
         : colorScheme.colorForLevel(level);
 
     var style = LogStyle(color: baseColor);
 
     // 2. Apply default semantic styles
-    if (tags.contains(LogTag.level)) {
+    if ((tags & LogTag.level) != 0) {
       style = _merge(style, const LogStyle(bold: true));
-    } else if (tags.contains(LogTag.timestamp) ||
-        tags.contains(LogTag.loggerName)) {
+    } else if ((tags & LogTag.timestamp) != 0 ||
+        (tags & LogTag.loggerName) != 0) {
       style = _merge(style, const LogStyle(dim: true));
-    } else if (tags.contains(LogTag.header)) {
+    } else if ((tags & LogTag.header) != 0) {
       style = _merge(style, const LogStyle(bold: true));
     }
 
     // 3. Apply tag-specific overrides/merges
-    if (tags.contains(LogTag.level)) {
+    if ((tags & LogTag.level) != 0) {
       style = _merge(style, levelStyle);
       // Ensure level color override from scheme
       // is respected if theme style doesn't enforce one
       if (colorScheme.levelColor != null) {
         style = _merge(style, LogStyle(color: colorScheme.levelColor));
       }
-    } else if (tags.contains(LogTag.timestamp)) {
+    } else if ((tags & LogTag.timestamp) != 0) {
       style = _merge(style, timestampStyle);
       if (colorScheme.timestampColor != null) {
         style = _merge(style, LogStyle(color: colorScheme.timestampColor));
       }
-    } else if (tags.contains(LogTag.loggerName)) {
+    } else if ((tags & LogTag.loggerName) != 0) {
       style = _merge(style, loggerNameStyle);
       if (colorScheme.loggerNameColor != null) {
         style = _merge(style, LogStyle(color: colorScheme.loggerNameColor));
       }
-    } else if (tags.contains(LogTag.message)) {
+    } else if ((tags & LogTag.message) != 0) {
       style = _merge(style, messageStyle);
-    } else if (tags.contains(LogTag.border)) {
+    } else if ((tags & LogTag.border) != 0) {
       style = _merge(style, borderStyle);
       if (colorScheme.borderColor != null) {
         style = _merge(style, LogStyle(color: colorScheme.borderColor));
       }
-    } else if (tags.contains(LogTag.stackFrame)) {
+    } else if ((tags & LogTag.stackFrame) != 0) {
       style = _merge(style, stackFrameStyle);
       if (colorScheme.stackFrameColor != null) {
         style = _merge(style, LogStyle(color: colorScheme.stackFrameColor));
       }
-    } else if (tags.contains(LogTag.error)) {
+    } else if ((tags & LogTag.error) != 0) {
       style = _merge(style, errorStyle);
-    } else if (tags.contains(LogTag.hierarchy)) {
+    } else if ((tags & LogTag.hierarchy) != 0) {
       style = _merge(style, hierarchyStyle);
       if (colorScheme.hierarchyColor != null) {
         style = _merge(style, LogStyle(color: colorScheme.hierarchyColor));
