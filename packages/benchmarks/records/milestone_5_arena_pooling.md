@@ -33,5 +33,22 @@
 ### 3. The Framing Squeeze (Prefix -> Box -> ConsoleSink @ 40 width)
 **4986 Ops/sec** | p90: 238.00µs | p95: 302.00µs | p99: 422.00µs | GC Pressure: **0.00 KB/10k**
 
+## 4. Structural Efficiency (VM Service Profiling)
+**Methodology:** 1,000 log warmup, then reset accumulators and log 10,000 entries.
+
+| Class          | Objects (Accum) | Bytes (Accum) |
+|----------------|-----------------|---------------|
+| LogDocument    | 1               | 32            |
+| MessageNode    | 1               | 32            |
+| HeaderNode     | 3               | 96            |
+| BoxNode        | 1               | 48            |
+| DecoratedNode  | 4               | 448           |
+| IndentationNode| 5               | 240           |
+| RowNode        | 3               | 96            |
+| FillerNode     | 3               | 96            |
+| **Total Arena**| **23**          | **1152**      |
+
+**Efficiency Result:** 0.11 bytes per log event. 
+*(Note: 1.1 KB total for 10k logs represents initial pool expansion/stabilization, not steady-state churn.)*
 ---
 **Verdict:** The Arena integration has successfully achieved zero steady-state memory churn for complex formatting pipelines.

@@ -3,8 +3,9 @@ import 'decorator_benchmark.dart';
 import 'pipeline_benchmark.dart';
 import 'multi_sink_benchmark.dart';
 import 'stress_test.dart';
+import 'memory_churn_benchmark.dart';
 
-void main() {
+Future<void> main() async {
   print('Running Baseline Benchmarks...');
   print('==============================');
 
@@ -14,6 +15,7 @@ void main() {
   runMultiSinkBenchmarks();
 
   runStressTests();
+  await runMemoryChurnBenchmark();
 
   print('==============================');
   print('Benchmarks Complete.');
