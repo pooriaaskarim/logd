@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
@@ -107,11 +109,16 @@ List<String> renderToon(
   final LogLevel level,
 ) {
   const encoder = ToonEncoder();
-  final header = encoder.preamble(level, document: doc);
-  final row = encoder.encode(entry, doc, level);
+  final context = HandlerContext();
+  encoder.preamble(context, level, document: doc);
+  final header = Uint8List.fromList(context.takeBytes());
 
+  encoder.encode(entry, doc, level, context);
+  final row = Uint8List.fromList(context.takeBytes());
+
+  const decoder = Utf8Decoder();
   return [
-    if (header != null) header,
-    row,
+    if (header.isNotEmpty) decoder.convert(header),
+    decoder.convert(row),
   ];
 }

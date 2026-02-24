@@ -1,9 +1,9 @@
 // ignore_for_file: invalid_use_of_internal_member
+// ignore_for_file: implementation_imports
 import 'dart:async';
 import 'dart:developer';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
-import 'package:vm_service/vm_service.dart';
 import 'package:vm_service/vm_service_io.dart';
 
 Future<void> runMemoryChurnBenchmark() async {

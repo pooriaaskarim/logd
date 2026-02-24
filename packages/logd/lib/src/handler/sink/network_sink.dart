@@ -15,7 +15,7 @@ enum DropPolicy {
 }
 
 /// A base class for network-based sinks that require an internal buffer.
-abstract base class NetworkSink extends EncodingSink<String> {
+abstract base class NetworkSink extends EncodingSink {
   /// Creates a [NetworkSink].
   ///
   /// - [encoder]: The encoder used to serialize logs (default:
@@ -32,7 +32,7 @@ abstract base class NetworkSink extends EncodingSink<String> {
           delegate: _doNothing,
         );
 
-  static void _doNothing(final String _) {}
+  static void _doNothing(final Uint8List _) {}
 
   /// Max entries to hold in memory.
   final int maxBufferSize;
@@ -54,7 +54,7 @@ abstract base class NetworkSink extends EncodingSink<String> {
 
   /// Safely adds a line to the buffer according to the [dropPolicy].
   @protected
-  void enqueue(final String line) {
+  void enqueue(final Uint8List line) {
     final buffer = _state.buffer;
     if (buffer.length >= maxBufferSize) {
       if (dropPolicy == DropPolicy.discardOldest) {
@@ -88,29 +88,38 @@ abstract base class NetworkSink extends EncodingSink<String> {
 
     // Trigger preamble if needed
     if (strategy == WrappingStrategy.document && !_preambleWritten) {
-      final preamble = encoder.preamble(level, document: document);
-      if (preamble != null) {
+      final context = HandlerContext();
+      encoder.preamble(context, level, document: document);
+      final preamble = context.takeBytes();
+      if (preamble.isNotEmpty) {
         enqueue(preamble);
       }
       _preambleWritten = true;
     }
 
-    final data = encoder.encode(
+    final context = HandlerContext();
+    encoder.encode(
       entry,
       document,
       level,
+      context,
       width: preferredWidth,
     );
 
-    enqueue(data);
+    final data = context.takeBytes();
+    if (data.isNotEmpty) {
+      enqueue(data);
+    }
   }
 
   @override
   @mustCallSuper
   Future<void> dispose() async {
     if (strategy == WrappingStrategy.document && _preambleWritten) {
-      final post = encoder.postamble(LogLevel.info);
-      if (post != null) {
+      final context = HandlerContext();
+      encoder.postamble(context, LogLevel.info);
+      final post = context.takeBytes();
+      if (post.isNotEmpty) {
         enqueue(post);
       }
     }
@@ -119,9 +128,9 @@ abstract base class NetworkSink extends EncodingSink<String> {
 
   /// Returns and clears the current buffer.
   @protected
-  List<String> flush() {
+  List<Uint8List> flush() {
     final buffer = _state.buffer;
-    final lines = List<String>.from(buffer);
+    final lines = List<Uint8List>.from(buffer);
     buffer.clear();
     return lines;
   }
@@ -133,7 +142,7 @@ abstract base class NetworkSink extends EncodingSink<String> {
 
 /// Internal state for a [NetworkSink].
 class _NetworkState {
-  final List<String> buffer = [];
+  final List<Uint8List> buffer = [];
   bool isDisposed = false;
 }
 
@@ -228,7 +237,7 @@ base class HttpSink extends NetworkSink {
     await _pushWithRetry(batch);
   }
 
-  Future<void> _pushWithRetry(final List<String> batch) async {
+  Future<void> _pushWithRetry(final List<Uint8List> batch) async {
     final httpClient = client ?? (_httpState.internalClient ??= http.Client());
     final uri = _httpState.uri ??= Uri.parse(url);
 
@@ -241,7 +250,9 @@ base class HttpSink extends NetworkSink {
             'Content-Type': 'application/json',
             ...headers,
           },
-          body: convert.jsonEncode(batch),
+          body: convert.jsonEncode(
+            batch.map((final b) => convert.utf8.decode(b)).toList(),
+          ),
         );
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -350,9 +361,9 @@ base class SocketSink extends NetworkSink {
     }
   }
 
-  void _send(final String line) {
+  void _send(final Uint8List line) {
     try {
-      _socketState.channel?.sink.add(line);
+      _socketState.channel?.sink.add(convert.utf8.decode(line));
     } catch (e) {
       _handleFailure(e);
       _socketState.isConnected = false;

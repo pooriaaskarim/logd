@@ -45,6 +45,7 @@ class LogArena {
   final List<FillerNode> _fillers = [];
   final List<MapNode> _maps = [];
   final List<ListNode> _lists = [];
+  final List<HandlerContext> _contexts = [];
 
   // ---------------------------------------------------------------------------
   // Checkout helpers — pop from pool or allocate a fresh instance.
@@ -112,6 +113,10 @@ class LogArena {
   ListNode checkoutList() =>
       _lists.isNotEmpty ? _lists.removeLast() : ListNode._pooled();
 
+  /// Checks out a [HandlerContext] from the pool, or allocates a fresh one.
+  HandlerContext checkoutContext() =>
+      _contexts.isNotEmpty ? _contexts.removeLast() : HandlerContext._pooled();
+
   // ---------------------------------------------------------------------------
   // Release — reset and push back onto the pool.
   // ---------------------------------------------------------------------------
@@ -168,6 +173,9 @@ class LogArena {
       case final ListNode n:
         n.reset();
         _lists.add(n);
+      case final HandlerContext c:
+        c.reset();
+        _contexts.add(c);
     }
   }
 
@@ -191,5 +199,6 @@ class LogArena {
       _rows.length +
       _fillers.length +
       _maps.length +
-      _lists.length;
+      _lists.length +
+      _contexts.length;
 }

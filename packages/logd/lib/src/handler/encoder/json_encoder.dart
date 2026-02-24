@@ -4,7 +4,7 @@ part of '../handler.dart';
 ///
 /// It prioritizes [MapNode] and [ListNode] for direct serialization.
 /// If multiple nodes are present, they are joined with newlines.
-class JsonEncoder implements LogEncoder<String> {
+class JsonEncoder implements LogEncoder {
   /// Creates a [JsonEncoder].
   ///
   /// - [indent]: Indentation for pretty printing. If null, compact JSON is
@@ -15,21 +15,26 @@ class JsonEncoder implements LogEncoder<String> {
   final String? indent;
 
   @override
-  String? preamble(final LogLevel level, {final LogDocument? document}) => null;
+  void preamble(
+    final HandlerContext context,
+    final LogLevel level, {
+    final LogDocument? document,
+  }) {}
 
   @override
-  String? postamble(final LogLevel level) => null;
+  void postamble(final HandlerContext context, final LogLevel level) {}
 
   @override
-  String encode(
+  void encode(
     final LogEntry entry,
     final LogDocument document,
-    final LogLevel level, {
+    final LogLevel level,
+    final HandlerContext context, {
     final int? width,
   }) {
     final nodes = document.nodes;
     if (nodes.isEmpty) {
-      return '';
+      return;
     }
 
     final encoder = indent != null
@@ -41,10 +46,12 @@ class JsonEncoder implements LogEncoder<String> {
     if (nodes.length == 1) {
       final node = nodes.first;
       if (node is MapNode) {
-        return encoder.convert(node.map);
+        context.writeString(encoder.convert(node.map));
+        return;
       }
       if (node is ListNode) {
-        return encoder.convert(node.list);
+        context.writeString(encoder.convert(node.list));
+        return;
       }
     }
 
@@ -53,8 +60,10 @@ class JsonEncoder implements LogEncoder<String> {
     final list =
         nodes.map((final n) => n is MapNode ? n.map : n.toString()).toList();
 
-    return encoder.convert(
-      list.length == 1 ? list.first : list,
+    context.writeString(
+      encoder.convert(
+        list.length == 1 ? list.first : list,
+      ),
     );
   }
 }

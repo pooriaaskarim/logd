@@ -30,7 +30,7 @@ abstract class FileRotation {
 
   /// Determines if rotation is necessary before appending
   /// [newData] to [currentFile].
-  Future<bool> needsRotation(final File currentFile, final String newData);
+  Future<bool> needsRotation(final File currentFile, final Uint8List newData);
 
   /// Performs the rotation of the file at [basePath].
   ///
@@ -107,12 +107,11 @@ class SizeRotation extends FileRotation {
   @override
   Future<bool> needsRotation(
     final File currentFile,
-    final String newData,
+    final Uint8List newData,
   ) async {
     final currentLength =
         await currentFile.exists() ? await currentFile.length() : 0;
-    final newDataSize = convert.utf8.encode(newData).length;
-    return currentLength + newDataSize > maxBytes;
+    return currentLength + newData.length > maxBytes;
   }
 
   @override
@@ -236,7 +235,7 @@ class TimeRotation extends FileRotation {
   @override
   Future<bool> needsRotation(
     final File currentFile,
-    final String newData,
+    final Uint8List newData,
   ) async {
     await initLastRotation(currentFile);
     final now = Context.clock.now;
@@ -321,7 +320,7 @@ class TimeRotation extends FileRotation {
 /// This sink uses internal synchronization to ensure that concurrent write
 /// operations are serialized, preventing data loss when logging operations
 /// happen rapidly (e.g., in a loop).
-base class FileSink extends EncodingSink<String> {
+base class FileSink extends EncodingSink {
   /// Creates a [FileSink] at the specified [basePath].
   ///
   /// - [basePath]: The relative or absolute path to the log file. Must point
@@ -381,7 +380,7 @@ base class FileSink extends EncodingSink<String> {
   /// Performs the actual file write operation with rotation and locking.
   static Future<void> _staticWrite(
     final String basePath,
-    final String data,
+    final Uint8List data,
     final FileRotation? fileRotation,
   ) async {
     final lock = _locks[basePath];
@@ -402,7 +401,13 @@ base class FileSink extends EncodingSink<String> {
       if (data.isEmpty) {
         return;
       }
-      final newData = '$data\n';
+      // Add newline? Let encoder handle it if possible, but FileSink
+      // historically appends newline.
+      // Easiest is to append \n here via BytesBuilder since we're writing bytes.
+      final builder = BytesBuilder()
+        ..add(data)
+        ..addByte(0x0A); // '\n'
+      final newData = builder.takeBytes();
 
       File targetFile = file;
       if (fileRotation != null &&
@@ -420,11 +425,16 @@ base class FileSink extends EncodingSink<String> {
         }
       }
 
-      await targetFile.writeAsString(
-        newData,
-        mode: io.FileMode.append,
-        flush: true,
-      );
+      final raf = targetFile.openSync(mode: io.FileMode.append);
+      try {
+        raf.writeFromSync(
+          newData,
+          0,
+          newData.length,
+        );
+      } finally {
+        raf.closeSync();
+      }
 
       if (fileRotation is TimeRotation) {
         final timeRotation = fileRotation;

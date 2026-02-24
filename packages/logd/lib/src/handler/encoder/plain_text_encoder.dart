@@ -4,25 +4,30 @@ part of '../handler.dart';
 ///
 /// This is the default encoder for file sinks where usually raw text is
 /// preferred over ANSI codes.
-class PlainTextEncoder implements LogEncoder<String> {
+class PlainTextEncoder implements LogEncoder {
   /// Creates a [PlainTextEncoder].
   const PlainTextEncoder();
 
   @override
-  String? preamble(final LogLevel level, {final LogDocument? document}) => null;
+  void preamble(
+    final HandlerContext context,
+    final LogLevel level, {
+    final LogDocument? document,
+  }) {}
 
   @override
-  String? postamble(final LogLevel level) => null;
+  void postamble(final HandlerContext context, final LogLevel level) {}
 
   @override
-  String encode(
+  void encode(
     final LogEntry entry,
     final LogDocument document,
-    final LogLevel level, {
+    final LogLevel level,
+    final HandlerContext context, {
     final int? width,
   }) {
     if (document.nodes.isEmpty) {
-      return '';
+      return;
     }
 
     // 1. Calculate physical layout
@@ -31,11 +36,13 @@ class PlainTextEncoder implements LogEncoder<String> {
     final physicalDoc = layoutEngine.layout(document, level);
 
     // 2. Encode
-    final buffer = StringBuffer();
+    var first = true;
     for (final line in physicalDoc.lines) {
-      buffer.writeln(line.toString());
+      if (!first) {
+        context.addByte(0x0A); // '\n'
+      }
+      first = false;
+      context.writeString(line.toString());
     }
-
-    return buffer.toString().trimRight();
   }
 }

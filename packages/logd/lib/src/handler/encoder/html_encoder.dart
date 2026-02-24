@@ -5,7 +5,7 @@ part of '../handler.dart';
 /// It traverses the semantic tree and renders nodes as HTML elements, applying
 /// CSS classes based on [LogTag]s.
 @immutable
-class HtmlEncoder implements LogEncoder<String> {
+class HtmlEncoder implements LogEncoder {
   /// Creates an [HtmlEncoder].
   ///
   /// - [darkMode]: Whether to use dark mode color scheme (default: true).
@@ -21,86 +21,91 @@ class HtmlEncoder implements LogEncoder<String> {
   final String title;
 
   @override
-  String preamble(final LogLevel level, {final LogDocument? document}) {
-    final title = _escapeHtml(this.title);
-    return '''
+  void preamble(
+    final HandlerContext context,
+    final LogLevel level, {
+    final LogDocument? document,
+  }) {
+    final t = _escapeHtml(title);
+    context.writeString('''
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>$title</title>
+  <title>$t</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
   <style>
 ${_css()}
   </style>
 </head>
 <body>
 <div class="log-container">
-''';
+''');
   }
 
   @override
-  String postamble(final LogLevel level) => '''
+  void postamble(final HandlerContext context, final LogLevel level) {
+    context.writeString('''
 </div>
 </body>
 </html>
-''';
+''');
+  }
 
   @override
-  String encode(
+  void encode(
     final LogEntry entry,
     final LogDocument document,
-    final LogLevel level, {
+    final LogLevel level,
+    final HandlerContext context, {
     final int? width,
   }) {
-    final buffer = StringBuffer()
-
-      // Root entry container
-      ..writeln('<div class="log-entry log-${level.name}">');
+    // Root entry container
+    context.writeString('<div class="log-entry log-${level.name}">\n');
 
     for (final node in document.nodes) {
-      _renderNode(buffer, node);
+      _renderNode(context, node);
     }
 
-    buffer.writeln('</div>');
-    return buffer.toString();
+    context.writeString('</div>\n');
   }
 
-  void _renderNode(final StringBuffer buffer, final LogNode node) {
+  void _renderNode(final HandlerContext context, final LogNode node) {
     switch (node) {
       case BoxNode():
-        _renderBox(buffer, node);
+        _renderBox(context, node);
       case IndentationNode():
-        _renderIndentation(buffer, node);
+        _renderIndentation(context, node);
       case DecoratedNode():
-        _renderDecorated(buffer, node);
+        _renderDecorated(context, node);
       case RowNode():
-        _renderRow(buffer, node);
+        _renderRow(context, node);
       case FillerNode():
-        _renderFiller(buffer, node);
+        _renderFiller(context, node);
       case ParagraphNode():
-        _renderContainer(buffer, node.children, node.tags, 'p');
+        _renderContainer(context, node.children, node.tags, 'p');
       case GroupNode():
-        _renderContainer(buffer, node.children, node.tags, 'div');
+        _renderContainer(context, node.children, node.tags, 'div');
       case MapNode():
-        buffer.write('<pre class="log-line log-map">');
-        buffer.write(_escapeHtml(node.toString()));
-        buffer.writeln('</pre>');
+        context.writeString('<pre class="log-line log-map">');
+        context.writeString(_escapeHtml(node.toString()));
+        context.writeString('</pre>\n');
       case ListNode():
-        buffer.write('<pre class="log-line log-list">');
-        buffer.write(_escapeHtml(node.toString()));
-        buffer.writeln('</pre>');
+        context.writeString('<pre class="log-line log-list">');
+        context.writeString(_escapeHtml(node.toString()));
+        context.writeString('</pre>\n');
       case ContentNode():
-        buffer.write('<p class="log-line">');
-        _renderContent(buffer, node);
-        buffer.writeln('</p>');
+        context.writeString('<p class="log-line">');
+        _renderContent(context, node);
+        context.writeString('</p>\n');
     }
   }
 
-  void _renderBox(final StringBuffer buffer, final BoxNode node) {
+  void _renderBox(final HandlerContext context, final BoxNode node) {
     final borderClass = switch (node.border) {
       BoxBorderStyle.rounded => 'log-box log-box-rounded',
       BoxBorderStyle.sharp => 'log-box log-box-sharp',
@@ -108,123 +113,131 @@ ${_css()}
       BoxBorderStyle.none => 'log-box log-box-none',
     };
     final styleAttr = _styleAttr(node.style);
-    buffer.write('<fieldset class="$borderClass"$styleAttr>');
+    context.writeString('<fieldset class="$borderClass"$styleAttr>');
     if (node.title != null) {
       final titleClasses = _getClasses(node.title!.tags);
       final titleStyle = _styleAttr(node.title!.style);
-      buffer.write('<legend');
+      context.writeString('<legend');
       if (titleClasses.isNotEmpty) {
-        buffer.write(' class="$titleClasses"');
+        context.writeString(' class="$titleClasses"');
       }
-      buffer.write('$titleStyle>${_escapeHtml(node.title!.text)}</legend>');
+      context
+          .writeString('$titleStyle>${_escapeHtml(node.title!.text)}</legend>');
     }
     for (final child in node.children) {
-      _renderNode(buffer, child);
+      _renderNode(context, child);
     }
-    buffer.writeln('</fieldset>');
+    context.writeString('</fieldset>\n');
   }
 
   void _renderIndentation(
-    final StringBuffer buffer,
+    final HandlerContext context,
     final IndentationNode node,
   ) {
     final styleAttr = _styleAttr(node.style);
-    buffer.write('<div class="log-indent"$styleAttr>');
+    context.writeString('<div class="log-indent"$styleAttr>');
     for (final child in node.children) {
-      _renderNode(buffer, child);
+      _renderNode(context, child);
     }
-    buffer.writeln('</div>');
+    context.writeString('</div>\n');
   }
 
-  void _renderDecorated(final StringBuffer buffer, final DecoratedNode node) {
+  void _renderDecorated(
+    final HandlerContext context,
+    final DecoratedNode node,
+  ) {
     final styleAttr = _styleAttr(node.style);
-    buffer.write('<div class="log-decorated"$styleAttr>');
+    context.writeString('<div class="log-decorated"$styleAttr>');
 
     // Leading decoration (e.g. prefix, JSON key, border char)
     final leading = node.leading;
     if (leading != null && leading.isNotEmpty) {
-      buffer.write('<span class="log-leading" aria-hidden="true">');
+      context.writeString('<span class="log-leading" aria-hidden="true">');
       for (final segment in leading) {
-        _renderStyledText(buffer, segment);
+        _renderStyledText(context, segment);
       }
-      buffer.write('</span>');
+      context.writeString('</span>');
     }
 
     // Main content
-    buffer.write('<div class="log-decorated-content">');
+    context.writeString('<div class="log-decorated-content">');
     for (final child in node.children) {
-      _renderNode(buffer, child);
+      _renderNode(context, child);
     }
-    buffer.writeln('</div>');
+    context.writeString('</div>\n');
 
     // Trailing decoration (e.g. suffix from SuffixDecorator)
     final trailing = node.trailing;
     if (trailing != null && trailing.isNotEmpty) {
-      buffer.write('<span class="log-trailing" aria-hidden="true">');
+      context.writeString('<span class="log-trailing" aria-hidden="true">');
       for (final segment in trailing) {
-        _renderStyledText(buffer, segment);
+        _renderStyledText(context, segment);
       }
-      buffer.write('</span>');
+      context.writeString('</span>');
     }
 
-    buffer.writeln('</div>');
+    context.writeString('</div>\n');
   }
 
-  void _renderRow(final StringBuffer buffer, final RowNode node) {
-    buffer.write('<div class="log-row">');
+  void _renderRow(final HandlerContext context, final RowNode node) {
+    context.writeString('<div class="log-row">');
     for (final child in node.children) {
-      buffer.write('<div class="log-row-cell">');
-      _renderNode(buffer, child);
-      buffer.write('</div>');
+      context.writeString('<div class="log-row-cell">');
+      _renderNode(context, child);
+      context.writeString('</div>');
     }
-    buffer.writeln('</div>');
+    context.writeString('</div>\n');
   }
 
-  void _renderFiller(final StringBuffer buffer, final FillerNode node) {
+  void _renderFiller(final HandlerContext context, final FillerNode node) {
     final styleAttr = _styleAttr(node.style);
-    buffer.writeln('<hr class="log-filler" aria-hidden="true"$styleAttr>');
+    context
+        .writeString('<hr class="log-filler" aria-hidden="true"$styleAttr>\n');
   }
 
   void _renderContainer(
-    final StringBuffer buffer,
+    final HandlerContext context,
     final List<LogNode> children,
     final int tags,
     final String tagName,
   ) {
     final classes = _getClasses(tags);
-    buffer.write('<$tagName');
+    context.writeString('<$tagName');
     if (classes.isNotEmpty) {
-      buffer.write(' class="$classes"');
+      context.writeString(' class="$classes"');
     }
-    buffer.write('>');
+    context.writeString('>');
 
     for (final child in children) {
-      _renderNode(buffer, child);
+      _renderNode(context, child);
     }
 
-    buffer.writeln('</$tagName>');
+    context.writeString('</$tagName>\n');
   }
 
-  void _renderContent(final StringBuffer buffer, final ContentNode node) {
+  void _renderContent(final HandlerContext context, final ContentNode node) {
     for (final segment in node.segments) {
-      _renderStyledText(buffer, segment);
+      _renderStyledText(context, segment);
     }
   }
 
   /// Renders a single [StyledText] segment, applying both semantic CSS classes
   /// and inline styles from [LogStyle].
-  void _renderStyledText(final StringBuffer buffer, final StyledText segment) {
+  void _renderStyledText(
+    final HandlerContext context,
+    final StyledText segment,
+  ) {
     final classes = _getClasses(segment.tags);
     final styleAttr = _styleAttr(segment.style, tags: segment.tags);
     final text = _escapeHtml(segment.text);
     if (classes.isNotEmpty || styleAttr.isNotEmpty) {
-      buffer.write('<span');
+      context.writeString('<span');
       if (classes.isNotEmpty) {
-        buffer.write(' class="$classes"');
+        context.writeString(' class="$classes"');
       }
-      buffer.write('$styleAttr>$text</span>');
+      context.writeString('$styleAttr>$text</span>');
     } else {
-      buffer.write(text);
+      context.writeString(text);
     }
   }
 

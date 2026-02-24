@@ -2,7 +2,7 @@ part of '../handler.dart';
 
 /// A [LogSink] that encodes and outputs logs to the system console.
 @immutable
-base class ConsoleSink extends EncodingSink<String> {
+base class ConsoleSink extends EncodingSink {
   /// Creates a [ConsoleSink].
   ///
   /// - [lineLength]: The max line length. If null, terminal width is used.
@@ -21,7 +21,7 @@ base class ConsoleSink extends EncodingSink<String> {
   /// The maximum line length for the output.
   final int? lineLength;
 
-  static void _staticWrite(final String data) => io.stdout.writeln(data);
+  static void _staticWrite(final Uint8List data) => io.stdout.add(data);
 
   @override
   int? get preferredWidth =>

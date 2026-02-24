@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
@@ -415,7 +416,9 @@ base class _MemorySink extends LogSink<LogDocument> {
     // For tests, we convert back to lines but without wrapping logic,
     // reflecting how it was designed to be captured.
     const encoder = PlainTextEncoder();
-    final output = encoder.encode(entry, document, level, width: 80);
+    final context = HandlerContext();
+    encoder.encode(entry, document, level, context, width: 80);
+    final output = const Utf8Decoder().convert(context.takeBytes());
     outputs.add(output.split('\n'));
   }
 }
