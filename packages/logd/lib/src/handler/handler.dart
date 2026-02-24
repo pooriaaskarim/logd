@@ -51,6 +51,7 @@ part 'encoder/toon_encoder.dart';
 part 'formatter/toon_formatter.dart';
 part 'model/log_content.dart';
 part 'model/decoration_hint.dart';
+part 'model/log_arena.dart';
 part 'model/log_document.dart';
 part 'model/log_layout.dart';
 part 'model/physical_document.dart';
@@ -101,19 +102,22 @@ class Handler {
       return;
     }
 
-    // 1. Delegate decorator logic to pipeline component
+    final arena = LogArena.instance;
+
+    // 1. Format: Document production via arena checkout
+    final document = formatter.format(entry, arena);
+
+    // 2. Decorate: Document transformation
     final pipeline = DecoratorPipeline(decorators);
+    final decorated = pipeline.apply(document, entry, arena);
 
-    // 2. Format: Document production (Level 2: Semantic Literacy)
-    final document = formatter.format(entry);
-
-    // 3. Decorate: Document transformation
-    final decorated = pipeline.apply(document, entry);
-
-    // 4. Output: Emission
+    // 3. Output: Emission
     if (decorated.nodes.isNotEmpty) {
       await sink.output(decorated, entry, entry.level);
     }
+
+    // 4. Deterministic release: return entire tree to the arena pool.
+    decorated.releaseRecursive(arena);
   }
 
   @override

@@ -23,24 +23,27 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-    
+    final LogArena arena,
   ) {
     if (entry.hierarchyDepth <= 0) {
       return document;
     }
 
-    var nodes = document.nodes;
+    // Build nested indentation nodes, innermost first.
+    // We reuse the document's nodes list for the outermost level.
+    var innerNodes = document.nodes.toList();
     for (var i = 0; i < entry.hierarchyDepth; i++) {
-      nodes = [
-        IndentationNode(
-          indentString: indent,
-          style: style,
-          children: nodes,
-        ),
-      ];
+      final node = arena.checkoutIndentation()
+        ..indentString = indent
+        ..style = style
+        ..children.addAll(innerNodes);
+      innerNodes = [node];
     }
 
-    return document.copyWith(nodes: nodes);
+    document.nodes
+      ..clear()
+      ..addAll(innerNodes);
+    return document;
   }
 
   @override

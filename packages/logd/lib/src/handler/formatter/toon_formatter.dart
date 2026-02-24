@@ -36,7 +36,7 @@ final class ToonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry) {
+  LogDocument format(final LogEntry entry, final LogArena arena) {
     final map = <String, Object?>{};
     final columns = <String>[];
 
@@ -54,14 +54,12 @@ final class ToonFormatter implements LogFormatter {
     add('error', entry.error?.toString() ?? '');
     add('stackTrace', entry.stackTrace?.toString() ?? '');
 
-    return LogDocument(
-      nodes: [MapNode(map)],
-      metadata: {
-        'toon_array': arrayName,
-        'toon_delimiter': delimiter,
-        'toon_columns': columns,
-      },
-    );
+    final doc = arena.checkoutDocument()
+      ..metadata['toon_array'] = arrayName
+      ..metadata['toon_delimiter'] = delimiter
+      ..metadata['toon_columns'] = columns;
+    doc.nodes.add(arena.checkoutMap()..map = map);
+    return doc;
   }
 
   @override
@@ -125,7 +123,7 @@ final class ToonPrettyFormatter implements LogFormatter {
   final int maxDepth;
 
   @override
-  LogDocument format(final LogEntry entry) {
+  LogDocument format(final LogEntry entry, final LogArena arena) {
     final map = <String, Object?>{};
     final columns = <String>[];
     final tags = <String, int>{};
@@ -145,20 +143,20 @@ final class ToonPrettyFormatter implements LogFormatter {
     add('error', entry.error, LogTag.error);
     add('stackTrace', entry.stackTrace, LogTag.stackFrame);
 
-    return LogDocument(
-      nodes: [
-        MapNode(map, tags: color ? LogTag.message : LogTag.none),
-      ],
-      metadata: {
-        'toon_array': arrayName,
-        'toon_delimiter': delimiter,
-        'toon_columns': columns,
-        'toon_tags': tags,
-        'toon_sort_keys': sortKeys,
-        'toon_max_depth': maxDepth,
-        'toon_color': color,
-      },
+    final doc = arena.checkoutDocument()
+      ..metadata['toon_array'] = arrayName
+      ..metadata['toon_delimiter'] = delimiter
+      ..metadata['toon_columns'] = columns
+      ..metadata['toon_tags'] = tags
+      ..metadata['toon_sort_keys'] = sortKeys
+      ..metadata['toon_max_depth'] = maxDepth
+      ..metadata['toon_color'] = color;
+    doc.nodes.add(
+      arena.checkoutMap()
+        ..map = map
+        ..tags = color ? LogTag.message : LogTag.none,
     );
+    return doc;
   }
 
   @override

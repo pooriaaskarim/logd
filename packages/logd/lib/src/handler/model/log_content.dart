@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
+
 part of '../handler.dart';
 
 /// A leaf node containing actual text content.
@@ -5,22 +7,36 @@ part of '../handler.dart';
 /// [ContentNode]s hold a list of [StyledText] segments. They represent the
 /// payload of the log, such as the timestamp, severity level, or the message
 /// itself.
-@immutable
+///
+/// On the `arena_refinement` branch, [ContentNode] and all subclasses are
+/// poolable mutable objects. Use [LogArena] to check out and release them.
 sealed class ContentNode extends LogNode {
   /// Creates a [ContentNode].
-  const ContentNode({
+  ContentNode({
     required this.segments,
     super.tags,
   });
 
   /// The list of styled text segments that make up this content.
-  final List<StyledText> segments;
+  List<StyledText> segments;
 
   /// Creates a copy of this node with optional new segments or tags.
   ContentNode copyWith({
     final List<StyledText>? segments,
     final int? tags,
   });
+
+  @override
+  void reset() {
+    segments.clear();
+    tags = LogTag.none;
+  }
+
+  @override
+  void releaseRecursive(final LogArena arena) {
+    // ContentNodes are leaf nodes — no children to recurse into.
+    arena.release(this);
+  }
 
   @override
   bool operator ==(final Object other) =>
@@ -40,10 +56,13 @@ sealed class ContentNode extends LogNode {
 /// Primary metadata section (timestamp, level, logger).
 final class HeaderNode extends ContentNode {
   /// Creates a [HeaderNode].
-  const HeaderNode({
+  HeaderNode({
     required super.segments,
     super.tags = LogTag.header,
   });
+
+  /// Named constructor for arena pool allocation.
+  HeaderNode._pooled() : super(segments: []);
 
   @override
   HeaderNode copyWith({
@@ -51,7 +70,7 @@ final class HeaderNode extends ContentNode {
     final int? tags,
   }) =>
       HeaderNode(
-        segments: segments ?? this.segments,
+        segments: segments ?? List<StyledText>.from(this.segments),
         tags: tags ?? this.tags,
       );
 }
@@ -59,10 +78,13 @@ final class HeaderNode extends ContentNode {
 /// The main log message.
 final class MessageNode extends ContentNode {
   /// Creates a [MessageNode].
-  const MessageNode({
+  MessageNode({
     required super.segments,
     super.tags = LogTag.message,
   });
+
+  /// Named constructor for arena pool allocation.
+  MessageNode._pooled() : super(segments: []);
 
   @override
   MessageNode copyWith({
@@ -70,7 +92,7 @@ final class MessageNode extends ContentNode {
     final int? tags,
   }) =>
       MessageNode(
-        segments: segments ?? this.segments,
+        segments: segments ?? List<StyledText>.from(this.segments),
         tags: tags ?? this.tags,
       );
 }
@@ -78,10 +100,13 @@ final class MessageNode extends ContentNode {
 /// Error information.
 final class ErrorNode extends ContentNode {
   /// Creates an [ErrorNode].
-  const ErrorNode({
+  ErrorNode({
     required super.segments,
     super.tags = LogTag.error,
   });
+
+  /// Named constructor for arena pool allocation.
+  ErrorNode._pooled() : super(segments: []);
 
   @override
   ErrorNode copyWith({
@@ -89,7 +114,7 @@ final class ErrorNode extends ContentNode {
     final int? tags,
   }) =>
       ErrorNode(
-        segments: segments ?? this.segments,
+        segments: segments ?? List<StyledText>.from(this.segments),
         tags: tags ?? this.tags,
       );
 }
@@ -97,7 +122,13 @@ final class ErrorNode extends ContentNode {
 /// Supplementary info (origin, stack trace).
 final class FooterNode extends ContentNode {
   /// Creates a [FooterNode].
-  const FooterNode({required super.segments, super.tags});
+  FooterNode({
+    required super.segments,
+    super.tags = LogTag.none,
+  });
+
+  /// Named constructor for arena pool allocation.
+  FooterNode._pooled() : super(segments: []);
 
   @override
   FooterNode copyWith({
@@ -105,7 +136,7 @@ final class FooterNode extends ContentNode {
     final int? tags,
   }) =>
       FooterNode(
-        segments: segments ?? this.segments,
+        segments: segments ?? List<StyledText>.from(this.segments),
         tags: tags ?? this.tags,
       );
 }
@@ -113,7 +144,13 @@ final class FooterNode extends ContentNode {
 /// Diagnostic metadata sections.
 final class MetadataNode extends ContentNode {
   /// Creates a [MetadataNode].
-  const MetadataNode({required super.segments, super.tags});
+  MetadataNode({
+    required super.segments,
+    super.tags = LogTag.none,
+  });
+
+  /// Named constructor for arena pool allocation.
+  MetadataNode._pooled() : super(segments: []);
 
   @override
   MetadataNode copyWith({
@@ -121,22 +158,36 @@ final class MetadataNode extends ContentNode {
     final int? tags,
   }) =>
       MetadataNode(
-        segments: segments ?? this.segments,
+        segments: segments ?? List<StyledText>.from(this.segments),
         tags: tags ?? this.tags,
       );
 }
 
 /// A node that fills remaining line width with a character.
-@immutable
 final class FillerNode extends LogNode {
   /// Creates a [FillerNode].
-  const FillerNode(this.char, {super.tags, this.style});
+  FillerNode(this.char, {super.tags, this.style});
+
+  /// Named constructor for arena pool allocation.
+  FillerNode._pooled()
+      : char = '',
+        style = null;
 
   /// The character used to fill the space.
-  final String char;
+  String char;
 
   /// Optional visual style for the filler characters.
-  final LogStyle? style;
+  LogStyle? style;
+
+  @override
+  void reset() {
+    char = '';
+    style = null;
+    tags = LogTag.none;
+  }
+
+  @override
+  void releaseRecursive(final LogArena arena) => arena.release(this);
 
   /// Creates a copy of this node with optional new values.
   FillerNode copyWith({
@@ -171,13 +222,24 @@ final class FillerNode extends LogNode {
 /// This is used by formatters that want to pass semantic data to specialized
 /// encoders (like `JsonEncoder`) while allowing fallback rendering by generic
 /// encoders.
-@immutable
 final class MapNode extends LogNode {
   /// Creates a [MapNode].
-  const MapNode(this.map, {super.tags});
+  MapNode(this.map, {super.tags});
+
+  /// Named constructor for arena pool allocation.
+  MapNode._pooled() : map = {};
 
   /// The raw mapping data.
-  final Map<String, Object?> map;
+  Map<String, Object?> map;
+
+  @override
+  void reset() {
+    map.clear();
+    tags = LogTag.none;
+  }
+
+  @override
+  void releaseRecursive(final LogArena arena) => arena.release(this);
 
   @override
   bool operator ==(final Object other) =>
@@ -203,13 +265,24 @@ final class MapNode extends LogNode {
 }
 
 /// A node that carries raw structured data as a list.
-@immutable
 final class ListNode extends LogNode {
   /// Creates a [ListNode].
-  const ListNode(this.list, {super.tags});
+  ListNode(this.list, {super.tags});
+
+  /// Named constructor for arena pool allocation.
+  ListNode._pooled() : list = [];
 
   /// The raw list data.
-  final List<Object?> list;
+  List<Object?> list;
+
+  @override
+  void reset() {
+    list.clear();
+    tags = LogTag.none;
+  }
+
+  @override
+  void releaseRecursive(final LogArena arena) => arena.release(this);
 
   @override
   bool operator ==(final Object other) =>

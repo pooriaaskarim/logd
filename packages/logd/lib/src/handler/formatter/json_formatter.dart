@@ -25,7 +25,7 @@ final class JsonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry) {
+  LogDocument format(final LogEntry entry, final LogArena arena) {
     final map = <String, dynamic>{
       'level': entry.level.name,
       'message': entry.message,
@@ -45,11 +45,9 @@ final class JsonFormatter implements LogFormatter {
       map['stackTrace'] = entry.stackTrace.toString();
     }
 
-    return LogDocument(
-      nodes: [
-        MapNode(map),
-      ],
-    );
+    final doc = arena.checkoutDocument();
+    doc.nodes.add(arena.checkoutMap()..map = map);
+    return doc;
   }
 
   @override
@@ -127,7 +125,7 @@ final class JsonPrettyFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry) {
+  LogDocument format(final LogEntry entry, final LogArena arena) {
     final map = <String, Object?>{
       'level': entry.level.name,
       'message': entry.message,
@@ -160,9 +158,9 @@ final class JsonPrettyFormatter implements LogFormatter {
       fieldTags['stackTrace'] = LogTag.stackFrame;
     }
 
-    return LogDocument(
-      nodes: _buildNodes(map, 0, fieldTags: fieldTags),
-    );
+    final doc = arena.checkoutDocument();
+    doc.nodes.addAll(_buildNodes(map, 0, fieldTags: fieldTags));
+    return doc;
   }
 
   List<LogNode> _buildNodes(
@@ -174,9 +172,9 @@ final class JsonPrettyFormatter implements LogFormatter {
   }) {
     if (depth > maxDepth) {
       return [
-        const ParagraphNode(
+        ParagraphNode(
           children: [
-            MessageNode(segments: [StyledText('...')]),
+            MessageNode(segments: [const StyledText('...')]),
           ],
         ),
       ];

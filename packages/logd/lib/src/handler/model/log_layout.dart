@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
+
 part of '../handler.dart';
 
 /// A container node that defines the visual structure or layout.
@@ -6,20 +8,22 @@ part of '../handler.dart';
 /// - **Boxing**: [BoxNode] draws a border around its children.
 /// - **Indentation**: [IndentationNode] shifts content to the right.
 /// - **Decoration**: [DecoratedNode] adds prefixes or suffixes.
-@immutable
+///
+/// On the `arena_refinement` branch, [LayoutNode] and all subclasses are
+/// poolable mutable objects. Use [LogArena] to check out and release them.
 sealed class LayoutNode extends LogNode {
   /// Creates a [LayoutNode].
-  const LayoutNode({
+  LayoutNode({
     required this.children,
     this.title,
     super.tags,
   });
 
   /// The child nodes contained within this layout structure.
-  final List<LogNode> children;
+  List<LogNode> children;
 
   /// Optional title or label for this structural block (e.g., box title).
-  final StyledText? title;
+  StyledText? title;
 
   /// Creates a copy of this node with optional changes.
   LayoutNode copyWith({
@@ -27,6 +31,21 @@ sealed class LayoutNode extends LogNode {
     final StyledText? title,
     final int? tags,
   });
+
+  @override
+  void reset() {
+    children.clear();
+    title = null;
+    tags = LogTag.none;
+  }
+
+  @override
+  void releaseRecursive(final LogArena arena) {
+    for (final child in children) {
+      child.releaseRecursive(arena);
+    }
+    arena.release(this);
+  }
 
   @override
   bool operator ==(final Object other) =>
@@ -49,7 +68,7 @@ sealed class LayoutNode extends LogNode {
 /// A framed container (box).
 final class BoxNode extends LayoutNode {
   /// Creates a [BoxNode].
-  const BoxNode({
+  BoxNode({
     required super.children,
     super.title,
     this.border = BoxBorderStyle.rounded,
@@ -57,11 +76,24 @@ final class BoxNode extends LayoutNode {
     super.tags,
   });
 
+  /// Named constructor for arena pool allocation.
+  BoxNode._pooled()
+      : border = BoxBorderStyle.rounded,
+        style = null,
+        super(children: []);
+
   /// The visual style of the box borders.
-  final BoxBorderStyle border;
+  BoxBorderStyle border;
 
   /// Optional visual style for the box borders/title.
-  final LogStyle? style;
+  LogStyle? style;
+
+  @override
+  void reset() {
+    super.reset();
+    border = BoxBorderStyle.rounded;
+    style = null;
+  }
 
   @override
   BoxNode copyWith({
@@ -72,7 +104,7 @@ final class BoxNode extends LayoutNode {
     final LogStyle? style,
   }) =>
       BoxNode(
-        children: children ?? this.children,
+        children: children ?? List<LogNode>.from(this.children),
         title: title ?? this.title,
         tags: tags ?? this.tags,
         border: border ?? this.border,
@@ -192,7 +224,7 @@ enum BoxBorderCorner {
 /// A nested/indented container.
 final class IndentationNode extends LayoutNode {
   /// Creates an [IndentationNode].
-  const IndentationNode({
+  IndentationNode({
     required super.children,
     super.title,
     this.indentString = '│ ',
@@ -200,11 +232,24 @@ final class IndentationNode extends LayoutNode {
     super.tags,
   });
 
+  /// Named constructor for arena pool allocation.
+  IndentationNode._pooled()
+      : indentString = '│ ',
+        style = null,
+        super(children: []);
+
   /// The indentation string.
-  final String indentString;
+  String indentString;
 
   /// Optional visual style for the indentation line.
-  final LogStyle? style;
+  LogStyle? style;
+
+  @override
+  void reset() {
+    super.reset();
+    indentString = '│ ';
+    style = null;
+  }
 
   @override
   IndentationNode copyWith({
@@ -215,7 +260,7 @@ final class IndentationNode extends LayoutNode {
     final LogStyle? style,
   }) =>
       IndentationNode(
-        children: children ?? this.children,
+        children: children ?? List<LogNode>.from(this.children),
         title: title ?? this.title,
         tags: tags ?? this.tags,
         indentString: indentString ?? this.indentString,
@@ -237,7 +282,10 @@ final class IndentationNode extends LayoutNode {
 /// A simple logical grouping of blocks with no visual styling.
 final class GroupNode extends LayoutNode {
   /// Creates a [GroupNode].
-  const GroupNode({required super.children, super.title, super.tags});
+  GroupNode({required super.children, super.title, super.tags});
+
+  /// Named constructor for arena pool allocation.
+  GroupNode._pooled() : super(children: []);
 
   @override
   GroupNode copyWith({
@@ -246,17 +294,16 @@ final class GroupNode extends LayoutNode {
     final int? tags,
   }) =>
       GroupNode(
-        children: children ?? this.children,
+        children: children ?? List<LogNode>.from(this.children),
         title: title ?? this.title,
         tags: tags ?? this.tags,
       );
 }
 
 /// A node that applies decoration (prefix/suffix) to its content.
-@immutable
 final class DecoratedNode extends LayoutNode {
   /// Creates a [DecoratedNode] container.
-  const DecoratedNode({
+  DecoratedNode({
     required super.children,
     super.title,
     this.leadingWidth = 0,
@@ -272,35 +319,64 @@ final class DecoratedNode extends LayoutNode {
     super.tags,
   });
 
+  /// Named constructor for arena pool allocation.
+  DecoratedNode._pooled()
+      : leadingWidth = 0,
+        trailingWidth = 0,
+        leadingHint = null,
+        trailingHint = null,
+        leading = null,
+        trailing = null,
+        repeatLeading = false,
+        repeatTrailing = false,
+        alignTrailing = true,
+        style = null,
+        super(children: []);
+
   /// Width reserved for leading decoration.
-  final int leadingWidth;
+  int leadingWidth;
 
   /// Width reserved for trailing decoration.
-  final int trailingWidth;
+  int trailingWidth;
 
   /// Optional semantic hint about the leading decoration type.
-  final String? leadingHint;
+  String? leadingHint;
 
   /// Optional semantic hint about the trailing decoration type.
-  final String? trailingHint;
+  String? trailingHint;
 
   /// Explicit segments for leading decoration.
-  final List<StyledText>? leading;
+  List<StyledText>? leading;
 
   /// Explicit segments for trailing decoration.
-  final List<StyledText>? trailing;
+  List<StyledText>? trailing;
 
   /// Whether the leading decoration should be repeated on all lines.
-  final bool repeatLeading;
+  bool repeatLeading;
 
   /// Whether the trailing decoration should be repeated on all lines.
-  final bool repeatTrailing;
+  bool repeatTrailing;
 
   /// Whether to align the trailing decoration to the right edge.
-  final bool alignTrailing;
+  bool alignTrailing;
 
   /// Optional visual style for the decoration characters.
-  final LogStyle? style;
+  LogStyle? style;
+
+  @override
+  void reset() {
+    super.reset();
+    leadingWidth = 0;
+    trailingWidth = 0;
+    leadingHint = null;
+    trailingHint = null;
+    leading = null;
+    trailing = null;
+    repeatLeading = false;
+    repeatTrailing = false;
+    alignTrailing = true;
+    style = null;
+  }
 
   @override
   DecoratedNode copyWith({
@@ -319,7 +395,7 @@ final class DecoratedNode extends LayoutNode {
     final LogStyle? style,
   }) =>
       DecoratedNode(
-        children: children ?? this.children,
+        children: children ?? List<LogNode>.from(this.children),
         title: title ?? this.title,
         tags: tags ?? this.tags,
         leadingWidth: leadingWidth ?? this.leadingWidth,
@@ -369,7 +445,10 @@ final class DecoratedNode extends LayoutNode {
 /// A node that forces its children to be flowed and wrapped as a paragraph.
 final class ParagraphNode extends LayoutNode {
   /// Creates a [ParagraphNode].
-  const ParagraphNode({required super.children, super.tags});
+  ParagraphNode({required super.children, super.tags});
+
+  /// Named constructor for arena pool allocation.
+  ParagraphNode._pooled() : super(children: []);
 
   @override
   ParagraphNode copyWith({
@@ -378,7 +457,7 @@ final class ParagraphNode extends LayoutNode {
     final int? tags,
   }) =>
       ParagraphNode(
-        children: children ?? this.children,
+        children: children ?? List<LogNode>.from(this.children),
         tags: tags ?? this.tags,
       );
 }
@@ -386,7 +465,10 @@ final class ParagraphNode extends LayoutNode {
 /// A node that lays out its children horizontally on a single physical line.
 final class RowNode extends LayoutNode {
   /// Creates a [RowNode].
-  const RowNode({required super.children, super.tags});
+  RowNode({required super.children, super.tags});
+
+  /// Named constructor for arena pool allocation.
+  RowNode._pooled() : super(children: []);
 
   @override
   RowNode copyWith({
@@ -395,7 +477,7 @@ final class RowNode extends LayoutNode {
     final int? tags,
   }) =>
       RowNode(
-        children: children ?? this.children,
+        children: children ?? List<LogNode>.from(this.children),
         tags: tags ?? this.tags,
       );
 }

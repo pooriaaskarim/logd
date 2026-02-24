@@ -35,16 +35,18 @@ final class BoxDecorator extends StructuralDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-  ) =>
-      document.copyWith(
-        nodes: [
-          BoxNode(
-            border: borderStyle,
-            style: null, // Style support can be added later if needed
-            children: document.nodes,
-          ),
-        ],
-      );
+    final LogArena arena,
+  ) {
+    final box = arena.checkoutBox()
+      ..border = borderStyle
+      ..style = null
+      ..children.addAll(document.nodes);
+    // Repurpose the existing document rather than allocating a new one.
+    document.nodes
+      ..clear()
+      ..add(box);
+    return document;
+  }
 
   @override
   int paddingWidth(final LogEntry entry) => 4;

@@ -25,8 +25,9 @@ final class PlainFormatter implements LogFormatter {
   @override
   LogDocument format(
     final LogEntry entry,
+    final LogArena arena,
   ) {
-    final nodes = <LogNode>[];
+    final doc = arena.checkoutDocument();
 
     // 1. Header Flow (Level + Metadata)
     final headerSegments = <StyledText>[
@@ -52,33 +53,22 @@ final class PlainFormatter implements LogFormatter {
       (final p, final s) => p + s.text.characters.length,
     );
 
-    nodes.add(
-      DecoratedNode(
-        leading: headerSegments,
-        leadingWidth: headerWidth,
-        repeatLeading: false,
-        alignTrailing: false,
-        children: [
-          MessageNode(
-            segments: [
-              StyledText(entry.message, tags: LogTag.message),
-            ],
-          ),
-        ],
-      ),
-    );
+    final msgNode = arena.checkoutMessage()
+      ..segments.add(StyledText(entry.message, tags: LogTag.message));
+    final decorated = arena.checkoutDecorated()
+      ..leading = headerSegments
+      ..leadingWidth = headerWidth
+      ..repeatLeading = false
+      ..alignTrailing = false
+      ..children.add(msgNode);
+    doc.nodes.add(decorated);
 
     // 2. Handle Error if present
     if (entry.error != null) {
-      nodes.add(
-        ParagraphNode(
-          children: [
-            ErrorNode(
-              segments: [StyledText('Error: ${entry.error}')],
-            ),
-          ],
-        ),
-      );
+      final errNode = arena.checkoutError()
+        ..segments.add(StyledText('Error: ${entry.error}'));
+      final para = arena.checkoutParagraph()..children.add(errNode);
+      doc.nodes.add(para);
     }
 
     // 3. Handle Stack Trace if present
@@ -86,40 +76,24 @@ final class PlainFormatter implements LogFormatter {
       for (final frame in entry.stackFrames!) {
         final text =
             'at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
-        nodes.add(
-          ParagraphNode(
-            children: [
-              FooterNode(
-                segments: [
-                  StyledText(text, tags: LogTag.stackFrame),
-                ],
-              ),
-            ],
-          ),
-        );
+        final foot = arena.checkoutFooter()
+          ..segments.add(StyledText(text, tags: LogTag.stackFrame));
+        final para = arena.checkoutParagraph()..children.add(foot);
+        doc.nodes.add(para);
       }
     } else if (entry.stackTrace != null) {
       final traceLines = entry.stackTrace.toString().split('\n');
       for (final line in traceLines) {
         if (line.trim().isNotEmpty) {
-          nodes.add(
-            ParagraphNode(
-              children: [
-                FooterNode(
-                  segments: [
-                    StyledText(line, tags: LogTag.stackFrame),
-                  ],
-                ),
-              ],
-            ),
-          );
+          final foot = arena.checkoutFooter()
+            ..segments.add(StyledText(line, tags: LogTag.stackFrame));
+          final para = arena.checkoutParagraph()..children.add(foot);
+          doc.nodes.add(para);
         }
       }
     }
 
-    return LogDocument(
-      nodes: nodes,
-    );
+    return doc;
   }
 
   @override

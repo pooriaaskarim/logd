@@ -28,24 +28,22 @@ final class SuffixDecorator extends ContentDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
+    final LogArena arena,
   ) {
     if (suffix.isEmpty) {
       return document;
     }
 
-    return document.copyWith(
-      nodes: [
-        DecoratedNode(
-          trailingWidth: suffix.visibleLength,
-          trailing: [
-            StyledText(suffix, tags: LogTag.suffix, style: style),
-          ],
-          repeatTrailing: true,
-          alignTrailing: aligned,
-          children: document.nodes,
-        ),
-      ],
-    );
+    final node = arena.checkoutDecorated()
+      ..trailingWidth = suffix.visibleLength
+      ..trailing = [StyledText(suffix, tags: LogTag.suffix, style: style)]
+      ..repeatTrailing = true
+      ..alignTrailing = aligned
+      ..children.addAll(document.nodes);
+    document.nodes
+      ..clear()
+      ..add(node);
+    return document;
   }
 
   @override

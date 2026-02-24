@@ -26,8 +26,9 @@ final class MarkdownFormatter implements LogFormatter {
   @override
   LogDocument format(
     final LogEntry entry,
+    final LogArena arena,
   ) {
-    final nodes = <LogNode>[];
+    final doc = arena.checkoutDocument();
 
     // 1. Header (Level + Metadata)
     final headerSegments = <StyledText>[
@@ -44,24 +45,18 @@ final class MarkdownFormatter implements LogFormatter {
       }
     }
 
-    nodes
-      ..add(HeaderNode(segments: headerSegments))
-
+    doc.nodes
+      ..add(arena.checkoutHeader()..segments.addAll(headerSegments))
       // 2. Message
       ..add(
-        MessageNode(
-          segments: [
-            StyledText(entry.message, tags: LogTag.message),
-          ],
-        ),
+        arena.checkoutMessage()
+          ..segments.add(StyledText(entry.message, tags: LogTag.message)),
       );
 
     // 3. Error
     if (entry.error != null) {
-      nodes.add(
-        ErrorNode(
-          segments: [StyledText(entry.error.toString())],
-        ),
+      doc.nodes.add(
+        arena.checkoutError()..segments.add(StyledText(entry.error.toString())),
       );
     }
 
@@ -76,29 +71,25 @@ final class MarkdownFormatter implements LogFormatter {
           ),
         );
       }
-      nodes.add(
-        FooterNode(
-          segments: frameSegments,
-          tags: LogTag.stackFrame | LogTag.collapsible,
-        ),
+      doc.nodes.add(
+        arena.checkoutFooter()
+          ..segments.addAll(frameSegments)
+          ..tags = LogTag.stackFrame | LogTag.collapsible,
       );
     } else if (entry.stackTrace != null) {
-      nodes.add(
-        FooterNode(
-          segments: [
+      doc.nodes.add(
+        arena.checkoutFooter()
+          ..segments.add(
             StyledText(
               entry.stackTrace.toString(),
               tags: LogTag.stackFrame,
             ),
-          ],
-          tags: LogTag.stackFrame | LogTag.collapsible,
-        ),
+          )
+          ..tags = LogTag.stackFrame | LogTag.collapsible,
       );
     }
 
-    return LogDocument(
-      nodes: nodes,
-    );
+    return doc;
   }
 
   String _levelEmoji(final LogLevel level) => switch (level) {

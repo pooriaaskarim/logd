@@ -30,12 +30,14 @@ final class StyleDecorator extends VisualDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
-  ) =>
-      document.copyWith(
-        nodes: document.nodes
-            .map((final node) => _styleNode(node, entry.level))
-            .toList(),
-      );
+    final LogArena arena,
+  ) {
+    final snapshot = document.nodes.toList();
+    document.nodes
+      ..clear()
+      ..addAll(snapshot.map((final node) => _styleNode(node, entry.level)));
+    return document;
+  }
 
   LogNode _styleNode(final LogNode node, final LogLevel level) =>
       switch (node) {

@@ -19,23 +19,22 @@ final class PrefixDecorator extends ContentDecorator {
   LogDocument decorate(
     final LogDocument document,
     final LogEntry entry,
+    final LogArena arena,
   ) {
     if (prefix.isEmpty) {
       return document;
     }
 
-    return document.copyWith(
-      nodes: [
-        DecoratedNode(
-          leadingWidth: prefix.visibleLength,
-          leading: [
-            StyledText(prefix, tags: LogTag.prefix, style: style),
-          ],
-          repeatLeading: true,
-          children: document.nodes,
-        ),
-      ],
-    );
+    final node = arena.checkoutDecorated()
+      ..leadingWidth = prefix.visibleLength
+      ..leading = [StyledText(prefix, tags: LogTag.prefix, style: style)]
+      ..repeatLeading = true
+      ..alignTrailing = false
+      ..children.addAll(document.nodes);
+    document.nodes
+      ..clear()
+      ..add(node);
+    return document;
   }
 
   @override
