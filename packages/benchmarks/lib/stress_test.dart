@@ -48,9 +48,9 @@ Metrics profilePipeline(
 
   // Warmup
   for (int i = 0; i < 1000; i++) {
-    var doc = formatter.format(entry);
+    var doc = formatter.format(entry, LogArena.instance);
     for (final decorator in decorators) {
-      doc = decorator.decorate(doc, entry);
+      doc = decorator.decorate(doc, entry, LogArena.instance);
     }
     final physical = layout.layout(doc, entry.level);
     for (final line in physical.lines) {
@@ -69,9 +69,9 @@ Metrics profilePipeline(
     iterWatch.reset();
     iterWatch.start();
 
-    var doc = formatter.format(entry);
+    var doc = formatter.format(entry, LogArena.instance);
     for (final decorator in decorators) {
-      doc = decorator.decorate(doc, entry);
+      doc = decorator.decorate(doc, entry, LogArena.instance);
     }
 
     // Simulate physical layout and encoding

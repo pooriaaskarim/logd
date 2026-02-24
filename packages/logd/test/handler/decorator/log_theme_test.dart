@@ -98,23 +98,26 @@ void main() {
           StyleDecorator(theme: LogTheme(colorScheme: customScheme));
 
       // Create a document with specific tags
-      const doc = LogDocument(
-        nodes: [
+      final doc = LogDocument(
+        nodes: <LogNode>[
           HeaderNode(
             segments: [
-              StyledText('2024-01-01', tags: LogTag.header | LogTag.timestamp),
-              StyledText(' [INFO] ', tags: LogTag.header | LogTag.level),
+              const StyledText(
+                '2024-01-01',
+                tags: LogTag.header | LogTag.timestamp,
+              ),
+              const StyledText(' [INFO] ', tags: LogTag.header | LogTag.level),
             ],
           ),
           MessageNode(
             segments: [
-              StyledText('Message', tags: LogTag.message),
+              const StyledText('Message', tags: LogTag.message),
             ],
           ),
         ],
       );
 
-      final decorated = decorator.decorate(doc, infoEntry);
+      final decorated = decorator.decorate(doc, infoEntry, LogArena.instance);
       final rendered = renderLines(decorated);
 
       // Rendered output might be split or joined depending on layout.

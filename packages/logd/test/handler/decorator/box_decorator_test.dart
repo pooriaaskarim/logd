@@ -20,6 +20,7 @@ void main() {
       final boxed = decorator.decorate(
         createTestDocument(lines),
         entry,
+        LogArena.instance,
       );
       final rendered = renderLines(boxed);
 
@@ -36,6 +37,7 @@ void main() {
       final boxed = decorator.decorate(
         createTestDocument(lines),
         entry,
+        LogArena.instance,
       );
       final rendered = renderLines(boxed);
 
@@ -50,6 +52,7 @@ void main() {
       final boxed = decorator.decorate(
         createTestDocument(lines),
         entry,
+        LogArena.instance,
       );
       final rendered = renderLines(boxed);
 

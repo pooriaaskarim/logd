@@ -19,7 +19,7 @@ void main() {
 
       final lines = ['你好世界 🌍', 'ASCII Test'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry);
+      final decorated = box.decorate(doc, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 40);
       final result = layout.layout(decorated, LogLevel.info).lines;
@@ -47,7 +47,7 @@ void main() {
       // Colored message
       final lines = ['\x1B[31mThis is red\x1B[0m'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry);
+      final decorated = box.decorate(doc, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 20);
       final result = layout.layout(decorated, LogLevel.info).lines;
@@ -68,7 +68,7 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       const layout = TerminalLayout(width: 20);
       final lines = layout.layout(doc, LogLevel.info).lines;
       for (final line in lines) {

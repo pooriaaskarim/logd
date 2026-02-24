@@ -21,8 +21,8 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = formatter.format(entry);
-      final boxed = box.decorate(formatted, entry);
+      final formatted = formatter.format(entry, LogArena.instance);
+      final boxed = box.decorate(formatted, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 40);
       final physical = layout.layout(boxed, LogLevel.info);
@@ -57,8 +57,8 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = formatter.format(entry);
-      final boxed = box.decorate(formatted, entry);
+      final formatted = formatter.format(entry, LogArena.instance);
+      final boxed = box.decorate(formatted, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 30);
       final physical = layout.layout(boxed, LogLevel.info);

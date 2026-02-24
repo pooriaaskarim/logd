@@ -26,6 +26,7 @@ void main() {
       final decorated = decorator.decorate(
         createTestDocument(lines),
         createEntry(0),
+        LogArena.instance,
       );
       final rendered = renderLines(decorated);
       expect(rendered.first, equals('msg'));
@@ -36,6 +37,7 @@ void main() {
       final decorated = decorator.decorate(
         createTestDocument(lines),
         createEntry(2),
+        LogArena.instance,
       );
       final rendered = renderLines(decorated);
       // Default is '│ ' (2 chars) * 2 = '│ │ '
@@ -47,24 +49,26 @@ void main() {
       final decorated = decorator.decorate(
         createTestDocument(lines),
         createEntry(3),
+        LogArena.instance,
       );
       final rendered = renderLines(decorated);
       expect(rendered.first, equals('---msg'));
     });
 
     test('preserves tags', () {
-      const doc = LogDocument(
-        nodes: [
+      final doc = LogDocument(
+        nodes: <LogNode>[
           MessageNode(
             segments: [
-              StyledText('content', tags: LogTag.message),
+              const StyledText('content', tags: LogTag.message),
             ],
           ),
         ],
       );
 
       const decorator = HierarchyDepthPrefixDecorator();
-      final decorated = decorator.decorate(doc, createEntry(1));
+      final decorated =
+          decorator.decorate(doc, createEntry(1), LogArena.instance);
       // final rendered = renderLines(decorated); // Not used
 
       // Check if any segment has the tag

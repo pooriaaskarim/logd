@@ -17,7 +17,7 @@ void main() {
 
     test('outputs compact JSON with default metadata', () {
       const formatter = JsonFormatter();
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       final lines = render(doc);
 
       expect(lines.length, equals(1));
@@ -49,7 +49,7 @@ void main() {
       );
 
       const formatter = JsonFormatter(metadata: {});
-      final doc = formatter.format(errorEntry);
+      final doc = formatter.format(errorEntry, LogArena.instance);
       final lines = render(doc);
 
       expect(lines.length, equals(1));
@@ -78,7 +78,7 @@ void main() {
 
     test('outputs formatted JSON with indentation', () {
       const formatter = JsonPrettyFormatter();
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       final lines = render(doc);
 
       expect(lines.length, greaterThan(1));
@@ -103,7 +103,7 @@ void main() {
 
     test('emits semantic tags when color is true', () {
       const formatter = JsonPrettyFormatter(color: true);
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       final lines =
           const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
 
@@ -143,7 +143,7 @@ void main() {
       const formatter = JsonFormatter(
         metadata: {LogMetadata.timestamp},
       );
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       final lines = render(doc);
 
       final json = lines.first;
@@ -163,7 +163,7 @@ void main() {
 
     test('empty metadata list still includes level and message', () {
       const formatter = JsonFormatter(metadata: {});
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       final lines = render(doc);
 
       final json = lines.first;
@@ -186,7 +186,7 @@ void main() {
 
     test('default does not use noWrap tag', () {
       const formatter = JsonFormatter();
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       final lines =
           const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
       final segment = lines.first.segments.first;

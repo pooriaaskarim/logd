@@ -44,11 +44,11 @@ abstract class PipelineBenchmark extends BenchmarkBase {
     final formatter = handler.formatter;
     final decorators = handler.decorators;
 
-    var document = formatter.format(entry);
+    var document = formatter.format(entry, LogArena.instance);
 
     // Decorate
     for (final decorator in decorators) {
-      document = decorator.decorate(document, entry);
+      document = decorator.decorate(document, entry, LogArena.instance);
     }
 
     if (document.nodes.isNotEmpty) {

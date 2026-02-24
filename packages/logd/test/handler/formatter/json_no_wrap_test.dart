@@ -18,8 +18,12 @@ void main() {
       // Width 10 is very small.
 
       const layout = TerminalLayout(width: 10);
-      final lines =
-          layout.layout(formatter.format(entryLong), LogLevel.info).lines;
+      final lines = layout
+          .layout(
+            formatter.format(entryLong, LogArena.instance),
+            LogLevel.info,
+          )
+          .lines;
 
       // Because it wraps paragraph-style, it might produce multiple lines
       // if the layout engine decides to wrap the StyledText segments.

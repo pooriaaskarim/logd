@@ -44,6 +44,7 @@ void main() {
               test('Width: $width', () {
                 final doc = formatter.format(
                   currentEntry,
+                  LogArena.instance,
                 );
 
                 final output = LogSnap.capture(
@@ -54,7 +55,8 @@ void main() {
                   // noise
                 );
 
-                // Detect package root to avoid pollution when run from workspace root
+                // Detect package root to avoid pollution when run from
+                // workspace root
                 final baseDir = File('lib/logd.dart').existsSync()
                     ? 'test/regression/goldens'
                     : 'packages/logd/test/regression/goldens';
@@ -123,7 +125,7 @@ void main() {
         final formatter = fEntry.value;
 
         test('HtmlEncoder $formatterName $entryName', () {
-          final doc = formatter.format(currentEntry);
+          final doc = formatter.format(currentEntry, LogArena.instance);
           final html = encoder.encode(currentEntry, doc, currentEntry.level);
 
           // Detect package root

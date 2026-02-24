@@ -14,7 +14,7 @@ void main() {
 
     test('Output header once then rows with TAB delimiter (default)', () {
       const formatter = ToonFormatter();
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       final lines = renderToon(doc, entry, LogLevel.info);
 
       // Header includes: timestamp,logger,origin,level,message,error,stackTrace
@@ -35,7 +35,7 @@ void main() {
 
     test('Respects custom metadata selection', () {
       const formatter = ToonFormatter(metadata: {LogMetadata.logger});
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       final lines = renderToon(doc, entry, LogLevel.info);
 
       expect(
@@ -59,7 +59,7 @@ void main() {
         },
       );
 
-      final doc = formatter.format(complexEntry);
+      final doc = formatter.format(complexEntry, LogArena.instance);
       final lines = renderToon(doc, complexEntry, LogLevel.info);
       // INFO \t msg \t {a:1,b:[2,3]} \t
       expect(lines[1], contains('{a:1,b:[2,3]}'));
@@ -76,7 +76,7 @@ void main() {
         error: {'z': 1, 'a': 2},
       );
 
-      final doc = formatter.format(complexEntry);
+      final doc = formatter.format(complexEntry, LogArena.instance);
       final lines = renderToon(doc, complexEntry, LogLevel.info);
       expect(lines[1], contains('{a:2,z:1}'));
     });
@@ -94,7 +94,7 @@ void main() {
         },
       );
 
-      final doc = formatter.format(complexEntry);
+      final doc = formatter.format(complexEntry, LogArena.instance);
       final lines = renderToon(doc, complexEntry, LogLevel.info);
       expect(lines[1], contains('{a:...}'));
     });

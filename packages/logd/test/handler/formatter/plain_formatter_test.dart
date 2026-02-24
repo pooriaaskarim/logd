@@ -16,7 +16,7 @@ void main() {
 
     test('formats basic entry correctly with default metadata', () {
       const formatter = PlainFormatter();
-      final lines = renderLines(formatter.format(entry));
+      final lines = renderLines(formatter.format(entry, LogArena.instance));
 
       expect(lines.length, equals(1));
       expect(
@@ -27,7 +27,7 @@ void main() {
 
     test('can select metadata', () {
       const formatter = PlainFormatter(metadata: {LogMetadata.logger});
-      final lines = renderLines(formatter.format(entry));
+      final lines = renderLines(formatter.format(entry, LogArena.instance));
 
       // [INFO] is mandatory
       expect(lines.first, equals('[INFO] [test.logger] Hello World'));
@@ -48,7 +48,9 @@ void main() {
         metadata: {LogMetadata.logger},
       );
 
-      final lines = renderLines(formatter.format(errorEntry));
+      final lines = renderLines(
+        formatter.format(errorEntry, LogArena.instance),
+      );
 
       expect(lines.length, equals(3));
       expect(lines[1], equals('Error: Some error'));

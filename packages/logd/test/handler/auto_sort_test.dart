@@ -7,7 +7,8 @@ import 'test_helpers.dart';
 final class MemorySink extends LogSink<LogDocument> {
   MemorySink() : super(enabled: true);
 
-  final List<LogDocument> buffer = [];
+  final List<List<String>> defaultLines = [];
+  final List<List<String>> narrowLines = [];
 
   @override
   Future<void> output(
@@ -15,7 +16,8 @@ final class MemorySink extends LogSink<LogDocument> {
     final LogEntry entry,
     final LogLevel level,
   ) async {
-    buffer.add(data);
+    defaultLines.add(renderLines(data));
+    narrowLines.add(renderLines(data, width: 20));
   }
 }
 
@@ -50,7 +52,7 @@ void main() {
       // 2. Hierarchy: Indents everything with '>> '.
       // 3. Visual: Colors the whole thing.
 
-      final lines = renderLines(sink.buffer.first, width: 20);
+      final lines = sink.narrowLines.first;
       expect(lines.length, greaterThan(0));
 
       final top = lines[0];
@@ -88,7 +90,7 @@ void main() {
 
       await handler.log(entry);
 
-      final lines = renderLines(sink.buffer.single);
+      final lines = sink.defaultLines.single;
       final line = lines.firstWhere((final l) => l.contains('msg'));
 
       // Info level defaults to blue (\x1B[34m)

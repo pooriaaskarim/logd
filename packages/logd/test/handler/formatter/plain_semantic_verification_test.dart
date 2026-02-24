@@ -18,7 +18,7 @@ void main() {
 
     test('maintains hanging indent in normal conditions', () {
       const formatter = PlainFormatter();
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
 
       // Use TerminalLayout directly to verify output
       const layout = TerminalLayout(width: 60);
@@ -43,7 +43,7 @@ void main() {
 
     test('falls back to vertical stack in narrow width', () {
       const formatter = PlainFormatter();
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
 
       // Force narrow width where header (31 chars) > available width (30)
       const layout = TerminalLayout(width: 30);

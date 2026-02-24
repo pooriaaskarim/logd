@@ -15,7 +15,7 @@ void main() {
 
     test('formats header with correct sequence', () {
       const formatter = StructuredFormatter();
-      final lines = renderLines(formatter.format(entry));
+      final lines = renderLines(formatter.format(entry, LogArena.instance));
 
       // Line 0: Timestamp
       expect(lines[0], startsWith('____'));
@@ -41,9 +41,7 @@ void main() {
         timestamp: 'ts',
       );
       final lines = renderLines(
-        formatter.format(
-          longEntry,
-        ),
+        formatter.format(longEntry, LogArena.instance),
         width: 20,
       );
 

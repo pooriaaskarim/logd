@@ -29,7 +29,7 @@ void main() {
       );
 
       const formatter = JsonPrettyFormatter(color: true);
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
 
       // Verify structure via lines (end-to-end)
       // Verify structure via lines (end-to-end)
@@ -72,7 +72,7 @@ void main() {
 
       // Use a narrow width to force wrapping
       const formatter = JsonPrettyFormatter();
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
 
       // Use helper to simulate terminal
       // But verify logic relied on spaces...

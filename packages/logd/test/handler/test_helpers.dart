@@ -4,7 +4,7 @@ import 'package:logd/src/handler/handler.dart';
 /// Helper to create a simplified LogDocument from strings.
 LogDocument createTestDocument(final List<String> lines) {
   final nodes = lines
-      .map(
+      .map<LogNode>(
         (final line) => MessageNode(
           segments: [StyledText(line)],
         ),

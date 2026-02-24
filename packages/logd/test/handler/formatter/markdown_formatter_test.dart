@@ -17,6 +17,7 @@ void main() {
 
       final document = formatter.format(
         entry,
+        LogArena.instance,
       );
 
       expect(document.nodes, hasLength(2));
@@ -43,6 +44,7 @@ void main() {
 
       final document = formatter.format(
         entry,
+        LogArena.instance,
       );
 
       expect(document.nodes, hasLength(4));

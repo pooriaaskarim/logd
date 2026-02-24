@@ -33,7 +33,9 @@ abstract class FormatterBenchmark extends BenchmarkBase {
   void run() {
     // Consume the iterable to force execution
     final layout = const TerminalLayout(width: 80);
-    final lines = layout.layout(formatter.format(entry), LogLevel.info).lines;
+    final lines = layout
+        .layout(formatter.format(entry, LogArena.instance), LogLevel.info)
+        .lines;
     for (final _ in lines) {}
   }
 }

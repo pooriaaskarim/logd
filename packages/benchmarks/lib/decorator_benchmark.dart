@@ -19,7 +19,7 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
     formatter = const PlainFormatter();
     final layout = const TerminalLayout(width: 80);
     baseLines = layout
-        .layout(formatter.format(entry), LogLevel.info)
+        .layout(formatter.format(entry, LogArena.instance), LogLevel.info)
         .lines
         .map((final l) => l.toString())
         .toList(); // Pre-calculate base
@@ -31,10 +31,10 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
   @override
   void run() {
     final nodes = baseLines
-        .map((final l) => MessageNode(segments: [StyledText(l)]))
+        .map<LogNode>((final l) => MessageNode(segments: [StyledText(l)]))
         .toList();
     final document = LogDocument(nodes: nodes);
-    final decorated = decorator.decorate(document, entry);
+    final decorated = decorator.decorate(document, entry, LogArena.instance);
 
     final layout = const TerminalLayout(width: 80);
     final lines = layout.layout(decorated, LogLevel.info).lines;

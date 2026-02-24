@@ -20,7 +20,7 @@ void main() {
 
       final lines = ['line 1', 'line 2'];
       final doc = createTestDocument(lines);
-      final decoratedDoc = decorator.decorate(doc, entry);
+      final decoratedDoc = decorator.decorate(doc, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 80);
       final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
@@ -44,7 +44,7 @@ void main() {
 
       final lines = ['12345']; // Length 5
       final doc = createTestDocument(lines);
-      final decoratedDoc = decorator.decorate(doc, entry);
+      final decoratedDoc = decorator.decorate(doc, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 20);
       final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
@@ -84,9 +84,12 @@ void main() {
       // Handler evaluation order: ContentDecorator (Suffix) ->
       // StructuralDecorator (Box)
       final lines = ['test'];
-      final suffixed =
-          decorator.decorate(createTestDocument(lines), entry);
-      final boxedDoc = box.decorate(suffixed, entry);
+      final suffixed = decorator.decorate(
+        createTestDocument(lines),
+        entry,
+        LogArena.instance,
+      );
+      final boxedDoc = box.decorate(suffixed, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 22);
       final boxed = layout.layout(boxedDoc, LogLevel.info).lines;

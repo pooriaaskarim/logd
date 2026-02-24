@@ -20,6 +20,7 @@ void main() {
       final decorated = decorator.decorate(
         createTestDocument(lines),
         infoEntry,
+        LogArena.instance,
       );
       final rendered = renderLines(decorated);
 
@@ -49,6 +50,7 @@ void main() {
         decorator.decorate(
           createTestDocument(['msg']),
           infoEntry,
+          LogArena.instance,
         ),
       ).first;
       final error = renderLines(
@@ -61,6 +63,7 @@ void main() {
             message: 'msg',
             timestamp: 'now',
           ),
+          LogArena.instance,
         ),
       ).first;
       final warning = renderLines(
@@ -73,6 +76,7 @@ void main() {
             message: 'msg',
             timestamp: 'now',
           ),
+          LogArena.instance,
         ),
       ).first;
 
@@ -87,16 +91,16 @@ void main() {
       const decorator = StyleDecorator(
         theme: NoMessageTheme(),
       );
-      const headerDoc = LogDocument(
-        nodes: [
+      final headerDoc = LogDocument(
+        nodes: <LogNode>[
           MessageNode(
             segments: [
-              StyledText('Header 1', tags: LogTag.header),
+              const StyledText('Header 1', tags: LogTag.header),
             ],
           ),
           MessageNode(
             segments: [
-              StyledText('Message 1', tags: LogTag.message),
+              const StyledText('Message 1', tags: LogTag.message),
             ],
           ),
         ],
@@ -105,6 +109,7 @@ void main() {
       final decorated = decorator.decorate(
         headerDoc,
         infoEntry,
+        LogArena.instance,
       );
       final rendered = renderLines(decorated);
 

@@ -12,7 +12,7 @@ class MockFormatter implements LogFormatter {
 
   final LogDocument Function(LogEntry) formatFn;
   @override
-  LogDocument format(final LogEntry entry) =>
+  LogDocument format(final LogEntry entry, final LogArena arena) =>
       formatFn(entry);
 }
 
@@ -70,8 +70,7 @@ void main() {
     test('Handler skips sink if formatter returns empty list', () async {
       // LogDocument with no nodes is considered "empty" in a way?
       // Handler implementation checks `if (document.nodes.isNotEmpty)`.
-      final emptyFormatter =
-          MockFormatter((final _) => const LogDocument(nodes: []));
+      final emptyFormatter = MockFormatter((final _) => LogDocument(nodes: []));
       final handler = Handler(formatter: emptyFormatter, sink: sink);
       await handler.log(testEntry);
 

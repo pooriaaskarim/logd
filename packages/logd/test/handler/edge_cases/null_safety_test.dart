@@ -20,7 +20,7 @@ void main() {
         stackTrace: null,
       );
 
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       const layout = TerminalLayout(width: 80);
       final lines = layout.layout(doc, LogLevel.info).lines;
       expect(lines, isNotEmpty);
@@ -38,7 +38,7 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       const layout = TerminalLayout(width: 40);
       final lines = layout.layout(doc, LogLevel.info).lines;
       expect(lines, isNotEmpty);
@@ -69,10 +69,10 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = handler.formatter.format(entry);
+      final formatted = handler.formatter.format(entry, LogArena.instance);
       var document = formatted;
       for (final decorator in handler.decorators) {
-        document = decorator.decorate(document, entry);
+        document = decorator.decorate(document, entry, LogArena.instance);
       }
       // Use TerminalLayout
       const layout = TerminalLayout(width: 40);
@@ -94,7 +94,7 @@ void main() {
         error: null,
       );
 
-      final doc = formatter.format(entry);
+      final doc = formatter.format(entry, LogArena.instance);
       const layout = TerminalLayout(width: 80);
       final lines = layout.layout(doc, LogLevel.info).lines;
       final json = lines.map((final l) => l.toString()).join('\n');

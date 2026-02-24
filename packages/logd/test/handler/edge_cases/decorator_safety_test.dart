@@ -69,7 +69,7 @@ void main() {
 
       final lines = ['very long message that exceeds 5 chars'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry);
+      final decorated = box.decorate(doc, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 5);
       final boxed = layout.layout(decorated, LogLevel.info).lines;
@@ -93,7 +93,7 @@ void main() {
 
       final lines = ['\x1B[31m\x1B[0m']; // Red color then reset
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry);
+      final decorated = box.decorate(doc, entry, LogArena.instance);
 
       const layout = TerminalLayout(width: 20);
       final boxed = layout.layout(decorated, LogLevel.info).lines;
