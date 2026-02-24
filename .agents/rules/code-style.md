@@ -8,6 +8,7 @@ As an agentic assistant (Antigravity), follow these specific patterns to maintai
 
 ## 1. Library Patterns
 - **Immutability**: All formatters, decorators, and metadata configurations must be `@immutable`. Use `final` fields exclusively.
+  - **⚠️ Arena Exception (`arena_refinement` branch)**: `LogDocument` and all `LogNode` subclasses deliberately drop `@immutable` to support the LIFO pool. They gain `reset()` and `releaseRecursive()` methods. Formatters, decorators, and metadata configs remain `@immutable`. Arena-owned documents **must not** be retained past the log cycle.
 - **Bitmasks**: `LogTag` must be handled as an `int` bitmask. Use bitwise operations (`&`, `|`, `~`) instead of `Set` methods.
 - **Semantic Metadata**: Use `Set<LogMetadata>` for user-facing configuration of what data to include in a log.
 - **Trailing Commas**: Always use trailing commas for argument lists and collection literals to satisfy `require_trailing_commas`.

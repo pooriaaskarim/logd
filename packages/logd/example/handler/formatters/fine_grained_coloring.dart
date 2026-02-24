@@ -39,7 +39,8 @@ void main() async {
       error: 'ChecksumMismatch: Expected 0xAF43, found 0x0000.',
     );
 
-  print('\n=== Logd / Plain Formatter Fine Grained Coloring Benchmark Complete ===\n');
+  print(
+      '\n=== Logd / Plain Formatter Fine Grained Coloring Benchmark Complete ===\n');
 
   const structuredHandler = Handler(
     formatter: StructuredFormatter(),
