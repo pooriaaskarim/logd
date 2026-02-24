@@ -39,7 +39,7 @@ Metrics profilePipeline(
   required LogFormatter formatter,
   List<LogDecorator> decorators = const [],
   int width = 80,
-  int iterations = 10000, // Reduced for interactive speed, usually 50k
+  int iterations = 50000,
 }) {
   print('Profiling: $name ...');
 
@@ -56,6 +56,7 @@ Metrics profilePipeline(
     for (final line in physical.lines) {
       line.toString();
     }
+    doc.releaseRecursive(LogArena.instance);
   }
 
   // Memory baseline
@@ -79,6 +80,7 @@ Metrics profilePipeline(
     for (final line in physical.lines) {
       line.toString();
     }
+    doc.releaseRecursive(LogArena.instance);
 
     iterWatch.stop();
     latencies.add(iterWatch.elapsedMicroseconds);
@@ -104,12 +106,8 @@ Metrics profilePipeline(
   return Metrics(opsPerSec, p90, p95, p99, bytesPer10k);
 }
 
-void main() {
-  print('# Logd Handler Pipeline - Stress Test & Profiling');
-  print('**Dart:** ${Platform.version}');
-  print(
-      '**OS:** ${Platform.operatingSystem} ${Platform.operatingSystemVersion}\n');
-
+void runStressTests() {
+  print('\n--- Stress Test & Profiling ---');
   print('### 1. The Raw Machine (JSON -> FileSink)');
   final machine = profilePipeline(
     'Raw Machine',
@@ -139,4 +137,13 @@ void main() {
   );
   print(squeeze);
   print('');
+}
+
+void main() {
+  print('# Logd Handler Pipeline - Stress Test & Profiling');
+  print('**Dart:** ${Platform.version}');
+  print(
+      '**OS:** ${Platform.operatingSystem} ${Platform.operatingSystemVersion}\n');
+
+  runStressTests();
 }
