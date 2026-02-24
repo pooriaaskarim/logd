@@ -8,100 +8,101 @@ part of '../handler.dart';
 /// - [LogTag.collapsible]: `<details>` blocks for collapsible content.
 /// - [LogTag.stackFrame]: Code blocks (```).
 @immutable
-class MarkdownEncoder implements LogEncoder<String> {
+class MarkdownEncoder implements LogEncoder {
   /// Creates a [MarkdownEncoder].
   const MarkdownEncoder();
 
   @override
-  String? preamble(final LogLevel level, {final LogDocument? document}) => null;
+  void preamble(
+    final HandlerContext context,
+    final LogLevel level, {
+    final LogDocument? document,
+  }) {}
 
   @override
-  String? postamble(final LogLevel level) => null;
+  void postamble(final HandlerContext context, final LogLevel level) {}
 
   @override
-  String encode(
+  void encode(
     final LogEntry entry,
     final LogDocument document,
-    final LogLevel level, {
+    final LogLevel level,
+    final HandlerContext context, {
     final int? width,
   }) {
-    final buffer = StringBuffer();
-
     for (final node in document.nodes) {
-      _renderNode(buffer, node);
+      _renderNode(context, node);
     }
-
-    return buffer.toString().trimRight();
   }
 
-  void _renderNode(final StringBuffer buffer, final LogNode node) {
+  void _renderNode(final HandlerContext context, final LogNode node) {
     if ((node.tags & LogTag.collapsible) != 0) {
-      _renderCollapsible(buffer, node);
+      _renderCollapsible(context, node);
       return;
     }
 
     if (node is HeaderNode) {
-      buffer.writeln('### ${_renderContent(node)}');
+      context.writeString('### ${_renderContent(node)}\n');
     } else if (node is MessageNode) {
-      buffer.writeln('\n**${_renderContent(node)}**');
+      context.writeString('\n**${_renderContent(node)}**\n');
     } else if (node is ErrorNode) {
-      buffer
-        ..writeln('\n> [!ERROR]')
-        ..writeln('> ${_renderContent(node)}');
+      context
+        ..writeString('\n> [!ERROR]\n')
+        ..writeString('> ${_renderContent(node)}\n');
     } else if (node is FooterNode) {
-      _renderFooter(buffer, node);
+      _renderFooter(context, node);
     } else if (node is IndentationNode) {
       for (final child in node.children) {
-        _renderNode(buffer, child);
+        _renderNode(context, child);
       }
     } else if (node is DecoratedNode) {
       for (final child in node.children) {
-        _renderNode(buffer, child);
+        _renderNode(context, child);
       }
     } else if (node is GroupNode) {
       for (final child in node.children) {
-        _renderNode(buffer, child);
+        _renderNode(context, child);
       }
     } else if (node is ParagraphNode) {
       for (final child in node.children) {
-        _renderNode(buffer, child);
+        _renderNode(context, child);
       }
     }
   }
 
-  void _renderCollapsible(final StringBuffer buffer, final LogNode node) {
+  void _renderCollapsible(final HandlerContext context, final LogNode node) {
     final summary =
         (node.tags & LogTag.stackFrame) != 0 ? 'Stack Trace' : 'Details';
-    buffer
-      ..writeln('\n<details>')
-      ..writeln('<summary>$summary</summary>\n');
+    context
+      ..writeString('\n<details>\n')
+      ..writeString('<summary>$summary</summary>\n\n');
 
     if (node is ContentNode) {
       if ((node.tags & LogTag.stackFrame) != 0) {
-        buffer
-          ..writeln('```')
-          ..writeln(_renderContent(node))
-          ..writeln('```');
+        context
+          ..writeString('```\n')
+          ..writeString('${_renderContent(node)}\n')
+          ..writeString('```\n');
       } else {
-        buffer.writeln(_renderContent(node));
+        context.writeString('${_renderContent(node)}\n');
       }
     } else if (node is LayoutNode) {
       for (final child in node.children) {
-        _renderNode(buffer, child);
+        _renderNode(context, child);
       }
     }
 
-    buffer.writeln('\n</details>');
+    context.writeString('\n</details>\n');
   }
 
-  void _renderFooter(final StringBuffer buffer, final FooterNode node) {
+  void _renderFooter(final HandlerContext context, final FooterNode node) {
     if ((node.tags & LogTag.stackFrame) != 0) {
-      buffer
-        ..writeln('\n```')
-        ..write(_renderContent(node))
-        ..writeln('```');
+      context
+        ..writeString('\n```\n')
+        ..writeString('${_renderContent(node)}\n')
+        ..writeString('```\n');
     } else {
-      buffer.writeln(_renderContent(node));
+      context.writeString('${_renderContent(node)}\n');
     }
   }
 

@@ -22,10 +22,10 @@ enum WrappingStrategy {
 /// By separating the [encoder] from the transport logic, [EncodingSink] enables
 /// "Medium-Centric" sinking—a single sink implementation can support multiple
 /// output formats by swapping its encoder.
-base class EncodingSink<T> extends LogSink<LogDocument> {
+base class EncodingSink extends LogSink<LogDocument> {
   /// Creates an [EncodingSink].
   ///
-  /// - [encoder]: The encoder to serialize LogDocuments into [T].
+  /// - [encoder]: The encoder to serialize LogDocuments into bytes.
   /// - [delegate]: The transport callback.
   /// - [strategy]: The wrapping strategy for this sink (default:
   /// [WrappingStrategy.none]).
@@ -39,10 +39,10 @@ base class EncodingSink<T> extends LogSink<LogDocument> {
   });
 
   /// The encoder used to serialize logs.
-  final LogEncoder<T> encoder;
+  final LogEncoder encoder;
 
   /// The transport callback.
-  final FutureOr<void> Function(T data) delegate;
+  final FutureOr<void> Function(Uint8List data) delegate;
 
   /// The wrapping strategy for this sink.
   final WrappingStrategy strategy;
@@ -65,34 +65,43 @@ base class EncodingSink<T> extends LogSink<LogDocument> {
       return;
     }
 
-    // Trigger preamble if needed
-    if (strategy == WrappingStrategy.document && !_preambleWritten) {
-      final preamble = encoder.preamble(level, document: document);
-      if (preamble != null) {
-        await delegate(preamble);
+    final context = LogArena.instance.checkoutContext();
+
+    try {
+      // Trigger preamble if needed
+      if (strategy == WrappingStrategy.document && !_preambleWritten) {
+        encoder.preamble(context, level, document: document);
+        _preambleWritten = true;
       }
-      _preambleWritten = true;
+
+      // Pass the entry and document to the encoder
+      encoder.encode(
+        entry,
+        document,
+        level,
+        context,
+        width: preferredWidth,
+      );
+
+      final data = context.takeBytes();
+      if (data.isNotEmpty) {
+        await delegate(data);
+      }
+    } finally {
+      LogArena.instance.release(context);
     }
-
-    // Pass the entry and document to the encoder
-    final data = encoder.encode(
-      entry,
-      document,
-      level,
-      width: preferredWidth,
-    );
-
-    await delegate(data);
   }
 
   @override
   @mustCallSuper
   Future<void> dispose() async {
     if (strategy == WrappingStrategy.document && _preambleWritten) {
+      final context = HandlerContext();
       // We don't have a specific level for postamble, use Info as safe default
-      final post = encoder.postamble(LogLevel.info);
-      if (post != null) {
-        await delegate(post);
+      encoder.postamble(context, LogLevel.info);
+      final data = context.takeBytes();
+      if (data.isNotEmpty) {
+        await delegate(data);
       }
     }
     await super.dispose();

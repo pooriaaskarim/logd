@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:logd/logd.dart';
 import 'package:logd/src/core/utils/utils.dart';
 import 'package:logd/src/logger/logger.dart';
@@ -75,8 +76,9 @@ final class MemorySink extends LogSink<LogDocument> {
     final LogLevel level,
   ) async {
     const encoder = AnsiEncoder();
-    final output =
-        encoder.encode(entry, document, level, width: preferredWidth);
+    final context = HandlerContext();
+    encoder.encode(entry, document, level, context, width: preferredWidth);
+    final output = const Utf8Decoder().convert(context.takeBytes());
     onLog(output);
   }
 }

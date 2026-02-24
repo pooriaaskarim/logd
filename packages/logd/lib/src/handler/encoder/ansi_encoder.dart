@@ -5,7 +5,7 @@ part of '../handler.dart';
 /// This encoder uses [TerminalLayout] to calculate the physical geometry of the
 /// log and then applies [LogStyle]s resolved via its [theme] using ANSI escape
 /// sequences.
-class AnsiEncoder implements LogEncoder<String> {
+class AnsiEncoder implements LogEncoder {
   /// Creates an [AnsiEncoder].
   ///
   /// - [theme]: The theme used to resolve semantic styles.
@@ -18,20 +18,25 @@ class AnsiEncoder implements LogEncoder<String> {
   final LogTheme theme;
 
   @override
-  String? preamble(final LogLevel level, {final LogDocument? document}) => null;
+  void preamble(
+    final HandlerContext context,
+    final LogLevel level, {
+    final LogDocument? document,
+  }) {}
 
   @override
-  String? postamble(final LogLevel level) => null;
+  void postamble(final HandlerContext context, final LogLevel level) {}
 
   @override
-  String encode(
+  void encode(
     final LogEntry entry,
     final LogDocument document,
-    final LogLevel level, {
+    final LogLevel level,
+    final HandlerContext context, {
     final int? width,
   }) {
     if (document.nodes.isEmpty) {
-      return '';
+      return;
     }
 
     // 1. Calculate physical layout
@@ -40,26 +45,30 @@ class AnsiEncoder implements LogEncoder<String> {
     final physicalDoc = layoutEngine.layout(document, level);
 
     // 2. Encode with styles
-    final buffer = StringBuffer();
     for (final line in physicalDoc.lines) {
-      buffer.writeln(_encodeLine(line, level));
+      _encodeLine(line, level, context);
+      context.addByte(0x0A); // '\n'
     }
-
-    return buffer.toString().trimRight();
   }
 
-  String _encodeLine(final PhysicalLine line, final LogLevel level) {
-    final buffer = StringBuffer();
+  void _encodeLine(
+    final PhysicalLine line,
+    final LogLevel level,
+    final HandlerContext context,
+  ) {
     for (final segment in line.segments) {
       final style = segment.style ?? theme.getStyle(level, segment.tags);
-      buffer.write(_applyStyle(segment.text, style));
+      _applyStyle(segment.text, style, context);
     }
-    return buffer.toString();
   }
 
-  String _applyStyle(final String text, final LogStyle style) {
+  void _applyStyle(
+    final String text,
+    final LogStyle style,
+    final HandlerContext context,
+  ) {
     if (text.isEmpty) {
-      return text;
+      return;
     }
 
     final codes = <int>[];
@@ -88,11 +97,22 @@ class AnsiEncoder implements LogEncoder<String> {
     }
 
     if (codes.isEmpty) {
-      return text;
+      context.writeString(text);
+      return;
     }
 
     final codeString = codes.join(';');
-    return '\x1B[${codeString}m$text\x1B[0m';
+    // We can avoid string concats mostly
+    context
+      ..addByte(0x1B) // ESC
+      ..addByte(0x5B) // '['
+      ..writeString(codeString)
+      ..addByte(0x6D) // 'm'
+      ..writeString(text)
+      ..addByte(0x1B) // ESC
+      ..addByte(0x5B) // '['
+      ..addByte(0x30) // '0'
+      ..addByte(0x6D); // 'm'
   }
 
   int _getColorCode(final LogColor color, {required final bool background}) {

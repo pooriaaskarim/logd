@@ -108,6 +108,10 @@ class MockFile implements File {
   Future<Uint8List> readAsBytes() async => Uint8List.fromList(content);
 
   @override
+  RandomAccessFile openSync({final io.FileMode mode = io.FileMode.read}) =>
+      MockRandomAccessFile(this, mode);
+
+  @override
   Future<void> writeAsBytes(
     final List<int> bytes, {
     final io.FileMode mode = io.FileMode.write,
@@ -117,6 +121,31 @@ class MockFile implements File {
     content = bytes;
     _lastModified = fs.clock.now;
   }
+}
+
+class MockRandomAccessFile implements RandomAccessFile {
+  MockRandomAccessFile(this.file, this.mode);
+  final MockFile file;
+  final io.FileMode mode;
+
+  @override
+  void writeFromSync(
+    final List<int> buffer, [
+    final int start = 0,
+    final int? end,
+  ]) {
+    file._exists = true;
+    final data = buffer.sublist(start, end);
+    if (mode == io.FileMode.append) {
+      file.content.addAll(data);
+    } else {
+      file.content = data;
+    }
+    file._lastModified = file.fs.clock.now;
+  }
+
+  @override
+  void closeSync() {}
 }
 
 class MockDirectory implements Directory {

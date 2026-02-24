@@ -6,41 +6,44 @@ part of '../handler.dart';
 /// It uses the configuration (delimiter, columns, sortKeys, etc.) stored in the
 /// document's metadata to produce headers and delimited rows. It handles
 /// recursive formatting for nested Maps and Lists within the TOON rows.
-class ToonEncoder implements LogEncoder<String> {
+class ToonEncoder implements LogEncoder {
   /// Creates a [ToonEncoder].
   const ToonEncoder();
 
   @override
-  String? preamble(final LogLevel level, {final LogDocument? document}) {
+  void preamble(
+    final HandlerContext context,
+    final LogLevel level, {
+    final LogDocument? document,
+  }) {
     if (document == null) {
-      return null;
+      return;
     }
     final arrayName = document.metadata['toon_array'] as String? ?? 'logs';
     final columns = document.metadata['toon_columns'] as List<String>?;
     if (columns == null) {
-      return null;
+      return;
     }
 
     final columnStr = columns.join(',');
-    return '$arrayName[]{$columnStr}:';
+    context.writeString('$arrayName[]{$columnStr}:');
   }
 
   @override
-  String? postamble(final LogLevel level) => null;
+  void postamble(final HandlerContext context, final LogLevel level) {}
 
   @override
-  String encode(
+  void encode(
     final LogEntry entry,
     final LogDocument document,
-    final LogLevel level, {
+    final LogLevel level,
+    final HandlerContext context, {
     final int? width,
   }) {
     final delimiter = document.metadata['toon_delimiter'] as String? ?? '\t';
     final columns = document.metadata['toon_columns'] as List<String>?;
     final sortKeys = document.metadata['toon_sort_keys'] as bool? ?? false;
     final maxDepth = document.metadata['toon_max_depth'] as int? ?? 5;
-
-    final output = StringBuffer();
 
     final nodes = document.nodes;
     for (var i = 0; i < nodes.length; i++) {
@@ -57,19 +60,15 @@ class ToonEncoder implements LogEncoder<String> {
               maxDepth: maxDepth,
             );
           }).join(delimiter);
-          output.write(row);
+          context.writeString(row);
         } else {
-          output.write(node.map.toString());
+          context.writeString(node.map.toString());
         }
       } else {
-        output.write(node.toString());
+        context.writeString(node.toString());
       }
-      if (i < nodes.length - 1) {
-        output.write('\n');
-      }
+      context.addByte(0x0A); // '\n'
     }
-
-    return output.toString();
   }
 
   String _formatValue(

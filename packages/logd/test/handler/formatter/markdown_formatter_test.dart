@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
@@ -25,7 +26,9 @@ void main() {
       expect(document.nodes[1], isA<MessageNode>());
 
       const encoder = MarkdownEncoder();
-      final output = encoder.encode(entry, document, LogLevel.info);
+      final context = HandlerContext();
+      encoder.encode(entry, document, LogLevel.info, context);
+      final output = const Utf8Decoder().convert(context.takeBytes());
 
       expect(output, contains('### ℹ️ INFO'));
       expect(output, contains('**Hello Markdown**'));
@@ -53,7 +56,9 @@ void main() {
       expect((document.nodes[3].tags & LogTag.collapsible) != 0, isTrue);
 
       const encoder = MarkdownEncoder();
-      final output = encoder.encode(entry, document, LogLevel.error);
+      final context = HandlerContext();
+      encoder.encode(entry, document, LogLevel.error, context);
+      final output = const Utf8Decoder().convert(context.takeBytes());
 
       expect(output, contains('### ❌ ERROR'));
       expect(output, contains('> [!ERROR]'));

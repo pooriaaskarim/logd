@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.6.5: Semantic Encoding & Architectural Inversion
+## 0.6.5: Semantic Encoding & Architectural Inversion (Ongoing)
+
+- ### Byte-Oriented Pipeline (Phase 18-20)
+  - **HandlerContext & Pooling**: Introduced `HandlerContext` to manage recyclable `Uint8List` buffers, integrated with `LogArena` for zero-allocation buffer acquisition in steady-state logging.
+  - **Physical Serialization Inversion**: Refactored `LogEncoder` and all implementations (`Ansi`, `Json`, `Html`, etc.) to write directly to byte buffers instead of returning strings, eliminating high-frequency string churn.
+  - **Sink Optimization**: Standardized `LogSink` to accept `Uint8List`. Optimized `ConsoleSink` and `FileSink` to use direct byte output (`stdout.add` and `RandomAccessFile.writeFromSync`).
+  - **FastStringWriter**: Added high-performance byte-constant utility for pre-encoded ANSI and structural tokens.
 
 > [!IMPORTANT]
 > **Breaking Changes & Requirements**

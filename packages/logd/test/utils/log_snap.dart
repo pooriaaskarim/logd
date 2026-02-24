@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 
@@ -14,7 +15,7 @@ class LogSnap {
     final int width = 80,
     final bool useAnsi = true,
   }) {
-    final LogEncoder<String> encoder =
+    final LogEncoder encoder =
         useAnsi ? const AnsiEncoder() : const PlainTextEncoder();
 
     // Dummy entry for capture
@@ -26,7 +27,9 @@ class LogSnap {
       origin: 'LogSnap.capture',
     );
 
-    return encoder.encode(entry, document, level, width: width);
+    final context = HandlerContext();
+    encoder.encode(entry, document, level, context, width: width);
+    return const Utf8Decoder().convert(context.takeBytes());
   }
 
   /// Captures the output of a full [Handler] pipeline for a given [entry].
@@ -54,10 +57,17 @@ class LogSnap {
       return '';
     }
 
-    final LogEncoder<String> encoder =
+    final LogEncoder encoder =
         useAnsi ? const AnsiEncoder() : const PlainTextEncoder();
-
-    return encoder.encode(entry, sink.lastDocument!, entry.level, width: width);
+    final context = HandlerContext();
+    encoder.encode(
+      entry,
+      sink.lastDocument!,
+      entry.level,
+      context,
+      width: width,
+    );
+    return const Utf8Decoder().convert(context.takeBytes());
   }
 }
 

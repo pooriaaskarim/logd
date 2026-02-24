@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
@@ -126,7 +127,9 @@ void main() {
 
         test('HtmlEncoder $formatterName $entryName', () {
           final doc = formatter.format(currentEntry, LogArena.instance);
-          final html = encoder.encode(currentEntry, doc, currentEntry.level);
+          final context = HandlerContext();
+          encoder.encode(currentEntry, doc, currentEntry.level, context);
+          final html = const Utf8Decoder().convert(context.takeBytes());
 
           // Detect package root
           final baseDir = File('lib/logd.dart').existsSync()

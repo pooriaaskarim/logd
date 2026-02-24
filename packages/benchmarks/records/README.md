@@ -13,6 +13,8 @@ The following table tracks the performance evolution of the `logd` handler archi
 | **M2** | `7ed89d8` | Pipeline Migration | 147.5 | 478.7 | 268.1 |
 | **M3** | `788b9bb` | Optimized Bitmasks | 138.3 | 405.3 | 241.9 |
 | **M4** | `b943c05` | Final Release Candidate | **136.3** | **411.3** | **262.1** |
+| **M5** | `eb6cd11` | LogArena Pooling | 139.4 | 423.4 | **241.8** |
+| **M6** | `eb6cd11` | Buffer Stream | 164.8 | 438.8 | 275.1 |
 
 *\*Legacy JSON utilized raw `jsonEncode` without semantic layout support.*
 
@@ -23,6 +25,8 @@ The following table tracks the performance evolution of the `logd` handler archi
 - [Milestone 2: Pipeline Migration](./milestone_2_pipeline_migration.md)
 - [Milestone 3: Optimized Bitmasks](./milestone_3_optimized_bitmasks.md)
 - [Milestone 4: Final Release Candidate](./milestone_4_final_release.md)
+- [Milestone 5: LogArena Pooling](./milestone_5_arena_pooling.md)
+- [Milestone 6: Buffer Stream Pipeline](./milestone_6_buffer_stream.md)
 
 ## Usage & Maintenance
 

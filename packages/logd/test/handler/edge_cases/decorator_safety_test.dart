@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
@@ -113,7 +114,9 @@ final class _MemorySink extends LogSink<LogDocument> {
     final LogLevel level,
   ) async {
     const encoder = PlainTextEncoder();
-    final output = encoder.encode(entry, document, level, width: 80);
+    final context = HandlerContext();
+    encoder.encode(entry, document, level, context, width: 80);
+    final output = const Utf8Decoder().convert(context.takeBytes());
     outputs.add(output.split('\n'));
   }
 }
