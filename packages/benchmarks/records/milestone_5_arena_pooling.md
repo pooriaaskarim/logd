@@ -22,7 +22,7 @@
 | SuffixDecorator               | 620.16       |
 | HierarchyDepthPrefixDecorator | 581.68       |
 
-## 3. Stress Test & Profiling (50k Iterations)
+## 3. Stress Test & Profiling (50k iterations)
 
 ### 1. The Raw Machine (JSON -> FileSink)
 **28056 Ops/sec** | p90: 39.00µs | p95: 44.00µs | p99: 66.00µs | GC Pressure: 236.80 KB/10k

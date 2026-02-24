@@ -18,7 +18,7 @@ BoxDecorator(RunTime): 568.47 us.
 PrefixDecorator(RunTime): 582.98 us.
 StyleDecorator(RunTime): 411.40 us.
 
---- Stress Test & Profiling ---
+--- Stress Test & Profiling (10k iterations) ---
 1. Raw Machine (JSON -> FileSink):
    30654 Ops/sec | p90: 38.00µs | p95: 44.00µs | p99: 68.00µs | GC Pressure: 328.00 KB/10k
 
