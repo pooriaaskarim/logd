@@ -37,3 +37,8 @@ __pycache__/
 *$py.class
 *.pyc
 *.swp
+/doc/vault/.obsidian/app.json
+/doc/vault/.obsidian/appearance.json
+/doc/vault/.obsidian/core-plugins.json
+/doc/vault/.obsidian/graph.json
+/doc/vault/.obsidian/workspace.json
