@@ -24,12 +24,11 @@ final class MarkdownFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(
+  void format(
     final LogEntry entry,
-    final LogArena arena,
+    final LogDocument document,
+    final LogNodeFactory factory,
   ) {
-    final doc = arena.checkoutDocument();
-
     // 1. Header (Level + Metadata)
     final headerSegments = <StyledText>[
       StyledText(
@@ -45,18 +44,19 @@ final class MarkdownFormatter implements LogFormatter {
       }
     }
 
-    doc.nodes
-      ..add(arena.checkoutHeader()..segments.addAll(headerSegments))
+    document.nodes
+      ..add(factory.checkoutHeader()..segments.addAll(headerSegments))
       // 2. Message
       ..add(
-        arena.checkoutMessage()
+        factory.checkoutMessage()
           ..segments.add(StyledText(entry.message, tags: LogTag.message)),
       );
 
     // 3. Error
     if (entry.error != null) {
-      doc.nodes.add(
-        arena.checkoutError()..segments.add(StyledText(entry.error.toString())),
+      document.nodes.add(
+        factory.checkoutError()
+          ..segments.add(StyledText(entry.error.toString())),
       );
     }
 
@@ -71,14 +71,14 @@ final class MarkdownFormatter implements LogFormatter {
           ),
         );
       }
-      doc.nodes.add(
-        arena.checkoutFooter()
+      document.nodes.add(
+        factory.checkoutFooter()
           ..segments.addAll(frameSegments)
           ..tags = LogTag.stackFrame | LogTag.collapsible,
       );
     } else if (entry.stackTrace != null) {
-      doc.nodes.add(
-        arena.checkoutFooter()
+      document.nodes.add(
+        factory.checkoutFooter()
           ..segments.add(
             StyledText(
               entry.stackTrace.toString(),
@@ -88,8 +88,6 @@ final class MarkdownFormatter implements LogFormatter {
           ..tags = LogTag.stackFrame | LogTag.collapsible,
       );
     }
-
-    return doc;
   }
 
   String _levelEmoji(final LogLevel level) => switch (level) {

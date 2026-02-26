@@ -10,15 +10,15 @@ sealed class LogDecorator {
   /// Constant constructor for subclasses.
   const LogDecorator();
 
-  /// Decorates the [document] based on the [entry], using [arena] for new
-  /// nodes.
+  /// Decorates the [document] in-place based on the [entry], using [factory]
+  /// for new nodes.
   ///
-  /// Returns a modified [LogDocument]. All new nodes created by this decorator
-  /// must be checked out via [arena] to participate in the pool lifecycle.
-  LogDocument decorate(
+  /// All new nodes created by this decorator via the [factory] participate
+  /// in the pool lifecycle and will be released with the document.
+  void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogArena arena,
+    final LogNodeFactory factory,
   );
 
   /// Returns the width in terminal cells this decorator adds to each line.

@@ -41,19 +41,23 @@ abstract class PipelineBenchmark extends BenchmarkBase {
     final filters = handler.filters;
     if (filters.any((f) => !f.shouldLog(entry))) return;
 
-    final formatter = handler.formatter;
-    final decorators = handler.decorators;
+    final arena = LogArena.instance;
+    final doc = arena.checkoutDocument();
 
-    var document = formatter.format(entry, LogArena.instance);
+    try {
+      handler.formatter.format(entry, doc, arena);
 
-    // Decorate
-    for (final decorator in decorators) {
-      document = decorator.decorate(document, entry, LogArena.instance);
-    }
+      // Decorate
+      for (final decorator in handler.decorators) {
+        decorator.decorate(doc, entry, arena);
+      }
 
-    if (document.nodes.isNotEmpty) {
-      // Consume
-      for (final _ in document.nodes) {}
+      if (doc.nodes.isNotEmpty) {
+        // Consume
+        for (final _ in doc.nodes) {}
+      }
+    } finally {
+      doc.releaseRecursive(arena);
     }
   }
 }

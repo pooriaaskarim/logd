@@ -23,73 +23,85 @@ void main() {
 
     test('adds no indentation at depth 0', () {
       const decorator = HierarchyDepthPrefixDecorator();
-      final decorated = decorator.decorate(
-        createTestDocument(lines),
-        createEntry(0),
-        LogArena.instance,
-      );
-      final rendered = renderLines(decorated);
-      expect(rendered.first, equals('msg'));
+      final doc = createTestDocument(lines);
+      try {
+        decorator.decorate(
+          doc,
+          createEntry(0),
+          LogArena.instance,
+        );
+        final rendered = renderLines(doc);
+        expect(rendered.first, equals('msg'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('adds indentation at depth 2 (default indent)', () {
       const decorator = HierarchyDepthPrefixDecorator();
-      final decorated = decorator.decorate(
-        createTestDocument(lines),
-        createEntry(2),
-        LogArena.instance,
-      );
-      final rendered = renderLines(decorated);
-      // Default is '│ ' (2 chars) * 2 = '│ │ '
-      expect(rendered.first, equals('│ │ msg'));
+      final doc = createTestDocument(lines);
+      try {
+        decorator.decorate(
+          doc,
+          createEntry(2),
+          LogArena.instance,
+        );
+        final rendered = renderLines(doc);
+        // Default is '│ ' (2 chars) * 2 = '│ │ '
+        expect(rendered.first, equals('│ │ msg'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('respects custom indent', () {
       const decorator = HierarchyDepthPrefixDecorator(indent: '-');
-      final decorated = decorator.decorate(
-        createTestDocument(lines),
-        createEntry(3),
-        LogArena.instance,
-      );
-      final rendered = renderLines(decorated);
-      expect(rendered.first, equals('---msg'));
+      final doc = createTestDocument(lines);
+      try {
+        decorator.decorate(
+          doc,
+          createEntry(3),
+          LogArena.instance,
+        );
+        final rendered = renderLines(doc);
+        expect(rendered.first, equals('---msg'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('preserves tags', () {
-      final doc = LogDocument(
-        nodes: <LogNode>[
-          MessageNode(
-            segments: [
-              const StyledText('content', tags: LogTag.message),
-            ],
-          ),
-        ],
+      final arena = LogArena.instance;
+      final doc = arena.checkoutDocument();
+      doc.nodes.add(
+        arena.checkoutMessage()
+          ..segments.add(const StyledText('content', tags: LogTag.message)),
       );
 
-      const decorator = HierarchyDepthPrefixDecorator();
-      final decorated =
-          decorator.decorate(doc, createEntry(1), LogArena.instance);
-      // final rendered = renderLines(decorated); // Not used
-
-      // Check if any segment has the tag
-      bool hasTag = false;
-      for (final node in decorated.nodes) {
-        if (node is MessageNode) {
-          if (node.segments.any((final s) => (s.tags & LogTag.message) != 0)) {
-            hasTag = true;
-          }
-        } else if (node is LayoutNode) {
-          for (final child in node.children) {
-            if (child is MessageNode) {
-              if (child.segments
-                  .any((final s) => (s.tags & LogTag.message) != 0)) {
-                hasTag = true;
+      try {
+        // Check if any segment has the tag
+        bool hasTag = false;
+        for (final node in doc.nodes) {
+          if (node is MessageNode) {
+            if (node.segments
+                .any((final s) => (s.tags & LogTag.message) != 0)) {
+              hasTag = true;
+            }
+          } else if (node is LayoutNode) {
+            for (final child in node.children) {
+              if (child is MessageNode) {
+                if (child.segments
+                    .any((final s) => (s.tags & LogTag.message) != 0)) {
+                  hasTag = true;
+                }
               }
             }
           }
         }
+        expect(hasTag, isTrue);
+      } finally {
+        doc.releaseRecursive(arena);
       }
-      expect(hasTag, isTrue);
     });
   });
 }

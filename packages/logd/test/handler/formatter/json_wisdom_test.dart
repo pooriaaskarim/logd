@@ -2,6 +2,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('JsonPrettyFormatter Wisdom', () {
@@ -16,11 +17,14 @@ void main() {
         error: {'id': 1, 'v': 'a'},
       );
 
-      final doc = formatter.format(entry, LogArena.instance);
-      final output = render(doc, width: 80);
-
-      // Should find "id":1 (compacted JSON doesn't always have spaces)
-      expect(output.replaceAll(' ', ''), contains('"id":1,"v":"a"'));
+      final doc = formatDoc(formatter, entry);
+      try {
+        final output = render(doc, width: 80);
+        // Should find "id":1 (compacted JSON doesn't always have spaces)
+        expect(output.replaceAll(' ', ''), contains('"id":1,"v":"a"'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('sorts keys alphabetically when sortKeys is true', () {
@@ -34,14 +38,18 @@ void main() {
         error: {'z': 1, 'a': 2},
       );
 
-      final doc = formatter.format(entry, LogArena.instance);
-      final output = render(doc, width: 80).replaceAll(' ', '');
+      final doc = formatDoc(formatter, entry);
+      try {
+        final output = render(doc, width: 80).replaceAll(' ', '');
 
-      final aIdx = output.indexOf('"a":2');
-      final zIdx = output.indexOf('"z":1');
-      expect(aIdx, isNot(-1));
-      expect(zIdx, isNot(-1));
-      expect(aIdx, lessThan(zIdx));
+        final aIdx = output.indexOf('"a":2');
+        final zIdx = output.indexOf('"z":1');
+        expect(aIdx, isNot(-1));
+        expect(zIdx, isNot(-1));
+        expect(aIdx, lessThan(zIdx));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('stacks keys above complex values exceeding threshold', () {
@@ -57,13 +65,17 @@ void main() {
         },
       );
 
-      final doc = formatter.format(entry, LogArena.instance);
-      final output = render(doc, width: 80);
+      final doc = formatDoc(formatter, entry);
+      try {
+        final output = render(doc, width: 80);
 
-      // "long_key" (length 10) > 5, so it should be followed by a newline
-      // before the next structural character '{'
-      expect(output, contains('"long_key": \n'));
-      expect(output, contains('{\n'));
+        // "long_key" (length 10) > 5, so it should be followed by a newline
+        // before the next structural character '{'
+        expect(output, contains('"long_key": \n'));
+        expect(output, contains('{\n'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('handles multiline scalars as distinct blocks', () {
@@ -77,11 +89,15 @@ void main() {
         error: {'stack': 'line 1\nline 2'},
       );
 
-      final doc = formatter.format(entry, LogArena.instance);
-      final output = render(doc, width: 80);
+      final doc = formatDoc(formatter, entry);
+      try {
+        final output = render(doc, width: 80);
 
-      expect(output, contains('line 1'));
-      expect(output, contains('line 2'));
+        expect(output, contains('line 1'));
+        expect(output, contains('line 2'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
   });
 }

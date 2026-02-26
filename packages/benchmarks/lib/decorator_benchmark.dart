@@ -17,12 +17,19 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
   void setup() {
     entry = createEntry();
     formatter = const PlainFormatter();
-    final layout = const TerminalLayout(width: 80);
-    baseLines = layout
-        .layout(formatter.format(entry, LogArena.instance), LogLevel.info)
-        .lines
-        .map((final l) => l.toString())
-        .toList(); // Pre-calculate base
+    final arena = LogArena.instance;
+    final doc = arena.checkoutDocument();
+    try {
+      formatter.format(entry, doc, arena);
+      final layout = const TerminalLayout(width: 80);
+      baseLines = layout
+          .layout(doc, LogLevel.info)
+          .lines
+          .map((final l) => l.toString())
+          .toList(); // Pre-calculate base
+    } finally {
+      doc.releaseRecursive(arena);
+    }
     decorator = createDecorator();
   }
 
@@ -30,15 +37,23 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    final nodes = baseLines
-        .map<LogNode>((final l) => MessageNode(segments: [StyledText(l)]))
-        .toList();
-    final document = LogDocument(nodes: nodes);
-    final decorated = decorator.decorate(document, entry, LogArena.instance);
+    final arena = LogArena.instance;
+    final doc = arena.checkoutDocument();
+    try {
+      for (final l in baseLines) {
+        final node = arena.checkoutMessage();
+        node.segments.add(StyledText(l));
+        doc.nodes.add(node);
+      }
 
-    final layout = const TerminalLayout(width: 80);
-    final lines = layout.layout(decorated, LogLevel.info).lines;
-    for (final _ in lines) {}
+      decorator.decorate(doc, entry, arena);
+
+      final layout = const TerminalLayout(width: 80);
+      final lines = layout.layout(doc, LogLevel.info).lines;
+      for (final _ in lines) {}
+    } finally {
+      doc.releaseRecursive(arena);
+    }
   }
 }
 

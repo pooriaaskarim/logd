@@ -17,47 +17,50 @@ void main() {
 
     test('adds rounded borders by default', () {
       const decorator = BoxDecorator();
-      final boxed = decorator.decorate(
-        createTestDocument(lines),
-        entry,
-        LogArena.instance,
-      );
-      final rendered = renderLines(boxed);
+      final doc = createTestDocument(lines);
+      try {
+        decorateDoc(decorator, doc, entry);
+        final rendered = renderLines(doc);
 
-      expect(rendered.first, startsWith('╭'));
-      expect(rendered.last, startsWith('╰'));
-      expect(rendered[1], startsWith('│'));
-      expect(rendered[1], endsWith('│'));
+        expect(rendered.first, startsWith('╭'));
+        expect(rendered.last, startsWith('╰'));
+        expect(rendered[1], startsWith('│'));
+        expect(rendered[1], endsWith('│'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('respects sharp border style', () {
       const decorator = BoxDecorator(
         borderStyle: BorderStyle.sharp,
       );
-      final boxed = decorator.decorate(
-        createTestDocument(lines),
-        entry,
-        LogArena.instance,
-      );
-      final rendered = renderLines(boxed);
+      final doc = createTestDocument(lines);
+      try {
+        decorateDoc(decorator, doc, entry);
+        final rendered = renderLines(doc);
 
-      expect(rendered.first, startsWith('┌'));
-      expect(rendered.last, startsWith('└'));
+        expect(rendered.first, startsWith('┌'));
+        expect(rendered.last, startsWith('└'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('respects double border style', () {
       const decorator = BoxDecorator(
         borderStyle: BorderStyle.double,
       );
-      final boxed = decorator.decorate(
-        createTestDocument(lines),
-        entry,
-        LogArena.instance,
-      );
-      final rendered = renderLines(boxed);
+      final doc = createTestDocument(lines);
+      try {
+        decorateDoc(decorator, doc, entry);
+        final rendered = renderLines(doc);
 
-      expect(rendered.first, startsWith('╔'));
-      expect(rendered.last, startsWith('╚'));
+        expect(rendered.first, startsWith('╔'));
+        expect(rendered.last, startsWith('╚'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
   });
 }

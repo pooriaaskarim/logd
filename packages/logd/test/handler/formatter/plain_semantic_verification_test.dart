@@ -2,6 +2,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('PlainFormatter Semantic Verification', () {
@@ -18,53 +19,61 @@ void main() {
 
     test('maintains hanging indent in normal conditions', () {
       const formatter = PlainFormatter();
-      final doc = formatter.format(entry, LogArena.instance);
+      final doc = formatDoc(formatter, entry);
 
-      // Use TerminalLayout directly to verify output
-      const layout = TerminalLayout(width: 60);
-      final lines = layout.layout(doc, LogLevel.info).lines;
+      try {
+        // Use TerminalLayout directly to verify output
+        const layout = TerminalLayout(width: 60);
+        final lines = layout.layout(doc, LogLevel.info).lines;
 
-      // Line 1: Header + Message Part 1
-      // Header: "[INFO] 2025-01-01 [test.logger] " (~31 chars)
-      expect(
-        lines[0].toString(),
-        contains('[INFO] 2025-01-01 [test.logger] Message line 1.'),
-      );
+        // Line 1: Header + Message Part 1
+        // Header: "[INFO] 2025-01-01 [test.logger] " (~31 chars)
+        expect(
+          lines[0].toString(),
+          contains('[INFO] 2025-01-01 [test.logger] Message line 1.'),
+        );
 
-      // Line 2: indentation + Message Part 2
-      // expect indentation of ~31 spaces
-      final line2 = lines[1].toString();
-      // "Message line 1. Message line" fits on line 1. " 2 is..." wraps.
-      expect(line2.trimLeft(), startsWith('2 is long enough'));
+        // Line 2: indentation + Message Part 2
+        // expect indentation of ~31 spaces
+        final line2 = lines[1].toString();
+        // "Message line 1. Message line" fits on line 1. " 2 is..." wraps.
+        expect(line2.trimLeft(), startsWith('2 is long enough'));
 
-      final indentLength = line2.length - line2.trimLeft().length;
-      expect(indentLength, greaterThanOrEqualTo(30)); // Header width
+        final indentLength = line2.length - line2.trimLeft().length;
+        expect(indentLength, greaterThanOrEqualTo(30)); // Header width
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('falls back to vertical stack in narrow width', () {
       const formatter = PlainFormatter();
-      final doc = formatter.format(entry, LogArena.instance);
+      final doc = formatDoc(formatter, entry);
 
-      // Force narrow width where header (31 chars) > available width (30)
-      const layout = TerminalLayout(width: 30);
-      final lines = layout.layout(doc, LogLevel.info).lines;
+      try {
+        // Force narrow width where header (31 chars) > available width (30)
+        const layout = TerminalLayout(width: 30);
+        final lines = layout.layout(doc, LogLevel.info).lines;
 
-      // Should NOT have big hanging indent because it falls back.
-      // Line 1: Header part 1
-      expect(lines[0].toString(), contains('[INFO]'));
+        // Should NOT have big hanging indent because it falls back.
+        // Line 1: Header part 1
+        expect(lines[0].toString(), contains('[INFO]'));
 
-      // Subsequent lines should contain message, but NOT indented by header
-      // width.
-      final msgLineIndex = lines
-          .indexWhere((final l) => l.toString().contains('Message line 1'));
-      expect(msgLineIndex, greaterThan(0));
+        // Subsequent lines should contain message, but NOT indented by header
+        // width.
+        final msgLineIndex = lines
+            .indexWhere((final l) => l.toString().contains('Message line 1'));
+        expect(msgLineIndex, greaterThan(0));
 
-      final msgLine = lines[msgLineIndex].toString();
-      expect(msgLine.trimLeft(), startsWith('Message line 1'));
+        final msgLine = lines[msgLineIndex].toString();
+        expect(msgLine.trimLeft(), startsWith('Message line 1'));
 
-      // Verify indentation is small (0 or 1 space), definitely not 30
-      final indentLength = msgLine.length - msgLine.trimLeft().length;
-      expect(indentLength, lessThan(10));
+        // Verify indentation is small (0 or 1 space), definitely not 30
+        final indentLength = msgLine.length - msgLine.trimLeft().length;
+        expect(indentLength, lessThan(10));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('calculates tab width correctly inside BoxDecorator', () {

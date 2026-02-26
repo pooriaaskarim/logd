@@ -30,14 +30,19 @@ class MultiSinkBenchmark extends BenchmarkBase {
   }
 
   void _manualPipelineRun() {
-    // ... setup context ...
+    final arena = LogArena.instance;
+    final doc = arena.checkoutDocument();
 
-    final document = handler.formatter.format(entry, LogArena.instance);
+    try {
+      handler.formatter.format(entry, doc, arena);
 
-    // Simulate MultiSink behavior
-    for (var i = 0; i < sinkCount; i++) {
-      // Just consume nodes, mimicking output()
-      for (final _ in document.nodes) {}
+      // Simulate MultiSink behavior
+      for (var i = 0; i < sinkCount; i++) {
+        // Just consume nodes, mimicking output()
+        for (final _ in doc.nodes) {}
+      }
+    } finally {
+      doc.releaseRecursive(arena);
     }
   }
 }

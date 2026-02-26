@@ -2,6 +2,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('BoxDecorator Robustness', () {
@@ -21,25 +22,28 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = formatter.format(entry, LogArena.instance);
-      final boxed = box.decorate(formatted, entry, LogArena.instance);
+      final doc = formatDoc(formatter, entry);
+      try {
+        box.decorate(doc, entry, LogArena.instance);
 
-      const layout = TerminalLayout(width: 40);
-      final physical = layout.layout(boxed, LogLevel.info);
-      final boxedLines = physical.lines;
+        const layout = TerminalLayout(width: 40);
+        final physical = layout.layout(doc, LogLevel.info);
+        final boxedLines = physical.lines;
 
-      // Check top/bottom border length
-      final topWidth = boxedLines[0].visibleLength;
+        // Check top/bottom border length
+        final topWidth = boxedLines[0].visibleLength;
 
-      for (int i = 0; i < boxedLines.length; i++) {
-        final line = boxedLines[i];
-        print('Line $i: ${line.visibleLength} chars | $line');
-        expect(
-          line.visibleLength,
-          equals(topWidth),
-          reason: 'Line \$i has inconsistent width: \${line.visibleLength}'
-              ' vs \$topWidth',
-        );
+        for (int i = 0; i < boxedLines.length; i++) {
+          final line = boxedLines[i];
+          expect(
+            line.visibleLength,
+            equals(topWidth),
+            reason: 'Line $i has inconsistent width: ${line.visibleLength}'
+                ' vs $topWidth',
+          );
+        }
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
     });
 
@@ -57,22 +61,26 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = formatter.format(entry, LogArena.instance);
-      final boxed = box.decorate(formatted, entry, LogArena.instance);
+      final doc = formatDoc(formatter, entry);
+      try {
+        box.decorate(doc, entry, LogArena.instance);
 
-      const layout = TerminalLayout(width: 30);
-      final physical = layout.layout(boxed, LogLevel.info);
-      final boxedLines = physical.lines;
+        const layout = TerminalLayout(width: 30);
+        final physical = layout.layout(doc, LogLevel.info);
+        final boxedLines = physical.lines;
 
-      // Box should have consistent width across all lines
-      final boxWidth = boxedLines[0].visibleLength;
-      for (int i = 0; i < boxedLines.length; i++) {
-        final line = boxedLines[i];
-        expect(
-          line.visibleLength,
-          equals(boxWidth),
-          reason: 'All box lines should have the same width',
-        );
+        // Box should have consistent width across all lines
+        final boxWidth = boxedLines[0].visibleLength;
+        for (int i = 0; i < boxedLines.length; i++) {
+          final line = boxedLines[i];
+          expect(
+            line.visibleLength,
+            equals(boxWidth),
+            reason: 'All box lines should have the same width',
+          );
+        }
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
     });
   });

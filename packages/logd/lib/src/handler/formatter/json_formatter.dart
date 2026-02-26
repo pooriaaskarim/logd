@@ -25,7 +25,11 @@ final class JsonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry, final LogArena arena) {
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogNodeFactory factory,
+  ) {
     final map = <String, dynamic>{
       'level': entry.level.name,
       'message': entry.message,
@@ -45,9 +49,7 @@ final class JsonFormatter implements LogFormatter {
       map['stackTrace'] = entry.stackTrace.toString();
     }
 
-    final doc = arena.checkoutDocument();
-    doc.nodes.add(arena.checkoutMap()..map = map);
-    return doc;
+    document.nodes.add(factory.checkoutMap()..map = map);
   }
 
   @override
@@ -125,7 +127,11 @@ final class JsonPrettyFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry, final LogArena arena) {
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogNodeFactory factory,
+  ) {
     final map = <String, Object?>{
       'level': entry.level.name,
       'message': entry.message,
@@ -158,12 +164,11 @@ final class JsonPrettyFormatter implements LogFormatter {
       fieldTags['stackTrace'] = LogTag.stackFrame;
     }
 
-    final doc = arena.checkoutDocument();
-    doc.nodes.addAll(_buildNodes(map, 0, fieldTags: fieldTags));
-    return doc;
+    document.nodes.addAll(_buildNodes(factory, map, 0, fieldTags: fieldTags));
   }
 
   List<LogNode> _buildNodes(
+    final LogNodeFactory factory,
     final Object? value,
     final int depth, {
     final Map<String, int>? fieldTags,
@@ -172,11 +177,10 @@ final class JsonPrettyFormatter implements LogFormatter {
   }) {
     if (depth > maxDepth) {
       return [
-        ParagraphNode(
-          children: [
-            MessageNode(segments: [const StyledText('...')]),
-          ],
-        ),
+        factory.checkoutParagraph()
+          ..children.add(
+            factory.checkoutMessage()..segments.add(const StyledText('...')),
+          ),
       ];
     }
 
@@ -185,19 +189,16 @@ final class JsonPrettyFormatter implements LogFormatter {
     final effectiveIndent = indent;
 
     if (value is Map) {
+      final header = factory.checkoutHeader()
+        ..segments.add(
+          StyledText(
+            '{',
+            tags: color ? LogTag.punctuation : LogTag.none,
+          ),
+        );
+
       final nodes = <LogNode>[
-        ParagraphNode(
-          children: [
-            HeaderNode(
-              segments: [
-                StyledText(
-                  '{',
-                  tags: color ? LogTag.punctuation : LogTag.none,
-                ),
-              ],
-            ),
-          ],
-        ),
+        factory.checkoutParagraph()..children.add(header),
       ];
 
       final entries = value.entries.toList();
@@ -228,26 +229,23 @@ final class JsonPrettyFormatter implements LogFormatter {
         if (_isSmallComposite(processedValue) &&
             keyText.visibleLength <= stackThreshold) {
           final scalarStr = _valueString(processedValue);
-          body.add(
-            ParagraphNode(
-              children: [
-                MessageNode(
-                  segments: [
-                    StyledText(keyText, tags: keyTag),
-                    StyledText(
-                      scalarStr,
-                      tags: color ? LogTag.value : LogTag.none,
-                    ),
-                    if (!isEntryLast)
-                      StyledText(
-                        ',',
-                        tags: color ? LogTag.punctuation : LogTag.none,
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          );
+          final msg = factory.checkoutMessage()
+            ..segments.add(StyledText(keyText, tags: keyTag))
+            ..segments.add(
+              StyledText(
+                scalarStr,
+                tags: color ? LogTag.value : LogTag.none,
+              ),
+            );
+          if (!isEntryLast) {
+            msg.segments.add(
+              StyledText(
+                ',',
+                tags: color ? LogTag.punctuation : LogTag.none,
+              ),
+            );
+          }
+          body.add(factory.checkoutParagraph()..children.add(msg));
           continue;
         }
 
@@ -258,14 +256,15 @@ final class JsonPrettyFormatter implements LogFormatter {
         if (keyText.visibleLength > threshold) {
           body
             ..add(
-              ParagraphNode(
-                children: [
-                  HeaderNode(segments: [StyledText(keyText, tags: keyTag)]),
-                ],
-              ),
+              factory.checkoutParagraph()
+                ..children.add(
+                  factory.checkoutHeader()
+                    ..segments.add(StyledText(keyText, tags: keyTag)),
+                ),
             )
             ..addAll(
               _buildNodes(
+                factory,
                 processedValue,
                 depth + 1,
                 fieldTags: fieldTags,
@@ -274,53 +273,53 @@ final class JsonPrettyFormatter implements LogFormatter {
             );
         } else {
           body.add(
-            DecoratedNode(
-              leadingWidth: keyText.visibleLength,
-              leading: [StyledText(keyText, tags: keyTag)],
-              repeatLeading: false,
-              children: _buildNodes(
-                processedValue,
-                depth + 1,
-                fieldTags: fieldTags,
-                currentKey: entry.key,
-                isLast: isEntryLast,
+            factory.checkoutDecorated()
+              ..leadingWidth = keyText.visibleLength
+              ..leading = [StyledText(keyText, tags: keyTag)]
+              ..repeatLeading = false
+              ..children.addAll(
+                _buildNodes(
+                  factory,
+                  processedValue,
+                  depth + 1,
+                  fieldTags: fieldTags,
+                  currentKey: entry.key,
+                  isLast: isEntryLast,
+                ),
               ),
-            ),
           );
         }
       }
 
       nodes
-        ..add(IndentationNode(indentString: effectiveIndent, children: body))
         ..add(
-          ParagraphNode(
-            children: [
-              HeaderNode(
-                segments: [
+          factory.checkoutIndentation()
+            ..indentString = effectiveIndent
+            ..children.addAll(body),
+        )
+        ..add(
+          factory.checkoutParagraph()
+            ..children.add(
+              factory.checkoutHeader()
+                ..segments.add(
                   StyledText(
                     isLast ? '}' : '},',
                     tags: color ? LogTag.punctuation : LogTag.none,
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+            ),
         );
       return nodes;
     } else if (value is List) {
+      final header = factory.checkoutHeader()
+        ..segments.add(
+          StyledText(
+            '[',
+            tags: color ? LogTag.punctuation : LogTag.none,
+          ),
+        );
       final nodes = <LogNode>[
-        ParagraphNode(
-          children: [
-            HeaderNode(
-              segments: [
-                StyledText(
-                  '[',
-                  tags: color ? LogTag.punctuation : LogTag.none,
-                ),
-              ],
-            ),
-          ],
-        ),
+        factory.checkoutParagraph()..children.add(header),
       ];
 
       final body = <LogNode>[];
@@ -332,32 +331,36 @@ final class JsonPrettyFormatter implements LogFormatter {
             : entryVal;
 
         body.add(
-          GroupNode(
-            children: _buildNodes(
-              processedValue,
-              depth + 1,
-              fieldTags: fieldTags,
-              isLast: isEntryLast,
+          factory.checkoutGroup()
+            ..children.addAll(
+              _buildNodes(
+                factory,
+                processedValue,
+                depth + 1,
+                fieldTags: fieldTags,
+                isLast: isEntryLast,
+              ),
             ),
-          ),
         );
       }
 
       nodes
-        ..add(IndentationNode(indentString: effectiveIndent, children: body))
         ..add(
-          ParagraphNode(
-            children: [
-              HeaderNode(
-                segments: [
+          factory.checkoutIndentation()
+            ..indentString = effectiveIndent
+            ..children.addAll(body),
+        )
+        ..add(
+          factory.checkoutParagraph()
+            ..children.add(
+              factory.checkoutHeader()
+                ..segments.add(
                   StyledText(
                     isLast ? ']' : '],',
                     tags: color ? LogTag.punctuation : LogTag.none,
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+            ),
         );
       return nodes;
     } else {
@@ -369,45 +372,43 @@ final class JsonPrettyFormatter implements LogFormatter {
 
       if (valStr.contains('\n')) {
         // WISDOM: Handle multiline strings as a block
+        final msg = factory.checkoutMessage()
+          ..segments.add(
+            StyledText(
+              valStr,
+              tags: valueTag,
+            ),
+          );
+        if (!isLast) {
+          msg.segments.add(
+            StyledText(
+              ',',
+              tags: color ? LogTag.punctuation : LogTag.none,
+            ),
+          );
+        }
         return [
-          ParagraphNode(
-            children: [
-              MessageNode(
-                segments: [
-                  StyledText(
-                    valStr,
-                    tags: valueTag,
-                  ),
-                  if (!isLast)
-                    StyledText(
-                      ',',
-                      tags: color ? LogTag.punctuation : LogTag.none,
-                    ),
-                ],
-              ),
-            ],
-          ),
+          factory.checkoutParagraph()..children.add(msg),
         ];
       }
 
+      final msg = factory.checkoutMessage()
+        ..segments.add(
+          StyledText(
+            valStr,
+            tags: valueTag,
+          ),
+        );
+      if (!isLast) {
+        msg.segments.add(
+          StyledText(
+            ',',
+            tags: color ? LogTag.punctuation : LogTag.none,
+          ),
+        );
+      }
       return [
-        ParagraphNode(
-          children: [
-            MessageNode(
-              segments: [
-                StyledText(
-                  valStr,
-                  tags: valueTag,
-                ),
-                if (!isLast)
-                  StyledText(
-                    ',',
-                    tags: color ? LogTag.punctuation : LogTag.none,
-                  ),
-              ],
-            ),
-          ],
-        ),
+        factory.checkoutParagraph()..children.add(msg),
       ];
     }
   }

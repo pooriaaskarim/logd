@@ -23,12 +23,11 @@ final class PlainFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(
+  void format(
     final LogEntry entry,
-    final LogArena arena,
+    final LogDocument document,
+    final LogNodeFactory factory,
   ) {
-    final doc = arena.checkoutDocument();
-
     // 1. Header Flow (Level + Metadata)
     final headerSegments = <StyledText>[
       StyledText(
@@ -53,22 +52,22 @@ final class PlainFormatter implements LogFormatter {
       (final p, final s) => p + s.text.characters.length,
     );
 
-    final msgNode = arena.checkoutMessage()
+    final msgNode = factory.checkoutMessage()
       ..segments.add(StyledText(entry.message, tags: LogTag.message));
-    final decorated = arena.checkoutDecorated()
+    final decorated = factory.checkoutDecorated()
       ..leading = headerSegments
       ..leadingWidth = headerWidth
       ..repeatLeading = false
       ..alignTrailing = false
       ..children.add(msgNode);
-    doc.nodes.add(decorated);
+    document.nodes.add(decorated);
 
     // 2. Handle Error if present
     if (entry.error != null) {
-      final errNode = arena.checkoutError()
+      final errNode = factory.checkoutError()
         ..segments.add(StyledText('Error: ${entry.error}'));
-      final para = arena.checkoutParagraph()..children.add(errNode);
-      doc.nodes.add(para);
+      final para = factory.checkoutParagraph()..children.add(errNode);
+      document.nodes.add(para);
     }
 
     // 3. Handle Stack Trace if present
@@ -76,24 +75,22 @@ final class PlainFormatter implements LogFormatter {
       for (final frame in entry.stackFrames!) {
         final text =
             'at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
-        final foot = arena.checkoutFooter()
+        final foot = factory.checkoutFooter()
           ..segments.add(StyledText(text, tags: LogTag.stackFrame));
-        final para = arena.checkoutParagraph()..children.add(foot);
-        doc.nodes.add(para);
+        final para = factory.checkoutParagraph()..children.add(foot);
+        document.nodes.add(para);
       }
     } else if (entry.stackTrace != null) {
       final traceLines = entry.stackTrace.toString().split('\n');
       for (final line in traceLines) {
         if (line.trim().isNotEmpty) {
-          final foot = arena.checkoutFooter()
+          final foot = factory.checkoutFooter()
             ..segments.add(StyledText(line, tags: LogTag.stackFrame));
-          final para = arena.checkoutParagraph()..children.add(foot);
-          doc.nodes.add(para);
+          final para = factory.checkoutParagraph()..children.add(foot);
+          document.nodes.add(para);
         }
       }
     }
-
-    return doc;
   }
 
   @override

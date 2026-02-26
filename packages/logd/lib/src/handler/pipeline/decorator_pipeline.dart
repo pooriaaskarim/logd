@@ -21,13 +21,13 @@ class DecoratorPipeline {
   /// 3. [HierarchyDepthPrefixDecorator] (indents the box)
   /// 4. [VisualDecorator] (applies styles)
   /// 5. Others (outermost)
-  LogDocument apply(
+  void apply(
     final LogDocument document,
     final LogEntry entry,
-    final LogArena arena,
+    final LogNodeFactory factory,
   ) {
     if (decorators.isEmpty) {
-      return document;
+      return;
     }
 
     // Auto-sort to ensure correct visual composition.
@@ -49,12 +49,9 @@ class DecoratorPipeline {
     final sortedDecorators =
         indexedDecorators.map((final e) => e.value).toList();
 
-    var result = document;
     for (final decorator in sortedDecorators) {
-      result = decorator.decorate(result, entry, arena);
+      decorator.decorate(document, entry, factory);
     }
-
-    return result;
   }
 
   /// Calculates the total padding width required by all decorators.

@@ -12,10 +12,15 @@ abstract interface class LogFormatter {
   /// Contextual metadata to include in the output.
   final Set<LogMetadata> metadata;
 
-  /// Formats [entry] into a [LogDocument], using [arena] to check out nodes.
+  /// Formats [entry] into the provided [document], using [factory] to check out
+  /// new nodes.
   ///
-  /// The returned document and all nodes it contains are owned by [arena].
-  /// The caller is responsible for calling [LogDocument.releaseRecursive]
-  /// after the pipeline completes.
-  LogDocument format(final LogEntry entry, final LogArena arena);
+  /// The [document] and all nodes created by the [factory] are pool-managed.
+  /// The orchestrator is responsible for releasing the document after the
+  /// pipeline completes.
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogNodeFactory factory,
+  );
 }

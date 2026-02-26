@@ -106,21 +106,25 @@ class Handler {
     }
 
     final arena = LogArena.instance;
+    final document = arena.checkoutDocument();
 
-    // 1. Format: Document production via arena checkout
-    final document = formatter.format(entry, arena);
+    try {
+      // 1. Format: Populate the document using arena as factory
+      formatter.format(entry, document, arena);
 
-    // 2. Decorate: Document transformation
-    final pipeline = DecoratorPipeline(decorators);
-    final decorated = pipeline.apply(document, entry, arena);
+      // 2. Decorate: Transform document in-place
+      if (decorators.isNotEmpty) {
+        DecoratorPipeline(decorators).apply(document, entry, arena);
+      }
 
-    // 3. Output: Emission
-    if (decorated.nodes.isNotEmpty) {
-      await sink.output(decorated, entry, entry.level);
+      // 3. Output: Emission
+      if (document.nodes.isNotEmpty) {
+        await sink.output(document, entry, entry.level);
+      }
+    } finally {
+      // 4. Deterministic release: Always return entire tree to pool
+      document.releaseRecursive(arena);
     }
-
-    // 4. Deterministic release: return entire tree to the arena pool.
-    decorated.releaseRecursive(arena);
   }
 
   @override

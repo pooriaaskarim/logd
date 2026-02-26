@@ -17,20 +17,25 @@ void main() {
 
     test('adds colors when enabled', () {
       const decorator = StyleDecorator();
-      final decorated = decorator.decorate(
-        createTestDocument(lines),
-        infoEntry,
-        LogArena.instance,
-      );
-      final rendered = renderLines(decorated);
+      final doc = createTestDocument(lines);
+      try {
+        decorator.decorate(
+          doc,
+          infoEntry,
+          LogArena.instance,
+        );
+        final rendered = renderLines(doc);
 
-      expect(rendered.length, equals(2));
-      // Just check if it contains color code and text.
-      // Info level now defaults to blue (was green)
-      expect(rendered[0], contains('\x1B[34m')); // Blue
-      expect(rendered[0], endsWith('\x1B[0m'));
-      expect(rendered[0], contains('line'));
-      expect(rendered[0], contains('1'));
+        expect(rendered.length, equals(2));
+        // Just check if it contains color code and text.
+        // Info level now defaults to blue (was green)
+        expect(rendered[0], contains('\x1B[34m')); // Blue
+        expect(rendered[0], endsWith('\x1B[0m'));
+        expect(rendered[0], contains('line'));
+        expect(rendered[0], contains('1'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('different levels have different colors', () {
@@ -46,16 +51,19 @@ void main() {
         ),
       );
 
-      final info = renderLines(
+      final infoDoc = createTestDocument(['msg']);
+      try {
+        decorator.decorate(infoDoc, infoEntry, LogArena.instance);
+        final info = renderLines(infoDoc).first;
+        expect(info, contains('\x1B[34m')); // Blue
+      } finally {
+        infoDoc.releaseRecursive(LogArena.instance);
+      }
+
+      final errorDoc = createTestDocument(['msg']);
+      try {
         decorator.decorate(
-          createTestDocument(['msg']),
-          infoEntry,
-          LogArena.instance,
-        ),
-      ).first;
-      final error = renderLines(
-        decorator.decorate(
-          createTestDocument(['msg']),
+          errorDoc,
           const LogEntry(
             loggerName: 'test',
             origin: 'test',
@@ -64,11 +72,17 @@ void main() {
             timestamp: 'now',
           ),
           LogArena.instance,
-        ),
-      ).first;
-      final warning = renderLines(
+        );
+        final error = renderLines(errorDoc).first;
+        expect(error, contains('\x1B[31m')); // Red
+      } finally {
+        errorDoc.releaseRecursive(LogArena.instance);
+      }
+
+      final warningDoc = createTestDocument(['msg']);
+      try {
         decorator.decorate(
-          createTestDocument(['msg']),
+          warningDoc,
           const LogEntry(
             loggerName: 'test',
             origin: 'test',
@@ -77,54 +91,55 @@ void main() {
             timestamp: 'now',
           ),
           LogArena.instance,
-        ),
-      ).first;
-
-      // Using default scheme: trace=green, debug=white, info=blue,
-      // warning=yellow, error=red
-      expect(info, contains('\x1B[34m')); // Blue
-      expect(error, contains('\x1B[31m')); // Red
-      expect(warning, contains('\x1B[33m')); // Yellow
+        );
+        final warning = renderLines(warningDoc).first;
+        expect(warning, contains('\x1B[33m')); // Yellow
+      } finally {
+        warningDoc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('respects custom theme (no message coloring)', () {
       const decorator = StyleDecorator(
         theme: NoMessageTheme(),
       );
-      final headerDoc = LogDocument(
-        nodes: <LogNode>[
-          MessageNode(
-            segments: [
-              const StyledText('Header 1', tags: LogTag.header),
-            ],
-          ),
-          MessageNode(
-            segments: [
-              const StyledText('Message 1', tags: LogTag.message),
-            ],
-          ),
-        ],
+      final arena = LogArena.instance;
+      final headerDoc = arena.checkoutDocument();
+      headerDoc.nodes.add(
+        arena.checkoutMessage()
+          ..segments.add(const StyledText('Header 1', tags: LogTag.header)),
+      );
+      headerDoc.nodes.add(
+        arena.checkoutMessage()
+          ..segments.add(const StyledText('Message 1', tags: LogTag.message)),
       );
 
-      final decorated = decorator.decorate(
-        headerDoc,
-        infoEntry,
-        LogArena.instance,
-      );
-      final rendered = renderLines(decorated);
+      try {
+        decorator.decorate(
+          headerDoc,
+          infoEntry,
+          arena,
+        );
+        final rendered = renderLines(headerDoc);
 
-      // Header line should have inverted color code (\x1B[7m) - defined in NoMessageTheme
-      expect(rendered[0], contains('\x1B[7m'));
-      expect(rendered[0], contains('Header'));
-      expect(rendered[0], contains('1'));
+        // Header line should have inverted color code (\x1B[7m) - defined in NoMessageTheme
+        expect(rendered[0], contains('\x1B[7m'));
+        expect(rendered[0], contains('Header'));
+        expect(rendered[0], contains('1'));
 
-      // Message line should NOT have inverted color code AND no color at all
-      // (if theme says so)
-      // NoMessageTheme doesn't apply base color to message.
-      expect(rendered[1], isNot(contains('\x1B[7m')));
-      expect(rendered[1], isNot(contains('\x1B[34m'))); // Check no blue either
-      expect(rendered[1], contains('Message'));
-      expect(rendered[1], contains('1'));
+        // Message line should NOT have inverted color code AND no color at all
+        // (if theme says so)
+        // NoMessageTheme doesn't apply base color to message.
+        expect(rendered[1], isNot(contains('\x1B[7m')));
+        expect(
+          rendered[1],
+          isNot(contains('\x1B[34m')),
+        ); // Check no blue either
+        expect(rendered[1], contains('Message'));
+        expect(rendered[1], contains('1'));
+      } finally {
+        headerDoc.releaseRecursive(arena);
+      }
     });
   });
 }

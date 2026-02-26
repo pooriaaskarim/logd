@@ -16,16 +16,16 @@ final class PrefixDecorator extends ContentDecorator {
   final LogStyle? style;
 
   @override
-  LogDocument decorate(
+  void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogArena arena,
+    final LogNodeFactory factory,
   ) {
     if (prefix.isEmpty) {
-      return document;
+      return;
     }
 
-    final node = arena.checkoutDecorated()
+    final node = factory.checkoutDecorated()
       ..leadingWidth = prefix.visibleLength
       ..leading = [StyledText(prefix, tags: LogTag.prefix, style: style)]
       ..repeatLeading = true
@@ -34,7 +34,6 @@ final class PrefixDecorator extends ContentDecorator {
     document.nodes
       ..clear()
       ..add(node);
-    return document;
   }
 
   @override

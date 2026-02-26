@@ -7,4 +7,4 @@ ____[snap.dart:10:5]
      standard log   
      message for    
      golden         
-     verification.
+     verification.  

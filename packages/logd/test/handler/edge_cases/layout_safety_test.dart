@@ -19,18 +19,22 @@ void main() {
 
       final lines = ['你好世界 🌍', 'ASCII Test'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry, LogArena.instance);
+      try {
+        box.decorate(doc, entry, LogArena.instance);
 
-      const layout = TerminalLayout(width: 40);
-      final result = layout.layout(decorated, LogLevel.info).lines;
+        const layout = TerminalLayout(width: 40);
+        final result = layout.layout(doc, LogLevel.info).lines;
 
-      final topWidth = result[0].visibleLength;
-      for (final line in result) {
-        expect(
-          line.visibleLength,
-          equals(topWidth),
-          reason: 'Line failed: $line',
-        );
+        final topWidth = result[0].visibleLength;
+        for (final line in result) {
+          expect(
+            line.visibleLength,
+            equals(topWidth),
+            reason: 'Line failed: $line',
+          );
+        }
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
     });
 
@@ -47,15 +51,20 @@ void main() {
       // Colored message
       final lines = ['\x1B[31mThis is red\x1B[0m'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry, LogArena.instance);
+      try {
+        box.decorate(doc, entry, LogArena.instance);
 
-      const layout = TerminalLayout(width: 20);
-      final result = layout.layout(decorated, LogLevel.info).lines;
+        const layout = TerminalLayout(width: 20);
+        final result = layout.layout(doc, LogLevel.info).lines;
 
-      expect(result.length, equals(4));
-      // Each wrapped line should start with red color (if preserved)
-      // Note: Current naive implementation preserves ANSI at start of each wrap
-      expect(result[1].toString(), contains('\x1B[31m'));
+        expect(result.length, equals(4));
+        // Each wrapped line should start with red color (if preserved)
+        // Note: Current naive implementation preserves ANSI at start of each
+        // wrap
+        expect(result[1].toString(), contains('\x1B[31m'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('Very long words without spaces are forced to wrap', () {
@@ -68,15 +77,19 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final doc = formatter.format(entry, LogArena.instance);
-      const layout = TerminalLayout(width: 20);
-      final lines = layout.layout(doc, LogLevel.info).lines;
-      for (final line in lines) {
-        expect(line.visibleLength, lessThanOrEqualTo(20));
+      final doc = formatDoc(formatter, entry);
+      try {
+        const layout = TerminalLayout(width: 20);
+        final lines = layout.layout(doc, LogLevel.info).lines;
+        for (final line in lines) {
+          expect(line.visibleLength, lessThanOrEqualTo(20));
+        }
+        final json = lines.map((final l) => l.toString()).join('\n');
+        expect(json, isNot(contains('"error":')));
+        expect(lines.length, greaterThan(3));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
-      final json = lines.map((final l) => l.toString()).join('\n');
-      expect(json, isNot(contains('"error":')));
-      expect(lines.length, greaterThan(3));
     });
 
     test('Malformed ANSI codes do not crash the system', () {
@@ -85,8 +98,13 @@ void main() {
       // We can use TerminalLayout to simulate rendering which calculates
       // visibleLength
       const layout = TerminalLayout(width: 80);
-      final physical = layout.layout(createTestDocument(lines), LogLevel.info);
-      expect(physical.lines.first.visibleLength, isPositive);
+      final doc = createTestDocument(lines);
+      try {
+        final physical = layout.layout(doc, LogLevel.info);
+        expect(physical.lines.first.visibleLength, isPositive);
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
   });
 }

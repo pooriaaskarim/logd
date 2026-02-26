@@ -4,6 +4,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('Null Safety & Empty Handling', () {
@@ -20,11 +21,18 @@ void main() {
         stackTrace: null,
       );
 
-      final doc = formatter.format(entry, LogArena.instance);
-      const layout = TerminalLayout(width: 80);
-      final lines = layout.layout(doc, LogLevel.info).lines;
-      expect(lines, isNotEmpty);
-      expect(lines.any((final l) => l.toString().contains('Error:')), isFalse);
+      final doc = formatDoc(formatter, entry);
+      try {
+        const layout = TerminalLayout(width: 80);
+        final lines = layout.layout(doc, LogLevel.info).lines;
+        expect(lines, isNotEmpty);
+        expect(
+          lines.any((final l) => l.toString().contains('Error:')),
+          isFalse,
+        );
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('StructuredFormatter handles very long logger name by wrapping header',
@@ -38,17 +46,21 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final doc = formatter.format(entry, LogArena.instance);
-      const layout = TerminalLayout(width: 40);
-      final lines = layout.layout(doc, LogLevel.info).lines;
-      expect(lines, isNotEmpty);
-      for (final line in lines) {
-        expect(line.visibleLength, lessThanOrEqualTo(60));
+      final doc = formatDoc(formatter, entry);
+      try {
+        const layout = TerminalLayout(width: 40);
+        final lines = layout.layout(doc, LogLevel.info).lines;
+        expect(lines, isNotEmpty);
+        for (final line in lines) {
+          expect(line.visibleLength, lessThanOrEqualTo(60));
+        }
+        expect(
+          lines.any((final l) => l.toString().contains('very_long_logge')),
+          isTrue,
+        );
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
-      expect(
-        lines.any((final l) => l.toString().contains('very_long_logge')),
-        isTrue,
-      );
     });
 
     test('BoxDecorator handles single-character or empty message gracefully',
@@ -69,18 +81,21 @@ void main() {
         timestamp: '2025-01-01 10:00:00',
       );
 
-      final formatted = handler.formatter.format(entry, LogArena.instance);
-      var document = formatted;
-      for (final decorator in handler.decorators) {
-        document = decorator.decorate(document, entry, LogArena.instance);
-      }
-      // Use TerminalLayout
-      const layout = TerminalLayout(width: 40);
-      final lines = layout.layout(document, LogLevel.info).lines;
+      final doc = formatDoc(const StructuredFormatter(), entry);
+      try {
+        for (final decorator in handler.decorators) {
+          decorator.decorate(doc, entry, LogArena.instance);
+        }
+        // Use TerminalLayout
+        const layout = TerminalLayout(width: 40);
+        final lines = layout.layout(doc, LogLevel.info).lines;
 
-      final result = resultLines(lines);
-      expect(result.length, greaterThanOrEqualTo(3)); // Box should still form
-      expect(result.any((final l) => l.contains('x')), isTrue);
+        final result = resultLines(lines);
+        expect(result.length, greaterThanOrEqualTo(3)); // Box should still form
+        expect(result.any((final l) => l.contains('x')), isTrue);
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('JsonPrettyFormatter handles null error by omitting the field', () {
@@ -94,11 +109,15 @@ void main() {
         error: null,
       );
 
-      final doc = formatter.format(entry, LogArena.instance);
-      const layout = TerminalLayout(width: 80);
-      final lines = layout.layout(doc, LogLevel.info).lines;
-      final json = lines.map((final l) => l.toString()).join('\n');
-      expect(json, isNot(contains('"error":')));
+      final doc = formatDoc(formatter, entry);
+      try {
+        const layout = TerminalLayout(width: 80);
+        final lines = layout.layout(doc, LogLevel.info).lines;
+        final json = lines.map((final l) => l.toString()).join('\n');
+        expect(json, isNot(contains('"error":')));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
   });
 }

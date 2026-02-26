@@ -83,6 +83,11 @@ base class EncodingSink extends LogSink<LogDocument> {
         width: preferredWidth,
       );
 
+      // Standard record delimiter: every record gets exactly one trailing \n
+      if (context.length > 0) {
+        context.addByte(0x0A);
+      }
+
       final data = context.takeBytes();
       if (data.isNotEmpty) {
         await delegate(data);

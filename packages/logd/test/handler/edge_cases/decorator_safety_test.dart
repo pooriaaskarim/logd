@@ -70,15 +70,19 @@ void main() {
 
       final lines = ['very long message that exceeds 5 chars'];
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry, LogArena.instance);
+      try {
+        box.decorate(doc, entry, LogArena.instance);
 
-      const layout = TerminalLayout(width: 5);
-      final boxed = layout.layout(decorated, LogLevel.info).lines;
+        const layout = TerminalLayout(width: 5);
+        final boxed = layout.layout(doc, LogLevel.info).lines;
 
-      expect(boxed, isNotEmpty);
-      final topWidth = boxed[0].visibleLength;
-      for (final line in boxed) {
-        expect(line.visibleLength, equals(topWidth));
+        expect(boxed, isNotEmpty);
+        final topWidth = boxed[0].visibleLength;
+        for (final line in boxed) {
+          expect(line.visibleLength, equals(topWidth));
+        }
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
     });
 
@@ -94,11 +98,15 @@ void main() {
 
       final lines = ['\x1B[31m\x1B[0m']; // Red color then reset
       final doc = createTestDocument(lines);
-      final decorated = box.decorate(doc, entry, LogArena.instance);
+      try {
+        box.decorate(doc, entry, LogArena.instance);
 
-      const layout = TerminalLayout(width: 20);
-      final boxed = layout.layout(decorated, LogLevel.info).lines;
-      expect(boxed, isNotEmpty);
+        const layout = TerminalLayout(width: 20);
+        final boxed = layout.layout(doc, LogLevel.info).lines;
+        expect(boxed, isNotEmpty);
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
   });
 }
@@ -117,6 +125,6 @@ final class _MemorySink extends LogSink<LogDocument> {
     final context = HandlerContext();
     encoder.encode(entry, document, level, context, width: 80);
     final output = const Utf8Decoder().convert(context.takeBytes());
-    outputs.add(output.split('\n'));
+    outputs.add(output.trimRight().split('\n'));
   }
 }

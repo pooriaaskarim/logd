@@ -36,7 +36,11 @@ final class ToonFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  LogDocument format(final LogEntry entry, final LogArena arena) {
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogNodeFactory factory,
+  ) {
     final map = <String, Object?>{};
     final columns = <String>[];
 
@@ -54,12 +58,11 @@ final class ToonFormatter implements LogFormatter {
     add('error', entry.error?.toString() ?? '');
     add('stackTrace', entry.stackTrace?.toString() ?? '');
 
-    final doc = arena.checkoutDocument()
+    document
       ..metadata['toon_array'] = arrayName
       ..metadata['toon_delimiter'] = delimiter
       ..metadata['toon_columns'] = columns;
-    doc.nodes.add(arena.checkoutMap()..map = map);
-    return doc;
+    document.nodes.add(factory.checkoutMap()..map = map);
   }
 
   @override
@@ -123,7 +126,11 @@ final class ToonPrettyFormatter implements LogFormatter {
   final int maxDepth;
 
   @override
-  LogDocument format(final LogEntry entry, final LogArena arena) {
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogNodeFactory factory,
+  ) {
     final map = <String, Object?>{};
     final columns = <String>[];
     final tags = <String, int>{};
@@ -143,7 +150,7 @@ final class ToonPrettyFormatter implements LogFormatter {
     add('error', entry.error, LogTag.error);
     add('stackTrace', entry.stackTrace, LogTag.stackFrame);
 
-    final doc = arena.checkoutDocument()
+    document
       ..metadata['toon_array'] = arrayName
       ..metadata['toon_delimiter'] = delimiter
       ..metadata['toon_columns'] = columns
@@ -151,12 +158,11 @@ final class ToonPrettyFormatter implements LogFormatter {
       ..metadata['toon_sort_keys'] = sortKeys
       ..metadata['toon_max_depth'] = maxDepth
       ..metadata['toon_color'] = color;
-    doc.nodes.add(
-      arena.checkoutMap()
+    document.nodes.add(
+      factory.checkoutMap()
         ..map = map
         ..tags = color ? LogTag.message : LogTag.none,
     );
-    return doc;
   }
 
   @override

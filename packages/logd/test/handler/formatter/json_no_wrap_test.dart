@@ -2,6 +2,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('JsonFormatter NoWrap Audit', () {
@@ -16,25 +17,24 @@ void main() {
       );
 
       // Width 10 is very small.
+      final doc = formatDoc(formatter, entryLong);
+      try {
+        const layout = TerminalLayout(width: 10);
+        final lines = layout.layout(doc, LogLevel.info).lines;
 
-      const layout = TerminalLayout(width: 10);
-      final lines = layout
-          .layout(
-            formatter.format(entryLong, LogArena.instance),
-            LogLevel.info,
-          )
-          .lines;
+        // Because it wraps paragraph-style, it might produce multiple lines
+        // if the layout engine decides to wrap the StyledText segments.
+        // However, StyledText wrapping happens in TerminalLayout, NOT in
+        // format().
+        // format() returns a ParagraphNode.
+        // So here we check tags to ensure NO noWrap tag is present.
 
-      // Because it wraps paragraph-style, it might produce multiple lines
-      // if the layout engine decides to wrap the StyledText segments.
-      // However, StyledText wrapping happens in TerminalLayout, NOT in
-      // format().
-      // format() returns a ParagraphNode.
-      // So here we check tags to ensure NO noWrap tag is present.
-
-      final segments = lines.first.segments;
-      for (final s in segments) {
-        expect((s.tags & LogTag.noWrap) == 0, isTrue);
+        final segments = lines.first.segments;
+        for (final s in segments) {
+          expect((s.tags & LogTag.noWrap) == 0, isTrue);
+        }
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
     });
   });

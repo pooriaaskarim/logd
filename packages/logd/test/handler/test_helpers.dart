@@ -1,16 +1,40 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart';
+import 'package:logd/src/logger/logger.dart';
 
 /// Helper to create a simplified LogDocument from strings.
 LogDocument createTestDocument(final List<String> lines) {
-  final nodes = lines
-      .map<LogNode>(
-        (final line) => MessageNode(
-          segments: [StyledText(line)],
-        ),
-      )
-      .toList();
-  return LogDocument(nodes: nodes);
+  final arena = LogArena.instance;
+  final doc = arena.checkoutDocument();
+  for (final line in lines) {
+    doc.nodes.add(
+      arena.checkoutMessage()..segments.add(StyledText(line)),
+    );
+  }
+  return doc;
+}
+
+/// Helper for testing formatters: checks out a doc, formats it, and returns it.
+/// REMEMBER: The caller must release the document.
+LogDocument formatDoc(
+  final LogFormatter formatter,
+  final LogEntry entry, {
+  final LogArena? arena,
+}) {
+  final a = arena ?? LogArena.instance;
+  final doc = a.checkoutDocument();
+  formatter.format(entry, doc, a);
+  return doc;
+}
+
+/// Helper for testing decorators: applies the decorator in-place.
+void decorateDoc(
+  final LogDecorator decorator,
+  final LogDocument document,
+  final LogEntry entry, {
+  final LogArena? arena,
+}) {
+  decorator.decorate(document, entry, arena ?? LogArena.instance);
 }
 
 /// Renders a LogDocument to a list of strings with ANSI codes.

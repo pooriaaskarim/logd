@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
+import '../handler/test_helpers.dart';
 import '../utils/log_snap.dart';
 
 void main() {
@@ -43,46 +46,49 @@ void main() {
           group('Formatter: $formatterName', () {
             for (final width in widths) {
               test('Width: $width', () {
-                final doc = formatter.format(
-                  currentEntry,
-                  LogArena.instance,
-                );
+                final doc = formatDoc(formatter, currentEntry);
 
-                final output = LogSnap.capture(
-                  doc,
-                  currentEntry.level,
-                  width: width,
-                  useAnsi: false, // Plain text for goldens to avoid escape code
-                  // noise
-                );
-
-                // Detect package root to avoid pollution when run from
-                // workspace root
-                final baseDir = File('lib/logd.dart').existsSync()
-                    ? 'test/regression/goldens'
-                    : 'packages/logd/test/regression/goldens';
-
-                final fileName =
-                    '${formatterName.toLowerCase()}_${entryName.toLowerCase()}'
-                    '_$width.txt';
-                final file =
-                    File('$baseDir/${formatterName.toLowerCase()}/$fileName');
-
-                if (!file.existsSync()) {
-                  file.parent
-                      .createSync(recursive: true); // Ensure directory exists
-                  file.writeAsStringSync(output);
-                  print('Generated golden: ${file.path}');
-                } else {
-                  final expected = file.readAsStringSync();
-                  expect(
-                    output,
-                    expected,
-                    reason: 'Output mismatch for $formatterName | $entryName | '
-                        '$width. '
-                        'If this is an intentional change, delete the golden'
-                        ' file and re-run.',
+                try {
+                  final output = LogSnap.capture(
+                    doc,
+                    currentEntry.level,
+                    width: width,
+                    useAnsi:
+                        false, // Plain text for goldens to avoid escape code
+                    // noise
                   );
+
+                  // Detect package root to avoid pollution when run from
+                  // workspace root
+                  final baseDir = File('lib/logd.dart').existsSync()
+                      ? 'test/regression/goldens'
+                      : 'packages/logd/test/regression/goldens';
+
+                  final fileName = '${formatterName.toLowerCase()}_'
+                      '${entryName.toLowerCase()}'
+                      '_$width.txt';
+                  final file =
+                      File('$baseDir/${formatterName.toLowerCase()}/$fileName');
+
+                  if (!file.existsSync()) {
+                    file.parent
+                        .createSync(recursive: true); // Ensure directory exists
+                    file.writeAsStringSync(output);
+                    print('Generated golden: ${file.path}');
+                  } else {
+                    final expected = file.readAsStringSync();
+                    expect(
+                      output,
+                      expected,
+                      reason:
+                          'Output mismatch for $formatterName | $entryName | '
+                          '$width. '
+                          'If this is an intentional change, delete the golden'
+                          ' file and re-run.',
+                    );
+                  }
+                } finally {
+                  doc.releaseRecursive(LogArena.instance);
                 }
               });
             }
@@ -126,31 +132,35 @@ void main() {
         final formatter = fEntry.value;
 
         test('HtmlEncoder $formatterName $entryName', () {
-          final doc = formatter.format(currentEntry, LogArena.instance);
-          final context = HandlerContext();
-          encoder.encode(currentEntry, doc, currentEntry.level, context);
-          final html = const Utf8Decoder().convert(context.takeBytes());
+          final doc = formatDoc(formatter, currentEntry);
+          try {
+            final context = HandlerContext();
+            encoder.encode(currentEntry, doc, currentEntry.level, context);
+            final html = const Utf8Decoder().convert(context.takeBytes());
 
-          // Detect package root
-          final baseDir = File('lib/logd.dart').existsSync()
-              ? 'test/regression/goldens'
-              : 'packages/logd/test/regression/goldens';
+            // Detect package root
+            final baseDir = File('lib/logd.dart').existsSync()
+                ? 'test/regression/goldens'
+                : 'packages/logd/test/regression/goldens';
 
-          final fileName = 'html_${formatterName}_$entryName.html';
-          final file = File('$baseDir/html/$fileName');
+            final fileName = 'html_${formatterName}_$entryName.html';
+            final file = File('$baseDir/html/$fileName');
 
-          if (!file.existsSync()) {
-            file.parent.createSync(recursive: true);
-            file.writeAsStringSync(html);
-            print('Generated HTML golden: ${file.path}');
-          } else {
-            final expected = file.readAsStringSync();
-            expect(
-              html,
-              expected,
-              reason: 'HTML output mismatch for $formatterName | $entryName. '
-                  'If intentional, delete the golden file and re-run.',
-            );
+            if (!file.existsSync()) {
+              file.parent.createSync(recursive: true);
+              file.writeAsStringSync(html);
+              print('Generated HTML golden: ${file.path}');
+            } else {
+              final expected = file.readAsStringSync();
+              expect(
+                html,
+                expected,
+                reason: 'HTML output mismatch for $formatterName | $entryName. '
+                    'If intentional, delete the golden file and re-run.',
+              );
+            }
+          } finally {
+            doc.releaseRecursive(LogArena.instance);
           }
         });
       }

@@ -16,21 +16,35 @@ void main() {
 
     test('formats basic entry correctly with default metadata', () {
       const formatter = PlainFormatter();
-      final lines = renderLines(formatter.format(entry, LogArena.instance));
+      final arena = LogArena.instance;
+      final doc = arena.checkoutDocument();
+      try {
+        formatter.format(entry, doc, arena);
+        final lines = renderLines(doc);
 
-      expect(lines.length, equals(1));
-      expect(
-        lines.first,
-        equals('[INFO] 2025-01-01 12:00:00 [test.logger] Hello World'),
-      );
+        expect(lines.length, equals(1));
+        expect(
+          lines.first,
+          equals('[INFO] 2025-01-01 12:00:00 [test.logger] Hello World'),
+        );
+      } finally {
+        doc.releaseRecursive(arena);
+      }
     });
 
     test('can select metadata', () {
       const formatter = PlainFormatter(metadata: {LogMetadata.logger});
-      final lines = renderLines(formatter.format(entry, LogArena.instance));
+      final arena = LogArena.instance;
+      final doc = arena.checkoutDocument();
+      try {
+        formatter.format(entry, doc, arena);
+        final lines = renderLines(doc);
 
-      // [INFO] is mandatory
-      expect(lines.first, equals('[INFO] [test.logger] Hello World'));
+        // [INFO] is mandatory
+        expect(lines.first, equals('[INFO] [test.logger] Hello World'));
+      } finally {
+        doc.releaseRecursive(arena);
+      }
     });
 
     test('includes error and stack trace', () {
@@ -48,13 +62,18 @@ void main() {
         metadata: {LogMetadata.logger},
       );
 
-      final lines = renderLines(
-        formatter.format(errorEntry, LogArena.instance),
-      );
+      final arena = LogArena.instance;
+      final doc = arena.checkoutDocument();
+      try {
+        formatter.format(errorEntry, doc, arena);
+        final lines = renderLines(doc);
 
-      expect(lines.length, equals(3));
-      expect(lines[1], equals('Error: Some error'));
-      expect(lines[2], contains('stack line 1'));
+        expect(lines.length, equals(3));
+        expect(lines[1], equals('Error: Some error'));
+        expect(lines[2], contains('stack line 1'));
+      } finally {
+        doc.releaseRecursive(arena);
+      }
     });
   });
 }

@@ -10,10 +10,15 @@ class MockFormatter implements LogFormatter {
   @override
   final Set<LogMetadata> metadata;
 
-  final LogDocument Function(LogEntry) formatFn;
+  final void Function(LogEntry, LogDocument, LogNodeFactory) formatFn;
+
   @override
-  LogDocument format(final LogEntry entry, final LogArena arena) =>
-      formatFn(entry);
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogNodeFactory factory,
+  ) =>
+      formatFn(entry, document, factory);
 }
 
 final class MockSink extends LogSink<LogDocument> {
@@ -47,7 +52,11 @@ void main() {
     setUp(() {
       sink = MockSink();
       formatter = MockFormatter(
-        (final entry) => createTestDocument(['formatted: ${entry.message}']),
+        (final entry, final doc, final factory) {
+          final node = factory.checkoutMessage();
+          node.segments.add(StyledText('formatted: ${entry.message}'));
+          doc.nodes.add(node);
+        },
       );
       testEntry = LogEntry(
         loggerName: 'test',
@@ -67,10 +76,9 @@ void main() {
       expect(sink.levels.first, equals(LogLevel.info));
     });
 
-    test('Handler skips sink if formatter returns empty list', () async {
-      // LogDocument with no nodes is considered "empty" in a way?
-      // Handler implementation checks `if (document.nodes.isNotEmpty)`.
-      final emptyFormatter = MockFormatter((final _) => LogDocument(nodes: []));
+    test('Handler skips sink if formatter returns no nodes', () async {
+      // LogDocument with no nodes is considered "empty"
+      final emptyFormatter = MockFormatter((final _, final __, final ___) {});
       final handler = Handler(formatter: emptyFormatter, sink: sink);
       await handler.log(testEntry);
 

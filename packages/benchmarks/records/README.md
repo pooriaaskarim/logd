@@ -15,6 +15,7 @@ The following table tracks the performance evolution of the `logd` handler archi
 | **M4** | `b943c05` | Final Release Candidate | **136.3** | **411.3** | **262.1** |
 | **M5** | `eb6cd11` | LogArena Pooling | 139.4 | 423.4 | **241.8** |
 | **M6** | `eb6cd11` | Buffer Stream | 164.8 | 438.8 | 275.1 |
+| **M7** | `HEAD` | Final Handler Refactor | 145.0 | 421.1 | 263.8 |
 
 *\*Legacy JSON utilized raw `jsonEncode` without semantic layout support.*
 
@@ -27,6 +28,7 @@ The following table tracks the performance evolution of the `logd` handler archi
 - [Milestone 4: Final Release Candidate](./milestone_4_final_release.md)
 - [Milestone 5: LogArena Pooling](./milestone_5_arena_pooling.md)
 - [Milestone 6: Buffer Stream Pipeline](./milestone_6_buffer_stream.md)
+- [Milestone 7: Final Handler Refactor](./milestone_7_final_refactor.md)
 
 ## Usage & Maintenance
 

@@ -21,18 +21,17 @@ final class StructuredFormatter implements LogFormatter {
   @override
   final Set<LogMetadata> metadata;
   @override
-  LogDocument format(
+  void format(
     final LogEntry entry,
-    final LogArena arena,
+    final LogDocument document,
+    final LogNodeFactory factory,
   ) {
-    final doc = arena.checkoutDocument();
-
     // 1. Phased Header (Legacy 1.0 Style: 3 separate lines)
 
     // Phase 1: Timestamp
     if (metadata.contains(LogMetadata.timestamp)) {
-      doc.nodes.add(
-        _buildHeaderNode(arena, [
+      document.nodes.add(
+        _buildHeaderNode(factory, [
           StyledText(
             entry.timestamp,
             tags: LogTag.timestamp | LogTag.header,
@@ -58,12 +57,12 @@ final class StructuredFormatter implements LogFormatter {
           ),
         );
     }
-    doc.nodes.add(_buildHeaderNode(arena, levelLoggerSegments));
+    document.nodes.add(_buildHeaderNode(factory, levelLoggerSegments));
 
     // Phase 3: Origin
     if (metadata.contains(LogMetadata.origin)) {
-      doc.nodes.add(
-        _buildHeaderNode(arena, [
+      document.nodes.add(
+        _buildHeaderNode(factory, [
           StyledText(
             '[${entry.origin}]',
             tags: LogTag.origin | LogTag.header,
@@ -73,27 +72,27 @@ final class StructuredFormatter implements LogFormatter {
     }
 
     // 2. Body (----| Message)
-    final msgNode = arena.checkoutMessage()
+    final msgNode = factory.checkoutMessage()
       ..segments.add(StyledText(entry.message));
-    final msgPara = arena.checkoutParagraph()..children.add(msgNode);
-    final msgDecorated = arena.checkoutDecorated()
+    final msgPara = factory.checkoutParagraph()..children.add(msgNode);
+    final msgDecorated = factory.checkoutDecorated()
       ..leadingWidth = 5
       ..leadingHint = DecorationHint.structuredMessage
       ..leading = const [StyledText('----|', tags: LogTag.header)]
       ..children.add(msgPara);
-    doc.nodes.add(msgDecorated);
+    document.nodes.add(msgDecorated);
 
     // 3. Error
     if (entry.error != null) {
-      final errNode = arena.checkoutError()
+      final errNode = factory.checkoutError()
         ..segments.add(StyledText('Error: ${entry.error}'));
-      final errPara = arena.checkoutParagraph()..children.add(errNode);
-      final errDecorated = arena.checkoutDecorated()
+      final errPara = factory.checkoutParagraph()..children.add(errNode);
+      final errDecorated = factory.checkoutDecorated()
         ..leadingWidth = 5
         ..leadingHint = DecorationHint.structuredMessage
         ..leading = const [StyledText('----|', tags: LogTag.header)]
         ..children.add(errPara);
-      doc.nodes.add(errDecorated);
+      document.nodes.add(errDecorated);
     }
 
     // 4. Stack Trace
@@ -101,15 +100,15 @@ final class StructuredFormatter implements LogFormatter {
       for (final frame in entry.stackFrames!) {
         final text =
             'at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
-        final foot = arena.checkoutFooter()
+        final foot = factory.checkoutFooter()
           ..segments.add(StyledText(text, tags: LogTag.stackFrame));
-        final para = arena.checkoutParagraph()..children.add(foot);
-        final d = arena.checkoutDecorated()
+        final para = factory.checkoutParagraph()..children.add(foot);
+        final d = factory.checkoutDecorated()
           ..leadingWidth = 5
           ..leadingHint = DecorationHint.structuredMessage
           ..leading = const [StyledText('----|', tags: LogTag.header)]
           ..children.add(para);
-        doc.nodes.add(d);
+        document.nodes.add(d);
       }
     } else if (entry.stackTrace != null) {
       final rawLines = entry.stackTrace.toString().split('\n');
@@ -117,33 +116,31 @@ final class StructuredFormatter implements LogFormatter {
         if (raw.trim().isEmpty) {
           continue;
         }
-        final foot = arena.checkoutFooter()
+        final foot = factory.checkoutFooter()
           ..segments.add(StyledText(raw, tags: LogTag.stackFrame));
-        final para = arena.checkoutParagraph()..children.add(foot);
-        final d = arena.checkoutDecorated()
+        final para = factory.checkoutParagraph()..children.add(foot);
+        final d = factory.checkoutDecorated()
           ..leadingWidth = 5
           ..leadingHint = DecorationHint.structuredMessage
           ..leading = const [StyledText('----|', tags: LogTag.header)]
           ..children.add(para);
-        doc.nodes.add(d);
+        document.nodes.add(d);
       }
     }
-
-    return doc;
   }
 
   LogNode _buildHeaderNode(
-    final LogArena arena,
+    final LogNodeFactory factory,
     final List<StyledText> segments,
   ) {
-    final header = arena.checkoutHeader()..segments.addAll(segments);
-    final filler = arena.checkoutFiller()
+    final header = factory.checkoutHeader()..segments.addAll(segments);
+    final filler = factory.checkoutFiller()
       ..char = '_'
       ..tags = LogTag.header;
-    final row = arena.checkoutRow()
+    final row = factory.checkoutRow()
       ..children.add(header)
       ..children.add(filler);
-    return arena.checkoutDecorated()
+    return factory.checkoutDecorated()
       ..leadingWidth = 4
       ..leadingHint = DecorationHint.structuredHeader
       ..leading = const [StyledText('____', tags: LogTag.header)]

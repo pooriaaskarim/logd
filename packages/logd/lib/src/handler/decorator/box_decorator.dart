@@ -32,12 +32,12 @@ final class BoxDecorator extends StructuralDecorator {
   final BorderStyle borderStyle;
 
   @override
-  LogDocument decorate(
+  void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogArena arena,
+    final LogNodeFactory factory,
   ) {
-    final box = arena.checkoutBox()
+    final box = factory.checkoutBox()
       ..border = borderStyle
       ..style = null
       ..children.addAll(document.nodes);
@@ -45,7 +45,6 @@ final class BoxDecorator extends StructuralDecorator {
     document.nodes
       ..clear()
       ..add(box);
-    return document;
   }
 
   @override

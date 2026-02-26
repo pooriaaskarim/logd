@@ -67,7 +67,9 @@ class ToonEncoder implements LogEncoder {
       } else {
         context.writeString(node.toString());
       }
-      context.addByte(0x0A); // '\n'
+      if (i < nodes.length - 1) {
+        context.addByte(0x0A); // '\n'
+      }
     }
   }
 

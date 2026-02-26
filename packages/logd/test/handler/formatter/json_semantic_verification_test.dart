@@ -2,6 +2,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('JsonPrettyFormatter Semantic Verification', () {
@@ -29,31 +30,33 @@ void main() {
       );
 
       const formatter = JsonPrettyFormatter(color: true);
-      final doc = formatter.format(entry, LogArena.instance);
+      final doc = formatDoc(formatter, entry);
+      try {
+        // Verify structure via lines (end-to-end)
+        const layout = TerminalLayout(width: 80);
+        final lines = layout.layout(doc, LogLevel.info).lines;
+        final output = lines.join('\n');
 
-      // Verify structure via lines (end-to-end)
-      // Verify structure via lines (end-to-end)
-      const layout = TerminalLayout(width: 80);
-      final lines = layout.layout(doc, LogLevel.info).lines;
-      final output = lines.join('\n');
+        expect(output, contains('  "level1": {'));
+        expect(output, contains('    "level2": {'));
+        expect(output, contains('      "level3": "value",'));
+        expect(output, contains('      "list": ['));
+        expect(output, contains('        1,'));
+        expect(output, contains('        2,'));
+        expect(output, contains('        {'));
+        expect(output, contains('"nested":'));
+        expect(output, contains('true'));
 
-      expect(output, contains('  "level1": {'));
-      expect(output, contains('    "level2": {'));
-      expect(output, contains('      "level3": "value",'));
-      expect(output, contains('      "list": ['));
-      expect(output, contains('        1,'));
-      expect(output, contains('        2,'));
-      expect(output, contains('        {'));
-      expect(output, contains('"nested":'));
-      expect(output, contains('true'));
-
-      // Verify tags on a specific line
-      final keyLine =
-          lines.firstWhere((final l) => l.toString().contains('"level1":'));
-      expect(
-        keyLine.segments.any((final s) => (s.tags & LogTag.key) != 0),
-        isTrue,
-      );
+        // Verify tags on a specific line
+        final keyLine =
+            lines.firstWhere((final l) => l.toString().contains('"level1":'));
+        expect(
+          keyLine.segments.any((final s) => (s.tags & LogTag.key) != 0),
+          isTrue,
+        );
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('hanging indent for long values via DecoratedNode', () {
@@ -72,38 +75,28 @@ void main() {
 
       // Use a narrow width to force wrapping
       const formatter = JsonPrettyFormatter();
-      final doc = formatter.format(entry, LogArena.instance);
+      final doc = formatDoc(formatter, entry);
+      try {
+        // Use helper to simulate terminal
+        const layout = TerminalLayout(width: 30);
+        final lines = layout
+            .layout(doc, LogLevel.info)
+            .lines
+            .map((final l) => l.toString())
+            .toList();
 
-      // Use helper to simulate terminal
-      // But verify logic relied on spaces...
-      // renderLines produces ANSI strings.
-      // But if formatting uses SPACES for indentation, they are in the string.
-      // We need to match legacy behavior which might have used 'asLines'.
-      // If we use TerminalLayout with width 30:
-      const layout = TerminalLayout(width: 30);
-      final lines = layout
-          .layout(doc, LogLevel.info)
-          .lines
-          .map((final l) => l.toString())
-          .toList();
-
-      /*
-      Expected (approximate):
-      {
-        "longKey": "This is a very
-                   long text..."
-      }
-      */
-
-      for (final line in lines) {
-        if (line.contains('long text')) {
-          // Continuation lines should be indented by '  "longKey": '.length
-          // spaces
-          expect(
-            line.startsWith('           '),
-            isTrue,
-          );
+        for (final line in lines) {
+          if (line.contains('long text')) {
+            // Continuation lines should be indented by '  "longKey": '.length
+            // spaces
+            expect(
+              line.startsWith('           '),
+              isTrue,
+            );
+          }
         }
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
     });
   });

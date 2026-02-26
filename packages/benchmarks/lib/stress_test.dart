@@ -48,15 +48,20 @@ Metrics profilePipeline(
 
   // Warmup
   for (int i = 0; i < 1000; i++) {
-    var doc = formatter.format(entry, LogArena.instance);
-    for (final decorator in decorators) {
-      doc = decorator.decorate(doc, entry, LogArena.instance);
+    final arena = LogArena.instance;
+    final doc = arena.checkoutDocument();
+    try {
+      formatter.format(entry, doc, arena);
+      for (final decorator in decorators) {
+        decorator.decorate(doc, entry, arena);
+      }
+      final physical = layout.layout(doc, entry.level);
+      for (final line in physical.lines) {
+        line.toString();
+      }
+    } finally {
+      doc.releaseRecursive(arena);
     }
-    final physical = layout.layout(doc, entry.level);
-    for (final line in physical.lines) {
-      line.toString();
-    }
-    doc.releaseRecursive(LogArena.instance);
   }
 
   // Memory baseline
@@ -70,17 +75,22 @@ Metrics profilePipeline(
     iterWatch.reset();
     iterWatch.start();
 
-    var doc = formatter.format(entry, LogArena.instance);
-    for (final decorator in decorators) {
-      doc = decorator.decorate(doc, entry, LogArena.instance);
-    }
+    final arena = LogArena.instance;
+    final doc = arena.checkoutDocument();
+    try {
+      formatter.format(entry, doc, arena);
+      for (final decorator in decorators) {
+        decorator.decorate(doc, entry, arena);
+      }
 
-    // Simulate physical layout and encoding
-    final physical = layout.layout(doc, entry.level);
-    for (final line in physical.lines) {
-      line.toString();
+      // Simulate physical layout and encoding
+      final physical = layout.layout(doc, entry.level);
+      for (final line in physical.lines) {
+        line.toString();
+      }
+    } finally {
+      doc.releaseRecursive(arena);
     }
-    doc.releaseRecursive(LogArena.instance);
 
     iterWatch.stop();
     latencies.add(iterWatch.elapsedMicroseconds);

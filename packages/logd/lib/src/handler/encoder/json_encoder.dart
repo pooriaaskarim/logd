@@ -65,6 +65,5 @@ class JsonEncoder implements LogEncoder {
         list.length == 1 ? list.first : list,
       ),
     );
-    context.addByte(0x0A); // '\n'
   }
 }

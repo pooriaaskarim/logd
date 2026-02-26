@@ -1,5 +1,54 @@
 part of '../handler.dart';
 
+/// A factory for checking out poolable log nodes.
+///
+/// This interface allows components like [LogFormatter] and [LogDecorator]
+/// to create new segments of a [LogDocument] without direct dependency on
+/// the management logic of [LogArena].
+abstract interface class LogNodeFactory {
+  /// Checks out a [HeaderNode] from the pool, or allocates a fresh one.
+  HeaderNode checkoutHeader();
+
+  /// Checks out a [MessageNode] from the pool, or allocates a fresh one.
+  MessageNode checkoutMessage();
+
+  /// Checks out an [ErrorNode] from the pool, or allocates a fresh one.
+  ErrorNode checkoutError();
+
+  /// Checks out a [FooterNode] from the pool, or allocates a fresh one.
+  FooterNode checkoutFooter();
+
+  /// Checks out a [MetadataNode] from the pool, or allocates a fresh one.
+  MetadataNode checkoutMetadata();
+
+  /// Checks out a [BoxNode] from the pool, or allocates a fresh one.
+  BoxNode checkoutBox();
+
+  /// Checks out an [IndentationNode] from the pool, or allocates a fresh one.
+  IndentationNode checkoutIndentation();
+
+  /// Checks out a [GroupNode] from the pool, or allocates a fresh one.
+  GroupNode checkoutGroup();
+
+  /// Checks out a [DecoratedNode] from the pool, or allocates a fresh one.
+  DecoratedNode checkoutDecorated();
+
+  /// Checks out a [ParagraphNode] from the pool, or allocates a fresh one.
+  ParagraphNode checkoutParagraph();
+
+  /// Checks out a [RowNode] from the pool, or allocates a fresh one.
+  RowNode checkoutRow();
+
+  /// Checks out a [FillerNode] from the pool, or allocates a fresh one.
+  FillerNode checkoutFiller();
+
+  /// Checks out a [MapNode] from the pool, or allocates a fresh one.
+  MapNode checkoutMap();
+
+  /// Checks out a [ListNode] from the pool, or allocates a fresh one.
+  ListNode checkoutList();
+}
+
 /// An isolate-local LIFO object pool for the log pipeline.
 ///
 /// [LogArena] eliminates heap churn during steady-state logging by
@@ -20,7 +69,7 @@ part of '../handler.dart';
 ///   decorators receive the arena only to create new nodes.
 /// - This class is **not** thread-safe. Isolate isolation is the safety
 ///   boundary.
-class LogArena {
+class LogArena implements LogNodeFactory {
   // Private constructor; use [instance] for isolate-local access.
   LogArena._();
 
@@ -56,60 +105,74 @@ class LogArena {
       _documents.isNotEmpty ? _documents.removeLast() : LogDocument._pooled();
 
   /// Checks out a [HeaderNode] from the pool, or allocates a fresh one.
+  @override
   HeaderNode checkoutHeader() =>
       _headers.isNotEmpty ? _headers.removeLast() : HeaderNode._pooled();
 
   /// Checks out a [MessageNode] from the pool, or allocates a fresh one.
+  @override
   MessageNode checkoutMessage() =>
       _messages.isNotEmpty ? _messages.removeLast() : MessageNode._pooled();
 
   /// Checks out an [ErrorNode] from the pool, or allocates a fresh one.
+  @override
   ErrorNode checkoutError() =>
       _errors.isNotEmpty ? _errors.removeLast() : ErrorNode._pooled();
 
   /// Checks out a [FooterNode] from the pool, or allocates a fresh one.
+  @override
   FooterNode checkoutFooter() =>
       _footers.isNotEmpty ? _footers.removeLast() : FooterNode._pooled();
 
   /// Checks out a [MetadataNode] from the pool, or allocates a fresh one.
+  @override
   MetadataNode checkoutMetadata() => _metadataNodes.isNotEmpty
       ? _metadataNodes.removeLast()
       : MetadataNode._pooled();
 
   /// Checks out a [BoxNode] from the pool, or allocates a fresh one.
+  @override
   BoxNode checkoutBox() =>
       _boxes.isNotEmpty ? _boxes.removeLast() : BoxNode._pooled();
 
   /// Checks out an [IndentationNode] from the pool, or allocates a fresh one.
+  @override
   IndentationNode checkoutIndentation() =>
       _indents.isNotEmpty ? _indents.removeLast() : IndentationNode._pooled();
 
   /// Checks out a [GroupNode] from the pool, or allocates a fresh one.
+  @override
   GroupNode checkoutGroup() =>
       _groups.isNotEmpty ? _groups.removeLast() : GroupNode._pooled();
 
   /// Checks out a [DecoratedNode] from the pool, or allocates a fresh one.
+  @override
   DecoratedNode checkoutDecorated() =>
       _decorated.isNotEmpty ? _decorated.removeLast() : DecoratedNode._pooled();
 
   /// Checks out a [ParagraphNode] from the pool, or allocates a fresh one.
+  @override
   ParagraphNode checkoutParagraph() => _paragraphs.isNotEmpty
       ? _paragraphs.removeLast()
       : ParagraphNode._pooled();
 
   /// Checks out a [RowNode] from the pool, or allocates a fresh one.
+  @override
   RowNode checkoutRow() =>
       _rows.isNotEmpty ? _rows.removeLast() : RowNode._pooled();
 
   /// Checks out a [FillerNode] from the pool, or allocates a fresh one.
+  @override
   FillerNode checkoutFiller() =>
       _fillers.isNotEmpty ? _fillers.removeLast() : FillerNode._pooled();
 
   /// Checks out a [MapNode] from the pool, or allocates a fresh one.
+  @override
   MapNode checkoutMap() =>
       _maps.isNotEmpty ? _maps.removeLast() : MapNode._pooled();
 
   /// Checks out a [ListNode] from the pool, or allocates a fresh one.
+  @override
   ListNode checkoutList() =>
       _lists.isNotEmpty ? _lists.removeLast() : ListNode._pooled();
 

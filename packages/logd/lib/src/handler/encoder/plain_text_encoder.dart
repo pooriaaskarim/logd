@@ -36,9 +36,11 @@ class PlainTextEncoder implements LogEncoder {
     final physicalDoc = layoutEngine.layout(document, level);
 
     // 2. Encode
-    for (final line in physicalDoc.lines) {
-      context.writeString(line.toString());
-      context.addByte(0x0A); // '\n'
+    for (int i = 0; i < physicalDoc.lines.length; i++) {
+      context.writeString(physicalDoc.lines[i].toString());
+      if (i < physicalDoc.lines.length - 1) {
+        context.addByte(0x0A); // '\n'
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('ToonFormatter', () {
@@ -16,35 +17,44 @@ void main() {
 
     test('Output header once then rows with TAB delimiter (default)', () {
       const formatter = ToonFormatter();
-      final doc = formatter.format(entry, LogArena.instance);
-      final lines = renderToon(doc, entry, LogLevel.info);
+      final doc = formatDoc(formatter, entry);
+      try {
+        final lines = renderToon(doc, entry, LogLevel.info);
 
-      // Header includes: timestamp,logger,origin,level,message,error,stackTrace
-      expect(lines.length, equals(2));
-      expect(
-        lines[0],
-        equals(
-          'logs[]{timestamp,logger,origin,level,message,error,stackTrace}:',
-        ),
-      );
+        // Header includes: timestamp,logger,origin,level,message,error,
+        // stackTrace
+        expect(lines.length, equals(2));
+        expect(
+          lines[0],
+          equals(
+            'logs[]{timestamp,logger,origin,level,message,error,stackTrace}:',
+          ),
+        );
 
-      // Row
-      expect(
-        lines[1],
-        equals('"2025-01-01T10:00:00Z"\ttest\ttest\tINFO\tmsg\t\t'),
-      );
+        // Row
+        expect(
+          lines[1],
+          equals('"2025-01-01T10:00:00Z"\ttest\ttest\tINFO\tmsg\t\t'),
+        );
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('Respects custom metadata selection', () {
       const formatter = ToonFormatter(metadata: {LogMetadata.logger});
-      final doc = formatter.format(entry, LogArena.instance);
-      final lines = renderToon(doc, entry, LogLevel.info);
+      final doc = formatDoc(formatter, entry);
+      try {
+        final lines = renderToon(doc, entry, LogLevel.info);
 
-      expect(
-        lines[0],
-        equals('logs[]{logger,level,message,error,stackTrace}:'),
-      );
-      expect(lines[1], equals('test\tINFO\tmsg\t\t'));
+        expect(
+          lines[0],
+          equals('logs[]{logger,level,message,error,stackTrace}:'),
+        );
+        expect(lines[1], equals('test\tINFO\tmsg\t\t'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('ToonPrettyFormatter recursively formats Map/List', () {
@@ -61,10 +71,14 @@ void main() {
         },
       );
 
-      final doc = formatter.format(complexEntry, LogArena.instance);
-      final lines = renderToon(doc, complexEntry, LogLevel.info);
-      // INFO \t msg \t {a:1,b:[2,3]} \t
-      expect(lines[1], contains('{a:1,b:[2,3]}'));
+      final doc = formatDoc(formatter, complexEntry);
+      try {
+        final lines = renderToon(doc, complexEntry, LogLevel.info);
+        // INFO \t msg \t {a:1,b:[2,3]} \t
+        expect(lines[1], contains('{a:1,b:[2,3]}'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('ToonPrettyFormatter respects sortKeys', () {
@@ -78,9 +92,13 @@ void main() {
         error: {'z': 1, 'a': 2},
       );
 
-      final doc = formatter.format(complexEntry, LogArena.instance);
-      final lines = renderToon(doc, complexEntry, LogLevel.info);
-      expect(lines[1], contains('{a:2,z:1}'));
+      final doc = formatDoc(formatter, complexEntry);
+      try {
+        final lines = renderToon(doc, complexEntry, LogLevel.info);
+        expect(lines[1], contains('{a:2,z:1}'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('ToonPrettyFormatter respects maxDepth', () {
@@ -96,9 +114,13 @@ void main() {
         },
       );
 
-      final doc = formatter.format(complexEntry, LogArena.instance);
-      final lines = renderToon(doc, complexEntry, LogLevel.info);
-      expect(lines[1], contains('{a:...}'));
+      final doc = formatDoc(formatter, complexEntry);
+      try {
+        final lines = renderToon(doc, complexEntry, LogLevel.info);
+        expect(lines[1], contains('{a:...}'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
   });
 }

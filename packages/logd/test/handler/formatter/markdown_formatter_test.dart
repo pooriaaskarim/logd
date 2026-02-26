@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+import '../test_helpers.dart';
 
 void main() {
   group('MarkdownFormatter', () {
@@ -16,22 +17,23 @@ void main() {
         origin: 'test.dart:42',
       );
 
-      final document = formatter.format(
-        entry,
-        LogArena.instance,
-      );
+      final document = formatDoc(formatter, entry);
 
-      expect(document.nodes, hasLength(2));
-      expect(document.nodes[0], isA<HeaderNode>());
-      expect(document.nodes[1], isA<MessageNode>());
+      try {
+        expect(document.nodes, hasLength(2));
+        expect(document.nodes[0], isA<HeaderNode>());
+        expect(document.nodes[1], isA<MessageNode>());
 
-      const encoder = MarkdownEncoder();
-      final context = HandlerContext();
-      encoder.encode(entry, document, LogLevel.info, context);
-      final output = const Utf8Decoder().convert(context.takeBytes());
+        const encoder = MarkdownEncoder();
+        final context = HandlerContext();
+        encoder.encode(entry, document, LogLevel.info, context);
+        final output = const Utf8Decoder().convert(context.takeBytes());
 
-      expect(output, contains('### ℹ️ INFO'));
-      expect(output, contains('**Hello Markdown**'));
+        expect(output, contains('### ℹ️ INFO'));
+        expect(output, contains('**Hello Markdown**'));
+      } finally {
+        document.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('structures error and stack trace with collapsible tags', () {
@@ -45,27 +47,27 @@ void main() {
         stackTrace: StackTrace.fromString('line 1\nline 2'),
       );
 
-      final document = formatter.format(
-        entry,
-        LogArena.instance,
-      );
+      final document = formatDoc(formatter, entry);
+      try {
+        expect(document.nodes, hasLength(4));
+        expect(document.nodes[2], isA<ErrorNode>());
+        expect(document.nodes[3], isA<FooterNode>());
+        expect((document.nodes[3].tags & LogTag.collapsible) != 0, isTrue);
 
-      expect(document.nodes, hasLength(4));
-      expect(document.nodes[2], isA<ErrorNode>());
-      expect(document.nodes[3], isA<FooterNode>());
-      expect((document.nodes[3].tags & LogTag.collapsible) != 0, isTrue);
+        const encoder = MarkdownEncoder();
+        final context = HandlerContext();
+        encoder.encode(entry, document, LogLevel.error, context);
+        final output = const Utf8Decoder().convert(context.takeBytes());
 
-      const encoder = MarkdownEncoder();
-      final context = HandlerContext();
-      encoder.encode(entry, document, LogLevel.error, context);
-      final output = const Utf8Decoder().convert(context.takeBytes());
-
-      expect(output, contains('### ❌ ERROR'));
-      expect(output, contains('> [!ERROR]'));
-      expect(output, contains('<details>'));
-      expect(output, contains('<summary>Stack Trace</summary>'));
-      expect(output, contains('```'));
-      expect(output, contains('line 1'));
+        expect(output, contains('### ❌ ERROR'));
+        expect(output, contains('> [!ERROR]'));
+        expect(output, contains('<details>'));
+        expect(output, contains('<summary>Stack Trace</summary>'));
+        expect(output, contains('```'));
+        expect(output, contains('line 1'));
+      } finally {
+        document.releaseRecursive(LogArena.instance);
+      }
     });
   });
 }

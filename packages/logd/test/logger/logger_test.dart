@@ -419,6 +419,6 @@ base class _MemorySink extends LogSink<LogDocument> {
     final context = HandlerContext();
     encoder.encode(entry, document, level, context, width: 80);
     final output = const Utf8Decoder().convert(context.takeBytes());
-    outputs.add(output.split('\n'));
+    outputs.add(output.trimRight().split('\n'));
   }
 }

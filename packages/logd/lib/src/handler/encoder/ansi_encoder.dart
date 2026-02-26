@@ -45,9 +45,11 @@ class AnsiEncoder implements LogEncoder {
     final physicalDoc = layoutEngine.layout(document, level);
 
     // 2. Encode with styles
-    for (final line in physicalDoc.lines) {
-      _encodeLine(line, level, context);
-      context.addByte(0x0A); // '\n'
+    for (int i = 0; i < physicalDoc.lines.length; i++) {
+      _encodeLine(physicalDoc.lines[i], level, context);
+      if (i < physicalDoc.lines.length - 1) {
+        context.addByte(0x0A); // '\n'
+      }
     }
   }
 

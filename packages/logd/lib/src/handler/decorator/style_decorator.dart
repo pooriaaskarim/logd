@@ -27,16 +27,15 @@ final class StyleDecorator extends VisualDecorator {
   final LogTheme theme;
 
   @override
-  LogDocument decorate(
+  void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogArena arena,
+    final LogNodeFactory factory,
   ) {
     final snapshot = document.nodes.toList();
     document.nodes
       ..clear()
       ..addAll(snapshot.map((final node) => _styleNode(node, entry.level)));
-    return document;
   }
 
   LogNode _styleNode(final LogNode node, final LogLevel level) =>

@@ -98,39 +98,40 @@ void main() {
           StyleDecorator(theme: LogTheme(colorScheme: customScheme));
 
       // Create a document with specific tags
-      final doc = LogDocument(
-        nodes: <LogNode>[
-          HeaderNode(
-            segments: [
-              const StyledText(
-                '2024-01-01',
-                tags: LogTag.header | LogTag.timestamp,
-              ),
-              const StyledText(' [INFO] ', tags: LogTag.header | LogTag.level),
-            ],
+      final doc = createTestDocument([]);
+      try {
+        final arena = LogArena.instance;
+        final header = arena.checkoutHeader();
+        header.segments.addAll([
+          const StyledText(
+            '2024-01-01',
+            tags: LogTag.header | LogTag.timestamp,
           ),
-          MessageNode(
-            segments: [
-              const StyledText('Message', tags: LogTag.message),
-            ],
-          ),
-        ],
-      );
+          const StyledText(' [INFO] ', tags: LogTag.header | LogTag.level),
+        ]);
+        doc.nodes.add(header);
 
-      final decorated = decorator.decorate(doc, infoEntry, LogArena.instance);
-      final rendered = renderLines(decorated);
+        final msg = arena.checkoutMessage();
+        msg.segments.add(const StyledText('Message', tags: LogTag.message));
+        doc.nodes.add(msg);
 
-      // Rendered output might be split or joined depending on layout.
-      // renderLines produces a List<String>.
-      // We check if the expected ANSI codes are present in the output.
-      final fullOutput = rendered.join('\n');
+        decorator.decorate(doc, infoEntry, arena);
+        final rendered = renderLines(doc);
 
-      // Timestamp should be dimmed (2) + brightBlack (90)
-      expect(fullOutput, contains('\x1B[2m\x1B[90m'));
-      // Level should be bold (1) + brightCyan (96)
-      expect(fullOutput, contains('\x1B[1m\x1B[96m'));
-      // Message should be blue (34)
-      expect(fullOutput, contains('\x1B[34m'));
+        // Rendered output might be split or joined depending on layout.
+        // renderLines produces a List<String>.
+        // We check if the expected ANSI codes are present in the output.
+        final fullOutput = rendered.join('\n');
+
+        // Timestamp should be dimmed (2) + brightBlack (90)
+        expect(fullOutput, contains('\x1B[2m\x1B[90m'));
+        // Level should be bold (1) + brightCyan (96)
+        expect(fullOutput, contains('\x1B[1m\x1B[96m'));
+        // Message should be blue (34)
+        expect(fullOutput, contains('\x1B[34m'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('LogTheme respects custom logic via subclass', () {
@@ -184,7 +185,9 @@ class NoMessageTheme extends LogTheme {
 
     if ((tags & LogTag.header) != 0) {
       style = LogStyle(
-        color: style.color, bold: true, inverse: true, // Test expects inverse
+        color: style.color,
+        bold: true,
+        inverse: true, // Test expects inverse
       );
     }
 

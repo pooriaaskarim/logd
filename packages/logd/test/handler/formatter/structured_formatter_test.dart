@@ -15,20 +15,25 @@ void main() {
 
     test('formats header with correct sequence', () {
       const formatter = StructuredFormatter();
-      final lines = renderLines(formatter.format(entry, LogArena.instance));
+      final doc = formatDoc(formatter, entry);
+      try {
+        final lines = renderLines(doc);
 
-      // Line 0: Timestamp
-      expect(lines[0], startsWith('____'));
-      expect(lines[0], contains('2025-01-01 10:00:00'));
+        // Line 0: Timestamp
+        expect(lines[0], startsWith('____'));
+        expect(lines[0], contains('2025-01-01 10:00:00'));
 
-      // Line 1: Level + Logger
-      expect(lines[1], startsWith('____'));
-      expect(lines[1], contains('[INFO]'));
-      expect(lines[1], contains('[test]'));
+        // Line 1: Level + Logger
+        expect(lines[1], startsWith('____'));
+        expect(lines[1], contains('[INFO]'));
+        expect(lines[1], contains('[test]'));
 
-      // Line 2: Origin
-      expect(lines[2], startsWith('____'));
-      expect(lines[2], contains('[main.dart]'));
+        // Line 2: Origin
+        expect(lines[2], startsWith('____'));
+        expect(lines[2], contains('[main.dart]'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('wraps long message', () {
@@ -40,24 +45,23 @@ void main() {
         message: 'This is a very long message that should be wrapped.',
         timestamp: 'ts',
       );
-      final lines = renderLines(
-        formatter.format(longEntry, LogArena.instance),
-        width: 20,
-      );
+      final doc = formatDoc(formatter, longEntry);
+      try {
+        final lines = renderLines(
+          doc,
+          width: 20,
+        );
 
-      final msgStartIndex =
-          lines.indexWhere((final l) => l.startsWith('----|'));
-      final msgLines = lines.sublist(msgStartIndex);
+        final msgStartIndex =
+            lines.indexWhere((final l) => l.startsWith('----|'));
+        final msgLines = lines.sublist(msgStartIndex);
 
-      expect(msgLines.length, greaterThan(1));
-      for (final line in msgLines) {
-        // Simple check: line length (including ANSI) should be roughly width
-        // bound or check strict visible length if possible.
-        // For now, check real string length is not massive, or use stripAnsi
-        // helper if available. Legacy test checked visibleLength <= 20.
-        // ANSI codes add length.
-        // Expected content: "----| This is a..."
-        expect(line.length, greaterThan(0));
+        expect(msgLines.length, greaterThan(1));
+        for (final line in msgLines) {
+          expect(line.length, greaterThan(0));
+        }
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
       }
     });
   });

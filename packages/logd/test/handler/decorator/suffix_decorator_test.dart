@@ -20,14 +20,18 @@ void main() {
 
       final lines = ['line 1', 'line 2'];
       final doc = createTestDocument(lines);
-      final decoratedDoc = decorator.decorate(doc, entry, LogArena.instance);
+      try {
+        decorateDoc(decorator, doc, entry);
 
-      const layout = TerminalLayout(width: 80);
-      final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
+        const layout = TerminalLayout(width: 80);
+        final decorated = layout.layout(doc, LogLevel.info).lines;
 
-      expect(decorated.length, equals(2));
-      expect(decorated[0].segments.last.text, equals(suffix));
-      expect(decorated[1].segments.last.text, equals(suffix));
+        expect(decorated.length, equals(2));
+        expect(decorated[0].segments.last.text, equals(suffix));
+        expect(decorated[1].segments.last.text, equals(suffix));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('aligns suffix to far right when alignToEnd: true', () {
@@ -44,15 +48,19 @@ void main() {
 
       final lines = ['12345']; // Length 5
       final doc = createTestDocument(lines);
-      final decoratedDoc = decorator.decorate(doc, entry, LogArena.instance);
+      try {
+        decorateDoc(decorator, doc, entry);
 
-      const layout = TerminalLayout(width: 20);
-      final decorated = layout.layout(decoratedDoc, LogLevel.info).lines;
+        const layout = TerminalLayout(width: 20);
+        final decorated = layout.layout(doc, LogLevel.info).lines;
 
-      // Content (5) + Padding (13) + Suffix (2) = 20 total (contentLimit)
-      expect(decorated[0].visibleLength, equals(20));
-      expect(decorated[0].segments[1].text, equals(' ' * 13));
-      expect(decorated[0].segments.last.text, equals('!!'));
+        // Content (5) + Padding (13) + Suffix (2) = 20 total (contentLimit)
+        expect(decorated[0].visibleLength, equals(20));
+        expect(decorated[0].segments[1].text, equals(' ' * 13));
+        expect(decorated[0].segments.last.text, equals('!!'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
 
     test('reports correct paddingWidth', () {
@@ -84,19 +92,20 @@ void main() {
       // Handler evaluation order: ContentDecorator (Suffix) ->
       // StructuralDecorator (Box)
       final lines = ['test'];
-      final suffixed = decorator.decorate(
-        createTestDocument(lines),
-        entry,
-        LogArena.instance,
-      );
-      final boxedDoc = box.decorate(suffixed, entry, LogArena.instance);
+      final doc = createTestDocument(lines);
+      try {
+        decorator.decorate(doc, entry, LogArena.instance);
+        box.decorate(doc, entry, LogArena.instance);
 
-      const layout = TerminalLayout(width: 22);
-      final boxed = layout.layout(boxedDoc, LogLevel.info).lines;
+        const layout = TerminalLayout(width: 22);
+        final boxed = layout.layout(doc, LogLevel.info).lines;
 
-      // Box width: availableWidth (20) + 2 border = 22 total
-      expect(boxed[0].visibleLength, equals(22));
-      expect(boxed[1].segments[3].text, equals(' !!'));
+        // Box width: availableWidth (20) + 2 border = 22 total
+        expect(boxed[0].visibleLength, equals(22));
+        expect(boxed[1].segments[3].text, equals(' !!'));
+      } finally {
+        doc.releaseRecursive(LogArena.instance);
+      }
     });
   });
 }

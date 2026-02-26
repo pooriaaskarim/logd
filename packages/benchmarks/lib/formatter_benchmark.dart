@@ -31,12 +31,16 @@ abstract class FormatterBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    // Consume the iterable to force execution
-    final layout = const TerminalLayout(width: 80);
-    final lines = layout
-        .layout(formatter.format(entry, LogArena.instance), LogLevel.info)
-        .lines;
-    for (final _ in lines) {}
+    final arena = LogArena.instance;
+    final doc = arena.checkoutDocument();
+    try {
+      formatter.format(entry, doc, arena);
+      final layout = const TerminalLayout(width: 80);
+      final lines = layout.layout(doc, LogLevel.info).lines;
+      for (final _ in lines) {}
+    } finally {
+      doc.releaseRecursive(arena);
+    }
   }
 }
 

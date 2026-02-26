@@ -25,16 +25,16 @@ final class SuffixDecorator extends ContentDecorator {
   final LogStyle? style;
 
   @override
-  LogDocument decorate(
+  void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogArena arena,
+    final LogNodeFactory factory,
   ) {
     if (suffix.isEmpty) {
-      return document;
+      return;
     }
 
-    final node = arena.checkoutDecorated()
+    final node = factory.checkoutDecorated()
       ..trailingWidth = suffix.visibleLength
       ..trailing = [StyledText(suffix, tags: LogTag.suffix, style: style)]
       ..repeatTrailing = true
@@ -43,7 +43,6 @@ final class SuffixDecorator extends ContentDecorator {
     document.nodes
       ..clear()
       ..add(node);
-    return document;
   }
 
   @override

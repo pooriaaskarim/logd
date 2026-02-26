@@ -401,17 +401,10 @@ base class FileSink extends EncodingSink {
       if (data.isEmpty) {
         return;
       }
-      // Add newline? Let encoder handle it if possible, but FileSink
-      // historically appends newline.
-      // Easiest is to append \n here via BytesBuilder since we're writing bytes.
-      final builder = BytesBuilder()
-        ..add(data)
-        ..addByte(0x0A); // '\n'
-      final newData = builder.takeBytes();
 
       File targetFile = file;
       if (fileRotation != null &&
-          await fileRotation.needsRotation(file, newData)) {
+          await fileRotation.needsRotation(file, data)) {
         try {
           await fileRotation.rotate(basePath);
           targetFile = Context.fileSystem.file(basePath);
@@ -428,9 +421,9 @@ base class FileSink extends EncodingSink {
       final raf = targetFile.openSync(mode: io.FileMode.append);
       try {
         raf.writeFromSync(
-          newData,
+          data,
           0,
-          newData.length,
+          data.length,
         );
       } finally {
         raf.closeSync();
