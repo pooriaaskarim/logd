@@ -144,7 +144,7 @@ The Handler module handles edge cases robustly, ensuring reliable operation unde
 - Long unbroken words managed effectively
 
 ### Tab Normalization
-- `BoxDecorator` automatically expands tabs to spaces (default 8 cells).
+- `TerminalLayout` (used during the encoding phase) automatically expands tabs to spaces (default 8 cells).
 - Ensures border integrity across different shell environments and tab-stop interpretations.
 
 ### ANSI Code Preservation

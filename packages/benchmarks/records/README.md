@@ -30,7 +30,7 @@ The following table tracks the performance evolution of the `logd` handler archi
 - [Milestone 2: Pipeline Migration](./M02_PipelineMigration.md)
 - [Milestone 3: Optimized Bitmasks](./M03_OptimizedBitmasks.md)
 - [Milestone 4: HTML Pipeline](./M04_HtmlPipeline.md)
-- [Milestone 5: Arena Pooling](./M05_ArenaPooling.md)
+- [Milestone 5: Arena Pooling](./M05_LogArenaPooling.md)
 - [Milestone 6: Buffer Stream Pipeline](./M06_BufferStream.md)
 - [Milestone 7: In-Place Refinements](./M07_InPlaceRefinements.md)
 - [Milestone 8: Physical Layer Arena](./M08_PhysicalArena.md)
