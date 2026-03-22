@@ -16,15 +16,24 @@ final class PrefixDecorator extends ContentDecorator {
   final LogStyle? style;
 
   @override
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  void decorate(
+    final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
+    final LogNodeFactory factory,
   ) {
-    final prefixSegment =
-        LogSegment(prefix, tags: const {LogTag.prefix}, style: style);
+    if (prefix.isEmpty) {
+      return;
+    }
 
-    return lines.map((final l) => LogLine([prefixSegment, ...l.segments]));
+    final node = factory.checkoutDecorated()
+      ..leadingWidth = prefix.visibleLength
+      ..leading = [StyledText(prefix, tags: LogTag.prefix, style: style)]
+      ..repeatLeading = true
+      ..alignTrailing = false
+      ..children.addAll(document.nodes);
+    document.nodes
+      ..clear()
+      ..add(node);
   }
 
   @override

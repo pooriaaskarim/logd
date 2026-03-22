@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.6.5: Semantic Encoding & Architectural Inversion (Ongoing)
+
+- ### Byte-Oriented Pipeline (Phase 18-20)
+  - **HandlerContext & Pooling**: Introduced `HandlerContext` to manage recyclable `Uint8List` buffers, integrated with `LogArena` for zero-allocation buffer acquisition in steady-state logging.
+  - **Physical Serialization Inversion**: Refactored `LogEncoder` and all implementations (`Ansi`, `Json`, `Html`, etc.) to write directly to byte buffers instead of returning strings, eliminating high-frequency string churn.
+  - **Sink Optimization**: Standardized `LogSink` to accept `Uint8List`. Optimized `ConsoleSink` and `FileSink` to use direct byte output (`stdout.add` and `RandomAccessFile.writeFromSync`).
+  - **FastStringWriter**: Added high-performance byte-constant utility for pre-encoded ANSI and structural tokens.
+
+> [!IMPORTANT]
+> **Breaking Changes & Requirements**
+> - **Dart SDK 3.6.0+**: This version requires Dart 3.6.0 or higher to support new language features and monorepo workspace configuration.
+> - **LogContext Removal**: The `LogContext` class and its parameters have been removed from the entire pipeline (`format`, `decorate`, `output`). Metadata is now handled via `LogLine` and `LogDocument` IR.
+> - **Ownership Migration**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic. Existing code passing `lineLength` to `Handler` must migrate to sink-level configuration.
+
+- ### Monorepo Migration & Structure
+  - **Workspace Consolidation**: Converted the project into a structured monorepo using Dart workspaces, improved dependency management across packages.
+  - **Package Reorganization**: Separated `logd` core from `benchmarks` and `examples`. Overhauled `scripts/` for better contributor ergonomics.
+  - **Agentic Development**: Integrated specialized `.agents` workflows and development rules to standardize AI-assisted coding and architectural integrity.
+
+- ### Semantic Encoding Inversion (Phase 8-12)
+  - **Intent vs. Serialization**: Decoupled formatting intent from physical serialization. Formatters (`JsonFormatter`, `ToonFormatter`) now produce semantic Intermediate Representation (IR) via `LogDocument`, `MapNode`, and `ListNode`.
+  - **Geometric Layout Engine**: Implemented `TerminalLayout` as the sole authority on physical wrapping, TAB-stops, and ANSI segment slicing.
+  - **HtmlEncoder Overhaul**: Complete rewrite of the HTML logging pipeline with high-fidelity rendering for all `LogNode` types. `BoxNode` now maps to `<fieldset>`, `IndentationNode` to `<blockquote>`.
+
+- ### Performance & Benchmarking
+  - **Standardized Performance Ledger**: Introduced a centralized ledger in `packages/benchmarks/records/README.md` for tracking performance milestones and preventing regressions.
+  - **AOT Stress Test Suite**: Developed a comprehensive AOT-compiled stress test suite (`stress_test.dart`) for high-throughput validation.
+  - **Bitmask Optimizations**: Leveraged `int` bitmasks for `LogTag` handling, significantly reducing overhead in hot paths and guaranteeing `>5%` throughput stability.
+
+- ### "Wise" Object Representation (Phase 13-17)
+  - **JsonPrettyFormatter Evolution**: Added adaptive stacking (threshold-driven), composite compaction (single-line maps/lists), and structural safety guards (`maxDepth`).
+  - **TOON Hierarchy**: Split into `ToonFormatter` (flat-row, token-optimized) and `ToonPrettyFormatter` (recursive, human-readable).
+
+- ### API Hygiene & Internal Quality
+  - **Structural Correctness**: Fixed a hash/equals contract violation in `LogDocument` and `MapNode`.
+  - **DecorationHint Standardization**: Extracted magic strings into a shared `DecorationHint` class.
+  - **Encoder Extraction**: Refactored the encoder directory, extracting individual implementations into dedicated files for improved maintainability.
+  - **Naming Standardization**: Renamed `LogJsonEncoder` to `JsonEncoder` and resolved naming conflicts with `dart:convert`.
+  - **ANSI Resilience**: Improved accuracy of width calculations for complex ANSI sequences and double-width characters. Fallback logic for layouts as narrow as 12-20 characters is now more robust.
+
+
 ## 0.6.4: LogBuffer Enhancements & Project-Wide Refactor
 - ### LogBuffer Enhancement & Safety
   - **Error/StackTrace Support**: Added ability to capture `error` and `stackTrace` within `LogBuffer` for more robust multi-line error reporting.

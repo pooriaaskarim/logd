@@ -28,19 +28,23 @@ void main() async {
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: ConsoleSink(),
-    lineLength: 80,
+    sink: ConsoleSink(
+      lineLength: 80,
+    ),
   );
 
-  const htmlSink =
-      HTMLSink(filePath: '$basePath/dashboard.html', darkMode: true);
-  const htmlHandler = Handler(
-    formatter: HTMLFormatter(),
+  final htmlSink = FileSink(
+    '$basePath/dashboard.html',
+    encoder: const HtmlEncoder(darkMode: true),
+    strategy: WrappingStrategy.document,
+  );
+  final htmlHandler = Handler(
+    formatter: const StructuredFormatter(),
     sink: htmlSink,
   );
 
   final markdownHandler = Handler(
-    formatter: const MarkdownFormatter(headingLevel: 2),
+    formatter: const MarkdownFormatter(),
     sink: FileSink('$basePath/report.md'),
   );
 
@@ -119,7 +123,7 @@ void main() async {
   await Future.delayed(const Duration(milliseconds: 500));
 
   // Finalize sinks
-  await htmlSink.close();
+  await htmlSink.dispose();
 
   print('\n✅ Showcase Complete!');
   print('-----------------------------------------');
@@ -148,9 +152,9 @@ class _HeaderBackgroundTheme extends LogTheme {
       : super(colorScheme: LogColorScheme.defaultScheme);
 
   @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+  LogStyle getStyle(final LogLevel level, final int tags) {
     var style = super.getStyle(level, tags);
-    if (tags.contains(LogTag.header)) {
+    if (((tags & LogTag.header) != 0)) {
       style = LogStyle(
         color: style.color,
         bold: style.bold,

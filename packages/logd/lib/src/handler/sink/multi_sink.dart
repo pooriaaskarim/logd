@@ -1,6 +1,6 @@
 part of '../handler.dart';
 
-/// A [LogSink] that broadcasts log lines to multiple child [LogSink]s.
+/// A [LogSink] that broadcasts logs to multiple child [LogSink]s.
 ///
 /// MultiSink allows you to easily output logs to several destinations at once
 /// (e.g., both the console and a file). It ensures robustness by catching and
@@ -10,7 +10,7 @@ part of '../handler.dart';
 /// (a `MultiSink` containing another`MultiSink`) is not allowed
 /// to prevent potential infinite loops or excessive overhead.
 @immutable
-base class MultiSink extends LogSink {
+base class MultiSink extends LogSink<LogDocument> {
   /// Creates a [MultiSink] with the provided list of [sinks].
   ///
   /// Throws an [ArgumentError] if the list is empty or contains another
@@ -26,44 +26,38 @@ base class MultiSink extends LogSink {
     }
   }
 
-  @override
-  int get preferredWidth => sinks.fold(
-        1000,
-        (final min, final s) => s.preferredWidth < min ? s.preferredWidth : min,
-      );
-
-  /// The list of child sinks to which log lines are broadcast.
-  final List<LogSink> sinks;
+  /// The list of child sinks to which logs is broadcast.
+  final List<LogSink<LogDocument>> sinks;
 
   @override
   Future<void> output(
-    final Iterable<LogLine> lines,
+    final LogDocument document,
+    final LogEntry entry,
     final LogLevel level,
   ) async {
     if (!enabled) {
       return;
     }
-    // Convert to list once to avoid multiple iterations of a potentially
-    // lazy iterable (e.g., if it comes from a generator).
-    final linesList = lines.toList();
-    if (linesList.isEmpty) {
+
+    if (document.nodes.isEmpty) {
       return;
     }
 
     await Future.wait(
-      sinks
-          .where((final sink) => sink.enabled)
-          .map((final sink) => _safeOutput(sink, linesList, level)),
+      sinks.where((final sink) => sink.enabled).map(
+            (final sink) => _safeOutput(sink, document, entry, level),
+          ),
     );
   }
 
   Future<void> _safeOutput(
-    final LogSink sink,
-    final List<LogLine> lines,
+    final LogSink<LogDocument> sink,
+    final LogDocument document,
+    final LogEntry entry,
     final LogLevel level,
   ) async {
     try {
-      await sink.output(lines, level);
+      await sink.output(document, entry, level);
     } catch (e, s) {
       InternalLogger.log(
         LogLevel.error,

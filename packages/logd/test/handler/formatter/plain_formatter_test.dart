@@ -1,6 +1,8 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import '../decorator/mock_context.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('PlainFormatter', () {
@@ -14,28 +16,35 @@ void main() {
 
     test('formats basic entry correctly with default metadata', () {
       const formatter = PlainFormatter();
-      final lines = formatter.format(entry, mockContext).toList();
+      final arena = LogArena.instance;
+      final doc = arena.checkoutDocument();
+      try {
+        formatter.format(entry, doc, arena);
+        final lines = renderLines(doc);
 
-      expect(lines.length, equals(1));
-      expect(
-        lines.first.toString(),
-        equals(
-          '[INFO] 2025-01-01 12:00:00 [test.logger] Hello World',
-        ),
-      );
+        expect(lines.length, equals(1));
+        expect(
+          lines.first,
+          equals('[INFO] 2025-01-01 12:00:00 [test.logger] Hello World'),
+        );
+      } finally {
+        doc.releaseRecursive(arena);
+      }
     });
 
     test('can select metadata', () {
-      const formatter = PlainFormatter(
-        metadata: {LogMetadata.logger},
-      );
-      final lines = formatter.format(entry, mockContext).toList();
+      const formatter = PlainFormatter(metadata: {LogMetadata.logger});
+      final arena = LogArena.instance;
+      final doc = arena.checkoutDocument();
+      try {
+        formatter.format(entry, doc, arena);
+        final lines = renderLines(doc);
 
-      // [INFO] is mandatory
-      expect(
-        lines.first.toString(),
-        equals('[INFO] [test.logger] Hello World'),
-      );
+        // [INFO] is mandatory
+        expect(lines.first, equals('[INFO] [test.logger] Hello World'));
+      } finally {
+        doc.releaseRecursive(arena);
+      }
     });
 
     test('includes error and stack trace', () {
@@ -49,12 +58,22 @@ void main() {
         stackTrace: StackTrace.fromString('stack line 1'),
       );
 
-      const formatter = PlainFormatter();
-      final lines = formatter.format(errorEntry, mockContext).toList();
+      const formatter = PlainFormatter(
+        metadata: {LogMetadata.logger},
+      );
 
-      expect(lines.length, equals(3));
-      expect(lines[1].toString(), equals('Error: Some error'));
-      expect(lines[2].toString(), contains('stack line 1'));
+      final arena = LogArena.instance;
+      final doc = arena.checkoutDocument();
+      try {
+        formatter.format(errorEntry, doc, arena);
+        final lines = renderLines(doc);
+
+        expect(lines.length, equals(3));
+        expect(lines[1], equals('Error: Some error'));
+        expect(lines[2], contains('stack line 1'));
+      } finally {
+        doc.releaseRecursive(arena);
+      }
     });
   });
 }

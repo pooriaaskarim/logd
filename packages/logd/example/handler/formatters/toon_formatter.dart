@@ -1,100 +1,131 @@
-// Example: ToonFormatter - Exhaustive Combinatorial Stress Matrix
+// Example: ToonFormatter - Exhaustive Showcase
 //
 // Purpose:
-// Demonstrates the ToonFormatter's character-based personality under
-// extreme structural pressure. We combine Toon layouts with Boxes,
-// Hierarchy Indentation, ANSI Styling, and narrow terminal limits.
-//
-// Key Benchmarks:
-// 1. Comic Relay (Toon + Style + Deep Hierarchy)
-// 2. Toon Boxed (Toon + Rounded Box + 40 Width + Custom Tag Style)
+// Demonstrates the ToonFormatter's personality under various structural
+// requirements, contrasting Raw (Machine) and Pretty (Narrative) models.
 
 import 'package:logd/logd.dart';
 
 void main() async {
-  print('=== Logd / ToonFormatter: Extreme Combinations ===\n');
+  print('=== Logd / TOON Formatter Showcase ===\n');
 
   // ---------------------------------------------------------------------------
-  // SCENARIO A: The "Comic Relay"
-  // Goal: Demonstrate multi-level narrative indentation with toon characters.
+  // SCENARIO A: The Machine Pipeline (RAW TOON)
+  // Goal: Maximum token efficiency for machine parsers or LLM context.
+  // Characteristics: No color, raw toString() for objects, flat rows.
   // ---------------------------------------------------------------------------
-  const relayHandler = Handler(
+  const machineHandler = Handler(
     formatter: ToonFormatter(
+      metadata: {LogMetadata.timestamp},
+    ),
+    sink: ConsoleSink(lineLength: 120),
+  );
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO B: The Visual Narrator (PRETTY TOON)
+  // Goal: Human-readable narrative logs with structured object inspection.
+  // Characteristics: Color, recursive object notation, sorted keys.
+  // ---------------------------------------------------------------------------
+  const narratorHandler = Handler(
+    formatter: ToonPrettyFormatter(
+      color: true,
+      sortKeys: true,
       metadata: {LogMetadata.logger},
     ),
     decorators: [
-      StyleDecorator(
-        theme: LogTheme(colorScheme: LogColorScheme.pastelScheme),
-      ),
+      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
       HierarchyDepthPrefixDecorator(indent: '┃ '),
       SuffixDecorator(' [v8]', aligned: true),
     ],
-    sink: ConsoleSink(),
-    lineLength: 75,
+    sink: ConsoleSink(lineLength: 80),
   );
 
   // ---------------------------------------------------------------------------
-  // SCENARIO B: "Toon Boxed" (The Action Panel)
-  // Goal: The ultimate layout stress test. We force a complex character layout
-  // (Toon) inside a Rounded Box at an aggressively narrow 40-char width.
+  // SCENARIO C: Deep Structural Audit
+  // Goal: Prevent runaway output while allowing nested inspection.
+  // Characteristics: maxDepth clamping, sorted keys.
   // ---------------------------------------------------------------------------
-  const panelHandler = Handler(
-    formatter: ToonFormatter(
-      metadata: {LogMetadata.timestamp, LogMetadata.logger},
-      multiline: true, // Allow real newlines for high-detail visuals
+  const auditHandler = Handler(
+    formatter: ToonPrettyFormatter(
+      maxDepth: 2,
+      sortKeys: true,
+      metadata: {},
     ),
     decorators: [
-      StyleDecorator(theme: _ToonPanelTheme()),
-      BoxDecorator(borderStyle: BorderStyle.rounded),
+      StyleDecorator(theme: JsonInspectorTheme()),
+      BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40, // Aggressively narrow for Toon + Box
+    sink: ConsoleSink(lineLength: 60),
   );
 
-  // Configure Global Loggers
-  Logger.configure('relay.narration', handlers: [relayHandler]);
-  Logger.configure('panel.alert', handlers: [panelHandler]);
+  // Configure Loggers
+  Logger.configure('toon.raw', handlers: [machineHandler]);
+  Logger.configure('toon.pretty', handlers: [narratorHandler]);
+  Logger.configure('toon.audit', handlers: [auditHandler]);
 
-  // --- Run Scenario A: Comic Relay ---
-  print('TEST A: Comic Relay (Style + Deep Hierarchy)');
-  Logger.get('relay.narration').info('Chapter 1: The Server Awakens.');
+  final sampleData = {
+    'system': 'Alpha-7',
+    'status': 'degraded',
+    'sensors': {'temp': 120, 'load': 0.85, 'pressure': 1013},
+    'tags': ['active', 'critical', 'thermal-alert']
+  };
 
-  Logger.get('relay.narration.engine.v8')
-    ..debug('JIT compiler warming up: optimization level 4.')
-    ..warning('Speculative execution threshold reached (80%).');
-  print('〰' * 40);
+  print('TEST A: Raw TOON (Machine Optimized)');
+  Logger.get('toon.raw.io').info('Telemetry Sync', error: sampleData);
 
-  // --- Run Scenario B: Toon Boxed ---
-  print('\nTEST B: Toon Boxed (Action Panel: Box + Style + 40 Width)');
-  final alert = Logger.get('panel.alert')
-    ..info('Establishing secure uplink to cluster-primary-alpha.');
+  print('\n${'-' * 40}\n');
 
-  try {
-    _detonate();
-  } catch (e, s) {
-    alert.error('CAPSULE BREACHED!', error: e, stackTrace: s);
-  }
+  print('TEST B: Pretty TOON (Narrative Style)');
+  final narrator = Logger.get('toon.pretty.engine.v8');
+  narrator.info('Chapter 1: The Reactor Ignition.');
+  narrator.warning('Heat spike detected in secondary coil.', error: sampleData);
 
-  print('\n=== Toon Combinatorial Matrix Complete ===');
+  print('\n${'-' * 40}\n');
+
+  print('TEST C: Deep Audit (maxDepth: 2)');
+  Logger.get('toon.audit')
+      .error('Critical breach in nested subsystems!', error: {
+    'primary': 'breached',
+    'secondary': {
+      'pumps': {'p1': 'offline', 'p2': 'nominal'},
+      'coolant': 'low',
+    },
+    'tertiary': 'clamped_by_depth'
+  });
+
+  print('\n${'-' * 40}\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO D: Narrow Adaptation (Stress Test)
+  // Goal: Demonstrate layout resilience at 30 character width.
+  // ---------------------------------------------------------------------------
+  print('TEST D: Narrow Terminal Adaptation (30 chars)');
+  final narrowHandler = Handler(
+    formatter: const ToonPrettyFormatter(metadata: {}),
+    decorators: [
+      StyleDecorator(theme: JsonInspectorTheme()),
+      const BoxDecorator(borderStyle: BorderStyle.rounded),
+    ],
+    sink: const ConsoleSink(lineLength: 30),
+  );
+  Logger.configure('toon.narrow', handlers: [narrowHandler]);
+  Logger.get('toon.narrow').warning('Warning: System resources extremely low.',
+      error: {'cpu': '98%', 'mem': '99%'});
+
+  print('\n=== TOON Showcase Complete ===');
 }
 
-void _detonate() {
-  throw StateError('Simulated reactor meltdown in test environment.');
-}
-
-/// A custom theme for the Action Panel to make the Level and Borders pop.
-class _ToonPanelTheme extends LogTheme {
-  const _ToonPanelTheme() : super(colorScheme: LogColorScheme.darkScheme);
+/// A custom theme for the TOON Inspector.
+class JsonInspectorTheme extends LogTheme {
+  const JsonInspectorTheme() : super(colorScheme: LogColorScheme.defaultScheme);
 
   @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
-    // Make Toon borders/frames bright white for the "Action" feel
-    if (tags.contains(LogTag.border)) {
-      return const LogStyle(color: LogColor.white, bold: true);
+  LogStyle getStyle(final LogLevel level, final int tags) {
+    if (((tags & LogTag.header) != 0)) {
+      return const LogStyle(color: LogColor.blue, bold: true, dim: true);
     }
-    // Make levels inverse for high-impact status
-    if (tags.contains(LogTag.level)) {
-      return LogStyle(color: _levelColor(level), bold: true, inverse: true);
+    if (((tags & LogTag.level) != 0)) {
+      return LogStyle(color: _levelColor(level), bold: true);
     }
     return super.getStyle(level, tags);
   }

@@ -23,72 +23,74 @@ final class PlainFormatter implements LogFormatter {
   final Set<LogMetadata> metadata;
 
   @override
-  Iterable<LogLine> format(
+  void format(
     final LogEntry entry,
-    final LogContext context,
-  ) sync* {
-    final width = context.availableWidth;
-
-    // 1. Collect all entry segments (Level, Metadata, Message)
-    final parts = <(String text, LogTag? tag)>[
-      ('[${entry.level.name.toUpperCase()}]', LogTag.level),
+    final LogDocument document,
+    final LogNodeFactory factory,
+  ) {
+    // 1. Header Flow (Level + Metadata)
+    final headerSegments = <StyledText>[
+      StyledText(
+        '[${entry.level.name.toUpperCase()}]',
+        tags: LogTag.level,
+      ),
     ];
 
     for (final meta in metadata) {
       final value = meta.getValue(entry);
       if (value.isNotEmpty) {
-        final text = meta != LogMetadata.timestamp ? '[$value]' : value;
-        parts
-          ..add((' ', null))
-          ..add((text, meta.tag));
+        final text = meta != LogMetadata.timestamp ? ' [$value]' : ' $value';
+        headerSegments.add(StyledText(text, tags: meta.tag));
       }
     }
 
-    parts
-      ..add((' ', null))
-      ..add((entry.message, LogTag.message));
+    // Add spacer between header and message
+    headerSegments.add(const StyledText(' ', tags: LogTag.none));
 
-    // 2. Emit the entry flow
-    yield* _wrapFlow(parts, width);
+    final headerWidth = headerSegments.fold<int>(
+      0,
+      (final p, final s) => p + s.text.characters.length,
+    );
 
-    // 3. Handle Error if present
+    final msgNode = factory.checkoutMessage()
+      ..segments.add(StyledText(entry.message, tags: LogTag.message));
+    final decorated = factory.checkoutDecorated()
+      ..leading = headerSegments
+      ..leadingWidth = headerWidth
+      ..repeatLeading = false
+      ..alignTrailing = false
+      ..children.add(msgNode);
+    document.nodes.add(decorated);
+
+    // 2. Handle Error if present
     if (entry.error != null) {
-      const errorPrefix = 'Error: ';
-      final errorContent = entry.error.toString();
-      yield* _wrapFlow(
-        [(errorPrefix + errorContent, LogTag.error)],
-        width,
-      );
+      final errNode = factory.checkoutError()
+        ..segments.add(StyledText('Error: ${entry.error}'));
+      final para = factory.checkoutParagraph()..children.add(errNode);
+      document.nodes.add(para);
     }
 
-    // 4. Handle Stack Trace if present
+    // 3. Handle Stack Trace if present
     if (entry.stackFrames != null && entry.stackFrames!.isNotEmpty) {
       for (final frame in entry.stackFrames!) {
         final text =
             'at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
-        yield* _wrapFlow([(text, LogTag.stackFrame)], width);
+        final foot = factory.checkoutFooter()
+          ..segments.add(StyledText(text, tags: LogTag.stackFrame));
+        final para = factory.checkoutParagraph()..children.add(foot);
+        document.nodes.add(para);
       }
     } else if (entry.stackTrace != null) {
-      final lines = entry.stackTrace.toString().split('\n');
-      for (final line in lines) {
+      final traceLines = entry.stackTrace.toString().split('\n');
+      for (final line in traceLines) {
         if (line.trim().isNotEmpty) {
-          yield* _wrapFlow([(line, LogTag.stackFrame)], width);
+          final foot = factory.checkoutFooter()
+            ..segments.add(StyledText(line, tags: LogTag.stackFrame));
+          final para = factory.checkoutParagraph()..children.add(foot);
+          document.nodes.add(para);
         }
       }
     }
-  }
-
-  Iterable<LogLine> _wrapFlow(
-    final List<(String text, LogTag? tag)> parts,
-    final int width,
-  ) sync* {
-    final line = LogLine(
-      parts
-          .map((final p) => LogSegment(p.$1, tags: {if (p.$2 != null) p.$2!}))
-          .toList(),
-    );
-
-    yield* line.wrap(width);
   }
 
   @override

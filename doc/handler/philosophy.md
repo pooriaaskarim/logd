@@ -19,9 +19,10 @@ Each pipeline stage has a single responsibility:
 | Component | Responsibility | Input | Output |
 |-----------|---------------|-------|--------|
 | Filter | Accept/reject decision | LogEntry | boolean |
-| Formatter | Structure serialization | LogEntry | Iterable<LogLine> |
-| Decorator | Line transformation | Iterable<LogLine> | Iterable<LogLine> |
-| Sink | I/O operation | Iterable<LogLine> | Future<void> |
+| Formatter | Semantic serialization | LogEntry | LogDocument |
+| Decorator | Document transformation | LogDocument | LogDocument |
+| Encoder | Physical serialization | LogDocument | T (String/Map/etc) |
+| Sink | I/O operation | T | Future<void> |
 
 This separation ensures components remain reusable and testable in isolation.
 
@@ -39,20 +40,21 @@ A common issue in logging libraries is the hidden cost of "doing nothing"—the 
 
 ## Semantic Decoupling (Intent vs. Presentation)
 
-Traditional logging libraries often bake styling directly into the formatter (e.g., `JsonWithColors()`). This leads to "styling leakage": your JSON logic now knows about ANSI escape codes.
+Traditional logging libraries often bake styling or transport-encoding directly into the formatter (e.g., `JsonWithColors()`). This leads to "styling leakage" and architecture bloat: your JSON logic now knows about ANSI escape codes or HTTP batching rules.
 
-**Our Approach**: We separate **Intent** from **Presentation**.
-- **Intent (LogFormatter)**: Emits segments tagged with metadata (e.g., `LogTag.timestamp`).
+**Our Approach**: We separate **Intent**, **Presentation**, and **Encoding**.
+- **Intent (LogFormatter)**: Emits a `LogDocument` containing semantic nodes (e.g., `MapNode`).
 - **Standard Vocabulary (LogTag)**: A shared "language" that all components speak.
-- **Presentation (StyleDecorator)**: Resolves tags into a `LogStyle` via a `LogTheme`.
+- **Presentation (StyleDecorator)**: Injects platform-agnostic styles into nodes.
+- **Encoding (LogEncoder)**: Performs the final conversion to physical bits (ANSI, JSON, TOON).
 
-**The Power of "Style" over "Color"**:
-By using `LogStyle` objects instead of raw color codes, we enable **Platform Independence**. A single `StyleDecorator` can:
-- Apply **ANSI codes** for a local terminal.
-- Emit **CSS classes** for a static HTML log file.
-- Provide **JSON metadata** for a remote log viewer.
+This ensures that your formatting logic remains pure and your presentation logic remains flexible. Switching from a `StructuredFormatter` to a `ToonFormatter` won't break your visual cues because both use the same semantic tags. Furthermore, the same `ToonFormatter` output can be shipped as an ANSI-colored stream to a console or as a raw TOON row to a network socket, simply by swapping the **Encoder**.
 
-This ensures that your formatting logic remains pure and your presentation logic remains flexible. Switching from a `StructuredFormatter` to a `ToonFormatter` won't break your visual cues because both use the same semantic tags.
+## Medium-Centric Sinks
+
+Sinks are designed around the **Medium** (Console, File, Socket, HTTP), not the format. This means a single `HttpSink` can send JSON to an ELK stack or TOON to a real-time monitor by simply being paired with the appropriate `LogEncoder`.
+
+This inversion of control removes code duplication and makes the entire pipeline protocol-agnostic.
 
 ## Unified Layout Sovereignty
 
@@ -61,7 +63,7 @@ Log layout is notoriously fragile, especially when mixing structural framing (li
 **The Principle**: The orchestration layer (the `Handler`) owns the authoritative layout constraints.
 
 - **The Problem with Decentralized Wrapping**: If formatters or decorators wrap content independently, they lack global context. This inevitably leads to line-length overflows, corrupted borders, and inconsistent indentation.
-- **The Solution**: The `Handler` calculates the exact spatial capacity (the "Content Slot") once per entry. It performs a high-fidelity wrap *before* any decoration occurs.
+- **The Solution**: Layout is deferred to the final **Encoding** stage. The `LogEncoder` (via `TerminalLayout`) calculates the exact spatial capacity once per entry, performing high-fidelity wrapping only when the final physical protocol (ANSI, HTML, etc.) is known.
 
 By centralizing strictly defined constraints (`availableWidth`, `contentLimit`), we ensure that whether you are logging a simple string or a deeply nested JSON object, the output remains structurally sound and visually aligned across all terminal environments.
 

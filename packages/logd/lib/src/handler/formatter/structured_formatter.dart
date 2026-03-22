@@ -21,232 +21,132 @@ final class StructuredFormatter implements LogFormatter {
   @override
   final Set<LogMetadata> metadata;
   @override
-  Iterable<LogLine> format(final LogEntry entry, final LogContext context) {
-    final width = context.availableWidth;
-    final innerWidth = (width - 4).clamp(1, double.infinity).toInt();
-
-    return <LogLine>[
-      ..._buildHeader(entry, width),
-      ..._buildMessage(entry.message, innerWidth),
-      if (entry.error != null) ..._buildError(entry.error!, innerWidth),
-      if (entry.stackFrames != null)
-        ..._buildStackTrace(entry.stackFrames!, innerWidth),
-    ];
-  }
-
-  List<LogLine> _buildHeader(final LogEntry entry, final int width) => [
-        // Phase 1: Timestamp
-        if (metadata.contains(LogMetadata.timestamp))
-          ..._buildHeaderSection([(entry.timestamp, LogTag.timestamp)], width),
-
-        // Phase 2: Level & Logger
-        ..._buildHeaderSection(
-          [
-            ('[${entry.level.name.toUpperCase()}]', LogTag.level),
-            if (metadata.contains(LogMetadata.logger))
-              ('[${entry.loggerName}]', LogTag.loggerName),
-          ],
-          width,
-        ),
-
-        // Phase 3: Origin
-        if (metadata.contains(LogMetadata.origin))
-          ..._buildHeaderSection(
-            [('[${entry.origin}]', LogTag.origin)],
-            width,
-          ),
-      ];
-
-  Iterable<LogLine> _buildHeaderSection(
-    final List<(String text, LogTag? tag)> parts,
-    final int width,
-  ) sync* {
-    if (parts.isEmpty) {
-      return;
-    }
-    const prefix = '____';
-    final contentWidth = (width - prefix.length).clamp(1, 1000);
-
-    // 1. Build initial coarse segments, splitting by internal newlines
-    final logicalLines = <List<LogSegment>>[[]];
-    for (int i = 0; i < parts.length; i++) {
-      final p = parts[i];
-      if (i > 0 && logicalLines.last.isNotEmpty) {
-        logicalLines.last.add(const LogSegment(' ', tags: {LogTag.header}));
-      }
-
-      final subLines = p.$1.split('\n');
-      for (int j = 0; j < subLines.length; j++) {
-        if (j > 0) {
-          logicalLines.add([]);
-        }
-        logicalLines.last.add(
-          LogSegment(
-            subLines[j],
-            tags: {
-              LogTag.header,
-              if (p.$2 != null) p.$2!,
-            },
-          ),
-        );
-      }
-    }
-
-    // 2. Wrap each logical line into the framing structure
-    for (final logicalLine in logicalLines) {
-      if (logicalLine.isEmpty) {
-        continue;
-      }
-
-      var currentOutputLine = <LogSegment>[
-        const LogSegment(prefix, tags: {LogTag.header}),
-      ];
-      var currentX = 0;
-
-      for (final seg in logicalLine) {
-        final textLines =
-            LogLine([LogSegment(seg.text, tags: seg.tags)]).wrap(contentWidth);
-
-        // If the first part of this segment doesn't fit on the current line,
-        // force a new line immediately.
-        if (currentX > 0 &&
-            textLines.first.visibleLength > (contentWidth - currentX)) {
-          yield* _finishLine(currentOutputLine, width);
-          currentOutputLine = [
-            const LogSegment(prefix, tags: {LogTag.header}),
-          ];
-          currentX = 0;
-        }
-
-        var isFirstSubLine = true;
-        for (final textLine in textLines) {
-          if (!isFirstSubLine) {
-            // New line needed for subsequent wrapped parts
-            yield* _finishLine(currentOutputLine, width);
-            currentOutputLine = [
-              const LogSegment(prefix, tags: {LogTag.header}),
-            ];
-            currentX = 0;
-          }
-
-          // Append segments from this text line
-          for (final s in textLine.segments) {
-            currentOutputLine.add(s);
-            currentX += s.text.visibleLength;
-          }
-          isFirstSubLine = false;
-        }
-      }
-
-      if (currentOutputLine.length > 1) {
-        yield* _finishLine(currentOutputLine, width);
-      }
-    }
-  }
-
-  Iterable<LogLine> _finishLine(
-    final List<LogSegment> line,
-    final int totalWidth,
-  ) sync* {
-    final currentLen =
-        line.fold(0, (final sum, final s) => sum + s.text.visibleLength);
-    final fillerLen = totalWidth - currentLen;
-    if (fillerLen > 0) {
-      line.add(LogSegment('_' * fillerLen, tags: const {LogTag.header}));
-    }
-    yield LogLine(line);
-  }
-
-  List<LogLine> _buildMessage(final String content, final int innerWidth) {
-    final raw =
-        content.split('\n').where((final l) => l.trim().isNotEmpty).toList();
-    const prefix = '----|';
-    final wrapWidth =
-        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
-    final out = <LogLine>[];
-    for (final line in raw) {
-      final wrapped = _wrap(line, wrapWidth);
-      for (int i = 0; i < wrapped.length; i++) {
-        final p = i == 0 ? prefix : ' ' * prefix.length;
-        out.add(
-          LogLine([
-            LogSegment(p + wrapped[i], tags: const {LogTag.message}),
-          ]),
-        );
-      }
-    }
-    return out;
-  }
-
-  List<LogLine> _buildError(
-    final Object error,
-    final int innerWidth,
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogNodeFactory factory,
   ) {
-    final raw = error
-        .toString()
-        .split('\n')
-        .where((final l) => l.trim().isNotEmpty)
-        .toList();
-    const prefix = '----|';
-    final wrapWidth =
-        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
-    final lines = <LogLine>[
-      ..._wrap('Error:', wrapWidth).map(
-        (final l) => LogLine([
-          LogSegment(
-            prefix + l,
-            tags: const {LogTag.error},
+    // 1. Phased Header (Legacy 1.0 Style: 3 separate lines)
+
+    // Phase 1: Timestamp
+    if (metadata.contains(LogMetadata.timestamp)) {
+      document.nodes.add(
+        _buildHeaderNode(factory, [
+          StyledText(
+            entry.timestamp,
+            tags: LogTag.timestamp | LogTag.header,
           ),
         ]),
-      ),
-    ];
-    for (final line in raw) {
-      final wrapped = _wrap(line, wrapWidth);
-
-      for (int i = 0; i < wrapped.length; i++) {
-        final p = i == 0 ? prefix : ' ' * prefix.length;
-        lines.add(
-          LogLine([
-            LogSegment(p + wrapped[i], tags: const {LogTag.error}),
-          ]),
-        );
-      }
+      );
     }
-    return lines;
-  }
 
-  List<LogLine> _buildStackTrace(
-    final List<CallbackInfo> frames,
-    final int innerWidth,
-  ) {
-    const prefix = '----|';
-    final wrapWidth =
-        (innerWidth - prefix.length + 1).clamp(1, double.infinity).toInt();
-    final lines = <LogLine>[
-      ..._wrap('Stack Trace:', wrapWidth).map(
-        (final l) => LogLine([
-          LogSegment(prefix + l, tags: const {LogTag.stackFrame}),
+    // Phase 2: Level & Logger
+    final levelLoggerSegments = [
+      LogStatic.getLevelToken(entry.level),
+    ];
+    if (metadata.contains(LogMetadata.logger)) {
+      levelLoggerSegments
+        ..add(LogStatic.styledSpace)
+        ..add(LogStatic.styledOpenBracket)
+        ..add(
+          StyledText(
+            entry.loggerName,
+            tags: LogTag.loggerName | LogTag.header,
+          ),
+        )
+        ..add(LogStatic.styledCloseBracket);
+    }
+    document.nodes.add(_buildHeaderNode(factory, levelLoggerSegments));
+
+    // Phase 3: Origin
+    if (metadata.contains(LogMetadata.origin)) {
+      document.nodes.add(
+        _buildHeaderNode(factory, [
+          LogStatic.styledOpenBracket,
+          StyledText(
+            entry.origin,
+            tags: LogTag.origin | LogTag.header,
+          ),
+          LogStatic.styledCloseBracket,
         ]),
-      ),
-    ];
-    for (final frame in frames) {
-      final line =
-          ' at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
-      final wrapped = _wrap(line, wrapWidth);
-      for (int i = 0; i < wrapped.length; i++) {
-        final p = i == 0 ? prefix : ' ' * prefix.length;
-        lines.add(
-          LogLine([
-            LogSegment(p + wrapped[i], tags: const {LogTag.stackFrame}),
-          ]),
-        );
+      );
+    }
+
+    // 2. Body (----| Message)
+    final msgNode = factory.checkoutMessage()
+      ..segments.add(StyledText(entry.message));
+    final msgPara = factory.checkoutParagraph()..children.add(msgNode);
+    final msgDecorated = factory.checkoutDecorated()
+      ..leadingWidth = 5
+      ..leadingHint = DecorationHint.structuredMessage
+      ..leading = const [LogStatic.styledMessagePrefix]
+      ..children.add(msgPara);
+    document.nodes.add(msgDecorated);
+
+    // 3. Error
+    if (entry.error != null) {
+      final errNode = factory.checkoutError()
+        ..segments.add(StyledText('Error: ${entry.error}'));
+      final errPara = factory.checkoutParagraph()..children.add(errNode);
+      final errDecorated = factory.checkoutDecorated()
+        ..leadingWidth = 5
+        ..leadingHint = DecorationHint.structuredMessage
+        ..leading = const [LogStatic.styledMessagePrefix]
+        ..children.add(errPara);
+      document.nodes.add(errDecorated);
+    }
+
+    // 4. Stack Trace
+    if (entry.stackFrames != null && entry.stackFrames!.isNotEmpty) {
+      for (final frame in entry.stackFrames!) {
+        final text =
+            'at ${frame.fullMethod} (${frame.filePath}:${frame.lineNumber})';
+        final foot = factory.checkoutFooter()
+          ..segments.add(StyledText(text, tags: LogTag.stackFrame));
+        final para = factory.checkoutParagraph()..children.add(foot);
+        final d = factory.checkoutDecorated()
+          ..leadingWidth = 5
+          ..leadingHint = DecorationHint.structuredMessage
+          ..leading = const [LogStatic.styledMessagePrefix]
+          ..children.add(para);
+        document.nodes.add(d);
+      }
+    } else if (entry.stackTrace != null) {
+      final rawLines = entry.stackTrace.toString().split('\n');
+      for (final raw in rawLines) {
+        if (raw.trim().isEmpty) {
+          continue;
+        }
+        final foot = factory.checkoutFooter()
+          ..segments.add(StyledText(raw, tags: LogTag.stackFrame));
+        final para = factory.checkoutParagraph()..children.add(foot);
+        final d = factory.checkoutDecorated()
+          ..leadingWidth = 5
+          ..leadingHint = DecorationHint.structuredMessage
+          ..leading = const [StyledText('----|', tags: LogTag.header)]
+          ..children.add(para);
+        document.nodes.add(d);
       }
     }
-    return lines;
   }
 
-  List<String> _wrap(final String text, final int maxWidth) =>
-      text.wrapVisiblePreserveAnsi(maxWidth).toList();
+  LogNode _buildHeaderNode(
+    final LogNodeFactory factory,
+    final List<StyledText> segments,
+  ) {
+    final header = factory.checkoutHeader()..segments.addAll(segments);
+    final filler = factory.checkoutFiller()
+      ..char = '_'
+      ..tags = LogTag.header;
+    final row = factory.checkoutRow()
+      ..children.add(header)
+      ..children.add(filler);
+    return factory.checkoutDecorated()
+      ..leadingWidth = 4
+      ..leadingHint = DecorationHint.structuredHeader
+      ..leading = const [LogStatic.styledHeaderPrefix]
+      ..children.add(row);
+  }
 
   @override
   bool operator ==(final Object other) =>

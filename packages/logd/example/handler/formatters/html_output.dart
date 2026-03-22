@@ -8,7 +8,7 @@
 // Key Benchmarks:
 // 1. Modern Dark (Default technical dashboard)
 // 2. Paper Light (High-legibility printable report)
-// 3. Mobile Container (Squeezed 45-char width for responsiveness)
+// 3. Mobile Container (Squeezed 1200-char width for responsiveness)
 
 import 'package:logd/logd.dart';
 
@@ -18,20 +18,26 @@ void main() async {
   // ---------------------------------------------------------------------------
   // SCENARIO 1: The "Technical Dashboard" (Dark Mode)
   // ---------------------------------------------------------------------------
-  const darkSink =
-      HTMLSink(filePath: 'logs/dashboard_dark.html', darkMode: true);
-  const darkHandler = Handler(
-    formatter: HTMLFormatter(),
+  final darkSink = FileSink(
+    'logs/dashboard_dark.html',
+    encoder: const HtmlEncoder(darkMode: true),
+    strategy: WrappingStrategy.document,
+  );
+  final darkHandler = Handler(
+    formatter: StructuredFormatter(),
     sink: darkSink,
   );
 
   // ---------------------------------------------------------------------------
   // SCENARIO 2: The "Printable Report" (Light Mode)
   // ---------------------------------------------------------------------------
-  const lightSink =
-      HTMLSink(filePath: 'logs/report_light.html', darkMode: false);
-  const lightHandler = Handler(
-    formatter: HTMLFormatter(),
+  final lightSink = FileSink(
+    'logs/report_light.html',
+    encoder: const HtmlEncoder(darkMode: false),
+    strategy: WrappingStrategy.document,
+  );
+  final lightHandler = Handler(
+    formatter: StructuredFormatter(),
     sink: lightSink,
   );
 
@@ -39,12 +45,15 @@ void main() async {
   // SCENARIO 3: "Mobile Viewport" (Narrrow Wrapping)
   // Goal: Test that HTML blocks wrap correctly when width is restricted.
   // ---------------------------------------------------------------------------
-  const mobileSink =
-      HTMLSink(filePath: 'logs/mobile_view.html', darkMode: true);
-  const mobileHandler = Handler(
-    formatter: HTMLFormatter(),
+  final mobileSink = FileSink(
+    'logs/mobile_view.html',
+    encoder: const HtmlEncoder(darkMode: true),
+    strategy: WrappingStrategy.document,
+    lineLength: 40,
+  );
+  final mobileHandler = Handler(
+    formatter: StructuredFormatter(),
     sink: mobileSink,
-    lineLength: 45, // Mobile-width simulation
   );
 
   // Configure
@@ -74,12 +83,12 @@ void main() async {
   print('Generating Mobile View in logs/mobile_view.html...');
   mobile.info(
       'This is a very long log message that must wrap beautifully even in the '
-      'HTML output because the handler restricted the width to 45 characters.');
+      'HTML output.');
 
-  // IMPORTANT: Close sinks to finalize files
-  await darkSink.close();
-  await lightSink.close();
-  await mobileSink.close();
+  // IMPORTANT: Dispose sinks to finalize files
+  await darkSink.dispose();
+  await lightSink.dispose();
+  await mobileSink.dispose();
 
   print('\n=== HTML Reporting Benchmark Complete ===');
   print('Check the logs/ directory to see your professional web reports!');

@@ -1,0 +1,7 @@
+{"timestamp":"2025-01-01
+12:00:00","logger":"SnapTest","origin":"
+snap.dart:10:5","level":"INFO","message"
+:"This is a standard log message for
+golden
+verification.","error":"","stackTrace":"
+"}

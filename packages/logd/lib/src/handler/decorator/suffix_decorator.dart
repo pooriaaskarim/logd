@@ -25,35 +25,24 @@ final class SuffixDecorator extends ContentDecorator {
   final LogStyle? style;
 
   @override
-  Iterable<LogLine> decorate(
-    final Iterable<LogLine> lines,
+  void decorate(
+    final LogDocument document,
     final LogEntry entry,
-    final LogContext context,
+    final LogNodeFactory factory,
   ) {
-    final suffixSegment =
-        LogSegment(suffix, tags: const {LogTag.suffix}, style: style);
-
-    if (!aligned) {
-      return lines.map((final l) => LogLine([...l.segments, suffixSegment]));
+    if (suffix.isEmpty) {
+      return;
     }
 
-    return lines.map((final line) {
-      final currentLen = line.visibleLength;
-      final suffixLen = suffix.visibleLength;
-
-      // We align to the end of the content area.
-      // context.contentLimit is the width reserved for content (Fixed or
-      // Flowing).
-      final targetWidth = context.contentLimit;
-      final paddingNeeded =
-          (targetWidth - currentLen - suffixLen).clamp(0, 1000);
-
-      return LogLine([
-        ...line.segments,
-        if (paddingNeeded > 0) LogSegment(' ' * paddingNeeded, tags: const {}),
-        suffixSegment,
-      ]);
-    });
+    final node = factory.checkoutDecorated()
+      ..trailingWidth = suffix.visibleLength
+      ..trailing = [StyledText(suffix, tags: LogTag.suffix, style: style)]
+      ..repeatTrailing = true
+      ..alignTrailing = aligned
+      ..children.addAll(document.nodes);
+    document.nodes
+      ..clear()
+      ..add(node);
   }
 
   @override
