@@ -683,12 +683,11 @@ class Logger {
 
     if (!_nameRegex.hasMatch(normalized)) {
       throw ArgumentError.value(
-        name,
-        'name',
-        'Logger name must be strictly alphanumeric (with underscores) '
-            'and separated by dots (e.g. "app.ui.widget"). '
-            'Invalid name: "$normalized"',
-      );
+          name,
+          'name',
+          'Logger name must be strictly alphanumeric (with underscores) '
+              'and separated by dots (e.g. "app.ui.widget"). '
+              'Invalid name: "$normalized"');
     }
 
     return normalized;

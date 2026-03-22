@@ -28,8 +28,7 @@ void main() async {
       HierarchyDepthPrefixDecorator(indent: '│ '), // Wide indent
       PrefixDecorator(' [SYSTEM] '),
     ],
-    sink: ConsoleSink(),
-    lineLength: 45, // Tight width after indentation
+    sink: ConsoleSink(lineLength: 45),
   );
 
   // ---------------------------------------------------------------------------
@@ -45,8 +44,9 @@ void main() async {
       StyleDecorator(),
       BoxDecorator(borderStyle: BorderStyle.double),
     ],
-    sink: ConsoleSink(),
-    lineLength: 35, // Extremely tight!
+    sink: ConsoleSink(
+      lineLength: 35, // Extremely tight!
+    ),
   );
 
   // Configure Global Loggers

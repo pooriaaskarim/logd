@@ -16,8 +16,7 @@ void main() async {
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40,
+    sink: ConsoleSink(lineLength: 40),
   );
 
   Logger.configure('raw', handlers: [rawHandler]);
@@ -37,8 +36,7 @@ void main() async {
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40,
+    sink: ConsoleSink(lineLength: 40),
   );
 
   Logger.configure('wrapped', handlers: [wrappedHandler]);
@@ -58,8 +56,7 @@ void main() async {
       SuffixDecorator(' [SIDEBAR]', aligned: true),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 50,
+    sink: ConsoleSink(lineLength: 50),
   );
 
   Logger.configure('sidebar', handlers: [sidebarHandler]);

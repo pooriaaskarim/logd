@@ -1,4 +1,24 @@
 # Migration Guide
+ 
++## next (Structural Overhaul & Engine API)
++
++### 1. Engine-Driven Orchestration
++**Change**: The `Handler` now delegates all execution and lifecycle management to a matching `LogEngine`.
++- **Impact**: Users can now explicitly choose their performance strategy (`StandardEngine` vs `ArenaEngine`) in the `Handler` constructor.
++
++### 2. Unified Resource Management
++**Change**: Allocation of [LogDocument]s and [LogNode]s is now managed through the `LogPipelineFactory` interface.
++- **Benefit**: Decouples semantic generation (formatting) from physical memory management (heap vs pool).
++
++### 3. File Relocation
++**Change**: The internal directory structure of the `handler` module has been reorganized for architectural clarity:
++- **`document/`**: Semantic Intermediate Representation (IR).
++- **`layout/`**: Physical representation and rendering logic.
++- **`engine/`**: Orchestration and resource pooling.
++- **`decorator/`**: Transformation logic (absorbed the `pipeline/` directory).
++
++---
++
 
 ## v0.6.0 to v0.6.1 (Layout Stability)
 
@@ -37,3 +57,5 @@
 | **v0.6.1** | Internal Guards | `Handler.log` and `LogEntry` marked as `@internal`. |
 | **v0.6.1** | Unified Layout | Explicit wrapping phase moved to `Handler`. |
 | **v0.6.1** | Deprecation | `BoxFormatter` removed; `ColorDecorator` deprecated. |
+| **next** | Engine API | `LogEngine` and `LogPipelineFactory` become public. `StandardEngine` default. |
+| **next** | Structural Overhaul| Files moved to `document/`, `layout/`, `engine/`, and `decorator/`. |

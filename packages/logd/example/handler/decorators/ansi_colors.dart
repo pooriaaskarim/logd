@@ -81,9 +81,9 @@ class _HighContrastTheme extends LogTheme {
   const _HighContrastTheme() : super(colorScheme: LogColorScheme.defaultScheme);
 
   @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
+  LogStyle getStyle(final LogLevel level, final int tags) {
     final style = super.getStyle(level, tags);
-    if (tags.contains(LogTag.header)) {
+    if (((tags & LogTag.header) != 0)) {
       return LogStyle(
         color: style.color,
         bold: true,
@@ -99,17 +99,17 @@ class _TagSpecialistTheme extends LogTheme {
   const _TagSpecialistTheme() : super(colorScheme: LogColorScheme.darkScheme);
 
   @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
-    if (tags.contains(LogTag.timestamp)) {
+  LogStyle getStyle(final LogLevel level, final int tags) {
+    if (((tags & LogTag.timestamp) != 0)) {
       return const LogStyle(color: LogColor.yellow, dim: true);
     }
-    if (tags.contains(LogTag.loggerName)) {
+    if (((tags & LogTag.loggerName) != 0)) {
       return const LogStyle(color: LogColor.magenta, bold: true);
     }
-    if (tags.contains(LogTag.origin)) {
+    if (((tags & LogTag.origin) != 0)) {
       return const LogStyle(color: LogColor.cyan, italic: true);
     }
-    if (tags.contains(LogTag.message)) {
+    if (((tags & LogTag.message) != 0)) {
       return const LogStyle(color: LogColor.white);
     }
     return super.getStyle(level, tags);

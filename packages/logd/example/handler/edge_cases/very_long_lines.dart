@@ -17,8 +17,7 @@ void main() async {
     decorators: [
       StyleDecorator(),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40,
+    sink: ConsoleSink(lineLength: 40),
   );
 
   // Handler with box and wrapping
@@ -30,8 +29,7 @@ void main() async {
         borderStyle: BorderStyle.rounded,
       ),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40,
+    sink: ConsoleSink(lineLength: 40),
   );
 
   Logger.configure('example.wrapped', handlers: [wrappedHandler]);

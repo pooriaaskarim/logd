@@ -17,7 +17,7 @@
 - [x] Update all formatters to emit `LogLine`
 - [x] Implement fine-grained tagging in `StructuredFormatter`
 - [x] Add `JsonPrettyFormatter` with semantic styling and customizable fields
-- [x] Add `MarkdownFormatter` and `HTMLFormatter`
+- [x] Add MarkdownEncoder and HtmlEncoder
 
 ### ✅ P0: LLM-Optimized Logging (TOON)
 **Goal**: Create a format that is "native" to AI agents.
@@ -131,4 +131,10 @@
 
 ## Fixes
 
----
+### ✅ P1: Semantic Encoder Inversion (v0.6.5)
+**Goal**: Decouple formatting intent from physical serialization.
+**Result**: Formatter produces semantic IR (`MapNode`/`ListNode`), while `LogEncoder` handles serialization.
+- [x] Implement `JsonEncoder` and `ToonEncoder`
+- [x] Refactor `EncodingSink` to be protocol-agnostic
+- [x] Update `ToonFormatter` and `JsonFormatter` to emit semantic documents
+- [x] Fix session-aware headers via `LogEncoder.preamble(document)`

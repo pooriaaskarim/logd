@@ -15,8 +15,7 @@ void main() async {
     decorators: [
       StyleDecorator(),
     ],
-    sink: ConsoleSink(),
-    lineLength: 80,
+    sink: ConsoleSink(lineLength: 80),
   );
 
   Logger.configure('example.edge', handlers: [handler]);

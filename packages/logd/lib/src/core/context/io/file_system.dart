@@ -65,8 +65,24 @@ abstract class File implements FileSystemEntity {
     final bool flush = false,
   });
 
+  /// Open the file for random access.
+  RandomAccessFile openSync({final io.FileMode mode = io.FileMode.read});
+
   /// Read the entire file as bytes.
   Future<Uint8List> readAsBytes();
+}
+
+/// Abstract interface for random access file operations.
+abstract class RandomAccessFile {
+  /// Write bytes to the file at the current position.
+  void writeFromSync(
+    final List<int> buffer, [
+    final int start = 0,
+    final int? end,
+  ]);
+
+  /// Close the file.
+  void closeSync();
 }
 
 /// Abstract interface for directory operations.
@@ -150,7 +166,31 @@ class _LocalFile implements File {
       _delegate.writeAsBytes(bytes, mode: mode, flush: flush);
 
   @override
+  RandomAccessFile openSync({final io.FileMode mode = io.FileMode.read}) =>
+      _LocalRandomAccessFile(_delegate.openSync(mode: mode));
+
+  @override
   Future<Uint8List> readAsBytes() => _delegate.readAsBytes();
+}
+
+class _LocalRandomAccessFile implements RandomAccessFile {
+  _LocalRandomAccessFile(this._delegate);
+
+  final io.RandomAccessFile _delegate;
+
+  @override
+  void writeFromSync(
+    final List<int> buffer, [
+    final int start = 0,
+    final int? end,
+  ]) {
+    _delegate.writeFromSync(buffer, start, end);
+  }
+
+  @override
+  void closeSync() {
+    _delegate.closeSync();
+  }
 }
 
 class _LocalDirectory implements Directory {

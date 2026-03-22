@@ -99,8 +99,11 @@ void main() async {
 
     // --- CASE 5: Documentation Stream (Socket + Markdown) ---
     final docsHandler = Handler(
-      formatter: const MarkdownFormatter(),
-      sink: SocketSink(url: 'ws://127.0.0.1:$socketPort'),
+      formatter: const StructuredFormatter(),
+      sink: SocketSink(
+        url: 'ws://127.0.0.1:$socketPort',
+        encoder: const MarkdownEncoder(),
+      ),
     );
     Logger.configure('dev.docs', handlers: [docsHandler]);
 
@@ -133,8 +136,7 @@ void main() async {
 
     print('\n\x1B[1m[PHASE 4] Documentation Stream (Markdown + Socket)\x1B[0m');
     mLog.info(
-      '# Security Audit\n\n- **Status**: Secure\n- **Signature**:'
-      ' `sha256:abcd...`',
+      'Security Audit complete: System is verified secure.',
     );
     await _delay();
 

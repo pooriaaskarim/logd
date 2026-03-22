@@ -1,4 +1,4 @@
-part of '../../handler.dart';
+part of '../handler.dart';
 
 /// Contextual metadata available from a [LogEntry] for formatters.
 ///
@@ -27,7 +27,7 @@ enum LogMetadata {
   }
 
   /// Returns the semantic tag associated with this metadata.
-  LogTag get tag {
+  int get tag {
     switch (this) {
       case LogMetadata.timestamp:
         return LogTag.timestamp;
