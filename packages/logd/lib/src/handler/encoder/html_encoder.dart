@@ -74,36 +74,60 @@ ${_css()}
     context.writeString('<div class="log-entry log-${level.name}">\n');
 
     for (final node in document.nodes) {
-      _renderNode(context, node);
+      _renderNode(context, node, document);
     }
 
     context.writeString('</div>\n');
   }
 
-  void _renderNode(final HandlerContext context, final LogNode node) {
+  void _renderNode(
+    final HandlerContext context,
+    final LogNode node,
+    final LogDocument document,
+  ) {
     switch (node) {
       case BoxNode():
-        _renderBox(context, node);
+        _renderBox(context, node, document);
       case IndentationNode():
-        _renderIndentation(context, node);
+        _renderIndentation(context, node, document);
       case DecoratedNode():
-        _renderDecorated(context, node);
+        _renderDecorated(context, node, document);
       case RowNode():
-        _renderRow(context, node);
+        _renderRow(context, node, document);
       case FillerNode():
         _renderFiller(context, node);
       case ParagraphNode():
-        _renderContainer(context, node.children, node.tags, 'p');
+        _renderContainer(context, node.children, document, node.tags, 'p');
       case GroupNode():
-        _renderContainer(context, node.children, node.tags, 'div');
+        _renderContainer(context, node.children, document, node.tags, 'div');
       case MapNode():
-        context.writeString('<pre class="log-line log-map">');
-        context.writeString(_escapeHtml(node.toString()));
-        context.writeString('</pre>\n');
+        final toonColumns = document.metadata['toon_columns'] as List<String>?;
+        if (toonColumns != null) {
+          final arrayName =
+              document.metadata['toon_array'] as String? ?? 'logs';
+          final delimiter =
+              document.metadata['toon_delimiter'] as String? ?? '\t';
+          final columnStr = toonColumns.join(',');
+          final row = toonColumns
+              .map((final col) => node.map[col]?.toString() ?? '')
+              .join(delimiter);
+
+          context
+            ..writeString('<pre class="log-line log-toon">')
+            ..writeString(_escapeHtml('$arrayName[]{$columnStr}:\n'))
+            ..writeString(_escapeHtml('$row\n'))
+            ..writeString('</pre>\n');
+        } else {
+          context
+            ..writeString('<pre class="log-line log-map">')
+            ..writeString(_escapeHtml(node.toString()))
+            ..writeString('</pre>\n');
+        }
       case ListNode():
-        context.writeString('<pre class="log-line log-list">');
-        context.writeString(_escapeHtml(node.toString()));
-        context.writeString('</pre>\n');
+        context
+          ..writeString('<pre class="log-line log-list">')
+          ..writeString(_escapeHtml(node.toString()))
+          ..writeString('</pre>\n');
       case ContentNode():
         context.writeString('<p class="log-line">');
         _renderContent(context, node);
@@ -111,7 +135,11 @@ ${_css()}
     }
   }
 
-  void _renderBox(final HandlerContext context, final BoxNode node) {
+  void _renderBox(
+    final HandlerContext context,
+    final BoxNode node,
+    final LogDocument document,
+  ) {
     final borderClass = switch (node.border) {
       BoxBorderStyle.rounded => 'log-box log-box-rounded',
       BoxBorderStyle.sharp => 'log-box log-box-sharp',
@@ -131,7 +159,7 @@ ${_css()}
           .writeString('$titleStyle>${_escapeHtml(node.title!.text)}</legend>');
     }
     for (final child in node.children) {
-      _renderNode(context, child);
+      _renderNode(context, child, document);
     }
     context.writeString('</fieldset>\n');
   }
@@ -139,11 +167,12 @@ ${_css()}
   void _renderIndentation(
     final HandlerContext context,
     final IndentationNode node,
+    final LogDocument document,
   ) {
     final styleAttr = _styleAttr(node.style);
     context.writeString('<div class="log-indent"$styleAttr>');
     for (final child in node.children) {
-      _renderNode(context, child);
+      _renderNode(context, child, document);
     }
     context.writeString('</div>\n');
   }
@@ -151,6 +180,7 @@ ${_css()}
   void _renderDecorated(
     final HandlerContext context,
     final DecoratedNode node,
+    final LogDocument document,
   ) {
     final styleAttr = _styleAttr(node.style);
     context.writeString('<div class="log-decorated"$styleAttr>');
@@ -168,7 +198,7 @@ ${_css()}
     // Main content
     context.writeString('<div class="log-decorated-content">');
     for (final child in node.children) {
-      _renderNode(context, child);
+      _renderNode(context, child, document);
     }
     context.writeString('</div>\n');
 
@@ -185,11 +215,15 @@ ${_css()}
     context.writeString('</div>\n');
   }
 
-  void _renderRow(final HandlerContext context, final RowNode node) {
+  void _renderRow(
+    final HandlerContext context,
+    final RowNode node,
+    final LogDocument document,
+  ) {
     context.writeString('<div class="log-row">');
     for (final child in node.children) {
       context.writeString('<div class="log-row-cell">');
-      _renderNode(context, child);
+      _renderNode(context, child, document);
       context.writeString('</div>');
     }
     context.writeString('</div>\n');
@@ -204,6 +238,7 @@ ${_css()}
   void _renderContainer(
     final HandlerContext context,
     final List<LogNode> children,
+    final LogDocument document,
     final int tags,
     final String tagName,
   ) {
@@ -215,7 +250,7 @@ ${_css()}
     context.writeString('>');
 
     for (final child in children) {
-      _renderNode(context, child);
+      _renderNode(context, child, document);
     }
 
     context.writeString('</$tagName>\n');
@@ -459,13 +494,20 @@ ${_css()}
       white-space: pre-wrap;
     }
 
-    /* === JSON semantic tags === */
+    /* === JSON/TOON semantic tags === */
     .log-key   { color: ${darkMode ? '#93c5fd' : '#2563eb'}; }
     .log-val   { color: ${darkMode ? '#86efac' : '#16a34a'}; }
     .log-punct { opacity: 0.45; }
     .log-border    { opacity: 0.6; }
     .log-hierarchy { opacity: 0.5; user-select: none; }
     .log-prefix, .log-suffix { opacity: 0.55; font-size: 0.9em; }
+
+    .log-toon {
+      border-left: 2px solid ${darkMode ? '#a855f7' : '#9333ea'};
+      background-color: ${darkMode ? 'rgba(168,85,247,0.05)' : 'rgba(147,51,234,0.03)'};
+      padding-left: 0.5rem;
+      font-weight: 500;
+    }
 
     /* === BoxNode === */
     fieldset.log-box {

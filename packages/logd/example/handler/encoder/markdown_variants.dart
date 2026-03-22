@@ -6,7 +6,7 @@ void main() async {
 
   final logFile = File('logs/markdown_variants.md');
   if (logFile.existsSync()) logFile.deleteSync();
-  
+
   final logDir = logFile.parent;
   if (!logDir.existsSync()) logDir.createSync(recursive: true);
 
@@ -34,7 +34,8 @@ void main() async {
   // 2. Logging via different formatters
   print('Logging via StructuredFormatter...');
   Logger.configure('showcase.structured', handlers: [structuredHandler]);
-  Logger.get('showcase.structured').info('Universal Markdown (Structured) test.');
+  Logger.get('showcase.structured')
+      .info('Universal Markdown (Structured) test.');
 
   print('Logging via JsonFormatter...');
   Logger.configure('showcase.json', handlers: [jsonHandler]);
@@ -50,7 +51,7 @@ void main() async {
 
   print('\n=== Professional Markdown Generation Complete ===');
   print('Results persisted in logs/markdown_variants.md');
-  
+
   await structuredHandler.sink.dispose();
   await jsonHandler.sink.dispose();
   await plainHandler.sink.dispose();

@@ -29,7 +29,10 @@ void main() {
         final output = const Utf8Decoder().convert(context.takeBytes());
 
         // StructuredFormatter now has joined headers: Timestamp • [INFO] [test]
-        expect(output, contains('### ℹ️ 2023-10-27T10:00:00.000Z • [INFO] [test]'));
+        expect(
+          output,
+          contains('### ℹ️ 2023-10-27T10:00:00.000Z • [INFO] [test]'),
+        );
         expect(output, contains('**Hello Markdown**'));
         expect(output, contains('---'));
       } finally {

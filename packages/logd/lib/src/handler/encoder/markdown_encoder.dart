@@ -52,7 +52,7 @@ class MarkdownEncoder implements LogEncoder {
 
     // 3. Render Body Pass: Render all nodes, but specialized skipping.
     for (final node in document.nodes) {
-      _renderNode(context, node, entry, isBodyPass: true);
+      _renderNode(context, node, document, entry, isBodyPass: true);
     }
 
     // 4. Thematic Separator
@@ -109,8 +109,13 @@ class MarkdownEncoder implements LogEncoder {
   bool _isPureFiller(final String text) {
     // Filter out typical terminal-only filler patterns.
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return true;
-    if (trimmed.split('').every((final char) => char == '_' || char == '-' || char == ' ' || char == '|')) {
+    if (trimmed.isEmpty) {
+      return true;
+    }
+    if (trimmed.split('').every(
+          (final char) =>
+              char == '_' || char == '-' || char == ' ' || char == '|',
+        )) {
       return true;
     }
     return false;
@@ -119,11 +124,12 @@ class MarkdownEncoder implements LogEncoder {
   void _renderNode(
     final HandlerContext context,
     final LogNode node,
+    final LogDocument document,
     final LogEntry entry, {
     final bool isBodyPass = false,
   }) {
     if ((node.tags & LogTag.collapsible) != 0) {
-      _renderCollapsible(context, node, entry);
+      _renderCollapsible(context, node, document, entry);
       return;
     }
 
@@ -143,7 +149,7 @@ class MarkdownEncoder implements LogEncoder {
     } else if (node is IndentationNode) {
       context.writeString('> ');
       for (final child in node.children) {
-        _renderNode(context, child, entry, isBodyPass: isBodyPass);
+        _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
       }
     } else if (node is DecoratedNode) {
       // If the leading decoration was likely consumed by the header, we skip it
@@ -157,11 +163,12 @@ class MarkdownEncoder implements LogEncoder {
           (_getHeaderText(node) != null || _isPureFiller(leadingText));
 
       if (!skipLeading && node.leading != null) {
-        context.writeString('${node.leading!.map((final s) => s.text).join()} ');
+        context
+            .writeString('${node.leading!.map((final s) => s.text).join()} ');
       }
 
       for (final child in node.children) {
-        _renderNode(context, child, entry, isBodyPass: isBodyPass);
+        _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
       }
 
       if (node.trailing != null) {
@@ -172,23 +179,40 @@ class MarkdownEncoder implements LogEncoder {
       context.writeString('\n> [!NOTE]\n');
       for (final child in node.children) {
         context.writeString('> ');
-        _renderNode(context, child, entry, isBodyPass: isBodyPass);
+        _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
       }
       context.writeString('\n');
     } else if (node is MapNode) {
-      context.writeString('\n```json\n$node\n```\n');
+      final toonColumns = document.metadata['toon_columns'] as List<String>?;
+      if (toonColumns != null) {
+        final arrayName = document.metadata['toon_array'] as String? ?? 'logs';
+        final delimiter =
+            document.metadata['toon_delimiter'] as String? ?? '\t';
+        final columnStr = toonColumns.join(',');
+        final row = toonColumns
+            .map((final col) => node.map[col]?.toString() ?? '')
+            .join(delimiter);
+
+        context
+          ..writeString('\n```text\n')
+          ..writeString('$arrayName[]{$columnStr}:\n')
+          ..writeString('$row\n')
+          ..writeString('```\n');
+      } else {
+        context.writeString('\n```json\n$node\n```\n');
+      }
     } else if (node is GroupNode) {
       for (final child in node.children) {
-        _renderNode(context, child, entry);
+        _renderNode(context, child, document, entry);
       }
     } else if (node is ParagraphNode) {
       for (final child in node.children) {
-        _renderNode(context, child, entry);
+        _renderNode(context, child, document, entry);
       }
       context.writeString('\n');
     } else if (node is RowNode) {
       for (final child in node.children) {
-        _renderNode(context, child, entry);
+        _renderNode(context, child, document, entry);
       }
     } else if (node is FillerNode) {
       // Typically ignored in MD except within headers (which we skip here).
@@ -198,6 +222,7 @@ class MarkdownEncoder implements LogEncoder {
   void _renderCollapsible(
     final HandlerContext context,
     final LogNode node,
+    final LogDocument document,
     final LogEntry entry,
   ) {
     final summary =
@@ -217,7 +242,7 @@ class MarkdownEncoder implements LogEncoder {
       }
     } else if (node is LayoutNode) {
       for (final child in node.children) {
-        _renderNode(context, child, entry);
+        _renderNode(context, child, document, entry);
       }
     }
 

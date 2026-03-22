@@ -1,12 +1,12 @@
-{"timestamp":"2025-0
-1-01
-12:00:00","logger":"
-SnapTest","origin":"
-snap.dart:10:5","lev
-el":"INFO","message"
-:"This is a standard
-log message for
-golden
-verification.","erro
-r":"","stackTrace":"
-"}
+logs[]{timestamp,log
+ger,origin,level,mes
+sage,error,stackTrac
+e}:
+2025-01-01
+12:00:00	Snap
+Test	snap.dart:10
+:5	INFO	This
+ is a standard log
+message for golden
+verification.	
+	

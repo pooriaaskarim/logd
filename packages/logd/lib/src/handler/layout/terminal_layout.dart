@@ -28,7 +28,7 @@ class TerminalLayout {
     }
 
     for (final node in document.nodes) {
-      _renderNode(node, level, width, physicalDoc.lines);
+      _renderNode(node, document, level, width, physicalDoc.lines);
     }
 
     return physicalDoc;
@@ -36,6 +36,7 @@ class TerminalLayout {
 
   void _renderNode(
     final LogNode node,
+    final LogDocument document,
     final LogLevel level,
     final int availableWidth,
     final List<PhysicalLine> out,
@@ -44,26 +45,49 @@ class TerminalLayout {
       case final ContentNode n:
         _renderContent(n, availableWidth, out);
       case final BoxNode n:
-        _renderBox(n, level, availableWidth, out);
+        _renderBox(n, document, level, availableWidth, out);
       case final IndentationNode n:
-        _renderIndentation(n, level, availableWidth, out);
+        _renderIndentation(n, document, level, availableWidth, out);
       case final DecoratedNode n:
-        _renderDecorated(n, level, availableWidth, out);
+        _renderDecorated(n, document, level, availableWidth, out);
       case final GroupNode n:
         for (final child in n.children) {
-          _renderNode(child, level, availableWidth, out);
+          _renderNode(child, document, level, availableWidth, out);
         }
       case final ParagraphNode n:
-        _renderParagraph(n, level, availableWidth, out);
+        _renderParagraph(n, document, level, availableWidth, out);
       case final FillerNode n:
         _renderFiller(n, availableWidth, out);
       case final RowNode n:
-        _renderRow(n, level, availableWidth, out);
+        _renderRow(n, document, level, availableWidth, out);
       case final MapNode n:
-        final temp = factory.checkoutHeader()
-          ..segments.add(StyledText(n.toString()));
-        _renderContent(temp, availableWidth, out);
-        temp.releaseRecursive(factory);
+        final toonColumns = document.metadata['toon_columns'] as List<String>?;
+        if (toonColumns != null) {
+          final arrayName =
+              document.metadata['toon_array'] as String? ?? 'logs';
+          final delimiter =
+              document.metadata['toon_delimiter'] as String? ?? '\t';
+          final columnStr = toonColumns.join(',');
+          final row = toonColumns
+              .map((final col) => n.map[col]?.toString() ?? '')
+              .join(delimiter);
+
+          final preamble = '$arrayName[]{$columnStr}:';
+
+          final pNode = factory.checkoutHeader()
+            ..segments.add(StyledText(preamble));
+          _renderContent(pNode, availableWidth, out);
+          pNode.releaseRecursive(factory);
+
+          final rNode = factory.checkoutHeader()..segments.add(StyledText(row));
+          _renderContent(rNode, availableWidth, out);
+          rNode.releaseRecursive(factory);
+        } else {
+          final temp = factory.checkoutHeader()
+            ..segments.add(StyledText(n.toString()));
+          _renderContent(temp, availableWidth, out);
+          temp.releaseRecursive(factory);
+        }
       case final ListNode n:
         final temp = factory.checkoutHeader()
           ..segments.add(StyledText(n.toString()));
@@ -74,6 +98,7 @@ class TerminalLayout {
 
   void _renderRow(
     final RowNode node,
+    final LogDocument document,
     final LogLevel level,
     final int availableWidth,
     final List<PhysicalLine> out,
@@ -128,6 +153,7 @@ class TerminalLayout {
 
   void _renderParagraph(
     final ParagraphNode node,
+    final LogDocument document,
     final LogLevel level,
     final int availableWidth,
     final List<PhysicalLine> out,
@@ -335,6 +361,7 @@ class TerminalLayout {
 
   void _renderBox(
     final BoxNode node,
+    final LogDocument document,
     final LogLevel level,
     final int availableWidth,
     final List<PhysicalLine> out,
@@ -396,7 +423,7 @@ class TerminalLayout {
     final contentWidth = max(0, availableWidth - 4);
     final contentLines = <PhysicalLine>[];
     for (final child in node.children) {
-      _renderNode(child, level, contentWidth, contentLines);
+      _renderNode(child, document, level, contentWidth, contentLines);
     }
 
     for (final rawLine in contentLines) {
@@ -487,6 +514,7 @@ class TerminalLayout {
 
   void _renderIndentation(
     final IndentationNode node,
+    final LogDocument document,
     final LogLevel level,
     final int availableWidth,
     final List<PhysicalLine> out,
@@ -497,7 +525,7 @@ class TerminalLayout {
       final childContentWidth =
           (availableWidth - indentWidth).clamp(0, 1000000);
       final rawLines = <PhysicalLine>[];
-      _renderNode(child, level, childContentWidth, rawLines);
+      _renderNode(child, document, level, childContentWidth, rawLines);
       for (final rawLine in rawLines) {
         if (childContentWidth <= 0) {
           // Narrow space recovery: Drop indent if it would push content
@@ -527,6 +555,7 @@ class TerminalLayout {
 
   void _renderDecorated(
     final DecoratedNode node,
+    final LogDocument document,
     final LogLevel level,
     final int availableWidth,
     final List<PhysicalLine> out,
@@ -546,14 +575,14 @@ class TerminalLayout {
       _renderContent(HeaderNode(segments: node.leading!), availableWidth, out);
       // 2. Render Children (Message) with full width
       for (final child in node.children) {
-        _renderNode(child, level, availableWidth, out);
+        _renderNode(child, document, level, availableWidth, out);
       }
       return;
     }
 
     final childLines = <PhysicalLine>[];
     for (final child in node.children) {
-      _renderNode(child, level, contentWidth, childLines);
+      _renderNode(child, document, level, contentWidth, childLines);
     }
 
     if (childLines.isEmpty) {
