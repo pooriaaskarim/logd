@@ -1,10 +1,10 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'dart:io';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 
 final entry = const LogEntry(
-  loggerName:
-      'bench.logger.a.b.c', // Depth = 5 (global, bench, logger, a, b, c) -> depth 5
+  loggerName: 'bench.logger.a.b.c',
   level: LogLevel.info,
   message:
       'This is a realistic benchmark log payload to test throughput limits.',
@@ -18,7 +18,12 @@ class Metrics {
   final int allocatedBytesPer10k;
 
   Metrics(
-      this.opsPerSec, this.p90, this.p95, this.p99, this.allocatedBytesPer10k);
+    this.opsPerSec,
+    this.p90,
+    this.p95,
+    this.p99,
+    this.allocatedBytesPer10k,
+  );
 
   @override
   String toString() {
@@ -38,17 +43,18 @@ Metrics profilePipeline(
   print('Profiling: $name ...');
 
   final latencies = <int>[];
-  final context = LogContext(availableWidth: width);
+  final engine = const ArenaEngine();
+  final sink = RecordingEncoderSink(width);
+  final handler = Handler(
+    formatter: formatter,
+    decorators: decorators,
+    sink: sink,
+    engine: engine,
+  );
 
   // Warmup
-  for (int i = 0; i < 5000; i++) {
-    var lines = formatter.format(entry, context);
-    for (final decorator in decorators) {
-      lines = decorator.decorate(lines, entry, context);
-    }
-    for (final line in lines) {
-      line.toString();
-    }
+  for (int i = 0; i < 1000; i++) {
+    handler.log(entry);
   }
 
   // Memory baseline
@@ -62,15 +68,7 @@ Metrics profilePipeline(
     iterWatch.reset();
     iterWatch.start();
 
-    var lines = formatter.format(entry, context);
-    for (final decorator in decorators) {
-      lines = decorator.decorate(lines, entry, context);
-    }
-
-    // Simulate sink encoding (to string)
-    for (final line in lines) {
-      line.toString();
-    }
+    handler.log(entry);
 
     iterWatch.stop();
     latencies.add(iterWatch.elapsedMicroseconds);
@@ -96,12 +94,27 @@ Metrics profilePipeline(
   return Metrics(opsPerSec, p90, p95, p99, bytesPer10k);
 }
 
-void main() {
-  print('# Logd Handler Pipeline - Stress Test & Profiling');
-  print('**Dart:** ${Platform.version}');
-  print(
-      '**OS:** ${Platform.operatingSystem} ${Platform.operatingSystemVersion}\n');
+base class RecordingEncoderSink extends LogSink<LogDocument> {
+  final int width;
 
+  RecordingEncoderSink(this.width);
+
+  @override
+  Future<void> output(
+    final LogDocument document,
+    final LogEntry entry,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) async {
+    final context = HandlerContext();
+    const encoder = AnsiEncoder();
+    encoder.encode(entry, document, level, context, factory, width: width);
+    context.takeBytes();
+  }
+}
+
+void runStressTests() {
+  print('\n--- Stress Test & Profiling ---');
   print('### 1. The Raw Machine (JSON -> FileSink)');
   final machine = profilePipeline(
     'Raw Machine',
@@ -131,4 +144,13 @@ void main() {
   );
   print(squeeze);
   print('');
+}
+
+void main() {
+  print('# Logd Handler Pipeline - Stress Test & Profiling');
+  print('**Dart:** ${Platform.version}');
+  print(
+      '**OS:** ${Platform.operatingSystem} ${Platform.operatingSystemVersion}\n');
+
+  runStressTests();
 }

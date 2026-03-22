@@ -12,10 +12,16 @@ A `Handler` encapsulates two core operations:
 
 ### Formatters
 - `StructuredFormatter`: Modern flow-based layout with semantic tagging.
-- `JsonPrettyFormatter`: High-fidelity, recursive JSON inspection for nested payloads.
-- `MarkdownFormatter`: Readability-first layout with collapsible stack traces.
-- `ToonFormatter`: Token-efficient header-first format optimized for AI agents.
-- `PlainFormatter`: Minimal, flow-aware text output.
+- `JsonPrettyFormatter`: High-fidelity, recursive JSON inspection for nested payloads via `MapNode`.
+- `ToonFormatter`: Produces semantic `MapNode`s optimized for AI agents and LLM streaming.
+- `PlainFormatter`: Minimal, flow-aware text output using semantic literacy.
+
+### Encoders (Serialization)
+- `JsonEncoder`: High-performance JSON serialization for semantic documents.
+- `ToonEncoder`: Implements the Token-Oriented Object Notation protocol with metadata headers.
+- `AnsiEncoder`: Translates [LogStyle]s into ANSI escape codes for terminals.
+- `HtmlEncoder`: Produces self-contained, styled HTML documents.
+- `MarkdownEncoder`: Translates semantic IR into GFM (GitHub Flavored Markdown) with support for alerts and collapsible blocks.
 
 #### Unified Metadata Configuration
 All modern formatters accept a `Set<LogMetadata>` (`timestamp`, `logger`, `origin`), providing a consistent API for selecting contextual data.
@@ -98,8 +104,12 @@ Complex formats like JSON and TOON use semantic tags (`LogTag.timestamp`, `LogTa
 - `SocketSink`: Streams logs in real-time over WebSocket connections with automatic reconnection and buffer draining on recovery.
 - `MultiSink`: Distributes output to multiple sinks concurrently, ensuring resilient logging.
 
-> [!TIP]
-> **Network Sink Formatter Choice**: While `JsonFormatter` is recommended for `HttpSink` (produces structured JSON arrays), network sinks accept any formatter. Use `ToonFormatter` for efficient real-time streaming or `PlainFormatter` for simple text ingestion. Ensure your receiving endpoint matches the expected format.
+> **Network Sink Design**: `HttpSink` and `SocketSink` are now protocol-agnostic. While `JsonFormatter` + `JsonEncoder` is recommended for standard aggregation, you can pair `ToonFormatter` + `ToonEncoder` for efficient real-time streaming to custom monitors.
+
+### Engines (Orchestration)
+The engine is the "mechanical core" of the pipeline, responsible for orchestration and resource management.
+- `StandardEngine`: Default heap-allocated execution. Prioritizes simplicity and relies on native GC.
+- `ArenaEngine`: High-performance execution using LIFO object pooling. Minimizes GC pressure for extreme throughput.
 
 ## Composition
 
@@ -113,7 +123,7 @@ Handler(
     StyleDecorator(),
   ],
   sink: const ConsoleSink(),
-  lineLength: 80,
+  engine: const ArenaEngine(), // Explicitly opt-in to high-performance pooling
 )
 ```
 
@@ -237,7 +247,7 @@ logger.configure(
 ```
 
 ### 4. Centralized Network Logging
-Ship logs to a central aggregation service with resilient delivery.
+Ship logs to a central aggregation service using structured JSON.
 
 ```dart
 final logger = Logger.get('app.production');
@@ -245,12 +255,10 @@ logger.configure(
   handlers: [
     Handler(
       formatter: const JsonFormatter(),
+      // HttpSink automatically uses JsonEncoder by default
       sink: const HttpSink(
         url: 'https://logs.example.com/ingest',
         batchSize: 50,
-        flushInterval: Duration(seconds: 10),
-        maxRetries: 5,
-        dropPolicy: DropPolicy.discardOldest,
       ),
     ),
   ],

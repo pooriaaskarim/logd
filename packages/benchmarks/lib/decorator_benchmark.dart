@@ -1,6 +1,8 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'formatter_benchmark.dart'; // reutilize createEntry/context
 
 abstract class DecoratorBenchmark extends BenchmarkBase {
@@ -9,14 +11,25 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
   late LogEntry entry;
   late LogFormatter formatter;
   late LogDecorator decorator;
-  late List<LogLine> baseLines;
+  late List<String> baseLines;
 
   @override
   void setup() {
     entry = createEntry();
     formatter = const PlainFormatter();
-    final context = const LogContext(availableWidth: 80);
-    baseLines = formatter.format(entry, context).toList(); // Pre-calculate base
+    const factory = StandardPipelineFactory();
+    final doc = factory.checkoutDocument();
+    try {
+      formatter.format(entry, doc, factory);
+      final layout = const TerminalLayout(width: 80, factory: factory);
+      baseLines = layout
+          .layout(doc, LogLevel.info)
+          .lines
+          .map((final l) => l.toString())
+          .toList(); // Pre-calculate base
+    } finally {
+      doc.releaseRecursive(factory);
+    }
     decorator = createDecorator();
   }
 
@@ -24,9 +37,23 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    final context = const LogContext(availableWidth: 80);
-    final decorated = decorator.decorate(baseLines, entry, context);
-    for (final _ in decorated) {}
+    const factory = StandardPipelineFactory();
+    final doc = factory.checkoutDocument();
+    try {
+      for (final l in baseLines) {
+        final node = factory.checkoutMessage();
+        node.segments.add(StyledText(l));
+        doc.nodes.add(node);
+      }
+
+      decorator.decorate(doc, entry, factory);
+
+      final layout = const TerminalLayout(width: 80, factory: factory);
+      final lines = layout.layout(doc, LogLevel.info).lines;
+      for (final _ in lines) {}
+    } finally {
+      doc.releaseRecursive(factory);
+    }
   }
 }
 
@@ -51,9 +78,26 @@ class StyleDecoratorBenchmark extends DecoratorBenchmark {
   LogDecorator createDecorator() => const StyleDecorator();
 }
 
+class SuffixDecoratorBenchmark extends DecoratorBenchmark {
+  SuffixDecoratorBenchmark() : super('SuffixDecorator');
+
+  @override
+  LogDecorator createDecorator() => const SuffixDecorator(' | SUFFIX');
+}
+
+class HierarchyDepthPrefixDecoratorBenchmark extends DecoratorBenchmark {
+  HierarchyDepthPrefixDecoratorBenchmark()
+      : super('HierarchyDepthPrefixDecorator');
+
+  @override
+  LogDecorator createDecorator() => const HierarchyDepthPrefixDecorator();
+}
+
 void runDecoratorBenchmarks() {
   print('\n--- Decorator Overhead ---');
   BoxDecoratorBenchmark().report();
   PrefixDecoratorBenchmark().report();
   StyleDecoratorBenchmark().report();
+  SuffixDecoratorBenchmark().report();
+  HierarchyDepthPrefixDecoratorBenchmark().report();
 }

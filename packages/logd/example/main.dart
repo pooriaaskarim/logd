@@ -99,8 +99,9 @@ void _showcasePipelines() {
       BoxDecorator(borderStyle: BorderStyle.double),
       StyleDecorator(),
     ],
-    sink: ConsoleSink(),
-    lineLength: 60,
+    sink: ConsoleSink(
+      lineLength: 60,
+    ),
   );
 
   Logger.configure('app.api', handlers: [prettyHandler]);

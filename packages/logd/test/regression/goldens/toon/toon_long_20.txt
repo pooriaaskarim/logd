@@ -1,0 +1,15 @@
+logs[]{timestamp,log
+ger,origin,level,mes
+sage,error,stackTrac
+e}:
+2025-01-01
+12:00:01	Long
+Snap	long.dart
+	WARNING	A
+very long message
+that should trigger
+wrapping across
+multiple lines to
+verify structural
+integrity and
+spacing.		

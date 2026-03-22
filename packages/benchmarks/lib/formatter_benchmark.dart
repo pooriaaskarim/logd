@@ -1,6 +1,8 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
+import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 
 // Helper to create a dummy LogEntry
 LogEntry createEntry() {
@@ -29,9 +31,16 @@ abstract class FormatterBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    final context = const LogContext(availableWidth: 80);
-    final lines = formatter.format(entry, context);
-    for (final _ in lines) {}
+    final factory = Arena.instance;
+    final doc = factory.checkoutDocument();
+    try {
+      formatter.format(entry, doc, factory);
+      final layout = TerminalLayout(width: 80, factory: factory);
+      final lines = layout.layout(doc, LogLevel.info).lines;
+      for (final _ in lines) {}
+    } finally {
+      doc.releaseRecursive(factory);
+    }
   }
 }
 
@@ -63,10 +72,43 @@ class JsonFormatterBenchmark extends FormatterBenchmark {
   LogFormatter createFormatter() => const JsonFormatter();
 }
 
+class JsonPrettyFormatterBenchmark extends FormatterBenchmark {
+  JsonPrettyFormatterBenchmark() : super('JsonPrettyFormatter');
+
+  @override
+  LogFormatter createFormatter() => const JsonPrettyFormatter();
+}
+
+class MarkdownEncoderBenchmark extends BenchmarkBase {
+  MarkdownEncoderBenchmark() : super('MarkdownEncoder');
+
+  late LogEntry entry;
+  late LogDocument doc;
+  late LogPipelineFactory factory;
+  late HandlerContext context;
+
+  @override
+  void setup() {
+    entry = createEntry();
+    factory = Arena.instance;
+    doc = factory.checkoutDocument();
+    context = factory.checkoutContext();
+    const StructuredFormatter().format(entry, doc, factory);
+  }
+
+  @override
+  void run() {
+    const MarkdownEncoder().encode(entry, doc, LogLevel.info, context, factory);
+    context.takeBytes();
+  }
+}
+
 void runFormatterBenchmarks() {
   print('\n--- Formatter Throughput ---');
   PlainFormatterBenchmark().report();
   StructuredFormatterBenchmark().report();
   ToonFormatterBenchmark().report();
   JsonFormatterBenchmark().report();
+  JsonPrettyFormatterBenchmark().report();
+  MarkdownEncoderBenchmark().report();
 }

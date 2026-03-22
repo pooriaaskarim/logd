@@ -10,8 +10,7 @@ void main() async {
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
-    sink: ConsoleSink(),
-    lineLength: 8, // Tiny! Internal space ~2-4 chars
+    sink: ConsoleSink(lineLength: 8), // Tiny! Internal space ~2-4 chars
   );
 
   Logger.configure('tiny', handlers: [tinyHandler]);
@@ -22,8 +21,7 @@ void main() async {
   // Long words without spaces must be broken mid-char if necessary.
   const glueHandler = Handler(
     formatter: PlainFormatter(metadata: {}),
-    sink: ConsoleSink(),
-    lineLength: 20,
+    sink: ConsoleSink(lineLength: 20),
   );
 
   Logger.configure('glue', handlers: [glueHandler]);
@@ -38,8 +36,7 @@ void main() async {
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
-    sink: ConsoleSink(),
-    lineLength: 40,
+    sink: ConsoleSink(lineLength: 40),
   );
 
   Logger.configure('tab', handlers: [tabBoxHandler]);
@@ -68,7 +65,7 @@ void main() async {
   // Ensuring tags from different phases (Formatter + Box + Suffix) all style
   // correctly.
   const mixHandler = Handler(
-    formatter: ToonFormatter(color: true),
+    formatter: ToonPrettyFormatter(),
     decorators: [
       StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
       BoxDecorator(borderStyle: BorderStyle.double),
@@ -77,7 +74,7 @@ void main() async {
         style: LogStyle(color: LogColor.green, bold: true),
       ),
     ],
-    sink: ConsoleSink(),
+    sink: ConsoleSink(lineLength: 40),
   );
 
   Logger.configure('mixer', handlers: [mixHandler]);

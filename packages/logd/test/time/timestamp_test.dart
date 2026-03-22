@@ -21,6 +21,10 @@ void main() {
     late DateTime fixedTime;
     late Timezone fixedTimezone;
 
+    setUpAll(() {
+      Timezone.ensureInitialized();
+    });
+
     setUp(() {
       // Fixed time: Dec 18, 2025, 12:34:56.789123 (UTC)
       fixedTime = DateTime.utc(2025, 12, 18, 12, 34, 56, 789, 123);

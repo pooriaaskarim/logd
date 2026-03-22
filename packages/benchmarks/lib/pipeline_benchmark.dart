@@ -1,27 +1,13 @@
-import 'dart:async';
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
+import 'package:logd/src/handler/handler.dart';
+
 import 'formatter_benchmark.dart';
 
-// No-op sink for benchmarking
-final class NullSink extends LogSink {
-  const NullSink();
-
-  @override
-  int get preferredWidth => 80;
-
-  @override
-  Future<void> output(
-      final Iterable<LogLine> lines, final LogLevel level) async {
-    // Consume lines
-    for (final _ in lines) {}
-  }
-}
-
-// Handler benchmark
-abstract class PipelineBenchmark extends BenchmarkBase {
-  PipelineBenchmark(super.name);
+class PipelineBenchmark extends BenchmarkBase {
+  PipelineBenchmark() : super('FullPipeline');
 
   late LogEntry entry;
   late Handler handler;
@@ -29,69 +15,93 @@ abstract class PipelineBenchmark extends BenchmarkBase {
   @override
   void setup() {
     entry = createEntry();
-    handler = createHandler();
+    handler = Handler(
+      formatter: const PlainFormatter(),
+      sink: RecordingSink(),
+      engine: const StandardEngine(),
+    );
   }
-
-  Handler createHandler();
 
   @override
   void run() {
-    _manualPipelineRun();
-  }
-
-  void _manualPipelineRun() {
-    final filters = handler.filters;
-    if (filters.any((f) => !f.shouldLog(entry))) return;
-
-    final formatter = handler.formatter;
-    final decorators = handler.decorators;
-    final context = const LogContext(availableWidth: 80);
-
-    var lines = formatter.format(entry, context);
-
-    // Decorate
-    for (final decorator in decorators) {
-      lines = decorator.decorate(lines, entry, context);
-    }
-
-    if (lines.isNotEmpty) {
-      // Consume
-      for (final _ in lines) {}
-    }
+    handler.log(entry);
   }
 }
 
-class SimplePipelineBenchmark extends PipelineBenchmark {
-  SimplePipelineBenchmark() : super('Simple Pipeline (Plain)');
-
+base class RecordingSink extends LogSink<LogDocument> {
   @override
-  Handler createHandler() {
-    return const Handler(
-      formatter: PlainFormatter(),
-      sink: NullSink(),
-    );
+  Future<void> output(
+    final LogDocument document,
+    final LogEntry entry,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) async {
+    // Release immediately to simulate memory pressure/cleanup
+    document.releaseRecursive(factory);
   }
 }
 
-class ComplexPipelineBenchmark extends PipelineBenchmark {
-  ComplexPipelineBenchmark() : super('Complex Pipeline (Structure+Box+Style)');
+class ArenaPipelineBenchmark extends BenchmarkBase {
+  ArenaPipelineBenchmark() : super('ArenaFullPipeline');
+
+  late LogEntry entry;
+  late Handler handler;
 
   @override
-  Handler createHandler() {
-    return const Handler(
-      formatter: StructuredFormatter(),
-      sink: NullSink(),
-      decorators: [
-        BoxDecorator(),
-        StyleDecorator(),
-        PrefixDecorator('APP | '),
-      ],
+  void setup() {
+    entry = createEntry();
+    // Use an explicitly pooled configuration if possible,
+    // but here we just test the default which uses Arena.
+    handler = Handler(
+      formatter: const PlainFormatter(),
+      sink: RecordingSink(),
+      engine: const ArenaEngine(),
     );
+  }
+
+  @override
+  void run() {
+    handler.log(entry);
+  }
+}
+
+class ManualPipelineBenchmark extends BenchmarkBase {
+  ManualPipelineBenchmark() : super('ManualPipeline');
+
+  late LogEntry entry;
+  late LogFormatter formatter;
+  late TerminalLayout layout;
+  late LogEncoder encoder;
+
+  @override
+  void setup() {
+    entry = createEntry();
+    formatter = const PlainFormatter();
+    layout =
+        const TerminalLayout(width: 80, factory: StandardPipelineFactory());
+    encoder = const PlainTextEncoder();
+  }
+
+  @override
+  void run() {
+    final factory = Arena.instance;
+    final doc = factory.checkoutDocument();
+    try {
+      formatter.format(entry, doc, factory);
+      final physical = layout.layout(doc, LogLevel.info);
+      final context = HandlerContext();
+      encoder.encode(entry, doc, LogLevel.info, context, factory);
+      context.takeBytes();
+      physical.releaseRecursive(factory);
+    } finally {
+      doc.releaseRecursive(factory);
+    }
   }
 }
 
 void runPipelineBenchmarks() {
-  print('\n--- E2E Pipeline Overhead ---');
-  SimplePipelineBenchmark().report();
-  ComplexPipelineBenchmark().report();
+  print('\n--- Pipeline Throughput ---');
+  PipelineBenchmark().report();
+  ArenaPipelineBenchmark().report();
+  ManualPipelineBenchmark().report();
 }

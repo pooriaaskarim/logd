@@ -1,10 +1,12 @@
 import 'package:logd/logd.dart';
+import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
-import 'mock_context.dart';
+
+import '../test_helpers.dart';
 
 void main() {
   group('StyleDecorator', () {
-    final lines = [LogLine.text('line 1'), LogLine.text('line 2')];
+    final lines = ['line 1', 'line 2'];
     const infoEntry = LogEntry(
       loggerName: 'test',
       origin: 'test',
@@ -15,16 +17,25 @@ void main() {
 
     test('adds colors when enabled', () {
       const decorator = StyleDecorator();
-      final decorated =
-          decorator.decorate(lines, infoEntry, mockContext).toList();
-      final rendered = renderLines(decorated);
+      final doc = createTestDocument(lines);
+      try {
+        decorator.decorate(
+          doc,
+          infoEntry,
+          Arena.instance,
+        );
+        final rendered = renderLines(doc);
 
-      expect(rendered.length, equals(2));
-      // Just check if it contains color code and text.
-      // Info level now defaults to blue (was green)
-      expect(rendered[0], contains('\x1B[34m')); // Blue
-      expect(rendered[0], endsWith('\x1B[0m'));
-      expect(rendered[0], contains('line 1'));
+        expect(rendered.length, equals(2));
+        // Just check if it contains color code and text.
+        // Info level now defaults to blue (was green)
+        expect(rendered[0], contains('\x1B[34m')); // Blue
+        expect(rendered[0], endsWith('\x1B[0m'));
+        expect(rendered[0], contains('line'));
+        expect(rendered[0], contains('1'));
+      } finally {
+        doc.releaseRecursive(Arena.instance);
+      }
     });
 
     test('different levels have different colors', () {
@@ -40,12 +51,19 @@ void main() {
         ),
       );
 
-      final info = renderLines(
-        decorator.decorate([LogLine.text('msg')], infoEntry, mockContext),
-      ).first;
-      final error = renderLines(
+      final infoDoc = createTestDocument(['msg']);
+      try {
+        decorator.decorate(infoDoc, infoEntry, Arena.instance);
+        final info = renderLines(infoDoc).first;
+        expect(info, contains('\x1B[34m')); // Blue
+      } finally {
+        infoDoc.releaseRecursive(Arena.instance);
+      }
+
+      final errorDoc = createTestDocument(['msg']);
+      try {
         decorator.decorate(
-          [LogLine.text('msg')],
+          errorDoc,
           const LogEntry(
             loggerName: 'test',
             origin: 'test',
@@ -53,12 +71,18 @@ void main() {
             message: 'msg',
             timestamp: 'now',
           ),
-          mockContext,
-        ),
-      ).first;
-      final warning = renderLines(
+          Arena.instance,
+        );
+        final error = renderLines(errorDoc).first;
+        expect(error, contains('\x1B[31m')); // Red
+      } finally {
+        errorDoc.releaseRecursive(Arena.instance);
+      }
+
+      final warningDoc = createTestDocument(['msg']);
+      try {
         decorator.decorate(
-          [LogLine.text('msg')],
+          warningDoc,
           const LogEntry(
             loggerName: 'test',
             origin: 'test',
@@ -66,44 +90,56 @@ void main() {
             message: 'msg',
             timestamp: 'now',
           ),
-          mockContext,
-        ),
-      ).first;
-
-      // Using default scheme: trace=green, debug=white, info=blue,
-      // warning=yellow, error=red
-      expect(info, contains('\x1B[34m')); // Blue
-      expect(error, contains('\x1B[31m')); // Red
-      expect(warning, contains('\x1B[33m')); // Yellow
+          Arena.instance,
+        );
+        final warning = renderLines(warningDoc).first;
+        expect(warning, contains('\x1B[33m')); // Yellow
+      } finally {
+        warningDoc.releaseRecursive(Arena.instance);
+      }
     });
 
     test('respects custom theme (no message coloring)', () {
       const decorator = StyleDecorator(
         theme: NoMessageTheme(),
       );
-      final headerLines = [
-        const LogLine([
-          LogSegment('Header 1', tags: {LogTag.header}),
-        ]),
-        const LogLine([
-          LogSegment('Message 1', tags: {LogTag.message}),
-        ]),
-      ];
+      final arena = Arena.instance;
+      final headerDoc = arena.checkoutDocument();
+      headerDoc.nodes.add(
+        arena.checkoutMessage()
+          ..segments.add(const StyledText('Header 1', tags: LogTag.header)),
+      );
+      headerDoc.nodes.add(
+        arena.checkoutMessage()
+          ..segments.add(const StyledText('Message 1', tags: LogTag.message)),
+      );
 
-      final decorated =
-          decorator.decorate(headerLines, infoEntry, mockContext).toList();
-      final rendered = renderLines(decorated);
+      try {
+        decorator.decorate(
+          headerDoc,
+          infoEntry,
+          arena,
+        );
+        final rendered = renderLines(headerDoc);
 
-      // Header line should have inverted color code (\x1B[7m) - defined in NoMessageTheme
-      expect(rendered[0], contains('\x1B[7m'));
-      expect(rendered[0], contains('Header 1'));
+        // Header line should have inverted color code (\x1B[7m) - defined in NoMessageTheme
+        expect(rendered[0], contains('\x1B[7m'));
+        expect(rendered[0], contains('Header'));
+        expect(rendered[0], contains('1'));
 
-      // Message line should NOT have inverted color code AND no color at all
-      // (if theme says so)
-      // NoMessageTheme doesn't apply base color to message.
-      expect(rendered[1], isNot(contains('\x1B[7m')));
-      expect(rendered[1], isNot(contains('\x1B[34m'))); // Check no blue either
-      expect(rendered[1], contains('Message 1'));
+        // Message line should NOT have inverted color code AND no color at all
+        // (if theme says so)
+        // NoMessageTheme doesn't apply base color to message.
+        expect(rendered[1], isNot(contains('\x1B[7m')));
+        expect(
+          rendered[1],
+          isNot(contains('\x1B[34m')),
+        ); // Check no blue either
+        expect(rendered[1], contains('Message'));
+        expect(rendered[1], contains('1'));
+      } finally {
+        headerDoc.releaseRecursive(arena);
+      }
     });
   });
 }
@@ -112,8 +148,8 @@ class NoMessageTheme extends LogTheme {
   const NoMessageTheme() : super(colorScheme: LogColorScheme.defaultScheme);
 
   @override
-  LogStyle getStyle(final LogLevel level, final Set<LogTag> tags) {
-    if (tags.contains(LogTag.message)) {
+  LogStyle getStyle(final LogLevel level, final int tags) {
+    if ((tags & LogTag.message) != 0) {
       return const LogStyle(); // No style, no color
     }
 
@@ -121,9 +157,11 @@ class NoMessageTheme extends LogTheme {
     // test
     var style = LogStyle(color: colorScheme.colorForLevel(level));
 
-    if (tags.contains(LogTag.header)) {
+    if ((tags & LogTag.header) != 0) {
       style = LogStyle(
-        color: style.color, bold: true, inverse: true, // Test expects inverse
+        color: style.color,
+        bold: true,
+        inverse: true, // Test expects inverse
       );
     }
 

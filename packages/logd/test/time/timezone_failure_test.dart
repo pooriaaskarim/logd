@@ -40,6 +40,10 @@ class ThrowingClock extends Clock {
 
 void main() {
   group('Timezone Failure Emulation', () {
+    setUpAll(() {
+      Timezone.ensureInitialized();
+    });
+
     setUp(() {
       Timezone.resetLocalCache();
     });

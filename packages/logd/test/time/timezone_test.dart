@@ -2,7 +2,6 @@ import 'package:logd/src/core/context/clock/clock.dart';
 import 'package:logd/src/core/context/context.dart';
 import 'package:logd/src/time/timezone.dart';
 import 'package:test/test.dart';
-import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 class MockClock implements Clock {
@@ -23,7 +22,7 @@ void main() {
 
     setUpAll(() {
       // Ensure database is initialized for tests
-      tz_data.initializeTimeZones();
+      Timezone.ensureInitialized();
     });
 
     setUp(() {

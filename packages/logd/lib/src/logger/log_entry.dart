@@ -4,8 +4,8 @@ part of 'logger.dart';
 ///
 /// Single source of truth for all log data. Handlers receive
 /// this object and decide how to format and where to output.
+@internal
 class LogEntry {
-  @internal
   const LogEntry({
     required this.loggerName,
     required this.origin,
