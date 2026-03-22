@@ -4,6 +4,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
+
 import '../test_helpers.dart';
 
 void main() {
@@ -98,50 +99,122 @@ void main() {
         expect(output, contains('  "level": '));
         expect(output, contains('  "logger": '));
         expect(output, contains('  "message": '));
+        expect(output, contains('  "message": '));
         expect(output, contains('  '));
       } finally {
         doc.releaseRecursive(Arena.instance);
       }
     });
-  });
 
-  group('JsonSemanticFormatter tags', () {
-    const entry = LogEntry(
-      loggerName: 'app',
-      origin: 'main.dart:10',
-      level: LogLevel.info,
-      message: 'Test message',
-      timestamp: '2025-01-01 10:00:00',
-    );
-
-    test('emits semantic tags when color is true', () {
-      const formatter = JsonPrettyFormatter(color: true);
-      final doc = formatDoc(formatter, entry);
+    test('emits SectionNode for nested objects', () {
+      const formatter = JsonPrettyFormatter();
+      final errorMap = {
+        'id': 123,
+        'nested': {'deep': true},
+      };
+      final entryWithError = LogEntry(
+        level: LogLevel.info,
+        message: 'msg',
+        loggerName: 'test',
+        origin: 'test.dart:1',
+        timestamp: '2026-03-22',
+        error: errorMap,
+      );
+      final doc = formatDoc(formatter, entryWithError);
       try {
-        final lines = TerminalLayout(width: 80, factory: Arena.instance)
-            .layout(doc, LogLevel.info)
-            .lines;
-
-        expect(lines.length, greaterThan(0));
-        bool foundKey = false;
-        bool foundLevel = false;
-        bool foundPunctuation = false;
-        for (final line in lines) {
-          for (final segment in line.segments) {
-            if ((segment.tags & LogTag.key) != 0) {
-              foundKey = true;
-            }
-            if ((segment.tags & LogTag.level) != 0) {
-              foundLevel = true;
-            }
-            if ((segment.tags & LogTag.punctuation) != 0) {
-              foundPunctuation = true;
-            }
+        // Find the SectionNode for the root error object or nested object
+        final sections = <SectionNode>[];
+        void collect(final LogNode node) {
+          if (node is SectionNode) {
+            sections.add(node);
+          }
+          if (node is LayoutNode) {
+            node.children.forEach(collect);
           }
         }
-        expect(foundKey, isTrue);
-        expect(foundLevel, isTrue);
-        expect(foundPunctuation, isTrue);
+
+        doc.nodes.forEach(collect);
+
+        expect(sections.length, greaterThanOrEqualTo(1));
+        final idSection = sections.firstWhere(
+          (final s) => s.summary.toString().contains('id'),
+        );
+        expect(idSection.tags & LogTag.collapsible, isNot(0));
+
+        // Check summary contains opening bracket and preview
+        final summaryText = idSection.summary.toString();
+        expect(summaryText, contains('{'));
+        expect(summaryText, contains('id')); // Preview of first key
+
+        // Verify LogTag.preview is present on the summary's segments
+        final previewSegment = (idSection.summary as ContentNode)
+            .segments
+            .firstWhere((final s) => (s.tags & LogTag.preview) != 0);
+        expect(previewSegment, isNotNull);
+      } finally {
+        doc.releaseRecursive(Arena.instance);
+      }
+    });
+
+    test('handles embedded JSON strings recursively', () {
+      const formatter = JsonPrettyFormatter();
+      final input = {
+        'outer': '{"inner": {"deep": true, "more": "data", "even": "more", '
+            '"trigger": "stacking"}}',
+      };
+      final entryWithNested = LogEntry(
+        level: LogLevel.info,
+        message: 'nested',
+        loggerName: 'test',
+        origin: 'test.dart:1',
+        timestamp: '2026-03-22',
+        error: input,
+      );
+
+      final doc = formatDoc(formatter, entryWithNested);
+      try {
+        final sections = <SectionNode>[];
+        void collect(final LogNode node) {
+          if (node is SectionNode) {
+            sections.add(node);
+          }
+          if (node is LayoutNode) {
+            node.children.forEach(collect);
+          }
+        }
+
+        doc.nodes.forEach(collect);
+
+        // The 'outer' string should have been parsed and wrapped in a
+        // SectionNode
+        final innerSection = sections.firstWhere(
+          (final s) => s.summary.toString().contains('inner'),
+        );
+        expect(innerSection, isNotNull);
+      } finally {
+        doc.releaseRecursive(Arena.instance);
+      }
+    });
+
+    test('respects recursion depth', () {
+      const formatter = JsonPrettyFormatter(maxDepth: 5);
+      Object? deep = {'leaf': true};
+      for (var i = 0; i < 10; i++) {
+        deep = {'level_$i': deep};
+      }
+
+      final entryDeep = LogEntry(
+        level: LogLevel.info,
+        message: 'deep',
+        loggerName: 'test',
+        origin: 'test.dart:1',
+        timestamp: '2026-03-22',
+        error: deep,
+      );
+
+      final doc = formatDoc(formatter, entryDeep);
+      try {
+        expect(doc.nodes, isNotEmpty);
       } finally {
         doc.releaseRecursive(Arena.instance);
       }

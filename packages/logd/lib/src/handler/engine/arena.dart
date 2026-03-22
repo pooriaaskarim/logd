@@ -41,6 +41,7 @@ class Arena implements LogPipelineFactory {
   final List<DecoratedNode> _decorated = [];
   final List<ParagraphNode> _paragraphs = [];
   final List<RowNode> _rows = [];
+  final List<SectionNode> _sections = [];
   final List<FillerNode> _fillers = [];
   final List<MapNode> _maps = [];
   final List<ListNode> _lists = [];
@@ -113,6 +114,11 @@ class Arena implements LogPipelineFactory {
   @override
   RowNode checkoutRow() =>
       _rows.isNotEmpty ? _rows.removeLast() : RowNode._pooled();
+
+  /// Checks out a [SectionNode] from the pool, or allocates a fresh one.
+  @override
+  SectionNode checkoutSection() =>
+      _sections.isNotEmpty ? _sections.removeLast() : SectionNode._pooled();
 
   /// Checks out a [FillerNode] from the pool, or allocates a fresh one.
   @override
@@ -194,6 +200,9 @@ class Arena implements LogPipelineFactory {
       case final RowNode n:
         n.reset();
         _rows.add(n);
+      case final SectionNode n:
+        n.reset();
+        _sections.add(n);
       case final FillerNode n:
         n.reset();
         _fillers.add(n);
@@ -233,6 +242,7 @@ class Arena implements LogPipelineFactory {
       _decorated.length +
       _paragraphs.length +
       _rows.length +
+      _sections.length +
       _fillers.length +
       _maps.length +
       _lists.length +

@@ -43,7 +43,12 @@ final class JsonFormatter implements LogFormatter {
     }
 
     if (entry.error != null) {
-      map['error'] = entry.error.toString();
+      final error = entry.error;
+      if (error is Map || error is List) {
+        map['error'] = error;
+      } else {
+        map['error'] = error.toString();
+      }
     }
     if (entry.stackTrace != null) {
       map['stackTrace'] = entry.stackTrace.toString();
@@ -172,7 +177,8 @@ final class JsonPrettyFormatter implements LogFormatter {
     final Object? value,
     final int depth, {
     final Map<String, int>? fieldTags,
-    final String? currentKey,
+    final List<StyledText>? prefixSegments,
+    final Object? currentKey,
     final bool isLast = true,
   }) {
     if (depth > maxDepth) {
@@ -189,17 +195,19 @@ final class JsonPrettyFormatter implements LogFormatter {
     final effectiveIndent = indent;
 
     if (value is Map) {
-      final header = factory.checkoutHeader()
-        ..segments.add(
-          StyledText(
-            '{',
-            tags: color ? LogTag.punctuation : LogTag.none,
-          ),
-        );
+      final header = factory.checkoutHeader();
+      if (prefixSegments != null) {
+        header.segments.addAll(prefixSegments);
+      }
+      header.segments.add(
+        StyledText(
+          '{',
+          tags: color ? LogTag.punctuation : LogTag.none,
+        ),
+      );
 
-      final nodes = <LogNode>[
-        factory.checkoutParagraph()..children.add(header),
-      ];
+      // Add breadcrumb summary for the collapsed state
+      _addPreviewSegments(factory, header.segments, value, isLast: isLast);
 
       final entries = value.entries.toList();
       if (sortKeys) {
@@ -254,7 +262,9 @@ final class JsonPrettyFormatter implements LogFormatter {
         final threshold = isComposite ? stackThreshold : keyWrapThreshold;
 
         if (keyText.visibleLength > threshold) {
-          body
+          final structuralGroup = factory.checkoutGroup();
+
+          structuralGroup.children
             ..add(
               factory.checkoutParagraph()
                 ..children.add(
@@ -268,59 +278,62 @@ final class JsonPrettyFormatter implements LogFormatter {
                 processedValue,
                 depth + 1,
                 fieldTags: fieldTags,
+                prefixSegments: null,
+                currentKey: entry.key,
                 isLast: isEntryLast,
               ),
             );
+
+          body.add(structuralGroup);
         } else {
-          body.add(
-            factory.checkoutDecorated()
-              ..leadingWidth = keyText.visibleLength
-              ..leading = [StyledText(keyText, tags: keyTag)]
-              ..repeatLeading = false
-              ..children.addAll(
-                _buildNodes(
-                  factory,
-                  processedValue,
-                  depth + 1,
-                  fieldTags: fieldTags,
-                  currentKey: entry.key,
-                  isLast: isEntryLast,
-                ),
-              ),
+          // Unify the key into the nested SectionNode's summary if collapsible
+          body.addAll(
+            _buildNodes(
+              factory,
+              processedValue,
+              depth + 1,
+              fieldTags: fieldTags,
+              prefixSegments: [StyledText(keyText, tags: keyTag)],
+              currentKey: entry.key,
+              isLast: isEntryLast,
+            ),
           );
         }
       }
 
-      nodes
-        ..add(
+      final closing = factory.checkoutHeader()
+        ..segments.add(
+          StyledText(
+            isLast ? '}' : '},',
+            tags: color ? LogTag.punctuation : LogTag.none,
+          ),
+        );
+
+      final section = factory.checkoutSection()
+        ..summary = header
+        ..children.add(
           factory.checkoutIndentation()
             ..indentString = effectiveIndent
             ..children.addAll(body),
         )
-        ..add(
-          factory.checkoutParagraph()
-            ..children.add(
-              factory.checkoutHeader()
-                ..segments.add(
-                  StyledText(
-                    isLast ? '}' : '},',
-                    tags: color ? LogTag.punctuation : LogTag.none,
-                  ),
-                ),
-            ),
-        );
-      return nodes;
+        ..children.add(closing)
+        ..tags = LogTag.collapsible;
+
+      return [section];
     } else if (value is List) {
-      final header = factory.checkoutHeader()
-        ..segments.add(
-          StyledText(
-            '[',
-            tags: color ? LogTag.punctuation : LogTag.none,
-          ),
-        );
-      final nodes = <LogNode>[
-        factory.checkoutParagraph()..children.add(header),
-      ];
+      final header = factory.checkoutHeader();
+      if (prefixSegments != null) {
+        header.segments.addAll(prefixSegments);
+      }
+      header.segments.add(
+        StyledText(
+          '[',
+          tags: color ? LogTag.punctuation : LogTag.none,
+        ),
+      );
+
+      // Add breadcrumb summary for the collapsed state
+      _addPreviewSegments(factory, header.segments, value, isLast: isLast);
 
       final body = <LogNode>[];
       for (int i = 0; i < value.length; i++) {
@@ -338,31 +351,32 @@ final class JsonPrettyFormatter implements LogFormatter {
                 processedValue,
                 depth + 1,
                 fieldTags: fieldTags,
+                prefixSegments: null,
                 isLast: isEntryLast,
               ),
             ),
         );
       }
 
-      nodes
-        ..add(
+      final closing = factory.checkoutHeader()
+        ..segments.add(
+          StyledText(
+            isLast ? ']' : '],',
+            tags: color ? LogTag.punctuation : LogTag.none,
+          ),
+        );
+
+      final section = factory.checkoutSection()
+        ..summary = header
+        ..children.add(
           factory.checkoutIndentation()
             ..indentString = effectiveIndent
             ..children.addAll(body),
         )
-        ..add(
-          factory.checkoutParagraph()
-            ..children.add(
-              factory.checkoutHeader()
-                ..segments.add(
-                  StyledText(
-                    isLast ? ']' : '],',
-                    tags: color ? LogTag.punctuation : LogTag.none,
-                  ),
-                ),
-            ),
-        );
-      return nodes;
+        ..children.add(closing)
+        ..tags = LogTag.collapsible;
+
+      return [section];
     } else {
       // Scalar value
       final valStr = _valueString(value);
@@ -370,8 +384,14 @@ final class JsonPrettyFormatter implements LogFormatter {
           ? (fieldTags[currentKey] ?? (color ? LogTag.value : LogTag.none))
           : (color ? LogTag.value : LogTag.none);
 
-      if (valStr.contains('\n')) {
-        // WISDOM: Handle multiline strings as a block
+      // WISDOM: For long scalars, use DecoratedNode to provide a hanging indent
+      // so the wrapped text stays aligned after the key.
+      if (valStr.length > 40 && prefixSegments != null) {
+        final keyWidth = prefixSegments.fold<int>(
+          0,
+          (final sum, final s) => sum + s.text.length,
+        );
+
         final msg = factory.checkoutMessage()
           ..segments.add(
             StyledText(
@@ -387,18 +407,51 @@ final class JsonPrettyFormatter implements LogFormatter {
             ),
           );
         }
+
         return [
-          factory.checkoutParagraph()..children.add(msg),
+          factory.checkoutDecorated()
+            ..leading = prefixSegments
+            ..leadingWidth = keyWidth
+            ..repeatLeading = false
+            ..children.add(factory.checkoutParagraph()..children.add(msg)),
         ];
       }
 
-      final msg = factory.checkoutMessage()
-        ..segments.add(
+      if (valStr.contains('\n')) {
+        // WISDOM: Handle multiline strings as a block
+        final msg = factory.checkoutMessage();
+        if (prefixSegments != null) {
+          msg.segments.addAll(prefixSegments);
+        }
+        msg.segments.add(
           StyledText(
             valStr,
             tags: valueTag,
           ),
         );
+        if (!isLast) {
+          msg.segments.add(
+            StyledText(
+              ',',
+              tags: color ? LogTag.punctuation : LogTag.none,
+            ),
+          );
+        }
+        return [
+          factory.checkoutParagraph()..children.add(msg),
+        ];
+      }
+
+      final msg = factory.checkoutMessage();
+      if (prefixSegments != null) {
+        msg.segments.addAll(prefixSegments);
+      }
+      msg.segments.add(
+        StyledText(
+          valStr,
+          tags: valueTag,
+        ),
+      );
       if (!isLast) {
         msg.segments.add(
           StyledText(
@@ -413,26 +466,140 @@ final class JsonPrettyFormatter implements LogFormatter {
     }
   }
 
+  void _addPreviewSegments(
+    final LogPipelineFactory factory,
+    final List<StyledText> segments,
+    final Object? value, {
+    required final bool isLast,
+    final int maxItems = 10,
+  }) {
+    const previewTag = LogTag.noWrap | LogTag.preview;
+    const dimStyle = LogStyle(dim: true);
+
+    if (value is Map) {
+      if (value.isEmpty) {
+        segments.add(
+          StyledText(
+            isLast ? ' }' : ' },',
+            tags: (color ? LogTag.punctuation : LogTag.none) | previewTag,
+            style: dimStyle,
+          ),
+        );
+        return;
+      }
+      final entries = value.entries.toList();
+      if (sortKeys) {
+        entries.sort(
+          (final a, final b) => a.key.toString().compareTo(b.key.toString()),
+        );
+      }
+      for (int i = 0; i < entries.length && i < maxItems; i++) {
+        final entry = entries[i];
+        final k = '"${entry.key}": ';
+        final v = _valueString(entry.value);
+
+        segments
+          ..add(
+            StyledText(
+              i == 0 ? ' $k' : ', $k',
+              tags: (color ? LogTag.key | LogTag.punctuation : LogTag.none) |
+                  previewTag,
+              style: dimStyle,
+            ),
+          )
+          ..add(
+            StyledText(
+              v,
+              tags: (color ? LogTag.value : LogTag.none) | previewTag,
+              style: dimStyle,
+            ),
+          );
+      }
+      if (entries.length > maxItems) {
+        segments.add(
+          StyledText(
+            isLast ? ', ... }' : ', ... },',
+            tags: (color ? LogTag.punctuation : LogTag.none) | previewTag,
+            style: dimStyle,
+          ),
+        );
+      } else {
+        segments.add(
+          StyledText(
+            isLast ? ' }' : ' },',
+            tags: (color ? LogTag.punctuation : LogTag.none) | previewTag,
+            style: dimStyle,
+          ),
+        );
+      }
+    } else if (value is List) {
+      if (value.isEmpty) {
+        segments.add(
+          StyledText(
+            isLast ? ' ]' : ' ],',
+            tags: (color ? LogTag.punctuation : LogTag.none) | previewTag,
+            style: dimStyle,
+          ),
+        );
+        return;
+      }
+
+      for (int i = 0; i < value.length && i < maxItems; i++) {
+        final v = _valueString(value[i]);
+        segments.add(
+          StyledText(
+            i == 0 ? ' $v' : ', $v',
+            tags: (color ? LogTag.value : LogTag.none) | previewTag,
+            style: dimStyle,
+          ),
+        );
+      }
+
+      if (value.length > maxItems) {
+        segments.add(
+          StyledText(
+            isLast ? ', ... ]' : ', ... ],',
+            tags: (color ? LogTag.punctuation : LogTag.none) | previewTag,
+            style: dimStyle,
+          ),
+        );
+      } else {
+        segments.add(
+          StyledText(
+            isLast ? ' ]' : ' ],',
+            tags: (color ? LogTag.punctuation : LogTag.none) | previewTag,
+            style: dimStyle,
+          ),
+        );
+      }
+    }
+  }
+
   /// WISDOM: Determines if a composite value should be rendered on a single
   /// line.
   bool _isSmallComposite(final Object? value) {
+    // WISDOM: For maximum interactivity and recursive collapsibility,
+    // we flatten small structures ONLY if they contain primitive values.
+    // This preserves structural depth for complex objects.
     if (value is Map) {
       if (value.isEmpty) {
         return true;
       }
-      if (value.length > 3) {
+      if (value.length > 5) {
         return false;
       }
-      // Check if all values are simple scalars
-      for (final v in value.values) {
-        if (v is Map || v is List) {
+      int totalLen = 0;
+      for (final entry in value.entries) {
+        if (entry.value is Map || entry.value is List) {
           return false;
         }
-        if (v is String && v.contains('\n')) {
+        totalLen += entry.key.toString().length + 4;
+        totalLen += _valueString(entry.value).length + 2;
+        if (totalLen > 60) {
           return false;
         }
       }
-      return _valueString(value).visibleLength < 40;
+      return true;
     } else if (value is List) {
       if (value.isEmpty) {
         return true;
@@ -440,15 +607,17 @@ final class JsonPrettyFormatter implements LogFormatter {
       if (value.length > 5) {
         return false;
       }
-      for (final v in value) {
-        if (v is Map || v is List) {
+      int totalLen = 0;
+      for (final item in value) {
+        if (item is Map || item is List) {
           return false;
         }
-        if (v is String && v.contains('\n')) {
+        totalLen += _valueString(item).length + 2;
+        if (totalLen > 60) {
           return false;
         }
       }
-      return _valueString(value).visibleLength < 40;
+      return true;
     }
     return false;
   }

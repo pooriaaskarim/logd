@@ -61,6 +61,9 @@ abstract interface class LogPipelineFactory {
   /// Checks out a [RowNode] from the pool, or allocates a fresh one.
   RowNode checkoutRow();
 
+  /// Checks out a [SectionNode] from the pool, or allocates a fresh one.
+  SectionNode checkoutSection();
+
   /// Checks out a [FillerNode] from the pool, or allocates a fresh one.
   FillerNode checkoutFiller();
 

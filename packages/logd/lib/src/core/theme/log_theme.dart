@@ -59,6 +59,10 @@ abstract class LogTag {
   /// Semantic hint: Content is suitable for a collapsible/expandable section
   /// (e.g., \<details\> in HTML/Markdown).
   static const int collapsible = 1 << 16;
+
+  /// Semantic hint: Content is a preview string for a collapsed section.
+  /// (Should be hidden when the section is open).
+  static const int preview = 1 << 17;
 }
 
 /// Visual style suggestion for a log segment.

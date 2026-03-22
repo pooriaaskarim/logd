@@ -34,15 +34,17 @@ final class SuffixDecorator extends ContentDecorator {
       return;
     }
 
-    final node = factory.checkoutDecorated()
-      ..trailingWidth = suffix.visibleLength
-      ..trailing = [StyledText(suffix, tags: LogTag.suffix, style: style)]
-      ..repeatTrailing = true
-      ..alignTrailing = aligned
-      ..children.addAll(document.nodes);
-    document.nodes
-      ..clear()
-      ..add(node);
+    final snapshot = document.nodes.toList();
+    document.nodes.clear();
+    for (final child in snapshot) {
+      final node = factory.checkoutDecorated()
+        ..trailingWidth = suffix.visibleLength
+        ..trailing = [StyledText(suffix, tags: LogTag.suffix, style: style)]
+        ..repeatTrailing = true
+        ..alignTrailing = aligned
+        ..children.add(child);
+      document.nodes.add(node);
+    }
   }
 
   @override

@@ -84,6 +84,11 @@ final class StyleDecorator extends VisualDecorator {
           ),
         final MapNode n => n,
         final ListNode n => n,
+        final SectionNode n => n.copyWith(
+            summary: _styleNode(n.summary, level),
+            children:
+                n.children.map((final c) => _styleNode(c, level)).toList(),
+          ),
       };
 
   StyledText _styleStyledText(final StyledText s, final LogLevel level) {

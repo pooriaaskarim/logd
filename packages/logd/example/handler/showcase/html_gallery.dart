@@ -113,6 +113,41 @@ void main() async {
     'fields': ['name', 'email']
   });
 
+  compactLog.debug('API Request', error: {
+    'method': 'POST',
+    'url': 'https://api.example.com/v1/resource',
+    'headers': {
+      'Content-Type': 'application/json',
+      'Authorization':
+          'Bearer xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+      'X-RequestId': 'req_abc1234567890'
+    },
+    'body': {
+      'action': 'update_profile',
+      'data': {
+        'name': 'John Doe',
+        'email': 'john.doe@example.com',
+        'preferences': {
+          'theme': 'dark',
+          'notifications': {'email': true, 'push': false, 'sms': true}
+        }
+      }
+    }
+  });
+
+  compactLog.info('Metrics Snapshot', error: [
+    {
+      'cpu': 45.2,
+      'mem': 1024 * 1024 * 512,
+      'nodes': ['worker-1', 'worker-2']
+    },
+    {
+      'cpu': 12.8,
+      'mem': 1024 * 1024 * 128,
+      'nodes': ['worker-3']
+    }
+  ]);
+
   // ===========================================================================
   // 5. TOON STREAM (ToonPretty + Suffix + Hierarchy)
   // ===========================================================================

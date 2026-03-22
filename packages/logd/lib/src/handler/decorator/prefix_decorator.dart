@@ -25,15 +25,17 @@ final class PrefixDecorator extends ContentDecorator {
       return;
     }
 
-    final node = factory.checkoutDecorated()
-      ..leadingWidth = prefix.visibleLength
-      ..leading = [StyledText(prefix, tags: LogTag.prefix, style: style)]
-      ..repeatLeading = true
-      ..alignTrailing = false
-      ..children.addAll(document.nodes);
-    document.nodes
-      ..clear()
-      ..add(node);
+    final snapshot = document.nodes.toList();
+    document.nodes.clear();
+    for (final child in snapshot) {
+      final node = factory.checkoutDecorated()
+        ..leadingWidth = prefix.visibleLength
+        ..leading = [StyledText(prefix, tags: LogTag.prefix, style: style)]
+        ..repeatLeading = true
+        ..alignTrailing = false
+        ..children.add(child);
+      document.nodes.add(node);
+    }
   }
 
   @override

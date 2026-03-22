@@ -93,6 +93,11 @@ class TerminalLayout {
           ..segments.add(StyledText(n.toString()));
         _renderContent(temp, availableWidth, out);
         temp.releaseRecursive(factory);
+      case final SectionNode n:
+        _renderNode(n.summary, document, level, availableWidth, out);
+        for (final child in n.children) {
+          _renderNode(child, document, level, availableWidth, out);
+        }
     }
   }
 
@@ -235,6 +240,9 @@ class TerminalLayout {
     }
 
     for (final segment in node.segments) {
+      if ((segment.tags & LogTag.preview) != 0) {
+        continue;
+      }
       // If segment is tagged noWrap, we bypass width constraints.
       if ((segment.tags & LogTag.noWrap) != 0) {
         // Just append the whole text. If there are newlines, respect them.

@@ -87,6 +87,10 @@ class StandardPipelineFactory implements LogPipelineFactory {
   RowNode checkoutRow() => RowNode(children: []);
 
   @override
+  SectionNode checkoutSection() =>
+      SectionNode(summary: ParagraphNode(children: []), children: []);
+
+  @override
   FillerNode checkoutFiller() => FillerNode('');
 
   @override

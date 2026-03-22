@@ -71,7 +71,7 @@ void main() {
 
         // "long_key" (length 10) > 5, so it should be followed by a newline
         // before the next structural character '{'
-        expect(output, contains('"long_key": \n'));
+        expect(output, contains('"long_key":\n'));
         expect(output, contains('{\n'));
       } finally {
         doc.releaseRecursive(Arena.instance);

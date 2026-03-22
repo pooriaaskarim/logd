@@ -481,3 +481,46 @@ final class RowNode extends LayoutNode {
         tags: tags ?? this.tags,
       );
 }
+
+/// A collapsible/expandable section.
+final class SectionNode extends LayoutNode {
+  /// Creating a [SectionNode].
+  SectionNode({
+    required super.children,
+    required this.summary,
+    super.tags,
+  });
+
+  /// Named constructor for arena pool allocation.
+  SectionNode._pooled()
+      : summary = ParagraphNode(children: []),
+        super(children: []);
+
+  /// The summary/header that acts as a trigger for the section.
+  LogNode summary;
+
+  @override
+  void reset() {
+    super.reset();
+    summary.reset();
+  }
+
+  @override
+  void releaseRecursive(final LogPipelineFactory factory) {
+    summary.releaseRecursive(factory);
+    super.releaseRecursive(factory);
+  }
+
+  @override
+  SectionNode copyWith({
+    final List<LogNode>? children,
+    final StyledText? title,
+    final int? tags,
+    final LogNode? summary,
+  }) =>
+      SectionNode(
+        children: children ?? List<LogNode>.from(this.children),
+        summary: summary ?? this.summary,
+        tags: tags ?? this.tags,
+      );
+}

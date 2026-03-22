@@ -29,20 +29,19 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
       return;
     }
 
-    // Build nested indentation nodes, innermost first.
-    // We reuse the document's nodes list for the outermost level.
-    var innerNodes = document.nodes.toList();
-    for (var i = 0; i < entry.hierarchyDepth; i++) {
-      final node = factory.checkoutIndentation()
-        ..indentString = indent
-        ..style = style
-        ..children.addAll(innerNodes);
-      innerNodes = [node];
-    }
+    final snapshot = document.nodes.toList();
+    document.nodes.clear();
 
-    document.nodes
-      ..clear()
-      ..addAll(innerNodes);
+    for (var child in snapshot) {
+      for (var i = 0; i < entry.hierarchyDepth; i++) {
+        final node = factory.checkoutIndentation()
+          ..indentString = indent
+          ..style = style
+          ..children.add(child);
+        child = node;
+      }
+      document.nodes.add(child);
+    }
   }
 
   @override
