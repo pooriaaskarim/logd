@@ -226,7 +226,7 @@ buffer?.sink();  // Atomically logs all lines as single entry
 - Public logging method failures (in logging methods)
 
 **Output Format**:
-```
+```text
 [logd-internal] [LEVEL]: message
 [logd-internal] [Error]: error_object
 [logd-internal] [Stack Trace]:

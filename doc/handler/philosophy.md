@@ -69,4 +69,4 @@ By centralizing strictly defined constraints (`availableWidth`, `contentLimit`),
 
 ## Atomic Processing
 
-Handlers process log entries as complete units rather than streaming characters. The `Iterable<LogLine>` output from formatters represents complete lines, ensuring multi-line logs (stack traces, boxed messages) remain grouped during concurrent logging. This prevents "log interleaving" where lines from different loggers mix together in the output sink.
+Handlers process log entries as complete units rather than streaming characters. The [LogDocument] output from formatters represents the entire semantic structure, ensuring multi-line logs (stack traces, boxed messages) remain grouped during concurrent logging. This prevents "log interleaving" where lines from different loggers mix together in the output sink.
