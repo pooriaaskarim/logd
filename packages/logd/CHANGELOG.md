@@ -1,6 +1,24 @@
 # Changelog
 
-## 0.7.0: The Architectural Inversion & Performance Milestone
+## 0.7.1: The Flutter Visibility Fix (Critical Patch)
+
+This patch addresses a critical visibility issue where logs were invisible in Flutter IDE consoles (VS Code, Android Studio) due to `ConsoleSink` relying exclusively on `stdout`.
+
+- ### Critical Fixes & Visibility
+  - **Automatic Print Delegation**: Enhanced `ConsoleSink` to automatically switch its output mechanism to `print()` when running in a Flutter environment (`dart.library.ui`) or in non-terminal environments (standard for IDE consoles).
+  - **Environment Awareness**: Improved `AutoConsoleEncoder` and `ConsoleSink` to gracefully handle environments where `io.stdout` is unavailable or restricted.
+  - **Manual Override**: Added `usePrint` parameter to `ConsoleSink` for explicit control over output delegation.
+
+- ### Architectural Refinement
+  - **PrintSink Identification**: Introduced `PrintSink` as a dedicated, byte-to-string bridge for `print()`-based output.
+  - **API Surface Protection**: Marked `PrintSink` as `@internal`, ensuring the public API remains clean while providing robust internal delegation for `ConsoleSink`.
+
+---
+
+## 0.7.0: [RETRACTED] The Architectural Inversion & Performance Milestone
+
+> [!CAUTION]
+> **REVISION NOTICE**: v0.7.0 was retracted shortly after release due to a critical regression where logs were invisible in Flutter IDE consoles. Users are strongly advised to upgrade to **v0.7.1**.
  
 This milestone represents a complete overhaul of the `logd` logging pipeline, transitioning from a string-centric model to a zero-allocation, byte-oriented, and semantic-IR-driven architecture. It consolidates all development phases originally intended for 0.6.5.
  

@@ -71,6 +71,7 @@ part 'sink/file_sink.dart';
 part 'sink/multi_sink.dart';
 part 'sink/network_sink.dart';
 part 'sink/isolate_sink.dart';
+part 'sink/print_sink.dart';
 part 'sink/sink.dart';
 
 /// Composes a [LogFormatter], a [LogSink], and optional filters and decorators.

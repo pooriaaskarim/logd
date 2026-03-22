@@ -37,7 +37,14 @@ class AutoConsoleEncoder implements LogEncoder {
     _delegate.encode(entry, document, level, context, factory, width: width);
   }
 
-  LogEncoder get _delegate => io.stdout.supportsAnsiEscapes
-      ? const AnsiEncoder()
-      : const PlainTextEncoder();
+  LogEncoder get _delegate {
+    try {
+      if (io.stdout.supportsAnsiEscapes) {
+        return const AnsiEncoder();
+      }
+    } catch (_) {
+      // Accessing stdout in some environments might throw
+    }
+    return const PlainTextEncoder();
+  }
 }
