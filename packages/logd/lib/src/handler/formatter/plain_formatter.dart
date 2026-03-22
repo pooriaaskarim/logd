@@ -26,7 +26,7 @@ final class PlainFormatter implements LogFormatter {
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     // 1. Header Flow (Level + Metadata)
     final headerSegments = <StyledText>[

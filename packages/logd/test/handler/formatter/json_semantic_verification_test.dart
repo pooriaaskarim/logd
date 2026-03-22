@@ -33,7 +33,7 @@ void main() {
       final doc = formatDoc(formatter, entry);
       try {
         // Verify structure via lines (end-to-end)
-        const layout = TerminalLayout(width: 80);
+        final layout = TerminalLayout(width: 80, factory: Arena.instance);
         final lines = layout.layout(doc, LogLevel.info).lines;
         final output = lines.join('\n');
 
@@ -55,7 +55,7 @@ void main() {
           isTrue,
         );
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -78,7 +78,7 @@ void main() {
       final doc = formatDoc(formatter, entry);
       try {
         // Use helper to simulate terminal
-        const layout = TerminalLayout(width: 30);
+        final layout = TerminalLayout(width: 30, factory: Arena.instance);
         final lines = layout
             .layout(doc, LogLevel.info)
             .lines
@@ -96,7 +96,7 @@ void main() {
           }
         }
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

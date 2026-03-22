@@ -3,7 +3,22 @@ import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
 import 'formatter_benchmark.dart';
-import 'pipeline_benchmark.dart'; // Reuse NullSink
+
+// No-op sink for benchmarking
+final class NullSink extends LogSink<LogDocument> {
+  const NullSink();
+
+  @override
+  Future<void> output(
+    final LogDocument document,
+    final LogEntry entry,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) async {
+    // Consume nodes to force evaluation
+    for (final _ in document.nodes) {}
+  }
+}
 
 class MultiSinkBenchmark extends BenchmarkBase {
   final int sinkCount;
@@ -30,7 +45,7 @@ class MultiSinkBenchmark extends BenchmarkBase {
   }
 
   void _manualPipelineRun() {
-    final arena = LogArena.instance;
+    final arena = Arena.instance;
     final doc = arena.checkoutDocument();
 
     try {

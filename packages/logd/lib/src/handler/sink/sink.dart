@@ -27,6 +27,7 @@ abstract base class LogSink<T> {
     final T data,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   );
 
   /// Performs cleanup, such as closing file handles or network connections.

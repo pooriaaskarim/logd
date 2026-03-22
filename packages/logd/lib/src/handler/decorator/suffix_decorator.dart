@@ -28,7 +28,7 @@ final class SuffixDecorator extends ContentDecorator {
   void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     if (suffix.isEmpty) {
       return;

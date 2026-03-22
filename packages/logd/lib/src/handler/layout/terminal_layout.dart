@@ -11,14 +11,18 @@ class TerminalLayout {
   /// Creates a [TerminalLayout].
   const TerminalLayout({
     required this.width,
+    required this.factory,
   });
 
   /// The target physical width in characters.
   final int width;
 
+  /// The factory used to checkout physical layout objects.
+  final LogPipelineFactory factory;
+
   /// Lays out a [LogDocument] into a [PhysicalDocument].
   PhysicalDocument layout(final LogDocument document, final LogLevel level) {
-    final physicalDoc = LogArena.instance.checkoutPhysicalDocument();
+    final physicalDoc = factory.checkoutPhysicalDocument();
     if (document.nodes.isEmpty) {
       return physicalDoc;
     }
@@ -152,7 +156,7 @@ class TerminalLayout {
     if (availableWidth <= 0) {
       return;
     }
-    final line = LogArena.instance.checkoutPhysicalLine();
+    final line = factory.checkoutPhysicalLine();
     line.segments.add(
       StyledText(
         node.char * availableWidth,
@@ -183,7 +187,7 @@ class TerminalLayout {
           }
         }
         if (isSimple) {
-          final line = LogArena.instance.checkoutPhysicalLine();
+          final line = factory.checkoutPhysicalLine();
           line.segments.add(segment);
           out.add(line);
           return;
@@ -191,13 +195,13 @@ class TerminalLayout {
       }
     }
 
-    var currentLine = LogArena.instance.checkoutPhysicalLine();
+    var currentLine = factory.checkoutPhysicalLine();
     var currentLength = 0;
 
     void commitLine() {
       if (currentLine.segments.isNotEmpty) {
         out.add(currentLine);
-        currentLine = LogArena.instance.checkoutPhysicalLine();
+        currentLine = factory.checkoutPhysicalLine();
         currentLength = 0;
       }
     }
@@ -270,7 +274,7 @@ class TerminalLayout {
               }
 
               final chunk = remaining.substring(0, takeCount);
-              final chunkLine = LogArena.instance.checkoutPhysicalLine();
+              final chunkLine = factory.checkoutPhysicalLine();
               chunkLine.segments.add(
                 StyledText(chunk, style: segment.style, tags: segment.tags),
               );
@@ -309,7 +313,7 @@ class TerminalLayout {
     if (currentLine.segments.isNotEmpty) {
       out.add(currentLine);
     } else {
-      LogArena.instance.release(currentLine);
+      factory.release(currentLine);
     }
 
     // Post-process to trim trailing spaces from each physical line
@@ -355,7 +359,7 @@ class TerminalLayout {
       final padLeft = padding ~/ 2;
       final padRight = padding - padLeft;
 
-      final titleLine = LogArena.instance.checkoutPhysicalLine();
+      final titleLine = factory.checkoutPhysicalLine();
       titleLine.segments.addAll([
         StyledText(
           titleBar,
@@ -395,7 +399,7 @@ class TerminalLayout {
 
     for (final rawLine in contentLines) {
       // Truncate assuming line starts at index 2 (border + space)
-      final line = rawLine.truncate(contentWidth, startX: 2);
+      final line = rawLine.truncate(factory, contentWidth, startX: 2);
       final sideChar = border.getChar(BoxBorderPosition.vertical);
 
       // Calculate visible length assuming line starts at index 2
@@ -406,7 +410,7 @@ class TerminalLayout {
       final paddingNeeded = contentWidth - visibleLen;
       final padding = ' ' * (paddingNeeded > 0 ? paddingNeeded : 0);
 
-      final boxLine = LogArena.instance.checkoutPhysicalLine();
+      final boxLine = factory.checkoutPhysicalLine();
       boxLine.segments.addAll([
         StyledText(
           sideChar,
@@ -430,7 +434,7 @@ class TerminalLayout {
       // Wait, PhysicalLine.truncate currently returns a NEW PhysicalLine.
       // I should update PhysicalLine.truncate to also use the arena!
       if (!identical(line, rawLine)) {
-        rawLine.releaseRecursive(LogArena.instance);
+        rawLine.releaseRecursive(factory);
       }
     }
     // We don't need contentLines anymore as they are now either in 'out'
@@ -442,7 +446,7 @@ class TerminalLayout {
     // NO, because we checkoutPhysicalLine() for boxLine and COPY segments.
     // So rawLine is ALWAYS redundant after the loop.
     for (final rawLine in contentLines) {
-      rawLine.releaseRecursive(LogArena.instance);
+      rawLine.releaseRecursive(factory);
     }
 
     // Bottom Border
@@ -468,7 +472,7 @@ class TerminalLayout {
     final right = border.getCorner(pos, BoxBorderCorner.right);
     final horizontal = border.getChar(BoxBorderPosition.horizontal);
 
-    final line = LogArena.instance.checkoutPhysicalLine();
+    final line = factory.checkoutPhysicalLine();
     line.segments.add(
       StyledText(
         '$left${horizontal * (width - 2)}$right',
@@ -498,8 +502,8 @@ class TerminalLayout {
           // off-screen
           out.add(rawLine);
         } else {
-          final line = rawLine.truncate(childContentWidth);
-          final indentLine = LogArena.instance.checkoutPhysicalLine();
+          final line = rawLine.truncate(factory, childContentWidth);
+          final indentLine = factory.checkoutPhysicalLine();
           indentLine.segments.add(
             StyledText(
               node.indentString,
@@ -511,9 +515,9 @@ class TerminalLayout {
           out.add(indentLine);
 
           if (!identical(line, rawLine)) {
-            line.releaseRecursive(LogArena.instance);
+            line.releaseRecursive(factory);
           }
-          rawLine.releaseRecursive(LogArena.instance);
+          rawLine.releaseRecursive(factory);
         }
       }
     }
@@ -551,12 +555,13 @@ class TerminalLayout {
     }
 
     if (childLines.isEmpty) {
-      childLines.add(LogArena.instance.checkoutPhysicalLine());
+      childLines.add(factory.checkoutPhysicalLine());
     }
 
     for (var i = 0; i < childLines.length; i++) {
       final rawLine = childLines[i];
-      final line = rawLine.truncate(contentWidth, startX: node.leadingWidth);
+      final line =
+          rawLine.truncate(factory, contentWidth, startX: node.leadingWidth);
       final isFirst = i == 0;
 
       final leadingSegments =
@@ -601,7 +606,7 @@ class TerminalLayout {
           ? (padChar * paddingNeeded)
           : '';
 
-      final pLine = LogArena.instance.checkoutPhysicalLine();
+      final pLine = factory.checkoutPhysicalLine();
       pLine.segments.addAll(leadingSegments);
       pLine.segments.addAll(line.segments);
       if (padding.isNotEmpty) {
@@ -611,9 +616,9 @@ class TerminalLayout {
       out.add(pLine);
 
       if (!identical(line, rawLine)) {
-        line.releaseRecursive(LogArena.instance);
+        line.releaseRecursive(factory);
       }
-      rawLine.releaseRecursive(LogArena.instance);
+      rawLine.releaseRecursive(factory);
     }
   }
 

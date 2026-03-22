@@ -20,19 +20,25 @@ class AnsiEncoder implements LogEncoder {
   @override
   void preamble(
     final HandlerContext context,
-    final LogLevel level, {
+    final LogLevel level,
+    final LogPipelineFactory factory, {
     final LogDocument? document,
   }) {}
 
   @override
-  void postamble(final HandlerContext context, final LogLevel level) {}
+  void postamble(
+    final HandlerContext context,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) {}
 
   @override
   void encode(
     final LogEntry entry,
     final LogDocument document,
     final LogLevel level,
-    final HandlerContext context, {
+    final HandlerContext context,
+    final LogPipelineFactory factory, {
     final int? width,
   }) {
     if (document.nodes.isEmpty) {
@@ -41,7 +47,7 @@ class AnsiEncoder implements LogEncoder {
 
     // 1. Calculate physical layout
     final totalWidth = width ?? 80;
-    final layoutEngine = TerminalLayout(width: totalWidth);
+    final layoutEngine = TerminalLayout(width: totalWidth, factory: factory);
     final physicalDoc = layoutEngine.layout(document, level);
 
     // 2. Encode with styles
@@ -52,7 +58,7 @@ class AnsiEncoder implements LogEncoder {
       }
     }
 
-    physicalDoc.releaseRecursive(LogArena.instance);
+    physicalDoc.releaseRecursive(factory);
   }
 
   void _encodeLine(
@@ -113,7 +119,7 @@ class AnsiEncoder implements LogEncoder {
       ..writeString(codeString)
       ..addByte(0x6D) // 'm'
       ..writeString(text)
-      ..addToken(LogStatic.ansiReset);
+      ..addToken(RenderTokens.ansiReset);
   }
 
   int _getColorCode(final LogColor color, {required final bool background}) {

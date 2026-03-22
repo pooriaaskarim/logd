@@ -1,4 +1,4 @@
-# Benchmark Report: Milestone 5 (LogArena Pooling)
+# Benchmark Report: Milestone 5 (Arena Pooling)
 **Goal:** Implement LIFO object pooling for `LogDocument` and `LogNode` to reduce heap churn.
 **Status:** Completed
 

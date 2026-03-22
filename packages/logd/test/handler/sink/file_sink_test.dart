@@ -226,6 +226,7 @@ void main() {
         createTestDocument(['Hello', 'World']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       final file = fs.files['test.log']!;
@@ -243,6 +244,7 @@ void main() {
         createTestDocument(['Log 1']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       final file = fs.files['app.log']!;
       expect(utf8.decode(file.content), contains('Log 1'));
@@ -253,6 +255,7 @@ void main() {
         createTestDocument(['Log 2']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       final currentFile = fs.files['app.log']!;
@@ -277,6 +280,7 @@ void main() {
         createTestDocument(['123456']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       final file = fs.files['size.log']!;
       expect(await file.length(), equals(7));
@@ -286,6 +290,7 @@ void main() {
         createTestDocument(['7890']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       final currentFile = fs.files['size.log']!;
@@ -319,6 +324,7 @@ void main() {
         createTestDocument(['trigger']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       // We expect:
@@ -341,11 +347,13 @@ void main() {
         createTestDocument(['data']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await sink.output(
         createTestDocument(['rotate']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       // Current file is 'rotate\n'
@@ -371,6 +379,7 @@ void main() {
         createTestDocument(['Initial']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       // Next Day 11:00 - First rotation
@@ -379,6 +388,7 @@ void main() {
         createTestDocument(['Second']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       // Rotated: time_clean-2025-01-01.log (based on lastRotation=Jan 1)
@@ -391,6 +401,7 @@ void main() {
         createTestDocument(['Third']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       // Rotated: time_clean-2025-01-02.log (based on lastRotation=Jan 2)
@@ -419,11 +430,13 @@ void main() {
         createTestDocument(['data']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await sink.output(
         createTestDocument(['rotate']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       expect(fs.files.containsKey('random.txt'), isTrue);

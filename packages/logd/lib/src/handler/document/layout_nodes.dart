@@ -10,7 +10,7 @@ part of '../handler.dart';
 /// - **Decoration**: [DecoratedNode] adds prefixes or suffixes.
 ///
 /// On the `arena_refinement` branch, [LayoutNode] and all subclasses are
-/// poolable mutable objects. Use [LogArena] to check out and release them.
+/// poolable mutable objects. Use [Arena] to check out and release them.
 sealed class LayoutNode extends LogNode {
   /// Creates a [LayoutNode].
   LayoutNode({
@@ -40,11 +40,11 @@ sealed class LayoutNode extends LogNode {
   }
 
   @override
-  void releaseRecursive(final LogArena arena) {
+  void releaseRecursive(final LogPipelineFactory factory) {
     for (final child in children) {
-      child.releaseRecursive(arena);
+      child.releaseRecursive(factory);
     }
-    arena.release(this);
+    factory.release(this);
   }
 
   @override

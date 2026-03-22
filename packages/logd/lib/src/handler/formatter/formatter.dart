@@ -21,6 +21,6 @@ abstract interface class LogFormatter {
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   );
 }

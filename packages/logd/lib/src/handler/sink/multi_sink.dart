@@ -34,6 +34,7 @@ base class MultiSink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     if (!enabled) {
       return;
@@ -45,7 +46,7 @@ base class MultiSink extends LogSink<LogDocument> {
 
     await Future.wait(
       sinks.where((final sink) => sink.enabled).map(
-            (final sink) => _safeOutput(sink, document, entry, level),
+            (final sink) => _safeOutput(sink, document, entry, level, factory),
           ),
     );
   }
@@ -55,9 +56,10 @@ base class MultiSink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     try {
-      await sink.output(document, entry, level);
+      await sink.output(document, entry, level, factory);
     } catch (e, s) {
       InternalLogger.log(
         LogLevel.error,

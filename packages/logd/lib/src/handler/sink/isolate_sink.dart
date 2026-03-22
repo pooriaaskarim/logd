@@ -52,6 +52,7 @@ base class IsolateSink extends LogSink<Uint8List> {
     final Uint8List data,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     if (!enabled) {
       return;
@@ -62,7 +63,7 @@ base class IsolateSink extends LogSink<Uint8List> {
     }
 
     // To ensure the main thread can immediately reuse the pooled buffer
-    // from LogArena, we must perform exactly one copy here.
+    // from Arena, we must perform exactly one copy here.
     // We then use TransferableTypedData to ensure that sending this copy
     // to the worker isolate does not involve a second copy.
     final copy = Uint8List.fromList(data);
@@ -103,7 +104,8 @@ base class IsolateSink extends LogSink<Uint8List> {
     receivePort.listen((final message) async {
       if (message is _IsolateLog) {
         final data = message.data.materialize().asUint8List();
-        await target.output(data, message.entry, message.level);
+        const factory = StandardPipelineFactory();
+        await target.output(data, message.entry, message.level, factory);
       } else if (message is _IsolateCommand) {
         if (message.type == _CommandType.stop) {
           await target.dispose();

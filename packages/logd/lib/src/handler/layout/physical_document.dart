@@ -16,18 +16,18 @@ class PhysicalDocument {
     required this.lines,
   });
 
-  /// Internal constructor for the [LogArena] to create pooled instances.
+  /// Internal constructor for the [Arena] to create pooled instances.
   PhysicalDocument._pooled() : lines = [];
 
   /// The sequence of physical lines in the document.
   final List<PhysicalLine> lines;
 
-  /// Releases the document and all its lines back to the [arena].
-  void releaseRecursive(final LogArena arena) {
+  /// Releases the document and all its lines back to the [factory].
+  void releaseRecursive(final LogPipelineFactory factory) {
     for (final line in lines) {
-      line.releaseRecursive(arena);
+      line.releaseRecursive(factory);
     }
-    arena.release(this);
+    factory.release(this);
   }
 
   /// Resets the document for reuse in the arena.
@@ -52,15 +52,15 @@ class PhysicalLine {
     required this.segments,
   });
 
-  /// Internal constructor for the [LogArena] to create pooled instances.
+  /// Internal constructor for the [Arena] to create pooled instances.
   PhysicalLine._pooled() : segments = [];
 
   /// The styled segments that make up this line.
   final List<StyledText> segments;
 
-  /// Releases the line back to the [arena].
-  void releaseRecursive(final LogArena arena) {
-    arena.release(this);
+  /// Releases the line back to the [factory].
+  void releaseRecursive(final LogPipelineFactory factory) {
+    factory.release(this);
   }
 
   /// Resets the line for reuse in the arena.
@@ -114,7 +114,11 @@ class PhysicalLine {
   /// [startX] specifies the starting visual offset (default 0). This is
   /// critical for accurate truncation of content containing tabs, as their
   /// width varies based on position.
-  PhysicalLine truncate(final int targetWidth, {final int startX = 0}) {
+  PhysicalLine truncate(
+    final LogPipelineFactory factory,
+    final int targetWidth, {
+    final int startX = 0,
+  }) {
     if (getVisibleLength(startX: startX) <= targetWidth) {
       return this;
     }
@@ -168,7 +172,7 @@ class PhysicalLine {
       }
     }
 
-    final line = LogArena.instance.checkoutPhysicalLine();
+    final line = factory.checkoutPhysicalLine();
     line.segments.addAll(newSegments);
     return line;
   }

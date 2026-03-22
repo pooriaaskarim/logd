@@ -24,9 +24,9 @@ void main() {
 
       final doc = formatDoc(formatter, entry);
       try {
-        box.decorate(doc, entry, LogArena.instance);
+        box.decorate(doc, entry, Arena.instance);
 
-        const layout = TerminalLayout(width: 40);
+        final layout = TerminalLayout(width: 40, factory: Arena.instance);
         final physical = layout.layout(doc, LogLevel.info);
         final boxedLines = physical.lines;
 
@@ -43,7 +43,7 @@ void main() {
           );
         }
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -63,9 +63,9 @@ void main() {
 
       final doc = formatDoc(formatter, entry);
       try {
-        box.decorate(doc, entry, LogArena.instance);
+        box.decorate(doc, entry, Arena.instance);
 
-        const layout = TerminalLayout(width: 30);
+        final layout = TerminalLayout(width: 30, factory: Arena.instance);
         final physical = layout.layout(doc, LogLevel.info);
         final boxedLines = physical.lines;
 
@@ -80,7 +80,7 @@ void main() {
           );
         }
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

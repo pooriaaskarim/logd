@@ -28,7 +28,8 @@ class LogSnap {
     );
 
     final context = HandlerContext();
-    encoder.encode(entry, document, level, context, width: width);
+    const factory = StandardPipelineFactory();
+    encoder.encode(entry, document, level, context, factory, width: width);
     return const Utf8Decoder().convert(context.takeBytes());
   }
 
@@ -60,11 +61,13 @@ class LogSnap {
     final LogEncoder encoder =
         useAnsi ? const AnsiEncoder() : const PlainTextEncoder();
     final context = HandlerContext();
+    const factory = StandardPipelineFactory();
     encoder.encode(
       entry,
       sink.lastDocument!,
       entry.level,
       context,
+      factory,
       width: width,
     );
     return const Utf8Decoder().convert(context.takeBytes());
@@ -82,6 +85,7 @@ base class _CaptureSink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     lastDocument = document;
   }

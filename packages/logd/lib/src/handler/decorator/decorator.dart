@@ -18,7 +18,7 @@ sealed class LogDecorator {
   void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   );
 
   /// Returns the width in terminal cells this decorator adds to each line.

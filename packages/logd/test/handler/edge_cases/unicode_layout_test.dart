@@ -74,10 +74,18 @@ final class MemorySink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     const encoder = AnsiEncoder();
-    final context = HandlerContext();
-    encoder.encode(entry, document, level, context, width: preferredWidth);
+    final context = factory.checkoutContext();
+    encoder.encode(
+      entry,
+      document,
+      level,
+      context,
+      factory,
+      width: preferredWidth,
+    );
     final output = const Utf8Decoder().convert(context.takeBytes());
     onLog(output);
   }

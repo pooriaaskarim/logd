@@ -23,7 +23,7 @@ void main() {
 
       final doc = formatDoc(formatter, entry);
       try {
-        const layout = TerminalLayout(width: 80);
+        final layout = TerminalLayout(width: 80, factory: Arena.instance);
         final lines = layout.layout(doc, LogLevel.info).lines;
         expect(lines, isNotEmpty);
         expect(
@@ -31,7 +31,7 @@ void main() {
           isFalse,
         );
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -48,7 +48,7 @@ void main() {
 
       final doc = formatDoc(formatter, entry);
       try {
-        const layout = TerminalLayout(width: 40);
+        final layout = TerminalLayout(width: 40, factory: Arena.instance);
         final lines = layout.layout(doc, LogLevel.info).lines;
         expect(lines, isNotEmpty);
         for (final line in lines) {
@@ -59,7 +59,7 @@ void main() {
           isTrue,
         );
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -84,17 +84,17 @@ void main() {
       final doc = formatDoc(const StructuredFormatter(), entry);
       try {
         for (final decorator in handler.decorators) {
-          decorator.decorate(doc, entry, LogArena.instance);
+          decorator.decorate(doc, entry, Arena.instance);
         }
         // Use TerminalLayout
-        const layout = TerminalLayout(width: 40);
+        final layout = TerminalLayout(width: 40, factory: Arena.instance);
         final lines = layout.layout(doc, LogLevel.info).lines;
 
         final result = resultLines(lines);
         expect(result.length, greaterThanOrEqualTo(3)); // Box should still form
         expect(result.any((final l) => l.contains('x')), isTrue);
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -111,12 +111,12 @@ void main() {
 
       final doc = formatDoc(formatter, entry);
       try {
-        const layout = TerminalLayout(width: 80);
+        final layout = TerminalLayout(width: 80, factory: Arena.instance);
         final lines = layout.layout(doc, LogLevel.info).lines;
         final json = lines.map((final l) => l.toString()).join('\n');
         expect(json, isNot(contains('"error":')));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

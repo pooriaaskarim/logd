@@ -19,7 +19,7 @@ final class PrefixDecorator extends ContentDecorator {
   void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     if (prefix.isEmpty) {
       return;

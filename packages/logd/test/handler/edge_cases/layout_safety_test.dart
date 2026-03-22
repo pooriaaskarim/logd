@@ -20,9 +20,9 @@ void main() {
       final lines = ['你好世界 🌍', 'ASCII Test'];
       final doc = createTestDocument(lines);
       try {
-        box.decorate(doc, entry, LogArena.instance);
+        box.decorate(doc, entry, Arena.instance);
 
-        const layout = TerminalLayout(width: 40);
+        final layout = TerminalLayout(width: 40, factory: Arena.instance);
         final result = layout.layout(doc, LogLevel.info).lines;
 
         final topWidth = result[0].visibleLength;
@@ -34,7 +34,7 @@ void main() {
           );
         }
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -52,9 +52,9 @@ void main() {
       final lines = ['\x1B[31mThis is red\x1B[0m'];
       final doc = createTestDocument(lines);
       try {
-        box.decorate(doc, entry, LogArena.instance);
+        box.decorate(doc, entry, Arena.instance);
 
-        const layout = TerminalLayout(width: 20);
+        final layout = TerminalLayout(width: 20, factory: Arena.instance);
         final result = layout.layout(doc, LogLevel.info).lines;
 
         expect(result.length, equals(4));
@@ -63,7 +63,7 @@ void main() {
         // wrap
         expect(result[1].toString(), contains('\x1B[31m'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -79,7 +79,7 @@ void main() {
 
       final doc = formatDoc(formatter, entry);
       try {
-        const layout = TerminalLayout(width: 20);
+        final layout = TerminalLayout(width: 20, factory: Arena.instance);
         final lines = layout.layout(doc, LogLevel.info).lines;
         for (final line in lines) {
           expect(line.visibleLength, lessThanOrEqualTo(20));
@@ -88,7 +88,7 @@ void main() {
         expect(json, isNot(contains('"error":')));
         expect(lines.length, greaterThan(3));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -97,13 +97,13 @@ void main() {
       // Should not crash visibleLength calculation
       // We can use TerminalLayout to simulate rendering which calculates
       // visibleLength
-      const layout = TerminalLayout(width: 80);
+      final layout = TerminalLayout(width: 80, factory: Arena.instance);
       final doc = createTestDocument(lines);
       try {
         final physical = layout.layout(doc, LogLevel.info);
         expect(physical.lines.first.visibleLength, isPositive);
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

@@ -10,7 +10,7 @@
 | **GC Pressure** (Modern) | 188.00 KB | 188.00 KB | 0.00% |
 
 ## Analysis
-- **Modern Human Breakthrough**: The 35% gain is massive. It validates the impact of bypassing the word-wrapping engine for standard messages and reusing constant `StyledText` tokens via `LogStatic`.
+- **Modern Human Breakthrough**: The 35% gain is massive. It validates the impact of bypassing the word-wrapping engine for standard messages and reusing constant `StyledText` tokens via `RenderTokens`.
 - **Raw Machine**: Recovered from the slight M8 dip and gained another 6%, likely due to `addToken` reducing encoding overhead.
 - **GC Pressure**: Remaining flat despite throughput gains confirms that we've isolated the remaining churn to message-specific strings, effectively "pooling" the structural overhead.
 - **Stability**: Verified with full regression suite. Golden test gaps were resolved by restoring coherent level tokens.

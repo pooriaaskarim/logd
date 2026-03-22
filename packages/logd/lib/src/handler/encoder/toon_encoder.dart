@@ -13,7 +13,8 @@ class ToonEncoder implements LogEncoder {
   @override
   void preamble(
     final HandlerContext context,
-    final LogLevel level, {
+    final LogLevel level,
+    final LogPipelineFactory factory, {
     final LogDocument? document,
   }) {
     if (document == null) {
@@ -30,14 +31,19 @@ class ToonEncoder implements LogEncoder {
   }
 
   @override
-  void postamble(final HandlerContext context, final LogLevel level) {}
+  void postamble(
+    final HandlerContext context,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) {}
 
   @override
   void encode(
     final LogEntry entry,
     final LogDocument document,
     final LogLevel level,
-    final HandlerContext context, {
+    final HandlerContext context,
+    final LogPipelineFactory factory, {
     final int? width,
   }) {
     final delimiter = document.metadata['toon_delimiter'] as String? ?? '\t';
@@ -52,13 +58,22 @@ class ToonEncoder implements LogEncoder {
         if (columns != null) {
           final row = columns.map((final col) {
             final val = node.map[col];
-            return _formatValue(
+            var serialized = _formatValue(
               val,
               0,
               delimiter: delimiter,
               sortKeys: sortKeys,
               maxDepth: maxDepth,
             );
+
+            // Optional truncation if width is provided.
+            // In TOON, we only truncate if a width is specified, and we
+            // do it per-field to maintain row integrity.
+            if (width != null && serialized.length > width) {
+              serialized = '${serialized.substring(0, width - 3)}...';
+            }
+
+            return serialized;
           }).join(delimiter);
           context.writeString(row);
         } else {
@@ -67,6 +82,9 @@ class ToonEncoder implements LogEncoder {
       } else {
         context.writeString(node.toString());
       }
+
+      // In TOON, we only add a newline if there's more content.
+      // Formatters that split multiline messages will produce multiple nodes.
       if (i < nodes.length - 1) {
         context.addByte(0x0A); // '\n'
       }

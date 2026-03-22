@@ -22,7 +22,7 @@ void main() {
         decorator.decorate(
           doc,
           infoEntry,
-          LogArena.instance,
+          Arena.instance,
         );
         final rendered = renderLines(doc);
 
@@ -34,7 +34,7 @@ void main() {
         expect(rendered[0], contains('line'));
         expect(rendered[0], contains('1'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -53,11 +53,11 @@ void main() {
 
       final infoDoc = createTestDocument(['msg']);
       try {
-        decorator.decorate(infoDoc, infoEntry, LogArena.instance);
+        decorator.decorate(infoDoc, infoEntry, Arena.instance);
         final info = renderLines(infoDoc).first;
         expect(info, contains('\x1B[34m')); // Blue
       } finally {
-        infoDoc.releaseRecursive(LogArena.instance);
+        infoDoc.releaseRecursive(Arena.instance);
       }
 
       final errorDoc = createTestDocument(['msg']);
@@ -71,12 +71,12 @@ void main() {
             message: 'msg',
             timestamp: 'now',
           ),
-          LogArena.instance,
+          Arena.instance,
         );
         final error = renderLines(errorDoc).first;
         expect(error, contains('\x1B[31m')); // Red
       } finally {
-        errorDoc.releaseRecursive(LogArena.instance);
+        errorDoc.releaseRecursive(Arena.instance);
       }
 
       final warningDoc = createTestDocument(['msg']);
@@ -90,12 +90,12 @@ void main() {
             message: 'msg',
             timestamp: 'now',
           ),
-          LogArena.instance,
+          Arena.instance,
         );
         final warning = renderLines(warningDoc).first;
         expect(warning, contains('\x1B[33m')); // Yellow
       } finally {
-        warningDoc.releaseRecursive(LogArena.instance);
+        warningDoc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -103,7 +103,7 @@ void main() {
       const decorator = StyleDecorator(
         theme: NoMessageTheme(),
       );
-      final arena = LogArena.instance;
+      final arena = Arena.instance;
       final headerDoc = arena.checkoutDocument();
       headerDoc.nodes.add(
         arena.checkoutMessage()

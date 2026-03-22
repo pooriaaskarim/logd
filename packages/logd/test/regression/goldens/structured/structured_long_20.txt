@@ -1,7 +1,7 @@
 ____2025-01-01______
 ____12:00:01________
-____[WARNING] ______
-____[LongSnap]______
+____[WARNING] [_____
+____LongSnap]_______
 ____[long.dart]_____
 ----|A very long    
      message that   

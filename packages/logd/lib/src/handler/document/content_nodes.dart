@@ -9,7 +9,7 @@ part of '../handler.dart';
 /// itself.
 ///
 /// On the `arena_refinement` branch, [ContentNode] and all subclasses are
-/// poolable mutable objects. Use [LogArena] to check out and release them.
+/// poolable mutable objects. Use [Arena] to check out and release them.
 sealed class ContentNode extends LogNode {
   /// Creates a [ContentNode].
   ContentNode({
@@ -33,9 +33,9 @@ sealed class ContentNode extends LogNode {
   }
 
   @override
-  void releaseRecursive(final LogArena arena) {
+  void releaseRecursive(final LogPipelineFactory factory) {
     // ContentNodes are leaf nodes — no children to recurse into.
-    arena.release(this);
+    factory.release(this);
   }
 
   @override
@@ -187,7 +187,8 @@ final class FillerNode extends LogNode {
   }
 
   @override
-  void releaseRecursive(final LogArena arena) => arena.release(this);
+  void releaseRecursive(final LogPipelineFactory factory) =>
+      factory.release(this);
 
   /// Creates a copy of this node with optional new values.
   FillerNode copyWith({
@@ -239,7 +240,8 @@ final class MapNode extends LogNode {
   }
 
   @override
-  void releaseRecursive(final LogArena arena) => arena.release(this);
+  void releaseRecursive(final LogPipelineFactory factory) =>
+      factory.release(this);
 
   @override
   bool operator ==(final Object other) =>
@@ -282,7 +284,8 @@ final class ListNode extends LogNode {
   }
 
   @override
-  void releaseRecursive(final LogArena arena) => arena.release(this);
+  void releaseRecursive(final LogPipelineFactory factory) =>
+      factory.release(this);
 
   @override
   bool operator ==(final Object other) =>

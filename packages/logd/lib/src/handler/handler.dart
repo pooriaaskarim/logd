@@ -26,8 +26,23 @@ import '../logger/logger.dart';
 
 import '../time/timestamp.dart';
 
-part 'decorator/box_decorator.dart';
+part 'document/content_nodes.dart';
+part 'document/layout_nodes.dart';
+part 'document/log_document.dart';
+part 'document/log_metadata.dart';
+part 'document/styled_text.dart';
+part 'layout/physical_document.dart';
+part 'layout/render_tokens.dart';
+part 'layout/terminal_layout.dart';
+part 'engine/arena.dart';
+part 'engine/arena_engine.dart';
+part 'engine/engine.dart';
+part 'engine/standard_engine.dart';
+part 'engine/handler_context.dart';
+part 'decorator/decoration_hint.dart';
 part 'decorator/decorator.dart';
+part 'decorator/decorator_pipeline.dart';
+part 'decorator/box_decorator.dart';
 part 'decorator/hierarchy_depth_prefix_decorator.dart';
 part 'decorator/prefix_decorator.dart';
 part 'decorator/style_decorator.dart';
@@ -38,10 +53,11 @@ part 'filter/regex_filter.dart';
 part 'formatter/formatter.dart';
 part 'formatter/json_formatter.dart';
 part 'formatter/markdown_formatter.dart';
-part 'formatter/metadata/log_metadata.dart';
 part 'formatter/plain_formatter.dart';
 part 'formatter/structured_formatter.dart';
+part 'formatter/toon_formatter.dart';
 part 'encoder/ansi_encoder.dart';
+part 'encoder/ansi_encoder_adapter.dart';
 part 'encoder/auto_console_encoder.dart';
 part 'encoder/fast_string_writer.dart';
 part 'encoder/html_encoder.dart';
@@ -49,20 +65,7 @@ part 'encoder/json_encoder.dart';
 part 'encoder/log_encoder.dart';
 part 'encoder/markdown_encoder.dart';
 part 'encoder/plain_text_encoder.dart';
-part 'encoder/terminal_layout.dart';
 part 'encoder/toon_encoder.dart';
-part 'formatter/toon_formatter.dart';
-part 'model/log_content.dart';
-part 'model/decoration_hint.dart';
-part 'model/log_arena.dart';
-part 'model/handler_context.dart';
-part 'model/log_document.dart';
-part 'model/log_layout.dart';
-part 'model/physical_document.dart';
-part 'model/log_static.dart';
-part 'model/styled_text.dart';
-part 'pipeline/decorator_pipeline.dart';
-part 'encoder/adapter/ansi_encoder_adapter.dart';
 part 'sink/console_sink.dart';
 part 'sink/encoding_sink.dart';
 part 'sink/file_sink.dart';
@@ -85,6 +88,7 @@ class Handler {
     required this.sink,
     this.filters = const [],
     this.decorators = const [],
+    this.engine = const StandardEngine(),
   });
 
   /// The formatter used to transform a [LogEntry] into a [LogDocument].
@@ -98,6 +102,9 @@ class Handler {
   /// All filters must return `true` for the log entry to be processed.
   final List<LogFilter> filters;
 
+  /// The execution strategy for the log pipeline.
+  final LogEngine engine;
+
   /// A list of decorators applied to the [LogDocument] in order.
   final List<LogDecorator> decorators;
 
@@ -108,26 +115,7 @@ class Handler {
       return;
     }
 
-    final arena = LogArena.instance;
-    final document = arena.checkoutDocument();
-
-    try {
-      // 1. Format: Populate the document using arena as factory
-      formatter.format(entry, document, arena);
-
-      // 2. Decorate: Transform document in-place
-      if (decorators.isNotEmpty) {
-        DecoratorPipeline(decorators).apply(document, entry, arena);
-      }
-
-      // 3. Output: Emission
-      if (document.nodes.isNotEmpty) {
-        await sink.output(document, entry, entry.level);
-      }
-    } finally {
-      // 4. Deterministic release: Always return entire tree to pool
-      document.releaseRecursive(arena);
-    }
+    await engine.execute(entry, formatter, decorators, sink);
   }
 
   @override
@@ -137,6 +125,7 @@ class Handler {
           runtimeType == other.runtimeType &&
           formatter == other.formatter &&
           sink == other.sink &&
+          engine == other.engine &&
           listEquals(filters, other.filters) &&
           listEquals(decorators, other.decorators);
 
@@ -144,6 +133,7 @@ class Handler {
   int get hashCode =>
       formatter.hashCode ^
       sink.hashCode ^
+      engine.hashCode ^
       Object.hashAll(filters) ^
       Object.hashAll(decorators);
 }

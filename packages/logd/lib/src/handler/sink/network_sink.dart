@@ -81,6 +81,7 @@ abstract base class NetworkSink extends EncodingSink {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     if (!enabled) {
       return;
@@ -88,21 +89,23 @@ abstract base class NetworkSink extends EncodingSink {
 
     // Trigger preamble if needed
     if (strategy == WrappingStrategy.document && !_preambleWritten) {
-      final context = HandlerContext();
-      encoder.preamble(context, level, document: document);
+      final context = factory.checkoutContext();
+      encoder.preamble(context, level, factory, document: document);
       final preamble = context.takeBytes();
       if (preamble.isNotEmpty) {
         enqueue(preamble);
       }
       _preambleWritten = true;
+      factory.release(context);
     }
 
-    final context = HandlerContext();
+    final context = factory.checkoutContext();
     encoder.encode(
       entry,
       document,
       level,
       context,
+      factory,
       width: preferredWidth,
     );
 
@@ -110,18 +113,21 @@ abstract base class NetworkSink extends EncodingSink {
     if (data.isNotEmpty) {
       enqueue(data);
     }
+    factory.release(context);
   }
 
   @override
   @mustCallSuper
   Future<void> dispose() async {
     if (strategy == WrappingStrategy.document && _preambleWritten) {
-      final context = HandlerContext();
-      encoder.postamble(context, LogLevel.info);
+      const factory = StandardPipelineFactory();
+      final context = factory.checkoutContext();
+      encoder.postamble(context, LogLevel.info, factory);
       final post = context.takeBytes();
       if (post.isNotEmpty) {
         enqueue(post);
       }
+      factory.release(context);
     }
     await super.dispose();
   }
@@ -202,6 +208,7 @@ base class HttpSink extends NetworkSink {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     if (!enabled || isDisposed) {
       return;
@@ -210,7 +217,7 @@ base class HttpSink extends NetworkSink {
     _ensureActive();
 
     // Use parent's output logic which calls enqueue
-    await super.output(document, entry, level);
+    await super.output(document, entry, level, factory);
 
     if (_state.buffer.length >= batchSize) {
       _triggerFlush();
@@ -346,13 +353,14 @@ base class SocketSink extends NetworkSink {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     if (!enabled || isDisposed) {
       return;
     }
 
     // Use parent logic to get encoded data and put in buffer
-    await super.output(document, entry, level);
+    await super.output(document, entry, level, factory);
 
     if (_socketState.isConnected) {
       _drainBuffer();

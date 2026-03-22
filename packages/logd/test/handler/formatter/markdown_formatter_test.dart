@@ -26,13 +26,14 @@ void main() {
 
         const encoder = MarkdownEncoder();
         final context = HandlerContext();
-        encoder.encode(entry, document, LogLevel.info, context);
+        const factory = StandardPipelineFactory();
+        encoder.encode(entry, document, LogLevel.info, context, factory);
         final output = const Utf8Decoder().convert(context.takeBytes());
 
         expect(output, contains('### ℹ️ INFO'));
         expect(output, contains('**Hello Markdown**'));
       } finally {
-        document.releaseRecursive(LogArena.instance);
+        document.releaseRecursive(Arena.instance);
       }
     });
 
@@ -56,7 +57,8 @@ void main() {
 
         const encoder = MarkdownEncoder();
         final context = HandlerContext();
-        encoder.encode(entry, document, LogLevel.error, context);
+        const factory = StandardPipelineFactory();
+        encoder.encode(entry, document, LogLevel.error, context, factory);
         final output = const Utf8Decoder().convert(context.takeBytes());
 
         expect(output, contains('### ❌ ERROR'));
@@ -66,7 +68,7 @@ void main() {
         expect(output, contains('```'));
         expect(output, contains('line 1'));
       } finally {
-        document.releaseRecursive(LogArena.instance);
+        document.releaseRecursive(Arena.instance);
       }
     });
   });

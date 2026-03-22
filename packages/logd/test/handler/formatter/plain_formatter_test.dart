@@ -16,7 +16,7 @@ void main() {
 
     test('formats basic entry correctly with default metadata', () {
       const formatter = PlainFormatter();
-      final arena = LogArena.instance;
+      final arena = Arena.instance;
       final doc = arena.checkoutDocument();
       try {
         formatter.format(entry, doc, arena);
@@ -34,7 +34,7 @@ void main() {
 
     test('can select metadata', () {
       const formatter = PlainFormatter(metadata: {LogMetadata.logger});
-      final arena = LogArena.instance;
+      final arena = Arena.instance;
       final doc = arena.checkoutDocument();
       try {
         formatter.format(entry, doc, arena);
@@ -62,7 +62,7 @@ void main() {
         metadata: {LogMetadata.logger},
       );
 
-      final arena = LogArena.instance;
+      final arena = Arena.instance;
       final doc = arena.checkoutDocument();
       try {
         formatter.format(errorEntry, doc, arena);

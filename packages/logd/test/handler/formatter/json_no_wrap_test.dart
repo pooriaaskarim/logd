@@ -19,7 +19,7 @@ void main() {
       // Width 10 is very small.
       final doc = formatDoc(formatter, entryLong);
       try {
-        const layout = TerminalLayout(width: 10);
+        final layout = TerminalLayout(width: 10, factory: Arena.instance);
         final lines = layout.layout(doc, LogLevel.info).lines;
 
         // Because it wraps paragraph-style, it might produce multiple lines
@@ -34,7 +34,7 @@ void main() {
           expect((s.tags & LogTag.noWrap) == 0, isTrue);
         }
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

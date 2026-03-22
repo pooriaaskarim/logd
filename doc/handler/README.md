@@ -106,6 +106,11 @@ Complex formats like JSON and TOON use semantic tags (`LogTag.timestamp`, `LogTa
 
 > **Network Sink Design**: `HttpSink` and `SocketSink` are now protocol-agnostic. While `JsonFormatter` + `JsonEncoder` is recommended for standard aggregation, you can pair `ToonFormatter` + `ToonEncoder` for efficient real-time streaming to custom monitors.
 
+### Engines (Orchestration)
+The engine is the "mechanical core" of the pipeline, responsible for orchestration and resource management.
+- `StandardEngine`: Default heap-allocated execution. Prioritizes simplicity and relies on native GC.
+- `ArenaEngine`: High-performance execution using LIFO object pooling. Minimizes GC pressure for extreme throughput.
+
 ## Composition
 
 The Handler module's strength is its composability. Chain decorators for sophisticated output; `Handler` automatically sorts them by type (Transform → Visual → Structural) and deduplicates for precise visual composition:
@@ -118,7 +123,7 @@ Handler(
     StyleDecorator(),
   ],
   sink: const ConsoleSink(),
-  lineLength: 80,
+  engine: const ArenaEngine(), // Explicitly opt-in to high-performance pooling
 )
 ```
 

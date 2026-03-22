@@ -24,7 +24,7 @@ final class StructuredFormatter implements LogFormatter {
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     // 1. Phased Header (Legacy 1.0 Style: 3 separate lines)
 
@@ -42,19 +42,19 @@ final class StructuredFormatter implements LogFormatter {
 
     // Phase 2: Level & Logger
     final levelLoggerSegments = [
-      LogStatic.getLevelToken(entry.level),
+      RenderTokens.getLevelToken(entry.level),
     ];
     if (metadata.contains(LogMetadata.logger)) {
       levelLoggerSegments
-        ..add(LogStatic.styledSpace)
-        ..add(LogStatic.styledOpenBracket)
+        ..add(RenderTokens.styledSpace)
+        ..add(RenderTokens.styledOpenBracket)
         ..add(
           StyledText(
             entry.loggerName,
             tags: LogTag.loggerName | LogTag.header,
           ),
         )
-        ..add(LogStatic.styledCloseBracket);
+        ..add(RenderTokens.styledCloseBracket);
     }
     document.nodes.add(_buildHeaderNode(factory, levelLoggerSegments));
 
@@ -62,12 +62,12 @@ final class StructuredFormatter implements LogFormatter {
     if (metadata.contains(LogMetadata.origin)) {
       document.nodes.add(
         _buildHeaderNode(factory, [
-          LogStatic.styledOpenBracket,
+          RenderTokens.styledOpenBracket,
           StyledText(
             entry.origin,
             tags: LogTag.origin | LogTag.header,
           ),
-          LogStatic.styledCloseBracket,
+          RenderTokens.styledCloseBracket,
         ]),
       );
     }
@@ -79,7 +79,7 @@ final class StructuredFormatter implements LogFormatter {
     final msgDecorated = factory.checkoutDecorated()
       ..leadingWidth = 5
       ..leadingHint = DecorationHint.structuredMessage
-      ..leading = const [LogStatic.styledMessagePrefix]
+      ..leading = const [RenderTokens.styledMessagePrefix]
       ..children.add(msgPara);
     document.nodes.add(msgDecorated);
 
@@ -91,7 +91,7 @@ final class StructuredFormatter implements LogFormatter {
       final errDecorated = factory.checkoutDecorated()
         ..leadingWidth = 5
         ..leadingHint = DecorationHint.structuredMessage
-        ..leading = const [LogStatic.styledMessagePrefix]
+        ..leading = const [RenderTokens.styledMessagePrefix]
         ..children.add(errPara);
       document.nodes.add(errDecorated);
     }
@@ -107,7 +107,7 @@ final class StructuredFormatter implements LogFormatter {
         final d = factory.checkoutDecorated()
           ..leadingWidth = 5
           ..leadingHint = DecorationHint.structuredMessage
-          ..leading = const [LogStatic.styledMessagePrefix]
+          ..leading = const [RenderTokens.styledMessagePrefix]
           ..children.add(para);
         document.nodes.add(d);
       }
@@ -131,7 +131,7 @@ final class StructuredFormatter implements LogFormatter {
   }
 
   LogNode _buildHeaderNode(
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
     final List<StyledText> segments,
   ) {
     final header = factory.checkoutHeader()..segments.addAll(segments);
@@ -144,7 +144,7 @@ final class StructuredFormatter implements LogFormatter {
     return factory.checkoutDecorated()
       ..leadingWidth = 4
       ..leadingHint = DecorationHint.structuredHeader
-      ..leading = const [LogStatic.styledHeaderPrefix]
+      ..leading = const [RenderTokens.styledHeaderPrefix]
       ..children.add(row);
   }
 

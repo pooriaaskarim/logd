@@ -24,7 +24,7 @@ class DecoratorPipeline {
   void apply(
     final LogDocument document,
     final LogEntry entry,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     if (decorators.isEmpty) {
       return;

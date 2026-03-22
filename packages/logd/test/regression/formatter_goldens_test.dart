@@ -88,7 +88,7 @@ void main() {
                     );
                   }
                 } finally {
-                  doc.releaseRecursive(LogArena.instance);
+                  doc.releaseRecursive(Arena.instance);
                 }
               });
             }
@@ -135,7 +135,14 @@ void main() {
           final doc = formatDoc(formatter, currentEntry);
           try {
             final context = HandlerContext();
-            encoder.encode(currentEntry, doc, currentEntry.level, context);
+            const factory = StandardPipelineFactory();
+            encoder.encode(
+              currentEntry,
+              doc,
+              currentEntry.level,
+              context,
+              factory,
+            );
             final html = const Utf8Decoder().convert(context.takeBytes());
 
             // Detect package root
@@ -160,7 +167,7 @@ void main() {
               );
             }
           } finally {
-            doc.releaseRecursive(LogArena.instance);
+            doc.releaseRecursive(Arena.instance);
           }
         });
       }

@@ -35,7 +35,7 @@ final class BoxDecorator extends StructuralDecorator {
   void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     final box = factory.checkoutBox()
       ..border = borderStyle

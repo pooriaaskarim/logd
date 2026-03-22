@@ -23,7 +23,7 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
   void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     if (entry.hierarchyDepth <= 0) {
       return;

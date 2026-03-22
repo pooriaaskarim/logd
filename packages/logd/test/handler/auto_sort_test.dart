@@ -15,6 +15,7 @@ final class MemorySink extends LogSink<LogDocument> {
     final LogDocument data,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     defaultLines.add(renderLines(data));
     narrowLines.add(renderLines(data, width: 20));

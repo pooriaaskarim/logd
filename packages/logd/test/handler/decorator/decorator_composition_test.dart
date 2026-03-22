@@ -21,8 +21,8 @@ void main() {
 
       final doc = createTestDocument(lines);
       try {
-        box.decorate(doc, entry, LogArena.instance);
-        color.decorate(doc, entry, LogArena.instance);
+        box.decorate(doc, entry, Arena.instance);
+        color.decorate(doc, entry, Arena.instance);
         final rendered = renderLines(doc);
 
         // Should have top border, 2 content lines, bottom border = 4 lines
@@ -40,7 +40,7 @@ void main() {
         expect(rendered[1], contains('│'));
         expect(rendered[1], endsWith('\x1B[0m'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -50,8 +50,8 @@ void main() {
 
       final doc = createTestDocument(lines);
       try {
-        color.decorate(doc, entry, LogArena.instance);
-        box.decorate(doc, entry, LogArena.instance);
+        color.decorate(doc, entry, Arena.instance);
+        box.decorate(doc, entry, Arena.instance);
         final rendered = renderLines(doc);
 
         expect(rendered.length, equals(4));
@@ -70,7 +70,7 @@ void main() {
         expect(rendered[1], contains('1'));
         expect(rendered[1], endsWith('│'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -81,13 +81,13 @@ void main() {
 
       final doc = createTestDocument(['msg']);
       try {
-        decorator1.decorate(doc, entry, LogArena.instance);
-        decorator2.decorate(doc, entry, LogArena.instance);
+        decorator1.decorate(doc, entry, Arena.instance);
+        decorator2.decorate(doc, entry, Arena.instance);
 
         final rendered = renderLines(doc);
         expect(rendered.first.trim(), equals('P2: P1: msg'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -97,8 +97,8 @@ void main() {
 
       final doc = createTestDocument(['abc']);
       try {
-        color.decorate(doc, entry, LogArena.instance);
-        box.decorate(doc, entry, LogArena.instance);
+        color.decorate(doc, entry, Arena.instance);
+        box.decorate(doc, entry, Arena.instance);
         final rendered = renderLines(doc);
 
         final middleLine = rendered[1]; // Use rendered string for check
@@ -114,7 +114,7 @@ void main() {
         // \x1B[34mabc\x1B[0m
         expect(middleLine, contains('\x1B[34m'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -137,9 +137,9 @@ void main() {
       try {
         // Pipeline execution: Box -> Color -> Hierarchy to ensure borders are
         // colored
-        box.decorate(doc, deepEntry, LogArena.instance);
-        ansi.decorate(doc, deepEntry, LogArena.instance);
-        hierarchy.decorate(doc, deepEntry, LogArena.instance);
+        box.decorate(doc, deepEntry, Arena.instance);
+        ansi.decorate(doc, deepEntry, Arena.instance);
+        hierarchy.decorate(doc, deepEntry, Arena.instance);
 
         final rendered = renderLines(doc);
 
@@ -176,7 +176,7 @@ void main() {
           contains('1'),
         );
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

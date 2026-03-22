@@ -28,7 +28,7 @@ final class JsonFormatter implements LogFormatter {
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     final map = <String, dynamic>{
       'level': entry.level.name,
@@ -130,7 +130,7 @@ final class JsonPrettyFormatter implements LogFormatter {
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     final map = <String, Object?>{
       'level': entry.level.name,
@@ -168,7 +168,7 @@ final class JsonPrettyFormatter implements LogFormatter {
   }
 
   List<LogNode> _buildNodes(
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
     final Object? value,
     final int depth, {
     final Map<String, int>? fieldTags,

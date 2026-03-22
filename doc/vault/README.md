@@ -13,8 +13,11 @@ The developer's gateway. Documents regarding the Logger API, static context, and
 ### [Handler](handler/)
 The engine room. Orchestration of the logging pipeline, sink management, and asynchronous flow control.
 
-### [Model](model/)
+### [Document](handler/document/)
 The semantic heart. Definitions of the `LogDocument`, `LogNode` hierarchy, and metadata schemas.
+
+### [Layout](handler/layout/)
+The physical layer. Logic for terminal width calculations, word-wrapping, and ANSI render tokens.
 
 ### [Performance](performance/mm_strategies.md)
 The resilience records. Analysis of [Memory Management Strategies](performance/mm_strategies.md), [Pressure Thresholds](performance/pressure_thresholds.md), and the [Arena](performance/mm_strategies.md).

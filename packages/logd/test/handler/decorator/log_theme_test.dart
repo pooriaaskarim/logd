@@ -100,7 +100,7 @@ void main() {
       // Create a document with specific tags
       final doc = createTestDocument([]);
       try {
-        final arena = LogArena.instance;
+        final arena = Arena.instance;
         final header = arena.checkoutHeader();
         header.segments.addAll([
           const StyledText(
@@ -130,7 +130,7 @@ void main() {
         // Message should be blue (34)
         expect(fullOutput, contains('\x1B[34m'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 

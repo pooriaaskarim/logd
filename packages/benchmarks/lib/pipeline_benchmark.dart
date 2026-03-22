@@ -1,25 +1,13 @@
-import 'dart:async';
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
+import 'package:logd/src/handler/handler.dart';
+
 import 'formatter_benchmark.dart';
 
-// No-op sink for benchmarking
-final class NullSink extends LogSink<LogDocument> {
-  const NullSink();
-
-  @override
-  Future<void> output(final LogDocument document, final LogEntry entry,
-      final LogLevel level) async {
-    // Consume nodes to force evaluation if lazy (nodes are List, so mostly instant)
-    for (final _ in document.nodes) {}
-  }
-}
-
-// Handler benchmark
-abstract class PipelineBenchmark extends BenchmarkBase {
-  PipelineBenchmark(super.name);
+class PipelineBenchmark extends BenchmarkBase {
+  PipelineBenchmark() : super('FullPipeline');
 
   late LogEntry entry;
   late Handler handler;
@@ -27,98 +15,91 @@ abstract class PipelineBenchmark extends BenchmarkBase {
   @override
   void setup() {
     entry = createEntry();
-    handler = createHandler();
+    handler = Handler(
+      formatter: const PlainFormatter(),
+      sink: RecordingSink(),
+    );
   }
-
-  Handler createHandler();
 
   @override
   void run() {
-    _manualPipelineRun();
+    handler.log(entry);
+  }
+}
+
+base class RecordingSink extends LogSink<LogDocument> {
+  @override
+  Future<void> output(
+    final LogDocument document,
+    final LogEntry entry,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) async {
+    // Release immediately to simulate memory pressure/cleanup
+    document.releaseRecursive(factory);
+  }
+}
+
+class ArenaPipelineBenchmark extends BenchmarkBase {
+  ArenaPipelineBenchmark() : super('ArenaFullPipeline');
+
+  late LogEntry entry;
+  late Handler handler;
+
+  @override
+  void setup() {
+    entry = createEntry();
+    // Use an explicitly pooled configuration if possible,
+    // but here we just test the default which uses Arena.
+    handler = Handler(
+      formatter: const PlainFormatter(),
+      sink: RecordingSink(),
+    );
   }
 
-  void _manualPipelineRun() {
-    final filters = handler.filters;
-    if (filters.any((f) => !f.shouldLog(entry))) return;
+  @override
+  void run() {
+    handler.log(entry);
+  }
+}
 
-    final arena = LogArena.instance;
-    final doc = arena.checkoutDocument();
+class ManualPipelineBenchmark extends BenchmarkBase {
+  ManualPipelineBenchmark() : super('ManualPipeline');
 
+  late LogEntry entry;
+  late LogFormatter formatter;
+  late TerminalLayout layout;
+  late LogEncoder encoder;
+
+  @override
+  void setup() {
+    entry = createEntry();
+    formatter = const PlainFormatter();
+    layout =
+        const TerminalLayout(width: 80, factory: StandardPipelineFactory());
+    encoder = const PlainTextEncoder();
+  }
+
+  @override
+  void run() {
+    const factory = StandardPipelineFactory();
+    final doc = factory.checkoutDocument();
     try {
-      handler.formatter.format(entry, doc, arena);
-
-      // Decorate
-      for (final decorator in handler.decorators) {
-        decorator.decorate(doc, entry, arena);
-      }
-
-      if (doc.nodes.isNotEmpty) {
-        // Consume
-        for (final _ in doc.nodes) {}
-      }
+      formatter.format(entry, doc, factory);
+      final physical = layout.layout(doc, LogLevel.info);
+      final context = HandlerContext();
+      encoder.encode(entry, doc, LogLevel.info, context, factory);
+      context.takeBytes();
+      physical.releaseRecursive(factory);
     } finally {
-      doc.releaseRecursive(arena);
+      doc.releaseRecursive(factory);
     }
   }
 }
 
-class SimplePipelineBenchmark extends PipelineBenchmark {
-  SimplePipelineBenchmark() : super('Simple Pipeline (Plain)');
-
-  @override
-  Handler createHandler() {
-    return const Handler(
-      formatter: PlainFormatter(),
-      sink: NullSink(),
-    );
-  }
-}
-
-class ComplexPipelineBenchmark extends PipelineBenchmark {
-  ComplexPipelineBenchmark() : super('Complex Pipeline (Structure+Box+Style)');
-
-  @override
-  Handler createHandler() {
-    return const Handler(
-      formatter: StructuredFormatter(),
-      sink: NullSink(),
-      decorators: [
-        BoxDecorator(),
-        StyleDecorator(),
-        PrefixDecorator('APP | '),
-      ],
-    );
-  }
-}
-
-class JsonPrettyPipelineBenchmark extends PipelineBenchmark {
-  JsonPrettyPipelineBenchmark() : super('JsonPretty Pipeline');
-
-  @override
-  Handler createHandler() {
-    return const Handler(
-      formatter: JsonPrettyFormatter(),
-      sink: NullSink(),
-    );
-  }
-}
-
-class MarkdownPipelineBenchmark extends PipelineBenchmark {
-  MarkdownPipelineBenchmark() : super('Markdown Pipeline');
-
-  @override
-  Handler createHandler() {
-    return const Handler(
-      formatter: MarkdownFormatter(),
-      sink: NullSink(),
-    );
-  }
-}
-
 void runPipelineBenchmarks() {
-  print('\n--- E2E Pipeline Overhead ---');
-  SimplePipelineBenchmark().report();
-  ComplexPipelineBenchmark().report();
-  JsonPrettyPipelineBenchmark().report();
-  MarkdownPipelineBenchmark().report();
+  print('\n--- Pipeline Throughput ---');
+  PipelineBenchmark().report();
+  ArenaPipelineBenchmark().report();
+  ManualPipelineBenchmark().report();
 }

@@ -15,7 +15,7 @@ part of '../handler.dart';
 ///   to ANSI text, JSON, or HTML without re-parsing.
 ///
 /// On the `arena_refinement` branch, [LogDocument] is a poolable object.
-/// It is NOT `@immutable`: instances are checked out from [LogArena],
+/// It is NOT `@immutable`: instances are checked out from [Arena],
 /// populated by formatters, and returned via [releaseRecursive] after
 /// the pipeline completes. Arena-owned documents **must not** be retained
 /// across log cycles.
@@ -48,15 +48,15 @@ class LogDocument {
     metadata.clear();
   }
 
-  /// Recursively releases this document and all its nodes back to [arena].
+  /// Recursively releases this document and all its nodes back to [factory].
   ///
   /// After calling this method, neither this document nor any of its nodes
   /// may be used again until checked out from the arena.
-  void releaseRecursive(final LogArena arena) {
+  void releaseRecursive(final LogPipelineFactory factory) {
     for (final node in nodes) {
-      node.releaseRecursive(arena);
+      node.releaseRecursive(factory);
     }
-    arena.release(this);
+    factory.release(this);
   }
 
   /// Creates a copy of this document with optional changes.
@@ -110,6 +110,6 @@ sealed class LogNode {
   /// Resets this node's fields to their defaults for pool reuse.
   void reset();
 
-  /// Releases this node and any children back to [arena].
-  void releaseRecursive(final LogArena arena);
+  /// Releases this node and any children back to [factory].
+  void releaseRecursive(final LogPipelineFactory factory);
 }

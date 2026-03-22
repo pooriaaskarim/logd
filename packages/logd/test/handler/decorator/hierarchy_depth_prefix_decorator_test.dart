@@ -28,12 +28,12 @@ void main() {
         decorator.decorate(
           doc,
           createEntry(0),
-          LogArena.instance,
+          Arena.instance,
         );
         final rendered = renderLines(doc);
         expect(rendered.first, equals('msg'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -44,13 +44,13 @@ void main() {
         decorator.decorate(
           doc,
           createEntry(2),
-          LogArena.instance,
+          Arena.instance,
         );
         final rendered = renderLines(doc);
         // Default is '│ ' (2 chars) * 2 = '│ │ '
         expect(rendered.first, equals('│ │ msg'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -61,17 +61,17 @@ void main() {
         decorator.decorate(
           doc,
           createEntry(3),
-          LogArena.instance,
+          Arena.instance,
         );
         final rendered = renderLines(doc);
         expect(rendered.first, equals('---msg'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
     test('preserves tags', () {
-      final arena = LogArena.instance;
+      final arena = Arena.instance;
       final doc = arena.checkoutDocument();
       doc.nodes.add(
         arena.checkoutMessage()

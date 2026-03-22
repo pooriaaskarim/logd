@@ -1,66 +1,16 @@
 part of '../handler.dart';
 
-/// A factory for checking out poolable log nodes.
+/// An isolate-local resource pool for deterministic object reuse.
 ///
-/// This interface allows components like [LogFormatter] and [LogDecorator]
-/// to create new segments of a [LogDocument] without direct dependency on
-/// the management logic of [LogArena].
-abstract interface class LogNodeFactory {
-  /// Checks out a [HeaderNode] from the pool, or allocates a fresh one.
-  HeaderNode checkoutHeader();
-
-  /// Checks out a [MessageNode] from the pool, or allocates a fresh one.
-  MessageNode checkoutMessage();
-
-  /// Checks out an [ErrorNode] from the pool, or allocates a fresh one.
-  ErrorNode checkoutError();
-
-  /// Checks out a [FooterNode] from the pool, or allocates a fresh one.
-  FooterNode checkoutFooter();
-
-  /// Checks out a [MetadataNode] from the pool, or allocates a fresh one.
-  MetadataNode checkoutMetadata();
-
-  /// Checks out a [BoxNode] from the pool, or allocates a fresh one.
-  BoxNode checkoutBox();
-
-  /// Checks out an [IndentationNode] from the pool, or allocates a fresh one.
-  IndentationNode checkoutIndentation();
-
-  /// Checks out a [GroupNode] from the pool, or allocates a fresh one.
-  GroupNode checkoutGroup();
-
-  /// Checks out a [DecoratedNode] from the pool, or allocates a fresh one.
-  DecoratedNode checkoutDecorated();
-
-  /// Checks out a [ParagraphNode] from the pool, or allocates a fresh one.
-  ParagraphNode checkoutParagraph();
-
-  /// Checks out a [RowNode] from the pool, or allocates a fresh one.
-  RowNode checkoutRow();
-
-  /// Checks out a [FillerNode] from the pool, or allocates a fresh one.
-  FillerNode checkoutFiller();
-
-  /// Checks out a [MapNode] from the pool, or allocates a fresh one.
-  MapNode checkoutMap();
-
-  /// Checks out a [ListNode] from the pool, or allocates a fresh one.
-  ListNode checkoutList();
-}
-
-/// An isolate-local LIFO object pool for the log pipeline.
-///
-/// [LogArena] eliminates heap churn during steady-state logging by
-/// reusing [LogDocument] and [LogNode] instances across log cycles.
+/// [Arena] provides a LIFO-based pooling mechanism to eliminate allocation
+/// overhead and garbage collection (GC) churn during steady-state logging.
 ///
 /// **Lifecycle contract**:
-/// 1. **Checkout**: Call `checkout*()` to obtain a recycled (or fresh) object.
-/// 2. **Populate**: Set the object's fields as needed.
-/// 3. **Process**: Pass the document through the full pipeline
-///    (formatter → decorators → sink).
-/// 4. **Release**: Call `document.releaseRecursive(arena)` after the sink
-///    completes. This recursively returns the entire tree to the pool.
+/// 1. **Checkout**: Obtain a recycled or fresh instance via `checkout*()`.
+/// 2. **Population**: Initialize the object's state using the provided data.
+/// 3. **Execution**: Process the document through the configured pipeline.
+/// 4. **Release**: Invoke `document.releaseRecursive(arena)` to return the
+///    entire object graph to the pool for subsequent reuse.
 ///
 /// **Safety invariants**:
 /// - Arena-owned documents and nodes **must never** be retained across log
@@ -69,12 +19,12 @@ abstract interface class LogNodeFactory {
 ///   decorators receive the arena only to create new nodes.
 /// - This class is **not** thread-safe. Isolate isolation is the safety
 ///   boundary.
-class LogArena implements LogNodeFactory {
+class Arena implements LogPipelineFactory {
   // Private constructor; use [instance] for isolate-local access.
-  LogArena._();
+  Arena._();
 
   /// The isolate-local singleton arena.
-  static final LogArena instance = LogArena._();
+  static final Arena instance = Arena._();
 
   // ---------------------------------------------------------------------------
   // LIFO pools — one list per concrete node type.
@@ -103,6 +53,7 @@ class LogArena implements LogNodeFactory {
   // ---------------------------------------------------------------------------
 
   /// Checks out a [LogDocument] from the pool, or allocates a fresh one.
+  @override
   LogDocument checkoutDocument() =>
       _documents.isNotEmpty ? _documents.removeLast() : LogDocument._pooled();
 
@@ -179,15 +130,18 @@ class LogArena implements LogNodeFactory {
       _lists.isNotEmpty ? _lists.removeLast() : ListNode._pooled();
 
   /// Checks out a [HandlerContext] from the pool, or allocates a fresh one.
+  @override
   HandlerContext checkoutContext() =>
       _contexts.isNotEmpty ? _contexts.removeLast() : HandlerContext._pooled();
 
   /// Checks out a [PhysicalLine] from the pool, or allocates a fresh one.
+  @override
   PhysicalLine checkoutPhysicalLine() => _physicalLines.isNotEmpty
       ? _physicalLines.removeLast()
       : PhysicalLine._pooled();
 
   /// Checks out a [PhysicalDocument] from the pool, or allocates a fresh one.
+  @override
   PhysicalDocument checkoutPhysicalDocument() => _physicalDocuments.isNotEmpty
       ? _physicalDocuments.removeLast()
       : PhysicalDocument._pooled();
@@ -201,6 +155,7 @@ class LogArena implements LogNodeFactory {
   /// [obj] may be a [LogDocument] or any [LogNode] subclass.
   /// Prefer calling [LogDocument.releaseRecursive] to release an entire tree
   /// rather than releasing individual nodes manually.
+  @override
   void release(final Object obj) {
     switch (obj) {
       case final LogDocument d:

@@ -5,8 +5,8 @@ part of '../handler.dart';
 /// Reusing these tokens avoids expensive `convert.utf8.encode()` calls
 /// on every log line for static characters like brackets, spaces, and borders.
 @internal
-abstract final class LogStatic {
-  const LogStatic._();
+abstract final class RenderTokens {
+  const RenderTokens._();
 
   /// '['
   static final Uint8List openBracket = Uint8List.fromList([0x5B]);

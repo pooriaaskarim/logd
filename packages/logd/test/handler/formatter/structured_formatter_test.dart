@@ -32,7 +32,7 @@ void main() {
         expect(lines[2], startsWith('____'));
         expect(lines[2], contains('[main.dart]'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -61,7 +61,7 @@ void main() {
           expect(line.length, greaterThan(0));
         }
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

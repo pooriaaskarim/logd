@@ -1,16 +1,16 @@
 part of '../handler.dart';
 
-/// A LIFO-recyclable buffer for encoding log entries into UTF-8 bytes.
+/// A reusable encoding buffer for log serialization.
 ///
-/// Designed to eliminate `String` churn by providing a pre-allocated
-/// `Uint8List` buffer. It falls back to `BytesBuilder` if the line exceeds
-/// the fixed capacity.
+/// [HandlerContext] is designed to minimize intermediate string allocations by
+/// providing a pre-allocated byte buffer for UTF-8 encoding. It provides
+/// automatic overflow handling via a chunked conversion fallback.
 class HandlerContext {
   /// By default, allocates 64KB per buffer to accommodate very large log lines.
   HandlerContext({final int capacity = 64 * 1024})
       : _buffer = Uint8List(capacity);
 
-  /// Internal constructor for the [LogArena] to create pooled instances.
+  /// Internal constructor for the [Arena] to create pooled instances.
   HandlerContext._pooled({final int capacity = 64 * 1024})
       : _buffer = Uint8List(capacity);
 
@@ -123,7 +123,7 @@ class HandlerContext {
     return bytes;
   }
 
-  /// Resets the context for reuse in the [LogArena].
+  /// Resets the context for reuse in the [Arena].
   void reset() {
     _length = 0;
     _overflowBuilder = null;

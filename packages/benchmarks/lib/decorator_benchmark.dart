@@ -17,18 +17,18 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
   void setup() {
     entry = createEntry();
     formatter = const PlainFormatter();
-    final arena = LogArena.instance;
-    final doc = arena.checkoutDocument();
+    const factory = StandardPipelineFactory();
+    final doc = factory.checkoutDocument();
     try {
-      formatter.format(entry, doc, arena);
-      final layout = const TerminalLayout(width: 80);
+      formatter.format(entry, doc, factory);
+      final layout = const TerminalLayout(width: 80, factory: factory);
       baseLines = layout
           .layout(doc, LogLevel.info)
           .lines
           .map((final l) => l.toString())
           .toList(); // Pre-calculate base
     } finally {
-      doc.releaseRecursive(arena);
+      doc.releaseRecursive(factory);
     }
     decorator = createDecorator();
   }
@@ -37,22 +37,22 @@ abstract class DecoratorBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    final arena = LogArena.instance;
-    final doc = arena.checkoutDocument();
+    const factory = StandardPipelineFactory();
+    final doc = factory.checkoutDocument();
     try {
       for (final l in baseLines) {
-        final node = arena.checkoutMessage();
+        final node = factory.checkoutMessage();
         node.segments.add(StyledText(l));
         doc.nodes.add(node);
       }
 
-      decorator.decorate(doc, entry, arena);
+      decorator.decorate(doc, entry, factory);
 
-      final layout = const TerminalLayout(width: 80);
+      final layout = const TerminalLayout(width: 80, factory: factory);
       final lines = layout.layout(doc, LogLevel.info).lines;
       for (final _ in lines) {}
     } finally {
-      doc.releaseRecursive(arena);
+      doc.releaseRecursive(factory);
     }
   }
 }

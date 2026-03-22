@@ -23,7 +23,10 @@ void main() {
 
       try {
         // Use TerminalLayout directly to verify output
-        const layout = TerminalLayout(width: 60);
+        const layout = TerminalLayout(
+          width: 60,
+          factory: StandardPipelineFactory(),
+        );
         final lines = layout.layout(doc, LogLevel.info).lines;
 
         // Line 1: Header + Message Part 1
@@ -42,7 +45,7 @@ void main() {
         final indentLength = line2.length - line2.trimLeft().length;
         expect(indentLength, greaterThanOrEqualTo(30)); // Header width
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -52,7 +55,10 @@ void main() {
 
       try {
         // Force narrow width where header (31 chars) > available width (30)
-        const layout = TerminalLayout(width: 30);
+        const layout = TerminalLayout(
+          width: 30,
+          factory: StandardPipelineFactory(),
+        );
         final lines = layout.layout(doc, LogLevel.info).lines;
 
         // Should NOT have big hanging indent because it falls back.
@@ -72,7 +78,7 @@ void main() {
         final indentLength = msgLine.length - msgLine.trimLeft().length;
         expect(indentLength, lessThan(10));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -133,7 +139,8 @@ void main() {
       // 0 + 7 <= 3 (remaining)? No.
       // So Seg 2 is empty.
       // Result: "[INFO] "
-      final truncated = line2.truncate(10, startX: 2);
+      final truncated =
+          line2.truncate(const StandardPipelineFactory(), 10, startX: 2);
       expect(truncated.segments.length, 1);
       expect(truncated.segments[0].text, '[INFO] ');
     });

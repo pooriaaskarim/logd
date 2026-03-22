@@ -10,7 +10,7 @@ As the `logd` handler architecture evolved into a byte-oriented pipeline, coordi
 ## Decision
 We have internalized the mechanical orchestration of the logging pipeline into the `Handler` and `EncodingSink` layers:
 
-1. **Centralized Lifecycle**: `Handler.log` now independently manages the `LogArena` checkout/release cycle. It ensures that every `LogDocument` is deterministically returned to the pool via `try-finally` blocks.
+1. **Centralized Lifecycle**: `Handler.log` now independently manages the `Arena` checkout/release cycle. It ensures that every `LogDocument` is deterministically returned to the pool via `try-finally` blocks.
 2. **In-place IR Mutation**: All `LogFormatter` and `LogDecorator` implementations have been migrated to the `void` API. They now modify the `LogDocument` IR in-place, eliminating object return overhead.
 3. **Standardized Record Delimiting**: Responsibility for the final `\n` has been moved to the `EncodingSink.output` method. 
 

@@ -9,15 +9,20 @@ class AutoConsoleEncoder implements LogEncoder {
   @override
   void preamble(
     final HandlerContext context,
-    final LogLevel level, {
+    final LogLevel level,
+    final LogPipelineFactory factory, {
     final LogDocument? document,
   }) {
-    _delegate.preamble(context, level, document: document);
+    _delegate.preamble(context, level, factory, document: document);
   }
 
   @override
-  void postamble(final HandlerContext context, final LogLevel level) {
-    _delegate.postamble(context, level);
+  void postamble(
+    final HandlerContext context,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) {
+    _delegate.postamble(context, level, factory);
   }
 
   @override
@@ -25,10 +30,11 @@ class AutoConsoleEncoder implements LogEncoder {
     final LogEntry entry,
     final LogDocument document,
     final LogLevel level,
-    final HandlerContext context, {
+    final HandlerContext context,
+    final LogPipelineFactory factory, {
     final int? width,
   }) {
-    _delegate.encode(entry, document, level, context, width: width);
+    _delegate.encode(entry, document, level, context, factory, width: width);
   }
 
   LogEncoder get _delegate => io.stdout.supportsAnsiEscapes

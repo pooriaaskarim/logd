@@ -31,7 +31,7 @@ Future<void> runMemoryChurnBenchmark() async {
     );
 
     // 1. Heavy Warmup
-    print('Warming up LogArena (2,000 entries)...');
+    print('Warming up Arena (2,000 entries)...');
     for (int i = 0; i < 2000; i++) {
       await handler.log(LogEntry(
         loggerName: 'bench.warmup.depth',

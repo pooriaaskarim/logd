@@ -23,14 +23,14 @@ void main() {
       try {
         decorateDoc(decorator, doc, entry);
 
-        const layout = TerminalLayout(width: 80);
+        final layout = TerminalLayout(width: 80, factory: Arena.instance);
         final decorated = layout.layout(doc, LogLevel.info).lines;
 
         expect(decorated.length, equals(2));
         expect(decorated[0].segments.last.text, equals(suffix));
         expect(decorated[1].segments.last.text, equals(suffix));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -51,7 +51,7 @@ void main() {
       try {
         decorateDoc(decorator, doc, entry);
 
-        const layout = TerminalLayout(width: 20);
+        final layout = TerminalLayout(width: 20, factory: Arena.instance);
         final decorated = layout.layout(doc, LogLevel.info).lines;
 
         // Content (5) + Padding (13) + Suffix (2) = 20 total (contentLimit)
@@ -59,7 +59,7 @@ void main() {
         expect(decorated[0].segments[1].text, equals(' ' * 13));
         expect(decorated[0].segments.last.text, equals('!!'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -94,17 +94,17 @@ void main() {
       final lines = ['test'];
       final doc = createTestDocument(lines);
       try {
-        decorator.decorate(doc, entry, LogArena.instance);
-        box.decorate(doc, entry, LogArena.instance);
+        decorator.decorate(doc, entry, Arena.instance);
+        box.decorate(doc, entry, Arena.instance);
 
-        const layout = TerminalLayout(width: 22);
+        final layout = TerminalLayout(width: 22, factory: Arena.instance);
         final boxed = layout.layout(doc, LogLevel.info).lines;
 
         // Box width: availableWidth (20) + 2 border = 22 total
         expect(boxed[0].visibleLength, equals(22));
         expect(boxed[1].segments[3].text, equals(' !!'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

@@ -10,13 +10,13 @@ class MockFormatter implements LogFormatter {
   @override
   final Set<LogMetadata> metadata;
 
-  final void Function(LogEntry, LogDocument, LogNodeFactory) formatFn;
+  final void Function(LogEntry, LogDocument, LogPipelineFactory) formatFn;
 
   @override
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) =>
       formatFn(entry, document, factory);
 }
@@ -30,6 +30,7 @@ final class MockSink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     outputs.add(renderLines(document));
     levels.add(level);

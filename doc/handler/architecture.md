@@ -8,41 +8,42 @@ The `Handler` class acts as an orchestrator. When `handler.log(entry)` is called
 
 ```mermaid
 flowchart LR
-    Entry --> Filter --> Format --> Dec --> Encode --> Sink --> IO
+    Entry --> Filter --> Engine --> Sink --> IO
+    subgraph Engine [LogEngine Orchestration]
+      direction TB
+      Format --> Dec --> Emit
+    end
 ```
 
-### The Life of a Log entry (Sequence)
-
-```mermaid
 sequenceDiagram
     participant L as Logger
     participant H as Handler
+    participant E as LogEngine
     participant F as Formatter
     participant D as Decorator
     participant S as Sink
-    participant E as Encoder (with Layout)
+    participant Enc as Encoder
 
     L->>H: log(LogEntry)
     H->>H: Filter Check
     alt Should remain?
-        H->>F: format(entry, context)
-        F-->>H: LogDocument (Semantic IR)
+        H->>E: execute(entry, formatter, decorators, sink)
+        E->>F: format(entry, document, factory)
         loop Each Decorator
-            H->>D: apply(document, entry, context)
-            D-->>H: LogDocument
+            E->>D: apply(document, entry, factory)
         end
-        H->>S: output(document, entry, level)
-        S->>E: encode(entry, document, level)
-        Note over E: Physical Layout & Wrapping
-        E-->>S: T (Serialized Data)
-        S-->>H: Future<void>
+        E->>S: output(document, entry, level, factory)
+        S->>Enc: encode(entry, document, level, factory)
+        Note over Enc: Physical Layout & Wrapping
+        Enc-->>S: T (Serialized Data)
+        S-->>E: Future<void>
+        E-->>H: Future<void>
     end
 ```
 
-The `Handler` initializes a `LogContext` for every entry, ensuring **Unified Layout Sovereignty**:
-- **totalWidth**: The authoritative spatial limit (from sink or user).
-- **paddingWidth**: Calculated as the sum of all structural decorator footprints.
-- **availableWidth**: The remaining slot for initial content (`totalWidth - paddingWidth`).
+The `Handler` delegates the processing cycle to a `LogEngine`, which manages the **LogPipelineFactory** (providing unified resource management):
+- **LogPipelineFactory**: The authoritative source for `LogDocument`, `LogNode`, and `HandlerContext` allocation.
+- **Unified Layout Sovereignty**: Managed during the encoding phase via `TerminalLayout`.
 
 Wrapping is no longer a top-level stage in the `Handler`. Instead, it is deferred to the **Encoding** phase, where the `LogEncoder` (typically using `TerminalLayout`) calculates the final physical geometry based on the `LogDocument` and the `totalWidth`. This ensures that wrapping happens with full knowledge of the target medium's constraints.
 

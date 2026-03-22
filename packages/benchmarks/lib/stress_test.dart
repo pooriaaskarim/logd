@@ -44,11 +44,12 @@ Metrics profilePipeline(
   print('Profiling: $name ...');
 
   final latencies = <int>[];
-  final layout = TerminalLayout(width: width);
+  final factory = Arena.instance;
+  final layout = TerminalLayout(width: width, factory: factory);
 
   // Warmup
   for (int i = 0; i < 1000; i++) {
-    final arena = LogArena.instance;
+    final arena = Arena.instance;
     final doc = arena.checkoutDocument();
     try {
       formatter.format(entry, doc, arena);
@@ -75,7 +76,7 @@ Metrics profilePipeline(
     iterWatch.reset();
     iterWatch.start();
 
-    final arena = LogArena.instance;
+    final arena = Arena.instance;
     final doc = arena.checkoutDocument();
     try {
       formatter.format(entry, doc, arena);

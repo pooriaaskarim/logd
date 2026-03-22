@@ -15,19 +15,25 @@ class MarkdownEncoder implements LogEncoder {
   @override
   void preamble(
     final HandlerContext context,
-    final LogLevel level, {
+    final LogLevel level,
+    final LogPipelineFactory factory, {
     final LogDocument? document,
   }) {}
 
   @override
-  void postamble(final HandlerContext context, final LogLevel level) {}
+  void postamble(
+    final HandlerContext context,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) {}
 
   @override
   void encode(
     final LogEntry entry,
     final LogDocument document,
     final LogLevel level,
-    final HandlerContext context, {
+    final HandlerContext context,
+    final LogPipelineFactory factory, {
     final int? width,
   }) {
     for (final node in document.nodes) {

@@ -30,7 +30,7 @@ final class StyleDecorator extends VisualDecorator {
   void decorate(
     final LogDocument document,
     final LogEntry entry,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     final snapshot = document.nodes.toList();
     document.nodes

@@ -71,9 +71,9 @@ void main() {
       final lines = ['very long message that exceeds 5 chars'];
       final doc = createTestDocument(lines);
       try {
-        box.decorate(doc, entry, LogArena.instance);
+        box.decorate(doc, entry, Arena.instance);
 
-        const layout = TerminalLayout(width: 5);
+        final layout = TerminalLayout(width: 5, factory: Arena.instance);
         final boxed = layout.layout(doc, LogLevel.info).lines;
 
         expect(boxed, isNotEmpty);
@@ -82,7 +82,7 @@ void main() {
           expect(line.visibleLength, equals(topWidth));
         }
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -99,13 +99,13 @@ void main() {
       final lines = ['\x1B[31m\x1B[0m']; // Red color then reset
       final doc = createTestDocument(lines);
       try {
-        box.decorate(doc, entry, LogArena.instance);
+        box.decorate(doc, entry, Arena.instance);
 
-        const layout = TerminalLayout(width: 20);
+        final layout = TerminalLayout(width: 20, factory: Arena.instance);
         final boxed = layout.layout(doc, LogLevel.info).lines;
         expect(boxed, isNotEmpty);
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });
@@ -120,10 +120,11 @@ final class _MemorySink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     const encoder = PlainTextEncoder();
-    final context = HandlerContext();
-    encoder.encode(entry, document, level, context, width: 80);
+    final context = factory.checkoutContext();
+    encoder.encode(entry, document, level, context, factory, width: 80);
     final output = const Utf8Decoder().convert(context.takeBytes());
     outputs.add(output.trimRight().split('\n'));
   }

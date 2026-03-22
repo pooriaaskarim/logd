@@ -23,7 +23,8 @@ class HtmlEncoder implements LogEncoder {
   @override
   void preamble(
     final HandlerContext context,
-    final LogLevel level, {
+    final LogLevel level,
+    final LogPipelineFactory factory, {
     final LogDocument? document,
   }) {
     final t = _escapeHtml(title);
@@ -48,7 +49,11 @@ ${_css()}
   }
 
   @override
-  void postamble(final HandlerContext context, final LogLevel level) {
+  void postamble(
+    final HandlerContext context,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) {
     context.writeString('''
 </div>
 </body>
@@ -61,7 +66,8 @@ ${_css()}
     final LogEntry entry,
     final LogDocument document,
     final LogLevel level,
-    final HandlerContext context, {
+    final HandlerContext context,
+    final LogPipelineFactory factory, {
     final int? width,
   }) {
     // Root entry container

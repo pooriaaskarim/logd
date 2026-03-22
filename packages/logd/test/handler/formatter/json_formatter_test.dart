@@ -38,7 +38,7 @@ void main() {
         expect(decoded['error'], isNull);
         expect(decoded['stackTrace'], isNull);
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -71,7 +71,7 @@ void main() {
         // Metadata omitted
         expect(decoded.containsKey('timestamp'), isFalse);
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });
@@ -100,7 +100,7 @@ void main() {
         expect(output, contains('  "message": '));
         expect(output, contains('  '));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });
@@ -118,8 +118,9 @@ void main() {
       const formatter = JsonPrettyFormatter(color: true);
       final doc = formatDoc(formatter, entry);
       try {
-        final lines =
-            const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
+        final lines = TerminalLayout(width: 80, factory: Arena.instance)
+            .layout(doc, LogLevel.info)
+            .lines;
 
         expect(lines.length, greaterThan(0));
         bool foundKey = false;
@@ -142,7 +143,7 @@ void main() {
         expect(foundLevel, isTrue);
         expect(foundPunctuation, isTrue);
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });
@@ -178,7 +179,7 @@ void main() {
         expect(decoded.containsKey('logger'), isFalse);
         expect(decoded.containsKey('origin'), isFalse);
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -195,7 +196,7 @@ void main() {
         expect(decoded['message'], equals('Processing request'));
         expect(decoded.length, equals(2));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });
@@ -214,11 +215,13 @@ void main() {
       final doc = formatDoc(formatter, entry);
       try {
         final lines =
-            const TerminalLayout(width: 80).layout(doc, LogLevel.info).lines;
+            const TerminalLayout(width: 80, factory: StandardPipelineFactory())
+                .layout(doc, LogLevel.info)
+                .lines;
         final segment = lines.first.segments.first;
         expect((segment.tags & LogTag.noWrap) == 0, isTrue);
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });
@@ -226,7 +229,7 @@ void main() {
 
 List<String> render(final LogDocument doc) {
   // Use large width to prevent wrapping of JSON output
-  const layout = TerminalLayout(width: 4096);
+  final layout = TerminalLayout(width: 4096, factory: Arena.instance);
   return layout
       .layout(doc, LogLevel.info)
       .lines

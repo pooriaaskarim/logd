@@ -3,12 +3,15 @@ import 'package:logd/src/handler/handler.dart';
 import 'package:logd/src/logger/logger.dart';
 
 /// Helper to create a simplified LogDocument from strings.
-LogDocument createTestDocument(final List<String> lines) {
-  final arena = LogArena.instance;
-  final doc = arena.checkoutDocument();
+LogDocument createTestDocument(
+  final List<String> lines, {
+  final LogPipelineFactory? factory,
+}) {
+  final f = factory ?? Arena.instance;
+  final doc = f.checkoutDocument();
   for (final line in lines) {
     doc.nodes.add(
-      arena.checkoutMessage()..segments.add(StyledText(line)),
+      f.checkoutMessage()..segments.add(StyledText(line)),
     );
   }
   return doc;
@@ -19,11 +22,11 @@ LogDocument createTestDocument(final List<String> lines) {
 LogDocument formatDoc(
   final LogFormatter formatter,
   final LogEntry entry, {
-  final LogArena? arena,
+  final LogPipelineFactory? factory,
 }) {
-  final a = arena ?? LogArena.instance;
-  final doc = a.checkoutDocument();
-  formatter.format(entry, doc, a);
+  final f = factory ?? Arena.instance;
+  final doc = f.checkoutDocument();
+  formatter.format(entry, doc, f);
   return doc;
 }
 
@@ -32,17 +35,21 @@ void decorateDoc(
   final LogDecorator decorator,
   final LogDocument document,
   final LogEntry entry, {
-  final LogArena? arena,
+  final LogPipelineFactory? factory,
 }) {
-  decorator.decorate(document, entry, arena ?? LogArena.instance);
+  decorator.decorate(document, entry, factory ?? Arena.instance);
 }
 
 /// Renders a LogDocument to a list of strings with ANSI codes.
 ///
 /// Simulates a terminal rendering.
-List<String> renderLines(final LogDocument document, {final int width = 80}) {
+List<String> renderLines(
+  final LogDocument document, {
+  final int width = 80,
+  final LogPipelineFactory factory = const StandardPipelineFactory(),
+}) {
   // Use TerminalLayout to flatten logic to physical lines
-  final layout = TerminalLayout(width: width);
+  final layout = TerminalLayout(width: width, factory: factory);
   final physical = layout.layout(document, LogLevel.info);
 
   final result = <String>[];

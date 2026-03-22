@@ -13,7 +13,7 @@ The following table tracks the performance evolution of the `logd` handler archi
 | **M2** | `7ed89d8` | Pipeline Migration | 147.5 | 478.7 | 268.1 |
 | **M3** | `788b9bb` | Optimized Bitmasks | 138.3 | 405.3 | 241.9 |
 | **M4** | `b943c05` | Final Release Candidate | **136.3** | **411.3** | **262.1** |
-| **M5** | `eb6cd11` | LogArena Pooling | 139.4 | 423.4 | **241.8** |
+| **M5** | `eb6cd11` | Arena Pooling | 139.4 | 423.4 | **241.8** |
 | **M6** | `eb6cd11` | Buffer Stream | 164.8 | 438.8 | 275.1 |
 | **M7** | `HEAD` | In-Place Refinements | 145.0 | 421.1 | 263.8 |
 | **M8** | `HEAD` | Physical Arena Pooling | 138.6 | 404.2 | 262.7 |
@@ -29,7 +29,7 @@ The following table tracks the performance evolution of the `logd` handler archi
 - [Milestone 2: Pipeline Migration](./M02_PipelineMigration.md)
 - [Milestone 3: Optimized Bitmasks](./M03_OptimizedBitmasks.md)
 - [Milestone 4: HTML Pipeline](./M04_HtmlPipeline.md)
-- [Milestone 5: LogArena Pooling](./M05_LogArenaPooling.md)
+- [Milestone 5: Arena Pooling](./M05_ArenaPooling.md)
 - [Milestone 6: Buffer Stream Pipeline](./M06_BufferStream.md)
 - [Milestone 7: In-Place Refinements](./M07_InPlaceRefinements.md)
 - [Milestone 8: Physical Layer Arena](./M08_PhysicalArena.md)

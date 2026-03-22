@@ -23,7 +23,7 @@ void main() {
         // Should find "id":1 (compacted JSON doesn't always have spaces)
         expect(output.replaceAll(' ', ''), contains('"id":1,"v":"a"'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -48,7 +48,7 @@ void main() {
         expect(zIdx, isNot(-1));
         expect(aIdx, lessThan(zIdx));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -74,7 +74,7 @@ void main() {
         expect(output, contains('"long_key": \n'));
         expect(output, contains('{\n'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -96,14 +96,14 @@ void main() {
         expect(output, contains('line 1'));
         expect(output, contains('line 2'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });
 }
 
 String render(final LogDocument doc, {required final int width}) {
-  final layout = TerminalLayout(width: width);
+  final layout = TerminalLayout(width: width, factory: Arena.instance);
   return layout
       .layout(doc, LogLevel.info)
       .lines

@@ -27,7 +27,7 @@ void main() {
         expect(rendered[1], startsWith('│'));
         expect(rendered[1], endsWith('│'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -43,7 +43,7 @@ void main() {
         expect(rendered.first, startsWith('┌'));
         expect(rendered.last, startsWith('└'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
 
@@ -59,7 +59,7 @@ void main() {
         expect(rendered.first, startsWith('╔'));
         expect(rendered.last, startsWith('╚'));
       } finally {
-        doc.releaseRecursive(LogArena.instance);
+        doc.releaseRecursive(Arena.instance);
       }
     });
   });

@@ -21,12 +21,17 @@ abstract interface class LogEncoder {
   /// column names or array titles) required for session-level headers.
   void preamble(
     final HandlerContext context,
-    final LogLevel level, {
+    final LogLevel level,
+    final LogPipelineFactory factory, {
     final LogDocument? document,
   }) {}
 
   /// Returns the document end (e.g., HTML footer), if applicable.
-  void postamble(final HandlerContext context, final LogLevel level) {}
+  void postamble(
+    final HandlerContext context,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) {}
 
   /// Encodes the document into a format T, using the original entry for
   /// data access.
@@ -37,7 +42,8 @@ abstract interface class LogEncoder {
     final LogEntry entry,
     final LogDocument document,
     final LogLevel level,
-    final HandlerContext context, {
+    final HandlerContext context,
+    final LogPipelineFactory factory, {
     final int? width,
   });
 }

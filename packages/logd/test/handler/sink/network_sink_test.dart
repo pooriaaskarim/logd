@@ -54,11 +54,13 @@ void main() {
         createTestDocument(['log1']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await sink.output(
         createTestDocument(['log2']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       verifyNever(
         () => mockClient.post(
@@ -72,6 +74,7 @@ void main() {
         createTestDocument(['log3']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await Future.delayed(Duration.zero);
 
@@ -103,6 +106,7 @@ void main() {
         createTestDocument(['queued']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -144,6 +148,7 @@ void main() {
         createTestDocument(['retry-me']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await Future.delayed(const Duration(milliseconds: 600));
 
@@ -174,6 +179,7 @@ void main() {
         createTestDocument(['instant']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await Future.delayed(Duration.zero);
 
@@ -195,6 +201,7 @@ void main() {
         createTestDocument(['buffered']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
 
       await Future.delayed(Duration.zero);
@@ -236,16 +243,19 @@ void main() {
         createTestDocument(['first']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await sink.output(
         createTestDocument(['second']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await sink.output(
         createTestDocument(['third']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       ); // Should be dropped
 
       await sink.dispose();
@@ -280,6 +290,7 @@ void main() {
         createTestDocument(['ignored']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       await Future.delayed(Duration.zero);
 
@@ -311,6 +322,7 @@ void main() {
         createTestDocument(['pending']),
         testEntry,
         LogLevel.info,
+        const StandardPipelineFactory(),
       );
       verifyNever(
         () => mockClient.post(

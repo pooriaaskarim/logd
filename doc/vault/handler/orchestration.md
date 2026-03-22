@@ -2,12 +2,12 @@
 
 The `logd` handler architecture is built for extreme efficiency by internalizing the complex "mechanical" logic of log processing. This ensures that formatters and decorators remain simple, while the core system guarantees memory safety and high throughput.
 
-## 1. Lifecycle & Memory Safety
+## 1. Lifecycle & Memory Strategy
 
-The `Handler` is the sole manager of the `LogArena` lifecycle. This centralized control prevents memory leaks and ensures that all components operate within the same pooled context.
+The `LogEngine` is the authoritative orchestrator of the processing cycle. It manages the **LogPipelineFactory** (e.g., `Arena`) to ensure memory safety and high throughput.
 
-- **Deterministic Release**: `Handler.log` uses a `try-finally` pattern to ensure that the `LogDocument` IR is always returned to the arena, even if a formatter or sink fails.
-- **Node Recycling**: By managing the arena at the handler level, we ensure that specialized nodes (`BoxNode`, `FillerNode`) are reused across millions of log cycles without triggering GC.
+- **Deterministic Pipeline**: The engine coordinates the flow from `LogFormatter` through the `DecoratorPipeline`.
+- **Resource Management**: It handles the `checkout` and `release` of [LogDocument]s. The `ArenaEngine` implementation specifically ensures that the entire layout tree is returned to the pool via a recursive release, neutralizing GC pressure.
 
 ## 2. In-place Mutation (Semantic Boundary)
 
@@ -29,9 +29,9 @@ The final stage of the pipeline translates the semantic IR into physical bytes v
 
 | Phase | Component | Action | Result |
 |---|---|---|---|
-| **Checkout** | `Handler` | `arena.checkoutDocument()` | Semantic IR initialized |
-| **Format** | `LogFormatter` | `format(entry, doc)` | Content nodes added |
-| **Decorate**| `LogDecorator` | `decorate(doc)` | Layout/Style modified |
-| **Encode** | `LogEncoder` | `encode(entry, doc, ctx)`| Bytes written to buffer |
-| **Sink** | `EncodingSink` | `output(bytes + "\n")` | Data persisted |
-| **Release** | `Handler` | `doc.releaseRecursive()` | Tree returned to pool |
+| **Checkout** | `LogEngine` | `factory.checkoutDocument()` | Semantic IR initialized |
+| **Format** | `LogFormatter` | `format(entry, doc, factory)`| Content nodes added |
+| **Decorate**| `LogDecorator` | `apply(doc, entry, factory)`| Layout/Style modified |
+| **Encode** | `LogEncoder` | `encode(entry, doc, factory)`| Bytes written to buffer |
+| **Sink** | `LogSink` | `output(doc, entry, factory)`| Data persisted |
+| **Release** | `LogEngine` | `doc.releaseRecursive(factory)`| Tree returned to pool |

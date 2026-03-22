@@ -206,10 +206,17 @@ Logger.configure('app', timestamp: timestamp);
 | Time | `FileSink('logs/app.log', fileRotation: TimeRotation(interval: Duration(hours: 1), timestamp: Timestamp(formatter: 'yyyy-MM-dd_HH'), backupCount: 24))` |
 
 ### Performance Tuning
+ 
+ ```dart
+ Logger.get('app').freezeInheritance();   // snapshot config, eliminate runtime look‑ups
 
-```dart
-Logger.get('app').freezeInheritance();   // snapshot config, eliminate runtime look‑ups
-```
+// Use the high-performance ArenaEngine for extreme throughput
+final fastHandler = Handler(
+  formatter: const JsonFormatter(),
+  sink: FileSink('logs/perf.log'),
+  engine: const ArenaEngine(), 
+);
+ ```
 
 ## Use Cases
 

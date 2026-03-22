@@ -60,17 +60,18 @@ base class EncodingSink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     if (!enabled) {
       return;
     }
 
-    final context = LogArena.instance.checkoutContext();
+    final context = factory.checkoutContext();
 
     try {
       // Trigger preamble if needed
       if (strategy == WrappingStrategy.document && !_preambleWritten) {
-        encoder.preamble(context, level, document: document);
+        encoder.preamble(context, level, factory, document: document);
         _preambleWritten = true;
       }
 
@@ -80,6 +81,7 @@ base class EncodingSink extends LogSink<LogDocument> {
         document,
         level,
         context,
+        factory,
         width: preferredWidth,
       );
 
@@ -93,7 +95,7 @@ base class EncodingSink extends LogSink<LogDocument> {
         await delegate(data);
       }
     } finally {
-      LogArena.instance.release(context);
+      factory.release(context);
     }
   }
 
@@ -102,8 +104,14 @@ base class EncodingSink extends LogSink<LogDocument> {
   Future<void> dispose() async {
     if (strategy == WrappingStrategy.document && _preambleWritten) {
       final context = HandlerContext();
-      // We don't have a specific level for postamble, use Info as safe default
-      encoder.postamble(context, LogLevel.info);
+      // No specific level for postamble; use Info as safe default.
+      // TODO: Postamble might need a factory for pooled contexts.
+      // For now, heap allocation in Standard mode is safe.
+      encoder.postamble(
+        context,
+        LogLevel.info,
+        const StandardPipelineFactory(),
+      );
       final data = context.takeBytes();
       if (data.isNotEmpty) {
         await delegate(data);

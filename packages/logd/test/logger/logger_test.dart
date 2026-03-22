@@ -399,6 +399,7 @@ base class FailingSink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     throw Exception('Simulated failure');
   }
@@ -412,12 +413,13 @@ base class _MemorySink extends LogSink<LogDocument> {
     final LogDocument document,
     final LogEntry entry,
     final LogLevel level,
+    final LogPipelineFactory factory,
   ) async {
     // For tests, we convert back to lines but without wrapping logic,
     // reflecting how it was designed to be captured.
     const encoder = PlainTextEncoder();
     final context = HandlerContext();
-    encoder.encode(entry, document, level, context, width: 80);
+    encoder.encode(entry, document, level, context, factory, width: 80);
     final output = const Utf8Decoder().convert(context.takeBytes());
     outputs.add(output.trimRight().split('\n'));
   }

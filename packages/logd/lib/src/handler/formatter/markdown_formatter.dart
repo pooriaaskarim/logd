@@ -27,7 +27,7 @@ final class MarkdownFormatter implements LogFormatter {
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
     // 1. Header (Level + Metadata)
     final headerSegments = <StyledText>[

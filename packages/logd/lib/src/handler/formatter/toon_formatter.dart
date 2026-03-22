@@ -39,30 +39,39 @@ final class ToonFormatter implements LogFormatter {
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
-    final map = <String, Object?>{};
     final columns = <String>[];
+    final messageLines = entry.message.split('\n');
+    var isFirst = true;
 
-    void add(final String key, final Object? value) {
-      columns.add(key);
-      map[key] = value;
+    for (final line in messageLines) {
+      final map = <String, Object?>{};
+
+      void add(final String key, final Object? value) {
+        if (isFirst) {
+          columns.add(key);
+        }
+        map[key] = value;
+      }
+
+      for (final meta in metadata) {
+        add(meta.name, meta.getValue(entry));
+      }
+
+      add('level', entry.level.name.toUpperCase());
+      add('message', line);
+      add('error', entry.error ?? '');
+      add('stackTrace', entry.stackTrace ?? '');
+
+      document.nodes.add(factory.checkoutMap()..map = map);
+      isFirst = false;
     }
-
-    for (final meta in metadata) {
-      add(meta.name, meta.getValue(entry));
-    }
-
-    add('level', entry.level.name.toUpperCase());
-    add('message', entry.message);
-    add('error', entry.error?.toString() ?? '');
-    add('stackTrace', entry.stackTrace?.toString() ?? '');
 
     document
       ..metadata['toon_array'] = arrayName
       ..metadata['toon_delimiter'] = delimiter
       ..metadata['toon_columns'] = columns;
-    document.nodes.add(factory.checkoutMap()..map = map);
   }
 
   @override
@@ -129,26 +138,42 @@ final class ToonPrettyFormatter implements LogFormatter {
   void format(
     final LogEntry entry,
     final LogDocument document,
-    final LogNodeFactory factory,
+    final LogPipelineFactory factory,
   ) {
-    final map = <String, Object?>{};
     final columns = <String>[];
     final tags = <String, int>{};
+    columns.clear();
+    tags.clear();
+    final messageLines = entry.message.split('\n');
+    var isFirst = true;
 
-    void add(final String key, final Object? value, final int tag) {
-      columns.add(key);
-      map[key] = value;
-      tags[key] = tag;
+    for (final line in messageLines) {
+      final map = <String, Object?>{};
+
+      void add(final String key, final Object? value, final int tag) {
+        if (isFirst) {
+          columns.add(key);
+          tags[key] = tag;
+        }
+        map[key] = value;
+      }
+
+      for (final meta in metadata) {
+        add(meta.name, meta.getValue(entry), meta.tag);
+      }
+
+      add('level', entry.level.name.toUpperCase(), LogTag.level);
+      add('message', line, LogTag.message);
+      add('error', entry.error ?? '', LogTag.error);
+      add('stackTrace', entry.stackTrace ?? '', LogTag.stackFrame);
+
+      document.nodes.add(
+        factory.checkoutMap()
+          ..map = map
+          ..tags = color ? LogTag.message : LogTag.none,
+      );
+      isFirst = false;
     }
-
-    for (final meta in metadata) {
-      add(meta.name, meta.getValue(entry), meta.tag);
-    }
-
-    add('level', entry.level.name.toUpperCase(), LogTag.level);
-    add('message', entry.message, LogTag.message);
-    add('error', entry.error, LogTag.error);
-    add('stackTrace', entry.stackTrace, LogTag.stackFrame);
 
     document
       ..metadata['toon_array'] = arrayName
@@ -158,11 +183,6 @@ final class ToonPrettyFormatter implements LogFormatter {
       ..metadata['toon_sort_keys'] = sortKeys
       ..metadata['toon_max_depth'] = maxDepth
       ..metadata['toon_color'] = color;
-    document.nodes.add(
-      factory.checkoutMap()
-        ..map = map
-        ..tags = color ? LogTag.message : LogTag.none,
-    );
   }
 
   @override
