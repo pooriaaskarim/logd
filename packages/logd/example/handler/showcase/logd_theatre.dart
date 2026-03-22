@@ -44,8 +44,11 @@ void main() async {
   );
 
   final markdownHandler = Handler(
-    formatter: const MarkdownFormatter(),
-    sink: FileSink('$basePath/report.md'),
+    formatter: const StructuredFormatter(),
+    sink: FileSink(
+      '$basePath/report.md',
+      encoder: const MarkdownEncoder(),
+    ),
   );
 
   final semanticHandler = Handler(

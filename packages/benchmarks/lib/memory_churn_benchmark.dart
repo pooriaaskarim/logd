@@ -28,6 +28,7 @@ Future<void> runMemoryChurnBenchmark() async {
     final handler = const Handler(
       formatter: StructuredFormatter(),
       sink: ConsoleSink(enabled: false),
+      engine: ArenaEngine(),
     );
 
     // 1. Heavy Warmup
@@ -63,6 +64,8 @@ Future<void> runMemoryChurnBenchmark() async {
     for (int i = 0; i < 10000; i++) {
       await handler.log(entry);
     }
+
+    print('\nFinal Arena Pool Size: ${Arena.instance.poolSize}');
 
     // 4. Capture Profile
     final profile = await vmService.getAllocationProfile(isolateId);

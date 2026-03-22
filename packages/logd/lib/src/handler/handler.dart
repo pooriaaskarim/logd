@@ -52,7 +52,6 @@ part 'filter/level_filter.dart';
 part 'filter/regex_filter.dart';
 part 'formatter/formatter.dart';
 part 'formatter/json_formatter.dart';
-part 'formatter/markdown_formatter.dart';
 part 'formatter/plain_formatter.dart';
 part 'formatter/structured_formatter.dart';
 part 'formatter/toon_formatter.dart';

@@ -19,6 +19,7 @@ The following table tracks the performance evolution of the `logd` handler archi
 | **M8** | `HEAD` | Physical Arena Pooling | 138.6 | 404.2 | 262.7 |
 | **M9** | `HEAD` | Static Tokens & Fast Paths | 135.7 | 305.8 | 242.1 |
 | **M10** | `HEAD` | Zero-Churn & Isolate Sinks | **136.7** | **299.2** | **247.0** |
+| **M11** | `HEAD` | Arena Engine Comparison | -- | **303.8** (Raw) | **129.1** (Human) |
 
 *\*Legacy JSON utilized raw `jsonEncode` without semantic layout support.*
 
@@ -35,6 +36,7 @@ The following table tracks the performance evolution of the `logd` handler archi
 - [Milestone 8: Physical Layer Arena](./M08_PhysicalArena.md)
 - [Milestone 9: Static Tokens & Fast Paths](./M09_StaticTokens.md)
 - [Milestone 10: Zero-Churn Encoding & Isolate Sinks](./M10_FinalCeiling.md)
+- [Milestone 11: Arena Engine Comparison](./M11_ArenaEngineComparison.md)
 
 ## Usage & Maintenance
 

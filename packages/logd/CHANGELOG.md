@@ -1,46 +1,56 @@
 # Changelog
 
-## 0.6.5: Semantic Encoding & Architectural Inversion (Ongoing)
-
-- ### Byte-Oriented Pipeline (Phase 18-20)
-  - **HandlerContext & Pooling**: Introduced `HandlerContext` to manage recyclable `Uint8List` buffers, integrated with `LogArena` for zero-allocation buffer acquisition in steady-state logging.
-  - **Physical Serialization Inversion**: Refactored `LogEncoder` and all implementations (`Ansi`, `Json`, `Html`, etc.) to write directly to byte buffers instead of returning strings, eliminating high-frequency string churn.
-  - **Sink Optimization**: Standardized `LogSink` to accept `Uint8List`. Optimized `ConsoleSink` and `FileSink` to use direct byte output (`stdout.add` and `RandomAccessFile.writeFromSync`).
-  - **FastStringWriter**: Added high-performance byte-constant utility for pre-encoded ANSI and structural tokens.
-
-> [!IMPORTANT]
-> **Breaking Changes & Requirements**
-> - **Dart SDK 3.6.0+**: This version requires Dart 3.6.0 or higher to support new language features and monorepo workspace configuration.
+## 0.7.0: The Architectural Inversion & Performance Milestone
+ 
+This milestone represents a complete overhaul of the `logd` logging pipeline, transitioning from a string-centric model to a zero-allocation, byte-oriented, and semantic-IR-driven architecture. It consolidates all development phases originally intended for 0.6.5.
+ 
+> [!WARNING]
+> **Breaking Changes & Architectural Inversion**
+> - **SDK Requirements**: `logd` 0.7.0+ now requires **Dart 3.6.0+** to support monorepo workspace configurations and modern language features.
+> - **Structural Reorganization**: Internal handler components relocated to domain-specific sub-modules: `document/` (Semantic IR), `layout/` (Physical Rendering), `engine/` (Orchestration), and `decorator/` (Transformation). Direct imports of internal files will break.
+> - **Pipeline Factory Transition**: The legacy `LogNodeFactory` has been replaced by the unified `LogPipelineFactory`. All custom formatters and sinks must update their signatures to accommodate the new factory type.
 > - **LogContext Removal**: The `LogContext` class and its parameters have been removed from the entire pipeline (`format`, `decorate`, `output`). Metadata is now handled via `LogLine` and `LogDocument` IR.
-> - **Ownership Migration**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic. Existing code passing `lineLength` to `Handler` must migrate to sink-level configuration.
-
-- ### Monorepo Migration & Structure
-  - **Workspace Consolidation**: Converted the project into a structured monorepo using Dart workspaces, improved dependency management across packages.
-  - **Package Reorganization**: Separated `logd` core from `benchmarks` and `examples`. Overhauled `scripts/` for better contributor ergonomics.
-  - **Agentic Development**: Integrated specialized `.agents` workflows and development rules to standardize AI-assisted coding and architectural integrity.
-
-- ### Semantic Encoding Inversion (Phase 8-12)
-  - **Intent vs. Serialization**: Decoupled formatting intent from physical serialization. Formatters (`JsonFormatter`, `ToonFormatter`) now produce semantic Intermediate Representation (IR) via `LogDocument`, `MapNode`, and `ListNode`.
-  - **Geometric Layout Engine**: Implemented `TerminalLayout` as the sole authority on physical wrapping, TAB-stops, and ANSI segment slicing.
-  - **HtmlEncoder Overhaul**: Complete rewrite of the HTML logging pipeline with high-fidelity rendering for all `LogNode` types. `BoxNode` now maps to `<fieldset>`, `IndentationNode` to `<blockquote>`.
-
-- ### Performance & Benchmarking
-  - **Standardized Performance Ledger**: Introduced a centralized ledger in `packages/benchmarks/records/README.md` for tracking performance milestones and preventing regressions.
-  - **AOT Stress Test Suite**: Developed a comprehensive AOT-compiled stress test suite (`stress_test.dart`) for high-throughput validation.
-  - **Bitmask Optimizations**: Leveraged `int` bitmasks for `LogTag` handling, significantly reducing overhead in hot paths and guaranteeing `>5%` throughput stability.
-
-- ### "Wise" Object Representation (Phase 13-17)
-  - **JsonPrettyFormatter Evolution**: Added adaptive stacking (threshold-driven), composite compaction (single-line maps/lists), and structural safety guards (`maxDepth`).
-  - **TOON Hierarchy**: Split into `ToonFormatter` (flat-row, token-optimized) and `ToonPrettyFormatter` (recursive, human-readable).
-
-- ### API Hygiene & Internal Quality
-  - **Structural Correctness**: Fixed a hash/equals contract violation in `LogDocument` and `MapNode`.
-  - **DecorationHint Standardization**: Extracted magic strings into a shared `DecorationHint` class.
-  - **Encoder Extraction**: Refactored the encoder directory, extracting individual implementations into dedicated files for improved maintainability.
-  - **Naming Standardization**: Renamed `LogJsonEncoder` to `JsonEncoder` and resolved naming conflicts with `dart:convert`.
-  - **ANSI Resilience**: Improved accuracy of width calculations for complex ANSI sequences and double-width characters. Fallback logic for layouts as narrow as 12-20 characters is now more robust.
-
-
+> - **Width Authority Inversion**: The `lineLength` constraint now originates from `LogSink` (e.g., `ConsoleSink`, `FileSink`), allowing handlers to be completely width-agnostic.
+> - **Engine Orchestration**: The `Handler` no longer manages the processing lifecycle directly; it delegates execution to an exchangeable `LogEngine`. Low-level handler overrides require migration.
+> - **Encapsulation**: Marked `Handler.log` and `LogEntry` constructor as **`@internal`** to prevent direct manipulation of the internal pipeline.
+> - **HTML Encoder**: The legacy `HtmlFormatter` has been removed. All HTML generation is now handled by the high-fidelity `HtmlEncoder`, which can be paired with any standard formatter (e.g., `StructuredFormatter`, `JsonFormatter`) to produce GFM reports.
+> - **Markdown Inversion**: The legacy `MarkdownFormatter` has been removed. All Markdown generation is now handled by the high-fidelity `MarkdownEncoder`, which can be paired with any standard formatter (e.g., `StructuredFormatter`, `JsonFormatter`) to produce GFM reports.
+ 
+- ### Handler Module & Execution Engines
+  - **Modular Architecture**: Relocated the handler internal suite into domain-specific modules: `document/` (Semantic IR), `layout/` (Physical Rendering), `engine/` (Orchestration), and `decorator/` (Transformation).
+  - **Execution Engine Abstraction**: Extracted the core logging lifecycle from `Handler` into the `LogEngine` interface. Users can now choose between `StandardEngine` (heap allocation) and `ArenaEngine` (zero-allocation LIFO pooling) via `Handler.configure()`.
+  - **Resource Pooling (Arena)**: Introduced `Arena` as an isolate-local object pool for `LogDocument` and all node types, eliminating GC pressure in high-throughput steady-state logging.
+  - **Unified Resource Management**: Introduced `LogPipelineFactory` as the sole authority for allocating IR nodes, allowing engines to swap allocation strategies without modifying formatter logic.
+ 
+- ### Byte-Oriented Pipeline & Serialization Inversion
+  - **Zero-Churn Serialization**: Refactored the entire encoding pipeline (`Ansi`, `Json`, `Toon`, `Html`) to write directly to shared `Uint8List` buffers, drastically reducing temporary string churn.
+  - **Buffer Recycling**: Introduced `HandlerContext` to manage pooled byte buffers, enabling zero-allocation buffer acquisition during steady-state logging when combined with `ArenaEngine`.
+  - **Sink Modernization**: Standardized `LogSink` to operate on byte streams. Optimized `ConsoleSink` and `FileSink` for direct byte output to `stdout`.
+  - **FastStringWriter**: Added high-performance byte-constant utility for pre-encoded ANSI and structural tokens.
+ 
+- ### Semantic Layout & Geometric Rendering
+  - **Deep Semantic IR**: Completely decoupled visual intent from physical serialization. Formatters now emit a pure semantic tree (`LogDocument`), which is then processed by the geometric layout engine.
+  - **TerminalLayout Authority**: Centralized all physical wrapping, TAB-stop calculation, and ANSI segment slicing within the `TerminalLayout` engine.
+  - **High-Fidelity HTML Pipeline**: A full Implementation of the semantic rendering pipeline for browsers, providing high-fidelity visual parity with terminal output.
+  - **ANSI Resilience**: Improved width calculation accuracy for complex ANSI sequences and double-width characters.
+ 
+- ### Performance, Benchmarking & Infrastructure
+  - **Monorepo Migration**: Converted the project into a structured monorepo using Dart workspaces, separating core logic from benchmarks and examples.
+  - **Performance Ledger**: Introduced a centralized ledger in `packages/benchmarks/records/README.md` for tracking architectural performance milestones, including the Milestone 11 Arena vs Standard comparison showing up to 49% throughput gains.
+  - **AOT Stress Test Suite**: Developed a high-throughput validation suite (`stress_test.dart`) for baseline performance monitoring.
+  - **Bitmask Optimizations**: Leveraged `int` bitmasks for `LogTag` handling, significantly reducing overhead in hot path processing.
+  - **Agentic Development**: Integrated specialized `.agents` workflows and development rules to standardize AI-assisted coding and architectural integrity across the monorepo.
+ 
+- ### Specialized Formats & Inspection
+  - **GFM Markdown Pipeline**: Introduced `MarkdownEncoder` with comprehensive mapping for all `LogNode` types.
+    - **Header Flattening**: Consolidates multiple semantic headers (Timestamp, Level, Logger) into a single, elegant `###` line with ` • ` separators.
+    - **Aesthetic Refinement**: Optimized vertical whitespace, high-fidelity GFM alerts for errors, and thematic separators (`---`) for professional report generation.
+    - **Collapsible Detail Blocks**: Supports `<details>` sections for stack traces and complex payloads.
+  - **TOON Hierarchy**: Introduced Token-Oriented Object Notation (TOON), integrated in both flat-row (`ToonFormatter`) and recursive (`ToonPrettyFormatter`) variants for LLM efficiency.
+  - **Intelligent JSON Inspection**: `JsonPrettyFormatter` now features recursive detection and pretty-printing of stringified JSON objects nested within lines.
+  - **Advanced Layout Features**: Added adaptive stacking (threshold-driven wrapping), composite compaction for maps/lists, and structural safety guards (`maxDepth`).
+ 
+ 
 ## 0.6.4: LogBuffer Enhancements & Project-Wide Refactor
 - ### LogBuffer Enhancement & Safety
   - **Error/StackTrace Support**: Added ability to capture `error` and `stackTrace` within `LogBuffer` for more robust multi-line error reporting.

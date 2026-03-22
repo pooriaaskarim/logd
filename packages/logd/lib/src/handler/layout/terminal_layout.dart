@@ -60,17 +60,15 @@ class TerminalLayout {
       case final RowNode n:
         _renderRow(n, level, availableWidth, out);
       case final MapNode n:
-        _renderContent(
-          HeaderNode(segments: [StyledText(n.toString())]),
-          availableWidth,
-          out,
-        );
+        final temp = factory.checkoutHeader()
+          ..segments.add(StyledText(n.toString()));
+        _renderContent(temp, availableWidth, out);
+        temp.releaseRecursive(factory);
       case final ListNode n:
-        _renderContent(
-          HeaderNode(segments: [StyledText(n.toString())]),
-          availableWidth,
-          out,
-        );
+        final temp = factory.checkoutHeader()
+          ..segments.add(StyledText(n.toString()));
+        _renderContent(temp, availableWidth, out);
+        temp.releaseRecursive(factory);
     }
   }
 
@@ -104,7 +102,9 @@ class TerminalLayout {
 
     // Render as flow first
     final startIndex = out.length;
-    _renderContent(HeaderNode(segments: segments), availableWidth, out);
+    final temp = factory.checkoutHeader()..segments.addAll(segments);
+    _renderContent(temp, availableWidth, out);
+    temp.releaseRecursive(factory);
 
     if (fillerChar != null) {
       // Add filler to each line to ensure it reaches full width
@@ -145,7 +145,9 @@ class TerminalLayout {
       }
     }
 
-    _renderContent(HeaderNode(segments: allSegments), availableWidth, out);
+    final temp = factory.checkoutHeader()..segments.addAll(allSegments);
+    _renderContent(temp, availableWidth, out);
+    temp.releaseRecursive(factory);
   }
 
   void _renderFiller(

@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
+
 part of '../handler.dart';
 
 /// An intermediate, "camera-ready" representation of a log document.
@@ -9,7 +11,6 @@ part of '../handler.dart';
 ///
 /// This is used internally by [LogEncoder]s to separate layout calculation
 /// from visual styling.
-@immutable
 class PhysicalDocument {
   /// Creates a [PhysicalDocument].
   const PhysicalDocument({
@@ -45,7 +46,6 @@ class PhysicalDocument {
 }
 
 /// A single line in a [PhysicalDocument].
-@immutable
 class PhysicalLine {
   /// Creates a [PhysicalLine].
   const PhysicalLine({

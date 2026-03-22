@@ -13,7 +13,6 @@ A `Handler` encapsulates two core operations:
 ### Formatters
 - `StructuredFormatter`: Modern flow-based layout with semantic tagging.
 - `JsonPrettyFormatter`: High-fidelity, recursive JSON inspection for nested payloads via `MapNode`.
-- `MarkdownFormatter`: Readability-first layout with collapsible stack traces using Markdown nodes.
 - `ToonFormatter`: Produces semantic `MapNode`s optimized for AI agents and LLM streaming.
 - `PlainFormatter`: Minimal, flow-aware text output using semantic literacy.
 
@@ -22,6 +21,7 @@ A `Handler` encapsulates two core operations:
 - `ToonEncoder`: Implements the Token-Oriented Object Notation protocol with metadata headers.
 - `AnsiEncoder`: Translates [LogStyle]s into ANSI escape codes for terminals.
 - `HtmlEncoder`: Produces self-contained, styled HTML documents.
+- `MarkdownEncoder`: Translates semantic IR into GFM (GitHub Flavored Markdown) with support for alerts and collapsible blocks.
 
 #### Unified Metadata Configuration
 All modern formatters accept a `Set<LogMetadata>` (`timestamp`, `logger`, `origin`), providing a consistent API for selecting contextual data.

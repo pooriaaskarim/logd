@@ -18,6 +18,7 @@ class PipelineBenchmark extends BenchmarkBase {
     handler = Handler(
       formatter: const PlainFormatter(),
       sink: RecordingSink(),
+      engine: const StandardEngine(),
     );
   }
 
@@ -54,6 +55,7 @@ class ArenaPipelineBenchmark extends BenchmarkBase {
     handler = Handler(
       formatter: const PlainFormatter(),
       sink: RecordingSink(),
+      engine: const ArenaEngine(),
     );
   }
 
@@ -82,7 +84,7 @@ class ManualPipelineBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    const factory = StandardPipelineFactory();
+    final factory = Arena.instance;
     final doc = factory.checkoutDocument();
     try {
       formatter.format(entry, doc, factory);

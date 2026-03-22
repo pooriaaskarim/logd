@@ -100,12 +100,11 @@ class StandardPipelineFactory implements LogPipelineFactory {
 
   @override
   // ignore: prefer_const_constructors
-  PhysicalDocument checkoutPhysicalDocument() =>
-      const PhysicalDocument(lines: []);
+  PhysicalDocument checkoutPhysicalDocument() => PhysicalDocument(lines: []);
 
   @override
   // ignore: prefer_const_constructors
-  PhysicalLine checkoutPhysicalLine() => PhysicalLine(segments: const []);
+  PhysicalLine checkoutPhysicalLine() => PhysicalLine(segments: []);
 
   @override
   void release(final Object obj) {

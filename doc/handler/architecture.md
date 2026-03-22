@@ -68,7 +68,6 @@ The formatter transforms the structured log entry into a semantic `LogDocument`.
 - **ToonFormatter**: Produces a `MapNode` with TOON-specific metadata. **(Best for LLM/Streaming)**
 - **JsonFormatter**: Produces a `MapNode` for pure structured logging. **(Best for HTTP/Storage)**
 - **JsonPrettyFormatter**: Produces a `MapNode` tagged for recursive, styled JSON inspection.
-- **MarkdownFormatter**: Generates structured Markdown nodes (headers, lists, collapsible blocks).
 - **PlainFormatter**: Streamlined semantic nodes for simple text output.
 
 ### Semantic Tagging (`LogTag`)
@@ -112,7 +111,8 @@ For a deep dive into how decorators interact, see [Decorator Composition](decora
 This stage transforms the semantic `LogDocument` into the final physical protocol. It is the final "Geometric Resolution" point.
 
 - **TerminalLayout**: For text-based formats (ANSI, Plain), the encoder uses `TerminalLayout` to perform word-wrapping, ASCII box rendering, and indentation based on the `totalWidth`.
-- **Inversion of Control**: Sinks delegate to specialized encoders (`JsonEncoder`, `ToonEncoder`, `AnsiEncoder`), keeping the transport medium agnostic of the data format.
+- **MarkdownEncoder**: Specializes in GFM (GitHub Flavored Markdown) serialization, mapping semantic blocks to headers, bold text, alerts, and collapsible sections.
+- **Inversion of Control**: Sinks delegate to specialized encoders (`JsonEncoder`, `ToonEncoder`, `AnsiEncoder`, `MarkdownEncoder`), keeping the transport medium agnostic of the data format.
 
 ### Stage 5: Output (Sinking)
 **Component**: `LogSink`

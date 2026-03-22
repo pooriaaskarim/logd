@@ -17,7 +17,7 @@
 - [x] Update all formatters to emit `LogLine`
 - [x] Implement fine-grained tagging in `StructuredFormatter`
 - [x] Add `JsonPrettyFormatter` with semantic styling and customizable fields
-- [x] Add `MarkdownFormatter` and `HTMLFormatter`
+- [x] Add MarkdownEncoder and HtmlEncoder
 
 ### ✅ P0: LLM-Optimized Logging (TOON)
 **Goal**: Create a format that is "native" to AI agents.

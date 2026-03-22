@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'package:logd/logd.dart';
 import 'package:logd/src/logger/logger.dart';
-import 'package:logd/src/handler/handler.dart' show TerminalLayout;
 
 final entry = const LogEntry(
   loggerName: 'bench.logger.a.b.c',
@@ -44,25 +43,18 @@ Metrics profilePipeline(
   print('Profiling: $name ...');
 
   final latencies = <int>[];
-  final factory = Arena.instance;
-  final layout = TerminalLayout(width: width, factory: factory);
+  final engine = const ArenaEngine();
+  final sink = RecordingEncoderSink(width);
+  final handler = Handler(
+    formatter: formatter,
+    decorators: decorators,
+    sink: sink,
+    engine: engine,
+  );
 
   // Warmup
   for (int i = 0; i < 1000; i++) {
-    final arena = Arena.instance;
-    final doc = arena.checkoutDocument();
-    try {
-      formatter.format(entry, doc, arena);
-      for (final decorator in decorators) {
-        decorator.decorate(doc, entry, arena);
-      }
-      final physical = layout.layout(doc, entry.level);
-      for (final line in physical.lines) {
-        line.toString();
-      }
-    } finally {
-      doc.releaseRecursive(arena);
-    }
+    handler.log(entry);
   }
 
   // Memory baseline
@@ -76,22 +68,7 @@ Metrics profilePipeline(
     iterWatch.reset();
     iterWatch.start();
 
-    final arena = Arena.instance;
-    final doc = arena.checkoutDocument();
-    try {
-      formatter.format(entry, doc, arena);
-      for (final decorator in decorators) {
-        decorator.decorate(doc, entry, arena);
-      }
-
-      // Simulate physical layout and encoding
-      final physical = layout.layout(doc, entry.level);
-      for (final line in physical.lines) {
-        line.toString();
-      }
-    } finally {
-      doc.releaseRecursive(arena);
-    }
+    handler.log(entry);
 
     iterWatch.stop();
     latencies.add(iterWatch.elapsedMicroseconds);
@@ -115,6 +92,25 @@ Metrics profilePipeline(
   final p99 = latencies[(iterations * 0.99).toInt()].toDouble();
 
   return Metrics(opsPerSec, p90, p95, p99, bytesPer10k);
+}
+
+base class RecordingEncoderSink extends LogSink<LogDocument> {
+  final int width;
+
+  RecordingEncoderSink(this.width);
+
+  @override
+  Future<void> output(
+    final LogDocument document,
+    final LogEntry entry,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) async {
+    final context = HandlerContext();
+    const encoder = AnsiEncoder();
+    encoder.encode(entry, document, level, context, factory, width: width);
+    context.takeBytes();
+  }
 }
 
 void runStressTests() {

@@ -3,8 +3,9 @@ part of '../handler.dart';
 /// An encoder that transforms [LogDocument] into Markdown (GFM) markup.
 ///
 /// It translates the semantic structure of the log into Markdown elements:
-/// - [HeaderNode]: Headers (###)
+/// - [HeaderNode]: Headers (###) + Emojis based on [LogLevel].
 /// - [MessageNode]: Bold text (**message**)
+/// - [ErrorNode]: Alert blocks (> [!ERROR])
 /// - [LogTag.collapsible]: `<details>` blocks for collapsible content.
 /// - [LogTag.stackFrame]: Code blocks (```).
 @immutable
@@ -36,21 +37,103 @@ class MarkdownEncoder implements LogEncoder {
     final LogPipelineFactory factory, {
     final int? width,
   }) {
+    // 1. Header Extraction Pass: Find all text intended for headers.
+    final headers = <String>[];
     for (final node in document.nodes) {
-      _renderNode(context, node);
+      _extractHeaders(node, headers);
+    }
+
+    // 2. Render Single Header with Emoji
+    if (headers.isNotEmpty) {
+      final emoji = _levelEmoji(entry.level);
+      final joined = headers.join(' • ');
+      context.writeString('### $emoji $joined\n\n');
+    }
+
+    // 3. Render Body Pass: Render all nodes, but specialized skipping.
+    for (final node in document.nodes) {
+      _renderNode(context, node, entry, isBodyPass: true);
+    }
+
+    // 4. Thematic Separator
+    context.writeString('\n---\n\n');
+  }
+
+  /// Recursively collects text segments that should belong in the GFM header.
+  void _extractHeaders(final LogNode node, final List<String> target) {
+    final text = _getHeaderText(node);
+    if (text != null && text.isNotEmpty) {
+      target.add(text);
     }
   }
 
-  void _renderNode(final HandlerContext context, final LogNode node) {
+  /// Returns semantic text if the node is header-like, otherwise null.
+  String? _getHeaderText(final LogNode node) {
+    if (node is HeaderNode) {
+      final text = _renderContent(node).trim();
+      return _isPureFiller(text) ? null : text;
+    }
+
+    if (node is DecoratedNode) {
+      final parts = <String>[];
+      if (node.leading != null) {
+        final text = node.leading!.map((final s) => s.text).join().trim();
+        if (text.isNotEmpty && !_isPureFiller(text)) {
+          parts.add(text);
+        }
+      }
+      for (final child in node.children) {
+        final part = _getHeaderText(child);
+        if (part != null && part.isNotEmpty) {
+          parts.add(part);
+        }
+      }
+      return parts.isEmpty ? null : parts.join(' ');
+    }
+
+    if (node is RowNode || node is GroupNode) {
+      final parts = <String>[];
+      final children = (node as LayoutNode).children;
+      for (final child in children) {
+        final part = _getHeaderText(child);
+        if (part != null && part.isNotEmpty) {
+          parts.add(part);
+        }
+      }
+      return parts.isEmpty ? null : parts.join(' ');
+    }
+
+    return null;
+  }
+
+  bool _isPureFiller(final String text) {
+    // Filter out typical terminal-only filler patterns.
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return true;
+    if (trimmed.split('').every((final char) => char == '_' || char == '-' || char == ' ' || char == '|')) {
+      return true;
+    }
+    return false;
+  }
+
+  void _renderNode(
+    final HandlerContext context,
+    final LogNode node,
+    final LogEntry entry, {
+    final bool isBodyPass = false,
+  }) {
     if ((node.tags & LogTag.collapsible) != 0) {
-      _renderCollapsible(context, node);
+      _renderCollapsible(context, node, entry);
       return;
     }
 
-    if (node is HeaderNode) {
-      context.writeString('### ${_renderContent(node)}\n');
-    } else if (node is MessageNode) {
-      context.writeString('\n**${_renderContent(node)}**\n');
+    // In body pass, we suppress nodes that were completely moved to the header.
+    if (isBodyPass && node is HeaderNode) {
+      return;
+    }
+
+    if (node is MessageNode) {
+      context.writeString('**${_renderContent(node).trim()}**\n');
     } else if (node is ErrorNode) {
       context
         ..writeString('\n> [!ERROR]\n')
@@ -58,25 +141,65 @@ class MarkdownEncoder implements LogEncoder {
     } else if (node is FooterNode) {
       _renderFooter(context, node);
     } else if (node is IndentationNode) {
+      context.writeString('> ');
       for (final child in node.children) {
-        _renderNode(context, child);
+        _renderNode(context, child, entry, isBodyPass: isBodyPass);
       }
     } else if (node is DecoratedNode) {
-      for (final child in node.children) {
-        _renderNode(context, child);
+      // If the leading decoration was likely consumed by the header, we skip it
+      // in the body to avoid duplication.
+      final leadingText = (node.leading != null)
+          ? node.leading!.map((final s) => s.text).join().trim()
+          : '';
+
+      final skipLeading = isBodyPass &&
+          leadingText.isNotEmpty &&
+          (_getHeaderText(node) != null || _isPureFiller(leadingText));
+
+      if (!skipLeading && node.leading != null) {
+        context.writeString('${node.leading!.map((final s) => s.text).join()} ');
       }
+
+      for (final child in node.children) {
+        _renderNode(context, child, entry, isBodyPass: isBodyPass);
+      }
+
+      if (node.trailing != null) {
+        context
+            .writeString(' ${node.trailing!.map((final s) => s.text).join()}');
+      }
+    } else if (node is BoxNode) {
+      context.writeString('\n> [!NOTE]\n');
+      for (final child in node.children) {
+        context.writeString('> ');
+        _renderNode(context, child, entry, isBodyPass: isBodyPass);
+      }
+      context.writeString('\n');
+    } else if (node is MapNode) {
+      context.writeString('\n```json\n$node\n```\n');
     } else if (node is GroupNode) {
       for (final child in node.children) {
-        _renderNode(context, child);
+        _renderNode(context, child, entry);
       }
     } else if (node is ParagraphNode) {
       for (final child in node.children) {
-        _renderNode(context, child);
+        _renderNode(context, child, entry);
       }
+      context.writeString('\n');
+    } else if (node is RowNode) {
+      for (final child in node.children) {
+        _renderNode(context, child, entry);
+      }
+    } else if (node is FillerNode) {
+      // Typically ignored in MD except within headers (which we skip here).
     }
   }
 
-  void _renderCollapsible(final HandlerContext context, final LogNode node) {
+  void _renderCollapsible(
+    final HandlerContext context,
+    final LogNode node,
+    final LogEntry entry,
+  ) {
     final summary =
         (node.tags & LogTag.stackFrame) != 0 ? 'Stack Trace' : 'Details';
     context
@@ -94,7 +217,7 @@ class MarkdownEncoder implements LogEncoder {
       }
     } else if (node is LayoutNode) {
       for (final child in node.children) {
-        _renderNode(context, child);
+        _renderNode(context, child, entry);
       }
     }
 
@@ -114,4 +237,12 @@ class MarkdownEncoder implements LogEncoder {
 
   String _renderContent(final ContentNode node) =>
       node.segments.map((final s) => s.text).join();
+
+  String _levelEmoji(final LogLevel level) => switch (level) {
+        LogLevel.trace => '🧬',
+        LogLevel.debug => '🔍',
+        LogLevel.info => 'ℹ️',
+        LogLevel.warning => '⚠️',
+        LogLevel.error => '❌',
+      };
 }

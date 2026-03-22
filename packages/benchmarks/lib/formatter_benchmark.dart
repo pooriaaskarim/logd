@@ -31,11 +31,11 @@ abstract class FormatterBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    const factory = StandardPipelineFactory();
+    final factory = Arena.instance;
     final doc = factory.checkoutDocument();
     try {
       formatter.format(entry, doc, factory);
-      const layout = TerminalLayout(width: 80, factory: factory);
+      final layout = TerminalLayout(width: 80, factory: factory);
       final lines = layout.layout(doc, LogLevel.info).lines;
       for (final _ in lines) {}
     } finally {
@@ -79,11 +79,28 @@ class JsonPrettyFormatterBenchmark extends FormatterBenchmark {
   LogFormatter createFormatter() => const JsonPrettyFormatter();
 }
 
-class MarkdownFormatterBenchmark extends FormatterBenchmark {
-  MarkdownFormatterBenchmark() : super('MarkdownFormatter');
+class MarkdownEncoderBenchmark extends BenchmarkBase {
+  MarkdownEncoderBenchmark() : super('MarkdownEncoder');
+
+  late LogEntry entry;
+  late LogDocument doc;
+  late LogPipelineFactory factory;
+  late HandlerContext context;
 
   @override
-  LogFormatter createFormatter() => const MarkdownFormatter();
+  void setup() {
+    entry = createEntry();
+    factory = Arena.instance;
+    doc = factory.checkoutDocument();
+    context = factory.checkoutContext();
+    const StructuredFormatter().format(entry, doc, factory);
+  }
+
+  @override
+  void run() {
+    const MarkdownEncoder().encode(entry, doc, LogLevel.info, context, factory);
+    context.takeBytes();
+  }
 }
 
 void runFormatterBenchmarks() {
@@ -93,5 +110,5 @@ void runFormatterBenchmarks() {
   ToonFormatterBenchmark().report();
   JsonFormatterBenchmark().report();
   JsonPrettyFormatterBenchmark().report();
-  MarkdownFormatterBenchmark().report();
+  MarkdownEncoderBenchmark().report();
 }
