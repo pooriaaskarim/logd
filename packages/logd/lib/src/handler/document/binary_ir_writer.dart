@@ -102,7 +102,7 @@ final class BinaryIRWriter {
       ptr[0] = BinaryIR.opText;
       ptr[1] = 0;
       ptr.cast<ffi.Uint16>()[1] = n.tags;
-      ptr.cast<ffi.Uint32>()[1] = segment.style.bitmask;
+      ptr.cast<ffi.Uint32>()[1] = segment.style?.bitmask ?? 0;
       ptr.cast<ffi.Uint32>()[2] = utf8Data.length;
       
       final dataPtr = ptr.elementAt(12);

@@ -41,8 +41,9 @@ class NativeEngine implements LogEngine {
     // to provide a performance boost even before C integration.
     if (sink is EncodingSink && sink.encoder is AnsiEncoder) {
       final binaryEncoder = const BinaryAnsiEncoder();
-      final output = binaryEncoder.encode(irPtr, terminalWidth: 80);
-      sink.write(output);
+      final output = binaryEncoder.encode(irPtr, terminalWidth: sink.preferredWidth ?? 80);
+      final data = convert.utf8.encode(output);
+      await sink.delegate(data is Uint8List ? data : Uint8List.fromList(data));
     } else if (sink is EncodingSink) {
        // Fallback to standard engine for other encoders (JSON, HTML)
        await const StandardEngine().execute(entry, formatter, decorators, sink);
