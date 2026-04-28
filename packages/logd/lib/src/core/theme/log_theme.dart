@@ -100,6 +100,28 @@ class LogStyle {
   /// Whether the text should be underlined.
   final bool? underline;
 
+  /// Returns a packed 32-bit integer representing this style.
+  ///
+  /// Layout:
+  /// - [0-3]: Foreground color index (0-15, 15 if null)
+  /// - [4-7]: Background color index (0-15, 15 if null)
+  /// - [8]: Bold
+  /// - [9]: Dim
+  /// - [10]: Italic
+  /// - [11]: Inverse
+  /// - [12]: Underline
+  int get bitmask {
+    int mask = 0;
+    mask |= (color?.index ?? 15) & 0xF;
+    mask |= ((backgroundColor?.index ?? 15) & 0xF) << 4;
+    if (bold ?? false) mask |= 1 << 8;
+    if (dim ?? false) mask |= 1 << 9;
+    if (italic ?? false) mask |= 1 << 10;
+    if (inverse ?? false) mask |= 1 << 11;
+    if (underline ?? false) mask |= 1 << 12;
+    return mask;
+  }
+
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||

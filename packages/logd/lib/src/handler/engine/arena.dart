@@ -49,6 +49,40 @@ class Arena implements LogPipelineFactory {
   final List<PhysicalLine> _physicalLines = [];
   final List<PhysicalDocument> _physicalDocuments = [];
 
+  // --- Native Memory (B-IR) ---
+  ffi.Pointer<ffi.Uint8> _nativeBuffer = ffi.Pointer.fromAddress(0);
+  int _nativeBufferSize = 0;
+  int _nativeBufferOffset = 0;
+
+  /// Returns the offset into the current native buffer.
+  int get nativeOffset => _nativeBufferOffset;
+
+  /// Resets the native buffer for a new log cycle.
+  void resetNative() {
+    _nativeBufferOffset = 0;
+  }
+
+  /// Allocates [size] bytes from the native arena.
+  ffi.Pointer<ffi.Uint8> allocateNative(final int size) {
+    if (_nativeBuffer == ffi.Pointer.fromAddress(0) ||
+        _nativeBufferOffset + size > _nativeBufferSize) {
+      _reallocateNative(max(_nativeBufferSize * 2, size + 1024));
+    }
+
+    final ptr = _nativeBuffer.elementAt(_nativeBufferOffset);
+    _nativeBufferOffset += size;
+    return ptr.cast();
+  }
+
+  void _reallocateNative(final int newSize) {
+    if (_nativeBuffer != ffi.Pointer.fromAddress(0)) {
+      pkg_ffi.malloc.free(_nativeBuffer);
+    }
+    _nativeBuffer = pkg_ffi.malloc.allocate<ffi.Uint8>(newSize);
+    _nativeBufferSize = newSize;
+    _nativeBufferOffset = 0;
+  }
+
   // ---------------------------------------------------------------------------
   // Checkout helpers — pop from pool or allocate a fresh instance.
   // ---------------------------------------------------------------------------
@@ -249,4 +283,13 @@ class Arena implements LogPipelineFactory {
       _contexts.length +
       _physicalLines.length +
       _physicalDocuments.length;
+
+  /// Frees all native memory. Should only be called on isolate shutdown.
+  void disposeNative() {
+    if (_nativeBuffer != ffi.Pointer.fromAddress(0)) {
+      pkg_ffi.malloc.free(_nativeBuffer);
+      _nativeBuffer = ffi.Pointer.fromAddress(0);
+      _nativeBufferSize = 0;
+    }
+  }
 }
