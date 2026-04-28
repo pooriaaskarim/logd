@@ -171,10 +171,10 @@ void _showcaseTimeAndLocalization() {
 void _showcaseAdvancedLayouts() {
   _section('5. Advanced Layouts');
 
-  // Comic-style structured logs
+  // Comic-style structured logs (with explicit schema for machine parsing)
   Logger.configure('app.toon', handlers: [
     const Handler(
-      formatter: ToonFormatter(),
+      formatter: ToonFormatter(explicitSchema: true),
       sink: ConsoleSink(),
     )
   ]);

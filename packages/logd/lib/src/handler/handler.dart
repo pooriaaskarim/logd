@@ -31,6 +31,7 @@ part 'document/layout_nodes.dart';
 part 'document/log_document.dart';
 part 'document/log_metadata.dart';
 part 'document/styled_text.dart';
+part 'document/toon_type.dart';
 part 'layout/physical_document.dart';
 part 'layout/render_tokens.dart';
 part 'layout/terminal_layout.dart';

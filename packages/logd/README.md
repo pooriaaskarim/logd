@@ -263,7 +263,21 @@ Logger.configure('ai.agent', handlers: [
 ]);
 ```
 
-**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. The header is emitted only when the configuration changes. For human-readable structural TOON, use `ToonPrettyFormatter`.
+**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. 
+
+#### Schema Maturity
+v0.7.1+ introduces **Explicit Schemas** for TOON. By setting `explicitSchema: true`, the formatter generates a typed, aligned header block that describes every column (including enum values for levels):
+
+```text
+logs[]{
+  timestamp  : iso8601;
+  level      : enum(TRACE,DEBUG,INFO,WARNING,ERROR);
+  message    : markdown;
+}:
+```
+
+This provides zero-shot precision for machine-consumption without prior out-of-band configuration.
+
 
 
 ### Network Logging

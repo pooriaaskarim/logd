@@ -65,7 +65,7 @@ The formatter transforms the structured log entry into a semantic `LogDocument`.
 - **Semantic IR**: Formatters like `JsonFormatter` and `ToonFormatter` no longer emit raw strings. They emit `MapNode`s containing the raw data, allowing specialized encoders to handle the physical serialization.
 - **Geometric Agnosticism**: Most formatters are now width-agnostic. They structure logs into semantic nodes (headers, messages, data blocks), delegating the final word-wrapping and alignment to the layout engine during encoding.
 - **StructuredFormatter**: Detailed layout (header, origin, message) with fine-grained semantic tagging. **(Best for Console)**
-- **ToonFormatter**: Produces a `MapNode` with TOON-specific metadata. **(Best for LLM/Streaming)**
+- **ToonFormatter**: Produces a `MapNode` with TOON-specific metadata. Supports **Explicit Schema Maturity** (v0.7.1+) for typed, aligned headers optimized for LLM zero-shot consumption. **(Best for LLM/Streaming)**
 - **JsonFormatter**: Produces a `MapNode` for pure structured logging. **(Best for HTTP/Storage)**
 - **JsonPrettyFormatter**: Produces a `MapNode` tagged for recursive, styled JSON inspection.
 - **PlainFormatter**: Streamlined semantic nodes for simple text output.

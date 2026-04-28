@@ -112,6 +112,24 @@ void main() async {
   Logger.get('toon.narrow').warning('Warning: System resources extremely low.',
       error: {'cpu': '98%', 'mem': '99%'});
 
+  print('\n${'-' * 40}\n');
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO E: The Self-Describing Stream (Typed TOON)
+  // Goal: Zero-shot understanding for machine parsers/LLMs via explicit schemas.
+  // Characteristics: Typed header block, semantic categorization.
+  // ---------------------------------------------------------------------------
+  print('TEST E: Explicit Schema Maturity (Typed TOON)');
+  const typedHandler = Handler(
+    formatter: ToonFormatter(
+      explicitSchema: true,
+      metadata: {LogMetadata.timestamp, LogMetadata.origin},
+    ),
+    sink: ConsoleSink(),
+  );
+  Logger.configure('toon.typed', handlers: [typedHandler]);
+  Logger.get('toon.typed').info('System initialized with explicit schema.');
+
   print('\n=== TOON Showcase Complete ===');
 }
 

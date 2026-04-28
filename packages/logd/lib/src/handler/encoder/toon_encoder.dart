@@ -22,12 +22,33 @@ class ToonEncoder implements LogEncoder {
     }
     final arrayName = document.metadata['toon_array'] as String? ?? 'logs';
     final columns = document.metadata['toon_columns'] as List<String>?;
+    final schema = document.metadata['toon_schema'] as Map<String, ToonType>?;
+
     if (columns == null) {
       return;
     }
 
-    final columnStr = columns.join(',');
-    context.writeString('$arrayName[]{$columnStr}:');
+    if (schema != null) {
+      int maxColLen = 0;
+      for (final col in columns) {
+        if (col.length > maxColLen) {
+          maxColLen = col.length;
+        }
+      }
+
+      context.writeString('$arrayName[]{\n');
+      for (final col in columns) {
+        final type = schema[col];
+        if (type != null) {
+          final padding = ' ' * (maxColLen - col.length);
+          context.writeString('  $col$padding : $type;\n');
+        }
+      }
+      context.writeString('}:');
+    } else {
+      final columnStr = columns.join(',');
+      context.writeString('$arrayName[]{$columnStr}:');
+    }
   }
 
   @override

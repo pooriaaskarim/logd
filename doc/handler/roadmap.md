@@ -26,6 +26,15 @@
 - [x] Efficient header-first streaming logic
 - [x] Optional semantic tagging for colorized TOON output
 
+### ✅ P0: TOON Schema Maturity (v0.7.1)
+**Goal**: Transition TOON from simple columns to a rich, self-describing schema.
+**Result**: Introduced `ToonType` and `explicitSchema` support.
+- [x] Define semantic `ToonType` system (iso8601, enum, markdown, etc.)
+- [x] Implement aligned, multi-line schema headers
+- [x] Add Enum introspection for log levels in schema
+- [x] Update `TerminalLayout` to detect and render explicit schemas in console
+
+
 ### ✅ P1: Shared LogField System
 **Goal**: Unify data access across all formatters.
 **Result**: Created `LogField` enum and extension.
