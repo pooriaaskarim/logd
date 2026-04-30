@@ -49,7 +49,8 @@ abstract final class BinaryIR {
   static const int opFiller = 0x07;
 
   /// Metadata key-value pair.
-  /// Payload: [uint8 type][uint16 key_len][char[] key][uint32 val_len][byte[] val]
+  /// Payload: [uint8 type][uint16 key_len][char[] key][uint32 val_len][byte[]
+  /// val]
   static const int opMetadata = 0x08;
 
   /// A potential point where the line can be wrapped.

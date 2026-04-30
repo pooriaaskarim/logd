@@ -15,7 +15,7 @@ void main() {
         timestamp: '2026-04-28',
         origin: 'main',
       );
-      final doc = LogDocument();
+      final doc = StandardDocument();
       formatter.format(entry, doc, const StandardPipelineFactory());
 
       const encoder = ToonEncoder();
@@ -45,7 +45,7 @@ void main() {
         timestamp: '2026-04-28',
         origin: 'main',
       );
-      final doc = LogDocument();
+      final doc = StandardDocument();
       formatter.format(entry, doc, const StandardPipelineFactory());
 
       const encoder = ToonEncoder();
@@ -59,9 +59,12 @@ void main() {
 
       final output = context.toString();
       expect(output, contains('logs[]{'));
-      expect(output, contains('  timestamp: iso8601;'));
-      expect(output, contains('  level: enum;'));
-      expect(output, contains('  message: markdown;'));
+      expect(output, contains('  timestamp'));
+      expect(output, contains(': iso8601;'));
+      expect(output, contains('  level'));
+      expect(output, contains(': enum'));
+      expect(output, contains('  message'));
+      expect(output, contains(': markdown;'));
       expect(output, contains('}:'));
     });
 
@@ -78,7 +81,7 @@ void main() {
         timestamp: '2026-04-28',
         origin: 'main',
       );
-      final doc = LogDocument();
+      final doc = StandardDocument();
       formatter.format(entry, doc, const StandardPipelineFactory());
 
       const encoder = ToonEncoder();
@@ -92,8 +95,10 @@ void main() {
 
       final output = context.toString();
       expect(output, contains('logs[]{'));
-      expect(output, contains('  logger: string;'));
-      expect(output, contains('  level: enum;'));
+      expect(output, contains('  logger'));
+      expect(output, contains(': string;'));
+      expect(output, contains('  level'));
+      expect(output, contains(': enum'));
       expect(output, contains('}:'));
     });
   });

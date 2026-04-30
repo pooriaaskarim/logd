@@ -7,13 +7,13 @@ library;
 
 import 'dart:async';
 import 'dart:convert' as convert;
+import 'dart:ffi' as ffi;
 import 'dart:io' as io;
 import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:characters/characters.dart';
-import 'dart:ffi' as ffi;
 import 'package:ffi/ffi.dart' as pkg_ffi;
 import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
@@ -21,38 +21,44 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../core/context/context.dart';
 import '../core/context/io/file_system.dart';
-
 import '../core/theme/log_theme.dart';
 import '../core/utils/utils.dart';
 import '../logger/logger.dart';
-
 import '../time/timestamp.dart';
 
+part 'decorator/box_decorator.dart';
+part 'decorator/decoration_hint.dart';
+part 'decorator/decorator.dart';
+part 'decorator/decorator_pipeline.dart';
+part 'decorator/hierarchy_depth_prefix_decorator.dart';
+part 'decorator/prefix_decorator.dart';
+part 'decorator/style_decorator.dart';
+part 'decorator/suffix_decorator.dart';
+part 'document/binary_ir.dart';
+part 'document/binary_ir_writer.dart';
 part 'document/content_nodes.dart';
 part 'document/layout_nodes.dart';
 part 'document/log_document.dart';
 part 'document/log_metadata.dart';
 part 'document/styled_text.dart';
 part 'document/toon_type.dart';
-part 'document/binary_ir.dart';
-part 'document/binary_ir_writer.dart';
-part 'layout/physical_document.dart';
-part 'layout/render_tokens.dart';
-part 'layout/terminal_layout.dart';
+part 'encoder/ansi_encoder.dart';
+part 'encoder/ansi_encoder_adapter.dart';
+part 'encoder/auto_console_encoder.dart';
+part 'encoder/binary_ansi_encoder.dart';
+part 'encoder/fast_string_writer.dart';
+part 'encoder/html_encoder.dart';
+part 'encoder/json_encoder.dart';
+part 'encoder/log_encoder.dart';
+part 'encoder/markdown_encoder.dart';
+part 'encoder/plain_text_encoder.dart';
+part 'encoder/toon_encoder.dart';
 part 'engine/arena.dart';
 part 'engine/arena_engine.dart';
 part 'engine/engine.dart';
-part 'engine/standard_engine.dart';
-part 'engine/native_engine.dart';
 part 'engine/handler_context.dart';
-part 'decorator/decoration_hint.dart';
-part 'decorator/decorator.dart';
-part 'decorator/decorator_pipeline.dart';
-part 'decorator/box_decorator.dart';
-part 'decorator/hierarchy_depth_prefix_decorator.dart';
-part 'decorator/prefix_decorator.dart';
-part 'decorator/style_decorator.dart';
-part 'decorator/suffix_decorator.dart';
+part 'engine/native_engine.dart';
+part 'engine/standard_engine.dart';
 part 'filter/filter.dart';
 part 'filter/level_filter.dart';
 part 'filter/regex_filter.dart';
@@ -61,23 +67,15 @@ part 'formatter/json_formatter.dart';
 part 'formatter/plain_formatter.dart';
 part 'formatter/structured_formatter.dart';
 part 'formatter/toon_formatter.dart';
-part 'encoder/ansi_encoder.dart';
-part 'encoder/ansi_encoder_adapter.dart';
-part 'encoder/binary_ansi_encoder.dart';
-part 'encoder/auto_console_encoder.dart';
-part 'encoder/fast_string_writer.dart';
-part 'encoder/html_encoder.dart';
-part 'encoder/json_encoder.dart';
-part 'encoder/log_encoder.dart';
-part 'encoder/markdown_encoder.dart';
-part 'encoder/plain_text_encoder.dart';
-part 'encoder/toon_encoder.dart';
+part 'layout/physical_document.dart';
+part 'layout/render_tokens.dart';
+part 'layout/terminal_layout.dart';
 part 'sink/console_sink.dart';
 part 'sink/encoding_sink.dart';
 part 'sink/file_sink.dart';
+part 'sink/isolate_sink.dart';
 part 'sink/multi_sink.dart';
 part 'sink/network_sink.dart';
-part 'sink/isolate_sink.dart';
 part 'sink/print_sink.dart';
 part 'sink/sink.dart';
 
@@ -95,7 +93,7 @@ class Handler {
     required this.sink,
     this.filters = const [],
     this.decorators = const [],
-    this.engine = const StandardEngine(),
+    this.engine = const NativeEngine(),
   });
 
   /// The formatter used to transform a [LogEntry] into a [LogDocument].

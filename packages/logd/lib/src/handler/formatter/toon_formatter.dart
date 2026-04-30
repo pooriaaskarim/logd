@@ -79,7 +79,7 @@ final class ToonFormatter implements LogFormatter {
       add('error', entry.error ?? '', ToonType.string);
       add('stackTrace', entry.stackTrace ?? '', ToonType.stacktrace);
 
-      document.nodes.add(factory.checkoutMap()..map = map);
+      document.metadataBlock(map, factory: factory);
       isFirst = false;
     }
 
@@ -207,10 +207,10 @@ final class ToonPrettyFormatter implements LogFormatter {
         ToonType.stacktrace,
       );
 
-      document.nodes.add(
-        factory.checkoutMap()
-          ..map = map
-          ..tags = color ? LogTag.message : LogTag.none,
+      document.metadataBlock(
+        map,
+        tags: color ? LogTag.message : LogTag.none,
+        factory: factory,
       );
       isFirst = false;
     }

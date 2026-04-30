@@ -51,7 +51,7 @@ class StandardPipelineFactory implements LogPipelineFactory {
   const StandardPipelineFactory();
 
   @override
-  LogDocument checkoutDocument() => LogDocument();
+  LogDocument checkoutDocument() => StandardDocument();
 
   @override
   HeaderNode checkoutHeader() => HeaderNode(segments: []);

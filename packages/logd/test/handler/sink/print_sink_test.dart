@@ -12,11 +12,10 @@ void main() {
       await runZoned(
         () async {
           await sink.output(
-            LogDocument(
-              nodes: [
+            StandardDocument()
+              ..nodes.addAll([
                 MessageNode(segments: [const StyledText('Hello World')]),
-              ],
-            ),
+              ]),
             const LogEntry(
               loggerName: 'test',
               origin: 'test',
@@ -48,11 +47,10 @@ void main() {
       await runZoned(
         () async {
           await sink.output(
-            LogDocument(
-              nodes: [
+            StandardDocument()
+              ..nodes.addAll([
                 MessageNode(segments: [const StyledText('Console Hello')]),
-              ],
-            ),
+              ]),
             const LogEntry(
               loggerName: 'test',
               origin: 'test',

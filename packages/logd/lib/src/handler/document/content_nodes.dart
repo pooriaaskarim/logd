@@ -62,7 +62,13 @@ final class HeaderNode extends ContentNode {
   });
 
   /// Named constructor for arena pool allocation.
-  HeaderNode._pooled() : super(segments: []);
+  HeaderNode._pooled() : super(segments: [], tags: LogTag.header);
+
+  @override
+  void reset() {
+    super.reset();
+    tags = LogTag.header;
+  }
 
   @override
   HeaderNode copyWith({
@@ -84,7 +90,13 @@ final class MessageNode extends ContentNode {
   });
 
   /// Named constructor for arena pool allocation.
-  MessageNode._pooled() : super(segments: []);
+  MessageNode._pooled() : super(segments: [], tags: LogTag.message);
+
+  @override
+  void reset() {
+    super.reset();
+    tags = LogTag.message;
+  }
 
   @override
   MessageNode copyWith({
@@ -106,7 +118,13 @@ final class ErrorNode extends ContentNode {
   });
 
   /// Named constructor for arena pool allocation.
-  ErrorNode._pooled() : super(segments: []);
+  ErrorNode._pooled() : super(segments: [], tags: LogTag.error);
+
+  @override
+  void reset() {
+    super.reset();
+    tags = LogTag.error;
+  }
 
   @override
   ErrorNode copyWith({

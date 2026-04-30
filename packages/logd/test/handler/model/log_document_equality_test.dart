@@ -7,41 +7,51 @@ void main() {
     final nodeB = MessageNode(segments: [const StyledText('world')]);
 
     test('identical documents are equal', () {
-      final doc1 = LogDocument(nodes: [nodeA]);
-      final doc2 = LogDocument(nodes: [nodeA]);
+      final doc1 = StandardDocument()..nodes.addAll([nodeA]);
+      final doc2 = StandardDocument()..nodes.addAll([nodeA]);
       expect(doc1, equals(doc2));
       expect(doc1.hashCode, equals(doc2.hashCode));
     });
 
     test('documents with different nodes are not equal', () {
-      final doc1 = LogDocument(nodes: [nodeA]);
-      final doc2 = LogDocument(nodes: [nodeB]);
+      final doc1 = StandardDocument()..nodes.addAll([nodeA]);
+      final doc2 = StandardDocument()..nodes.addAll([nodeB]);
       expect(doc1, isNot(equals(doc2)));
     });
 
     test('documents with different metadata are not equal', () {
-      final doc1 = LogDocument(nodes: [nodeA], metadata: {'key': 'value1'});
-      final doc2 = LogDocument(nodes: [nodeA], metadata: {'key': 'value2'});
+      final doc1 = StandardDocument()
+        ..nodes.addAll([nodeA])
+        ..metadata['key'] = 'value1';
+      final doc2 = StandardDocument()
+        ..nodes.addAll([nodeA])
+        ..metadata['key'] = 'value2';
       expect(doc1, isNot(equals(doc2)));
     });
 
     test('documents with different metadata have different hashCodes', () {
-      final doc1 = LogDocument(nodes: [nodeA], metadata: {'a': '1'});
-      final doc2 = LogDocument(nodes: [nodeA], metadata: {'a': '2'});
+      final doc1 = StandardDocument()
+        ..nodes.addAll([nodeA])
+        ..metadata['a'] = '1';
+      final doc2 = StandardDocument()
+        ..nodes.addAll([nodeA])
+        ..metadata['a'] = '2';
       // hashCode collision is theoretically possible but astronomically
       // unlikely for these inputs — treat a collision here as a test failure.
       expect(doc1.hashCode, isNot(equals(doc2.hashCode)));
     });
 
     test('document with metadata equals itself', () {
-      final doc = LogDocument(nodes: [nodeA], metadata: {'x': 42});
+      final doc = StandardDocument()
+        ..nodes.addAll([nodeA])
+        ..metadata['x'] = 42;
       expect(doc, equals(doc));
       expect(doc.hashCode, equals(doc.hashCode));
     });
 
     test('empty documents are equal', () {
-      final doc1 = LogDocument(nodes: []);
-      final doc2 = LogDocument(nodes: []);
+      final doc1 = StandardDocument();
+      final doc2 = StandardDocument();
       expect(doc1, equals(doc2));
       expect(doc1.hashCode, equals(doc2.hashCode));
     });

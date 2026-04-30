@@ -114,11 +114,21 @@ class LogStyle {
     int mask = 0;
     mask |= (color?.index ?? 15) & 0xF;
     mask |= ((backgroundColor?.index ?? 15) & 0xF) << 4;
-    if (bold ?? false) mask |= 1 << 8;
-    if (dim ?? false) mask |= 1 << 9;
-    if (italic ?? false) mask |= 1 << 10;
-    if (inverse ?? false) mask |= 1 << 11;
-    if (underline ?? false) mask |= 1 << 12;
+    if (bold ?? false) {
+      mask |= 1 << 8;
+    }
+    if (dim ?? false) {
+      mask |= 1 << 9;
+    }
+    if (italic ?? false) {
+      mask |= 1 << 10;
+    }
+    if (inverse ?? false) {
+      mask |= 1 << 11;
+    }
+    if (underline ?? false) {
+      mask |= 1 << 12;
+    }
     return mask;
   }
 

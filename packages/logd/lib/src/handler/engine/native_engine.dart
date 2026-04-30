@@ -20,36 +20,43 @@ class NativeEngine implements LogEngine {
     final LogSink sink,
   ) async {
     final arena = Arena.instance;
-    final document = arena.checkoutDocument();
+    final document = arena.checkoutDocument() as ArenaDocument;
+
+    // 1. Determine Execution Mode
+    // If no decorators are present, we use "Streaming Mode" to bypass
+    // object allocation entirely.
+    if (decorators.isEmpty) {
+      document.enableStreaming();
+    }
+
+    // 2. Format
     formatter.format(entry, document, arena);
 
-    // Apply decorators
-    for (final decorator in decorators) {
-      decorator.decorate(document, entry, arena);
+    // 3. Finalize/Standardize
+    final ffi.Pointer<ffi.Uint8> irPtr;
+    if (document.isStreaming) {
+      irPtr = document.writer.finalize();
+    } else {
+      // Standard Path: Apply decorators to the object tree
+      for (final decorator in decorators) {
+        decorator.decorate(document, entry, arena);
+      }
+      irPtr = document.writer.write(document);
     }
 
-    // Standardize to Binary IR
-    final writer = BinaryIRWriter(arena);
-    final irPtr = writer.write(document);
-
-    // 1. Native Path (Future)
-    // In a real implementation, we would call the C library here:
-    // _nativeRender(irPtr, sink.handle);
-
-    // 2. Fast-Path (Dart Reference Implementation)
-    // We use the BinaryAnsiEncoder to prove the IR is valid and
-    // to provide a performance boost even before C integration.
+    // 4. Output
     if (sink is EncodingSink && sink.encoder is AnsiEncoder) {
-      final binaryEncoder = const BinaryAnsiEncoder();
-      final output = binaryEncoder.encode(irPtr, terminalWidth: sink.preferredWidth ?? 80);
+      const binaryEncoder = BinaryAnsiEncoder();
+      final output =
+          binaryEncoder.encode(irPtr, terminalWidth: sink.preferredWidth ?? 80);
       final data = convert.utf8.encode(output);
-      await sink.delegate(data is Uint8List ? data : Uint8List.fromList(data));
-    } else if (sink is EncodingSink) {
-       // Fallback to standard engine for other encoders (JSON, HTML)
-       await const StandardEngine().execute(entry, formatter, decorators, sink);
+      await sink.delegate(data);
+    } else {
+      // Fallback to standard engine for any other sink types
+      await const StandardEngine().execute(entry, formatter, decorators, sink);
     }
 
-    // Release resources
+    // 5. Release
     document.releaseRecursive(arena);
   }
 }
