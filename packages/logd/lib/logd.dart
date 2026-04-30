@@ -7,6 +7,7 @@ export 'src/handler/handler.dart'
         BinaryAnsiEncoder,
         BinaryIR,
         BinaryIRWriter,
+        BinaryToonEncoder,
         DecoratorPipeline,
         PrintSink,
         RenderTokens,

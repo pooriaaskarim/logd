@@ -60,6 +60,16 @@ abstract final class BinaryIR {
   /// Resets all styling and structural state.
   static const int opReset = 0x0A;
 
+  /// Start of a decorated block (leading/trailing).
+  /// Payload: [uint8 leadingWidth][uint8 trailingWidth][uint8 flags]
+  static const int opDecoratedStart = 0x0B;
+
+  /// End of a decorated block.
+  static const int opDecoratedEnd = 0x0C;
+
+  /// Global document metadata.
+  static const int opGlobalMetadata = 0x0D;
+
   // --- Metadata Types ---
   static const int metaString = 0x01;
   static const int metaInt = 0x02;

@@ -184,12 +184,13 @@ final class MetadataNode extends ContentNode {
 /// A node that fills remaining line width with a character.
 final class FillerNode extends LogNode {
   /// Creates a [FillerNode].
-  FillerNode(this.char, {super.tags, this.style});
+  FillerNode(this.char, {this.count = 0, super.tags, this.style});
 
   /// Named constructor for arena pool allocation.
   FillerNode._pooled()
       : char = '',
-        style = null;
+        style = null,
+        count = 0;
 
   /// The character used to fill the space.
   String char;
@@ -197,10 +198,15 @@ final class FillerNode extends LogNode {
   /// Optional visual style for the filler characters.
   LogStyle? style;
 
+  /// The number of times to repeat the character.
+  /// If 0, fills until the end of the line.
+  int count;
+
   @override
   void reset() {
     char = '';
     style = null;
+    count = 0;
     tags = LogTag.none;
   }
 
@@ -213,12 +219,13 @@ final class FillerNode extends LogNode {
     final String? char,
     final int? tags,
     final LogStyle? style,
+    final int? count,
   }) =>
       FillerNode(
         char ?? this.char,
         tags: tags ?? this.tags,
         style: style ?? this.style,
-      );
+      )..count = count ?? this.count;
 
   @override
   bool operator ==(final Object other) =>
@@ -227,10 +234,11 @@ final class FillerNode extends LogNode {
           runtimeType == other.runtimeType &&
           char == other.char &&
           tags == other.tags &&
-          style == other.style;
+          style == other.style &&
+          count == other.count;
 
   @override
-  int get hashCode => Object.hash(runtimeType, char, tags, style);
+  int get hashCode => Object.hash(runtimeType, char, tags, style, count);
 
   @override
   String toString() => char;

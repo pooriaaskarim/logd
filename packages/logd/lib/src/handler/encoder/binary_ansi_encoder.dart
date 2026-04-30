@@ -34,12 +34,24 @@ final class BinaryAnsiEncoder {
     String fullIndent() =>
         indentStack.join() + boxStack.map((final e) => e.padding).join();
 
+
     // 3. Process Instructions
     for (int i = 0; i < nodeCount; i++) {
       final opPtr = irPtr + currentOffset;
       final op = opPtr[0];
 
       switch (op) {
+        case BinaryIR.opGlobalMetadata:
+          final count = opPtr.cast<ffi.Uint32>()[1];
+          currentOffset += 8;
+          for (int j = 0; j < count; j++) {
+            final entryPtr = irPtr + currentOffset;
+            final keyLen = (entryPtr + 2).cast<ffi.Uint16>()[0];
+            final valLenPtr = (entryPtr + 4 + keyLen).cast<ffi.Uint32>();
+            final valLen = valLenPtr[0];
+            currentOffset += 8 + keyLen + valLen;
+          }
+
         case BinaryIR.opText:
           final style = opPtr.cast<ffi.Uint32>()[2];
           final len = opPtr.cast<ffi.Uint32>()[3];
@@ -154,8 +166,8 @@ final class BinaryAnsiEncoder {
           currentOffset += 8;
           for (int j = 0; j < pairCount; j++) {
             final entryPtr = irPtr + currentOffset;
-            final keyLen = entryPtr.cast<ffi.Uint16>()[0];
-            final valLenPtr = (entryPtr + (2 + keyLen)).cast<ffi.Uint32>();
+            final keyLen = (entryPtr + 2).cast<ffi.Uint16>()[0];
+            final valLenPtr = (entryPtr + 4 + keyLen).cast<ffi.Uint32>();
             final valLen = valLenPtr[0];
             currentOffset += 8 + keyLen + valLen;
           }

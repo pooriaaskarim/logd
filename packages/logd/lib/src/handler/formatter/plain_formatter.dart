@@ -60,14 +60,14 @@ final class PlainFormatter implements LogFormatter {
       ..repeatLeading = false
       ..alignTrailing = false
       ..children.add(msgNode);
-    document.nodes.add(decorated);
+    document.writeNode(decorated);
 
     // 2. Handle Error if present
     if (entry.error != null) {
       final errNode = factory.checkoutError()
         ..segments.add(StyledText('Error: ${entry.error}'));
       final para = factory.checkoutParagraph()..children.add(errNode);
-      document.nodes.add(para);
+      document.writeNode(para);
     }
 
     // 3. Handle Stack Trace if present
@@ -78,7 +78,7 @@ final class PlainFormatter implements LogFormatter {
         final foot = factory.checkoutFooter()
           ..segments.add(StyledText(text, tags: LogTag.stackFrame));
         final para = factory.checkoutParagraph()..children.add(foot);
-        document.nodes.add(para);
+        document.writeNode(para);
       }
     } else if (entry.stackTrace != null) {
       final traceLines = entry.stackTrace.toString().split('\n');
@@ -87,7 +87,7 @@ final class PlainFormatter implements LogFormatter {
           final foot = factory.checkoutFooter()
             ..segments.add(StyledText(line, tags: LogTag.stackFrame));
           final para = factory.checkoutParagraph()..children.add(foot);
-          document.nodes.add(para);
+          document.writeNode(para);
         }
       }
     }

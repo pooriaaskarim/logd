@@ -30,7 +30,7 @@ final class StructuredFormatter implements LogFormatter {
 
     // Phase 1: Timestamp
     if (metadata.contains(LogMetadata.timestamp)) {
-      document.nodes.add(
+      document.writeNode(
         _buildHeaderNode(factory, [
           StyledText(
             entry.timestamp,
@@ -56,11 +56,11 @@ final class StructuredFormatter implements LogFormatter {
         )
         ..add(RenderTokens.styledCloseBracket);
     }
-    document.nodes.add(_buildHeaderNode(factory, levelLoggerSegments));
+    document.writeNode(_buildHeaderNode(factory, levelLoggerSegments));
 
     // Phase 3: Origin
     if (metadata.contains(LogMetadata.origin)) {
-      document.nodes.add(
+      document.writeNode(
         _buildHeaderNode(factory, [
           RenderTokens.styledOpenBracket,
           StyledText(
@@ -81,7 +81,7 @@ final class StructuredFormatter implements LogFormatter {
       ..leadingHint = DecorationHint.structuredMessage
       ..leading = const [RenderTokens.styledMessagePrefix]
       ..children.add(msgPara);
-    document.nodes.add(msgDecorated);
+    document.writeNode(msgDecorated);
 
     // 3. Error
     if (entry.error != null) {
@@ -93,7 +93,7 @@ final class StructuredFormatter implements LogFormatter {
         ..leadingHint = DecorationHint.structuredMessage
         ..leading = const [RenderTokens.styledMessagePrefix]
         ..children.add(errPara);
-      document.nodes.add(errDecorated);
+      document.writeNode(errDecorated);
     }
 
     // 4. Stack Trace
@@ -109,7 +109,7 @@ final class StructuredFormatter implements LogFormatter {
           ..leadingHint = DecorationHint.structuredMessage
           ..leading = const [RenderTokens.styledMessagePrefix]
           ..children.add(para);
-        document.nodes.add(d);
+        document.writeNode(d);
       }
     } else if (entry.stackTrace != null) {
       final rawLines = entry.stackTrace.toString().split('\n');
@@ -125,7 +125,7 @@ final class StructuredFormatter implements LogFormatter {
           ..leadingHint = DecorationHint.structuredMessage
           ..leading = const [StyledText('----|', tags: LogTag.header)]
           ..children.add(para);
-        document.nodes.add(d);
+        document.writeNode(d);
       }
     }
   }

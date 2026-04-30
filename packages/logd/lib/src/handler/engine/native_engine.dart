@@ -45,15 +45,26 @@ class NativeEngine implements LogEngine {
     }
 
     // 4. Output
-    if (sink is EncodingSink && sink.encoder is AnsiEncoder) {
+    if (sink is NativeIsolateSink && document.isStreaming) {
+      // 4a. Backpressure: Wait for pool capacity if needed
+      await arena.waitForPoolCapacity();
+
+      // THE FAST PATH: Offload EVERYTHING (Rendering + I/O) to the isolate
+      final width = sink.target.preferredWidth ?? 80;
+      final packet = arena.checkoutNativePacket(terminalWidth: width);
+      sink.dispatchPacket(packet);
+    } else if (sink is EncodingSink && sink.encoder is AnsiEncoder) {
+      // Standard Path: Render locally and delegate to sink
       const binaryEncoder = BinaryAnsiEncoder();
       final output =
           binaryEncoder.encode(irPtr, terminalWidth: sink.preferredWidth ?? 80);
       final data = convert.utf8.encode(output);
       await sink.delegate(data);
+      arena.resetNative(releaseToPool: true);
     } else {
       // Fallback to standard engine for any other sink types
       await const StandardEngine().execute(entry, formatter, decorators, sink);
+      arena.resetNative(releaseToPool: true);
     }
 
     // 5. Release

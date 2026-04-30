@@ -54,7 +54,7 @@ final class JsonFormatter implements LogFormatter {
       map['stackTrace'] = entry.stackTrace.toString();
     }
 
-    document.nodes.add(factory.checkoutMap()..map = map);
+    document.writeNode(factory.checkoutMap()..map = map);
   }
 
   @override
@@ -169,7 +169,9 @@ final class JsonPrettyFormatter implements LogFormatter {
       fieldTags['stackTrace'] = LogTag.stackFrame;
     }
 
-    document.nodes.addAll(_buildNodes(factory, map, 0, fieldTags: fieldTags));
+    for (final node in _buildNodes(factory, map, 0, fieldTags: fieldTags)) {
+      document.writeNode(node);
+    }
   }
 
   List<LogNode> _buildNodes(

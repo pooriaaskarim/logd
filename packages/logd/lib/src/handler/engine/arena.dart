@@ -49,38 +49,155 @@ class Arena implements LogPipelineFactory {
   final List<PhysicalLine> _physicalLines = [];
   final List<PhysicalDocument> _physicalDocuments = [];
 
-  // --- Native Memory (B-IR) ---
-  ffi.Pointer<ffi.Uint8> _nativeBuffer = ffi.Pointer.fromAddress(0);
-  int _nativeBufferSize = 0;
-  int _nativeBufferOffset = 0;
+  // --- Native Memory Pool (B-IR Dispatch) ---
+  final List<_NativeBuffer> _freeNativeBuffers = [];
+  final Map<int, _NativeBuffer> _inFlightNativeBuffers = {};
+  late final ReceivePort _completionPort = ReceivePort()
+    ..listen(_handlePacketCompletion);
+
+  static const _defaultPacketSize = 64 * 1024; // 64KB
+
+  _NativeBuffer? _currentBuffer;
+  int _totalAllocatedBytes = 0;
+
+  /// The maximum number of native packets allowed to be in-flight before
+  /// the main thread blocks (backpressure).
+  static const int maxInFlightPackets = 200;
+
+  bool _saturationWarningFired = false;
+
+  /// The maximum total native memory (in bytes) the arena can allocate.
+  static const int maxNativeMemory = 16 * 1024 * 1024; // 16MB
+
+  Completer<void>? _poolCapacityWaiter;
+
+  void _handlePacketCompletion(final dynamic address) {
+    if (address is int) {
+      final buffer = _inFlightNativeBuffers.remove(address);
+      if (buffer != null) {
+        buffer.offset = 0;
+        _freeNativeBuffers.add(buffer);
+
+        // Notify waiters that capacity is available (with hysteresis)
+        if (_inFlightNativeBuffers.length < (maxInFlightPackets * 0.8).toInt()) {
+          _saturationWarningFired = false;
+        }
+
+        if (_poolCapacityWaiter != null && !_poolCapacityWaiter!.isCompleted) {
+          _poolCapacityWaiter!.complete();
+          _poolCapacityWaiter = null;
+        }
+      }
+    }
+  }
+
+  /// Waits until the pool has capacity to accept new native packets.
+  Future<void> waitForPoolCapacity() async {
+    while (_inFlightNativeBuffers.length >= maxInFlightPackets) {
+      _poolCapacityWaiter ??= Completer<void>();
+      await _poolCapacityWaiter!.future;
+    }
+  }
 
   /// Returns the offset into the current native buffer.
-  int get nativeOffset => _nativeBufferOffset;
+  int get nativeOffset => _currentBuffer?.offset ?? 0;
+
+  /// Returns the completion port used for cross-isolate packet recycling.
+  SendPort get completionPort => _completionPort.sendPort;
 
   /// Resets the native buffer for a new log cycle.
-  void resetNative() {
-    _nativeBufferOffset = 0;
+  ///
+  /// If [releaseToPool] is true, the buffer is marked as free.
+  void resetNative({final bool releaseToPool = false}) {
+    if (_currentBuffer != null) {
+      if (releaseToPool) {
+        _currentBuffer!.offset = 0;
+        _freeNativeBuffers.add(_currentBuffer!);
+        _currentBuffer = null;
+      } else {
+        _currentBuffer!.offset = 0;
+      }
+    }
+  }
+
+  /// Checks out a [NativePacket] containing the current buffer's data.
+  ///
+  /// The buffer is moved to the "In-Flight" state and will be recycled
+  /// when the background isolate sends its address to the [completionPort].
+  NativePacket checkoutNativePacket({required final int terminalWidth}) {
+    final buffer = _currentBuffer;
+    if (buffer == null || buffer.offset == 0) {
+      throw StateError('No native data to dispatch');
+    }
+
+    _inFlightNativeBuffers[buffer.pointer.address] = buffer;
+    _currentBuffer = null;
+
+    // Log a warning if pool is saturated (blocking happens in NativeEngine)
+    if (_inFlightNativeBuffers.length >= maxInFlightPackets &&
+        !_saturationWarningFired) {
+      _saturationWarningFired = true;
+      InternalLogger.log(
+        LogLevel.warning,
+        'Arena saturation reached (${_inFlightNativeBuffers.length} packets). Blocking main thread.',
+      );
+    }
+
+    return NativePacket(
+      address: buffer.pointer.address,
+      length: buffer.offset,
+      terminalWidth: terminalWidth,
+      completionPort: _completionPort.sendPort,
+    );
+  }
+
+  /// Reclaims all in-flight buffers back to the free pool.
+  ///
+  /// This should be called if the background worker isolate fails or
+  /// is shut down abruptly to prevent native memory leaks.
+  void reclaimInFlightBuffers() {
+    for (final buffer in _inFlightNativeBuffers.values) {
+      buffer.offset = 0;
+      _freeNativeBuffers.add(buffer);
+    }
+    _inFlightNativeBuffers.clear();
+
+    // Release any blocked threads
+    if (_poolCapacityWaiter != null && !_poolCapacityWaiter!.isCompleted) {
+      _poolCapacityWaiter!.complete();
+      _poolCapacityWaiter = null;
+    }
   }
 
   /// Allocates [size] bytes from the native arena.
   ffi.Pointer<ffi.Uint8> allocateNative(final int size) {
-    if (_nativeBuffer == ffi.Pointer.fromAddress(0) ||
-        _nativeBufferOffset + size > _nativeBufferSize) {
-      _reallocateNative(max(_nativeBufferSize * 2, size + 1024));
+    if (_currentBuffer == null ||
+        _currentBuffer!.offset + size > _currentBuffer!.size) {
+      _checkoutNewBuffer(max(_defaultPacketSize, size));
     }
 
-    final ptr = _nativeBuffer + _nativeBufferOffset;
-    _nativeBufferOffset += size;
+    final ptr = _currentBuffer!.pointer + _currentBuffer!.offset;
+    _currentBuffer!.offset += size;
     return ptr.cast();
   }
 
-  void _reallocateNative(final int newSize) {
-    if (_nativeBuffer != ffi.Pointer.fromAddress(0)) {
-      pkg_ffi.malloc.free(_nativeBuffer);
+  void _checkoutNewBuffer(final int size) {
+    // 1. Try to find a free buffer that is large enough
+    for (int i = 0; i < _freeNativeBuffers.length; i++) {
+      if (_freeNativeBuffers[i].size >= size) {
+        _currentBuffer = _freeNativeBuffers.removeAt(i);
+        return;
+      }
     }
-    _nativeBuffer = pkg_ffi.malloc.allocate<ffi.Uint8>(newSize);
-    _nativeBufferSize = newSize;
-    _nativeBufferOffset = 0;
+
+    // 2. Allocate a new one if none available
+    if (_totalAllocatedBytes + size > maxNativeMemory) {
+      throw const OutOfMemoryError();
+    }
+
+    final pointer = pkg_ffi.malloc.allocate<ffi.Uint8>(size);
+    _totalAllocatedBytes += size;
+    _currentBuffer = _NativeBuffer(pointer, size);
   }
 
   // ---------------------------------------------------------------------------
@@ -89,9 +206,43 @@ class Arena implements LogPipelineFactory {
 
   /// Checks out a [LogDocument] from the pool, or allocates a fresh one.
   @override
-  LogDocument checkoutDocument() => _documents.isNotEmpty
-      ? _documents.removeLast()
-      : ArenaDocument(this);
+  LogDocument checkoutDocument() =>
+      _documents.isNotEmpty ? _documents.removeLast() : ArenaDocument(this);
+
+  /// Completely clears all object pools and reclaims all native memory.
+  ///
+  /// This is primarily used in benchmarks to ensure a clean state between
+  /// different engine configurations.
+  @internal
+  void clear() {
+    _documents.clear();
+    _headers.clear();
+    _messages.clear();
+    _errors.clear();
+    _footers.clear();
+    _metadataNodes.clear();
+    _boxes.clear();
+    _indents.clear();
+    _groups.clear();
+    _decorated.clear();
+    _paragraphs.clear();
+    _rows.clear();
+    _sections.clear();
+    _fillers.clear();
+    _maps.clear();
+    _lists.clear();
+    _contexts.clear();
+    _physicalLines.clear();
+    _physicalDocuments.clear();
+
+    reclaimInFlightBuffers();
+    for (final buffer in _freeNativeBuffers) {
+      pkg_ffi.malloc.free(buffer.pointer);
+    }
+    _freeNativeBuffers.clear();
+    _currentBuffer = null;
+    _totalAllocatedBytes = 0;
+  }
 
   /// Checks out a [HeaderNode] from the pool, or allocates a fresh one.
   @override
@@ -287,12 +438,30 @@ class Arena implements LogPipelineFactory {
 
   /// Frees all native memory. Should only be called on isolate shutdown.
   void disposeNative() {
-    if (_nativeBuffer != ffi.Pointer.fromAddress(0)) {
-      pkg_ffi.malloc.free(_nativeBuffer);
-      _nativeBuffer = ffi.Pointer.fromAddress(0);
-      _nativeBufferSize = 0;
+    _completionPort.close();
+
+    if (_currentBuffer != null) {
+      pkg_ffi.malloc.free(_currentBuffer!.pointer);
+      _currentBuffer = null;
     }
+
+    for (final buffer in _freeNativeBuffers) {
+      pkg_ffi.malloc.free(buffer.pointer);
+    }
+    _freeNativeBuffers.clear();
+
+    for (final buffer in _inFlightNativeBuffers.values) {
+      pkg_ffi.malloc.free(buffer.pointer);
+    }
+    _inFlightNativeBuffers.clear();
   }
+}
+
+class _NativeBuffer {
+  _NativeBuffer(this.pointer, this.size);
+  final ffi.Pointer<ffi.Uint8> pointer;
+  final int size;
+  int offset = 0;
 }
 
 /// A specialized [LogDocument] for use within an [Arena].
@@ -320,7 +489,9 @@ class ArenaDocument extends StandardDocument {
   /// Enables high-performance streaming mode.
   void enableStreaming() {
     _isStreaming = true;
-    writer.start();
+    writer
+      ..start()
+      ..writeDocumentMetadata(metadata);
   }
 
   @override

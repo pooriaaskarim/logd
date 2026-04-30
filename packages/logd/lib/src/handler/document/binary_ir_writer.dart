@@ -83,10 +83,47 @@ final class BinaryIRWriter {
         }
         return count;
       case final DecoratedNode n:
-        // For now, treat as a group, native engine will need more logic
         count = 0;
+        final hasLeading = n.leading != null && n.leading!.isNotEmpty;
+        final isRepeating = n.repeatLeading && hasLeading;
+
+        if (isRepeating) {
+          // Use opIndentStart to ensure repetition on newlines
+          final indent = n.leading!.map((final e) => e.text).join();
+          _writeIndent(indent, tags: n.tags);
+          count++;
+        } else if (hasLeading) {
+          // One-time leading
+          for (final segment in n.leading!) {
+            _writeText(
+              segment.text,
+              style: segment.style?.bitmask ?? 0,
+              tags: n.tags,
+            );
+            count++;
+          }
+        }
+
+        // 2. Write Children
         for (final child in n.children) {
           count += _writeNode(child);
+        }
+
+        if (isRepeating) {
+          _writeOp(BinaryIR.opIndentEnd);
+          count++;
+        }
+
+        // 3. Write Trailing (One-time only for now)
+        if (n.trailing != null) {
+          for (final segment in n.trailing!) {
+            _writeText(
+              segment.text,
+              style: segment.style?.bitmask ?? 0,
+              tags: n.tags,
+            );
+            count++;
+          }
         }
         return count;
       case final RowNode n:
@@ -140,6 +177,18 @@ final class BinaryIRWriter {
 
   void writeIndentEnd() {
     _writeOp(BinaryIR.opIndentEnd);
+    _nodeCount++;
+  }
+
+  /// Writes global document metadata.
+  void writeDocumentMetadata(final Map<String, Object?> metadata) {
+    if (metadata.isEmpty) {
+      return;
+    }
+    _writeOp(BinaryIR.opGlobalMetadata, payload: metadata.length);
+    for (final entry in metadata.entries) {
+      _writeMetadataEntry(entry.key, entry.value);
+    }
     _nodeCount++;
   }
 
@@ -225,7 +274,7 @@ final class BinaryIRWriter {
     ptr.cast<ffi.Uint16>()[1] = n.tags;
     ptr.cast<ffi.Uint32>()[1] = 0; // Color (Reserved)
     ptr.cast<ffi.Uint32>()[2] = n.style?.bitmask ?? 0;
-    ptr.cast<ffi.Uint32>()[3] = 1; // count
+    ptr.cast<ffi.Uint32>()[3] = n.count; // count
     ptr[16] = n.char.isNotEmpty ? n.char.codeUnitAt(0) : 32; // char
   }
 
@@ -245,16 +294,30 @@ final class BinaryIRWriter {
 
   void _writeMetadataEntry(final String key, final Object? value) {
     final keyData = convert.utf8.encode(key);
-    final valStr = value?.toString() ?? 'null';
+    final Object? val = value;
+    int type = BinaryIR.metaString;
+    String valStr = val?.toString() ?? 'null';
+
+    if (val is int) {
+      type = BinaryIR.metaInt;
+    } else if (val is bool) {
+      type = BinaryIR.metaBool;
+    } else if (val is Map || val is List) {
+      type = BinaryIR.metaJson;
+      valStr = convert.jsonEncode(val);
+    }
+
     final valData = convert.utf8.encode(valStr);
 
     final ptr = _arena.allocateNative(8 + keyData.length + valData.length);
-    ptr.cast<ffi.Uint16>()[0] = keyData.length;
-    (ptr + 2).asTypedList(keyData.length).setAll(0, keyData);
+    ptr[0] = type;
+    ptr[1] = 0; // Padding
+    (ptr + 2).cast<ffi.Uint16>()[0] = keyData.length;
+    (ptr + 4).asTypedList(keyData.length).setAll(0, keyData);
 
-    final valLenPtr = (ptr + (2 + keyData.length)).cast<ffi.Uint32>();
+    final valLenPtr = (ptr + 4 + keyData.length).cast<ffi.Uint32>();
     valLenPtr[0] = valData.length;
-    (ptr + (2 + keyData.length + 4))
+    (ptr + 8 + keyData.length)
         .asTypedList(valData.length)
         .setAll(0, valData);
   }
