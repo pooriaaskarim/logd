@@ -71,3 +71,14 @@ One of the primary benefits of this composition model is **Platform Independence
 -   **Rely on Auto-Sorting**: Don't worry about the order in the `decorators: [...]` list; the `Handler` will re-sequence them for technical correctness.
 -   **Deduplication**: Adding the same decorator instance twice is safe; the `Handler` deduplicates the set before processing.
 -   **Statelessness**: Custom decorators should avoid keeping internal state between `decorate()` calls to remain thread-safe and predictable.
+
+---
+
+## Engine Compatibility (v0.8.0+)
+
+The introduction of the `NativeEngine` adds a performance dimension to decorator usage:
+
+- **Streaming Mode (Fastest)**: If the `decorators` list is **empty**, the engine uses "Streaming Mode." This bypasses the creation of the semantic object tree entirely, serializing formatters directly to Binary IR (B-IR).
+- **Object Pipeline (Hybrid)**: If **decorators are present**, the engine automatically switches to the object-based pipeline (utilizing **Arena pooling**) to allow decorators to mutate the `LogDocument` before it is finalized into B-IR.
+
+While the Arena-backed object pipeline is still extremely fast, users targeting maximum possible throughput (230k+ ops/sec) should aim to use "Streaming Mode" by keeping decorators to a minimum in high-frequency paths.

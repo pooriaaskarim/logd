@@ -19,22 +19,6 @@
 - [x] Add `JsonPrettyFormatter` with semantic styling and customizable fields
 - [x] Add MarkdownEncoder and HtmlEncoder
 
-### ✅ P0: LLM-Optimized Logging (TOON)
-**Goal**: Create a format that is "native" to AI agents.
-**Result**: Introduced `ToonFormatter`.
-- [x] Implement Token-Oriented Object Notation (TOON) spec
-- [x] Efficient header-first streaming logic
-- [x] Optional semantic tagging for colorized TOON output
-
-### ✅ P0: TOON Schema Maturity (v0.7.1)
-**Goal**: Transition TOON from simple columns to a rich, self-describing schema.
-**Result**: Introduced `ToonType` and `explicitSchema` support.
-- [x] Define semantic `ToonType` system (iso8601, enum, markdown, etc.)
-- [x] Implement aligned, multi-line schema headers
-- [x] Add Enum introspection for log levels in schema
-- [x] Update `TerminalLayout` to detect and render explicit schemas in console
-
-
 ### ✅ P1: Shared LogField System
 **Goal**: Unify data access across all formatters.
 **Result**: Created `LogField` enum and extension.
@@ -86,6 +70,26 @@
 ## Active Development
 
 ## Features
+
+### 🟡 v0.8.0: The Engine & Schema Milestone (WIP)
+**Goal**: Consolidate high-performance native rendering with AI-native structured schemas.
+
+**TOON Schema Maturity**:
+- [x] Define semantic `ToonType` system (iso8601, enum, markdown, etc.)
+- [x] Implement aligned, multi-line schema headers
+- [x] Add Enum introspection for log levels in schema
+- [x] Update `TerminalLayout` to detect and render explicit schemas in console
+
+**Engine Optimizations (Binary IR & Native Engine)**:
+- [x] Define B-IR v1 instruction stream spec
+- [x] Implement `BinaryIRWriter` for linearized document streaming
+- [x] Create `NativeEngine` with fast-path bypassing object-tree traversal
+- [x] Standardize 16-byte B-IR header with color/padding support
+- [x] Implement `BinaryAnsiEncoder` as reference native-compatible renderer
+- [x] Achieve ~13x throughput improvement over standard heap engine
+- [ ] Implement Isolate-based dispatch for zero-latency main-thread logging
+
+---
 
 ### 🟡 P1: Async Formatter Support
 **Context**: Heavy serialization (complex JSON) blocks the calling isolate.

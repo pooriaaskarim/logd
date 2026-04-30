@@ -108,8 +108,9 @@ Complex formats like JSON and TOON use semantic tags (`LogTag.timestamp`, `LogTa
 
 ### Engines (Orchestration)
 The engine is the "mechanical core" of the pipeline, responsible for orchestration and resource management.
-- `StandardEngine`: Default heap-allocated execution. Prioritizes simplicity and relies on native GC.
-- `ArenaEngine`: High-performance execution using LIFO object pooling. Minimizes GC pressure for extreme throughput.
+- `NativeEngine`: **(New Default)** Targets native platforms via `dart:ffi` and **Binary IR (B-IR)**. Achieves ~230k ops/sec.
+- `StandardEngine`: Standard heap-allocated execution. Prioritizes simplicity and serves as a reliable fallback.
+- `ArenaEngine`: High-performance execution using LIFO object pooling. Best for complex decorated logs where B-IR streaming is not possible.
 
 ## Composition
 
@@ -119,11 +120,13 @@ The Handler module's strength is its composability. Chain decorators for sophist
 Handler(
   formatter: const StructuredFormatter(),
   decorators: const [
-    BoxDecorator(borderStyle: BorderStyle.double),
+    BoxDecorator(borderStyle: BorderStyle.rounded),
     StyleDecorator(),
   ],
   sink: const ConsoleSink(),
-  engine: const ArenaEngine(), // Explicitly opt-in to high-performance pooling
+  // NativeEngine is used by default. 
+  // It will automatically use the high-performance Arena pooling 
+  // for this "Object Pipeline" scenario (since decorators are present).
 )
 ```
 

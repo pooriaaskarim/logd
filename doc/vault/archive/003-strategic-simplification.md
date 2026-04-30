@@ -1,7 +1,7 @@
 # ADR 003: Strategic Simplification
 
 ## Context
-Following the exploration into LIFO object pooling (the `arena_refinement` branch), we observed that manual memory management introduced significant complexity and several subtle performance "taxes" (e.g., the UTF-8 tax on segmental writes). This was previously documented in [ADR 002](file:///home/ono/Projects/logd/doc/vault/archive/002-the-arena-paradox.md).
+Following the exploration into LIFO object pooling (the `arena_refinement` branch), we observed that manual memory management introduced significant complexity and several subtle performance "taxes" (e.g., the UTF-8 tax on segmental writes). This was previously documented in [ADR 002](002-the-arena-paradox.md).
 
 ## Decision
 We have decided to **revert the core logging pipeline to the Dart VM's Native Garbage Collector**.

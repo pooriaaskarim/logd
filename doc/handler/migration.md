@@ -1,5 +1,28 @@
 # Migration Guide
 
+## v0.7.1 to v0.8.0 (The High-Performance Engine Milestone)
+
+### 1. `LogDocument` Abstraction (Breaking Change)
+**Change**: `LogDocument` has transitioned from a concrete class to an **abstract interface**.
+- **Impact**: You can no longer instantiate `LogDocument()` directly.
+- **Migration**: 
+  - For standard heap-allocated documents, use **`StandardDocument()`**.
+  - For pooled documents (recommended), use **`factory.checkoutDocument()`**.
+  - **Why?**: This allows the `NativeEngine` and `ArenaEngine` to swap in specialized, high-performance document types (like `ArenaDocument`) without changing your formatting logic.
+
+### 2. `NativeEngine` is now the Default
+**Change**: `Handler` now defaults to **`NativeEngine`** (on native platforms).
+- **Impact**: Logs are now standardized into a **Binary IR (B-IR)** stream for high-speed delivery.
+- **Benefit**: Up to 13x higher throughput out-of-the-box.
+- **Note**: The engine automatically falls back to `StandardEngine` if a custom `LogSink` is used that does not support binary streaming.
+
+### 3. Custom `LogNode` Implementation
+**Change**: All `LogNode` subclasses must now implement a **`reset()`** method.
+- **Impact**: If you have implemented custom node types for specialized renderers, you must add a `reset()` method to support `Arena` object pooling.
+- **Reference**: See [content_nodes.dart](../../packages/logd/lib/src/handler/document/content_nodes.dart) for reference implementations.
+
+---
+
 ## v0.6.4 to v0.7.0 (Structural Overhaul & Engine API)
 
 ### 1. Engine-Driven Orchestration

@@ -205,18 +205,19 @@ Logger.configure('app', timestamp: timestamp);
 | Size | `FileSink('logs/app.log', fileRotation: SizeRotation(maxSize: '10 MB', backupCount: 5, compress: true))` |
 | Time | `FileSink('logs/app.log', fileRotation: TimeRotation(interval: Duration(hours: 1), timestamp: Timestamp(formatter: 'yyyy-MM-dd_HH'), backupCount: 24))` |
 
-### Performance Tuning
+### High-Performance Execution (v0.8.0+)
  
- ```dart
- Logger.get('app').freezeInheritance();   // snapshot config, eliminate runtime look‑ups
+ `logd` features a modular engine architecture to match your performance requirements:
+ 
+- **NativeEngine (Default)**: Leverages `dart:ffi` and a **Binary IR (B-IR)** instruction stream. On native platforms, it provides up to 13x higher throughput than standard engines.
+- **ArenaEngine**: Uses isolate-local LIFO object pooling to eliminate GC pressure. Ideal for complex logs with many decorators.
+- **StandardEngine**: A reliable fallback that relies on the native Dart garbage collector.
 
-// Use the high-performance ArenaEngine for extreme throughput
-final fastHandler = Handler(
-  formatter: const JsonFormatter(),
-  sink: FileSink('logs/perf.log'),
-  engine: const ArenaEngine(), 
-);
- ```
+```dart
+// NativeEngine is used by default on native platforms.
+// You can freeze inheritance to eliminate runtime lookups:
+Logger.get('app').freezeInheritance(); 
+```
 
 ## Use Cases
 

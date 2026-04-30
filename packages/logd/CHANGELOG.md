@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.8.0 (Work in Progress): The High-Performance Engine Milestone
+
+This milestone introduces a significant leap in logging performance by transitioning to a **Binary IR (B-IR)** pipeline and an **FFI-ready** execution engine. It also matures the **TOON Schema** system for improved AI-agent interoperability.
+
+- ### High-Performance Engine & Binary IR
+  - **NativeEngine (FFI-Ready)**: Introduced a new execution engine that targets native platforms via B-IR. Achieves up to **237,000 ops/sec**, a ~13x improvement over standard heap engines.
+  - **Binary IR (B-IR) v1**: A linearized, language-agnostic instruction stream designed for zero-copy FFI compatibility.
+  - **Arena Pooling**: Hardened isolate-local object pooling for `ArenaDocument` and `LogNode` types, ensuring zero-allocation steady-state logging with restored semantic integrity.
+  - **BinaryAnsiEncoder**: A reference native-compatible renderer that processes B-IR streams in a single pass.
+  - **Fallback Safety**: Implemented robust fallback logic in `NativeEngine` to ensure compatibility with non-encoding sinks (e.g., `_MemorySink`).
+
+- ### TOON Schema Maturity
+  - **Semantic ToonType System**: Introduced specialized types (`iso8601`, `enum`, `markdown`, `stacktrace`) for rich, self-describing log schemas.
+  - **Aligned Schema Headers**: Implemented multi-line, aligned schema headers for improved human and machine readability.
+  - **Enum Introspection**: Automatic extraction of log level enums into the schema header.
+
+- ### Architectural Cleanup & Breaking Changes
+  - **LogDocument Abstraction**: Refactored `LogDocument` to an abstract class to support specialized engine implementations. Users should now use `StandardDocument` or `factory.checkoutDocument()`.
+  - **Standardized B-IR Header**: Aligned packet structure to 16-byte boundaries (including reserved `color` field) for consistent native memory alignment.
+  - **Isolate Readiness**: (Planned) Architecture prepared for zero-latency offloading of rendering to background isolates.
+
+---
+
 ## 0.7.1: The Flutter Visibility Fix (Critical Patch)
 
 This patch addresses a critical visibility issue where logs were invisible in Flutter IDE consoles (VS Code, Android Studio) due to `ConsoleSink` relying exclusively on `stdout`.
