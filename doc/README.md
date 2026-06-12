@@ -17,7 +17,14 @@ Responsible for the processing pipeline of log entries.
 - [Overview](handler/README.md)
 - [Design Philosophy](handler/philosophy.md)
 - [Architecture](handler/architecture.md)
+- [Execution Engines Guide](handler/engines.md) - Standard, Arena, and Native engines guide
+- [Decorator Compositions](handler/decorator_compositions.md) - Execution priority and flow
+- [Migration Guide](handler/migration.md) - Upgrading from legacy components
 - [Roadmap](handler/roadmap.md)
+
+### Reports & Benchmarks
+Performance and quality analysis reports:
+- [Engine Stability & Performance Report](engine_stability_report.md) - Profile and memory analysis of the execution engines
 
 ### Time
 Handles timestamp generation and timezone management.
