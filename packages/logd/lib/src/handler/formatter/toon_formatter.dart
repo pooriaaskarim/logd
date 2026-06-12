@@ -15,6 +15,8 @@ final class ToonFormatter implements LogFormatter {
   /// - [delimiter]: The separator between values. Defaults to tab (`\t`).
   /// - [arrayName]: The name of the array in the header (e.g., 'logs').
   /// - [metadata]: Contextual metadata to include in the output columns.
+  /// - [explicitSchema]: Whether to include a typed, aligned schema definition
+  ///   in the header block (default: false).
   const ToonFormatter({
     this.delimiter = '\t',
     this.arrayName = 'logs',
@@ -23,7 +25,11 @@ final class ToonFormatter implements LogFormatter {
       LogMetadata.logger,
       LogMetadata.origin,
     },
+    this.explicitSchema = false,
   });
+
+  /// Whether to include an explicit schema definition in the header.
+  final bool explicitSchema;
 
   /// The character used to separate values.
   final String delimiter;
@@ -42,36 +48,46 @@ final class ToonFormatter implements LogFormatter {
     final LogPipelineFactory factory,
   ) {
     final columns = <String>[];
+    final schema = <String, ToonType>{};
     final messageLines = entry.message.split('\n');
     var isFirst = true;
 
     for (final line in messageLines) {
       final map = <String, Object?>{};
 
-      void add(final String key, final Object? value) {
+      void add(final String key, final Object? value, final ToonType type) {
         if (isFirst) {
           columns.add(key);
+          schema[key] = type;
         }
         map[key] = value;
       }
 
       for (final meta in metadata) {
-        add(meta.name, meta.getValue(entry));
+        add(meta.name, meta.getValue(entry), meta.toonType);
       }
 
-      add('level', entry.level.name.toUpperCase());
-      add('message', line);
-      add('error', entry.error ?? '');
-      add('stackTrace', entry.stackTrace ?? '');
+      add(
+        'level',
+        entry.level.name.toUpperCase(),
+        ToonType(
+          'enum',
+          LogLevel.values.map((final e) => e.name.toUpperCase()).join(','),
+        ),
+      );
+      add('message', line, ToonType.markdown);
+      add('error', entry.error ?? '', ToonType.string);
+      add('stackTrace', entry.stackTrace ?? '', ToonType.stacktrace);
 
-      document.nodes.add(factory.checkoutMap()..map = map);
+      document.metadataBlock(map, factory: factory);
       isFirst = false;
     }
 
     document
       ..metadata['toon_array'] = arrayName
       ..metadata['toon_delimiter'] = delimiter
-      ..metadata['toon_columns'] = columns;
+      ..metadata['toon_columns'] = columns
+      ..metadata['toon_schema'] = explicitSchema ? schema : null;
   }
 
   @override
@@ -102,6 +118,8 @@ final class ToonPrettyFormatter implements LogFormatter {
   /// - [metadata]: Contextual metadata to include.
   /// - [sortKeys]: Whether to sort Map keys alphabetically.
   /// - [maxDepth]: Maximum depth for recursive object serialization.
+  /// - [explicitSchema]: Whether to include a typed, aligned schema definition
+  ///   in the header block (default: false).
   const ToonPrettyFormatter({
     this.delimiter = '\t',
     this.arrayName = 'logs',
@@ -113,7 +131,11 @@ final class ToonPrettyFormatter implements LogFormatter {
     },
     this.sortKeys = false,
     this.maxDepth = 5,
+    this.explicitSchema = false,
   });
+
+  /// Whether to include an explicit schema definition in the header.
+  final bool explicitSchema;
 
   /// The character used to separate values.
   final String delimiter;
@@ -142,35 +164,53 @@ final class ToonPrettyFormatter implements LogFormatter {
   ) {
     final columns = <String>[];
     final tags = <String, int>{};
-    columns.clear();
-    tags.clear();
+    final schema = <String, ToonType>{};
     final messageLines = entry.message.split('\n');
     var isFirst = true;
 
     for (final line in messageLines) {
       final map = <String, Object?>{};
 
-      void add(final String key, final Object? value, final int tag) {
+      void add(
+        final String key,
+        final Object? value,
+        final int tag,
+        final ToonType type,
+      ) {
         if (isFirst) {
           columns.add(key);
           tags[key] = tag;
+          schema[key] = type;
         }
         map[key] = value;
       }
 
       for (final meta in metadata) {
-        add(meta.name, meta.getValue(entry), meta.tag);
+        add(meta.name, meta.getValue(entry), meta.tag, meta.toonType);
       }
 
-      add('level', entry.level.name.toUpperCase(), LogTag.level);
-      add('message', line, LogTag.message);
-      add('error', entry.error ?? '', LogTag.error);
-      add('stackTrace', entry.stackTrace ?? '', LogTag.stackFrame);
+      add(
+        'level',
+        entry.level.name.toUpperCase(),
+        LogTag.level,
+        ToonType(
+          'enum',
+          LogLevel.values.map((final e) => e.name.toUpperCase()).join(','),
+        ),
+      );
+      add('message', line, LogTag.message, ToonType.markdown);
+      add('error', entry.error ?? '', LogTag.error, ToonType.string);
+      add(
+        'stackTrace',
+        entry.stackTrace ?? '',
+        LogTag.stackFrame,
+        ToonType.stacktrace,
+      );
 
-      document.nodes.add(
-        factory.checkoutMap()
-          ..map = map
-          ..tags = color ? LogTag.message : LogTag.none,
+      document.metadataBlock(
+        map,
+        tags: color ? LogTag.message : LogTag.none,
+        factory: factory,
       );
       isFirst = false;
     }
@@ -182,7 +222,8 @@ final class ToonPrettyFormatter implements LogFormatter {
       ..metadata['toon_tags'] = tags
       ..metadata['toon_sort_keys'] = sortKeys
       ..metadata['toon_max_depth'] = maxDepth
-      ..metadata['toon_color'] = color;
+      ..metadata['toon_color'] = color
+      ..metadata['toon_schema'] = explicitSchema ? schema : null;
   }
 
   @override

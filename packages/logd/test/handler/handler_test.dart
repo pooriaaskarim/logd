@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import 'test_helpers.dart';
@@ -119,14 +118,14 @@ void main() {
   });
 
   group('Built-in Filters', () {
-    const entryInfo = LogEntry(
+    final entryInfo = LogEntry(
       loggerName: 'app.ui',
       origin: 'Widget.build',
       level: LogLevel.info,
       message: 'info msg',
       timestamp: '2025-01-01 12:00:00',
     );
-    const entryError = LogEntry(
+    final entryError = LogEntry(
       loggerName: 'app.service',
       origin: 'Service.run',
       level: LogLevel.error,

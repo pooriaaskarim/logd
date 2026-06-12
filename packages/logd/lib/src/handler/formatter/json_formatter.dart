@@ -30,10 +30,11 @@ final class JsonFormatter implements LogFormatter {
     final LogDocument document,
     final LogPipelineFactory factory,
   ) {
-    final map = <String, dynamic>{
-      'level': entry.level.name,
-      'message': entry.message,
-    };
+    final node = factory.checkoutMap();
+    final map = node.map;
+
+    map['level'] = entry.level.name;
+    map['message'] = entry.message;
 
     for (final meta in metadata) {
       final value = meta.getValue(entry);
@@ -54,7 +55,7 @@ final class JsonFormatter implements LogFormatter {
       map['stackTrace'] = entry.stackTrace.toString();
     }
 
-    document.nodes.add(factory.checkoutMap()..map = map);
+    document.writeNode(node);
   }
 
   @override
@@ -137,14 +138,13 @@ final class JsonPrettyFormatter implements LogFormatter {
     final LogDocument document,
     final LogPipelineFactory factory,
   ) {
-    final map = <String, Object?>{
-      'level': entry.level.name,
-      'message': entry.message,
-    };
-    final fieldTags = <String, int>{
-      'level': LogTag.level,
-      'message': LogTag.message,
-    };
+    final map = factory.checkoutDataMap<String, Object?>();
+    map['level'] = entry.level.name;
+    map['message'] = entry.message;
+
+    final fieldTags = factory.checkoutDataMap<String, int>();
+    fieldTags['level'] = LogTag.level;
+    fieldTags['message'] = LogTag.message;
 
     for (final meta in metadata) {
       final value = meta.getValue(entry);
@@ -169,25 +169,33 @@ final class JsonPrettyFormatter implements LogFormatter {
       fieldTags['stackTrace'] = LogTag.stackFrame;
     }
 
-    document.nodes.addAll(_buildNodes(factory, map, 0, fieldTags: fieldTags));
+    final nodes = factory.checkoutDataList<LogNode>();
+    _buildNodes(factory, map, 0, nodes, fieldTags: fieldTags);
+    for (final node in nodes) {
+      document.writeNode(node);
+    }
+
+    factory
+      ..release(nodes)
+      ..release(map)
+      ..release(fieldTags);
   }
 
-  List<LogNode> _buildNodes(
+  void _buildNodes(
     final LogPipelineFactory factory,
     final Object? value,
-    final int depth, {
+    final int depth,
+    final List<LogNode> destination, {
     final Map<String, int>? fieldTags,
     final List<StyledText>? prefixSegments,
     final Object? currentKey,
     final bool isLast = true,
   }) {
     if (depth > maxDepth) {
-      return [
-        factory.checkoutParagraph()
-          ..children.add(
-            factory.checkoutMessage()..segments.add(const StyledText('...')),
-          ),
-      ];
+      final msg = factory.checkoutMessage()
+        ..segments.add(const StyledText('...'));
+      destination.add(factory.checkoutParagraph()..children.add(msg));
+      return;
     }
 
     // 1. Adaptive Indent: If space is tight, use a minimal 1-space indent.
@@ -209,14 +217,16 @@ final class JsonPrettyFormatter implements LogFormatter {
       // Add breadcrumb summary for the collapsed state
       _addPreviewSegments(factory, header.segments, value, isLast: isLast);
 
-      final entries = value.entries.toList();
+      final entries = factory.checkoutDataList<MapEntry<dynamic, dynamic>>()
+        ..addAll(value.entries);
+
       if (sortKeys) {
         entries.sort(
           (final a, final b) => a.key.toString().compareTo(b.key.toString()),
         );
       }
 
-      final body = <LogNode>[];
+      final body = factory.checkoutDataList<LogNode>();
       for (int i = 0; i < entries.length; i++) {
         final entry = entries[i];
         final isEntryLast = i == entries.length - 1;
@@ -264,40 +274,42 @@ final class JsonPrettyFormatter implements LogFormatter {
         if (keyText.visibleLength > threshold) {
           final structuralGroup = factory.checkoutGroup();
 
-          structuralGroup.children
-            ..add(
-              factory.checkoutParagraph()
-                ..children.add(
-                  factory.checkoutHeader()
-                    ..segments.add(StyledText(keyText, tags: keyTag)),
-                ),
-            )
-            ..addAll(
-              _buildNodes(
-                factory,
-                processedValue,
-                depth + 1,
-                fieldTags: fieldTags,
-                prefixSegments: null,
-                currentKey: entry.key,
-                isLast: isEntryLast,
+          structuralGroup.children.add(
+            factory.checkoutParagraph()
+              ..children.add(
+                factory.checkoutHeader()
+                  ..segments.add(StyledText(keyText, tags: keyTag)),
               ),
-            );
+          );
+
+          _buildNodes(
+            factory,
+            processedValue,
+            depth + 1,
+            structuralGroup.children,
+            fieldTags: fieldTags,
+            prefixSegments: null,
+            currentKey: entry.key,
+            isLast: isEntryLast,
+          );
 
           body.add(structuralGroup);
         } else {
           // Unify the key into the nested SectionNode's summary if collapsible
-          body.addAll(
-            _buildNodes(
-              factory,
-              processedValue,
-              depth + 1,
-              fieldTags: fieldTags,
-              prefixSegments: [StyledText(keyText, tags: keyTag)],
-              currentKey: entry.key,
-              isLast: isEntryLast,
-            ),
+          final prefix = factory.checkoutDataList<StyledText>()
+            ..add(StyledText(keyText, tags: keyTag));
+
+          _buildNodes(
+            factory,
+            processedValue,
+            depth + 1,
+            body,
+            fieldTags: fieldTags,
+            prefixSegments: prefix,
+            currentKey: entry.key,
+            isLast: isEntryLast,
           );
+          factory.release(prefix);
         }
       }
 
@@ -309,17 +321,21 @@ final class JsonPrettyFormatter implements LogFormatter {
           ),
         );
 
-      final section = factory.checkoutSection()
-        ..summary = header
-        ..children.add(
-          factory.checkoutIndentation()
-            ..indentString = effectiveIndent
-            ..children.addAll(body),
-        )
-        ..children.add(closing)
-        ..tags = LogTag.collapsible;
+      destination.add(
+        factory.checkoutSection()
+          ..summary = header
+          ..children.add(
+            factory.checkoutIndentation()
+              ..indentString = effectiveIndent
+              ..children.addAll(body),
+          )
+          ..children.add(closing)
+          ..tags = LogTag.collapsible,
+      );
 
-      return [section];
+      factory
+        ..release(entries)
+        ..release(body);
     } else if (value is List) {
       final header = factory.checkoutHeader();
       if (prefixSegments != null) {
@@ -335,7 +351,7 @@ final class JsonPrettyFormatter implements LogFormatter {
       // Add breadcrumb summary for the collapsed state
       _addPreviewSegments(factory, header.segments, value, isLast: isLast);
 
-      final body = <LogNode>[];
+      final body = factory.checkoutDataList<LogNode>();
       for (int i = 0; i < value.length; i++) {
         final isEntryLast = i == value.length - 1;
         final entryVal = value[i];
@@ -343,19 +359,17 @@ final class JsonPrettyFormatter implements LogFormatter {
             ? (_tryParseJson(entryVal) ?? entryVal)
             : entryVal;
 
-        body.add(
-          factory.checkoutGroup()
-            ..children.addAll(
-              _buildNodes(
-                factory,
-                processedValue,
-                depth + 1,
-                fieldTags: fieldTags,
-                prefixSegments: null,
-                isLast: isEntryLast,
-              ),
-            ),
+        final group = factory.checkoutGroup();
+        _buildNodes(
+          factory,
+          processedValue,
+          depth + 1,
+          group.children,
+          fieldTags: fieldTags,
+          prefixSegments: null,
+          isLast: isEntryLast,
         );
+        body.add(group);
       }
 
       final closing = factory.checkoutHeader()
@@ -366,17 +380,19 @@ final class JsonPrettyFormatter implements LogFormatter {
           ),
         );
 
-      final section = factory.checkoutSection()
-        ..summary = header
-        ..children.add(
-          factory.checkoutIndentation()
-            ..indentString = effectiveIndent
-            ..children.addAll(body),
-        )
-        ..children.add(closing)
-        ..tags = LogTag.collapsible;
+      destination.add(
+        factory.checkoutSection()
+          ..summary = header
+          ..children.add(
+            factory.checkoutIndentation()
+              ..indentString = effectiveIndent
+              ..children.addAll(body),
+          )
+          ..children.add(closing)
+          ..tags = LogTag.collapsible,
+      );
 
-      return [section];
+      factory.release(body);
     } else {
       // Scalar value
       final valStr = _valueString(value);
@@ -408,13 +424,14 @@ final class JsonPrettyFormatter implements LogFormatter {
           );
         }
 
-        return [
+        destination.add(
           factory.checkoutDecorated()
             ..leading = prefixSegments
             ..leadingWidth = keyWidth
             ..repeatLeading = false
             ..children.add(factory.checkoutParagraph()..children.add(msg)),
-        ];
+        );
+        return;
       }
 
       if (valStr.contains('\n')) {
@@ -437,9 +454,8 @@ final class JsonPrettyFormatter implements LogFormatter {
             ),
           );
         }
-        return [
-          factory.checkoutParagraph()..children.add(msg),
-        ];
+        destination.add(factory.checkoutParagraph()..children.add(msg));
+        return;
       }
 
       final msg = factory.checkoutMessage();
@@ -460,9 +476,7 @@ final class JsonPrettyFormatter implements LogFormatter {
           ),
         );
       }
-      return [
-        factory.checkoutParagraph()..children.add(msg),
-      ];
+      destination.add(factory.checkoutParagraph()..children.add(msg));
     }
   }
 

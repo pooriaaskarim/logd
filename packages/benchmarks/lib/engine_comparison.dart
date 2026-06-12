@@ -2,12 +2,11 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:vm_service/vm_service_io.dart';
 
 const int iterations = 10000;
 
-final entry = const LogEntry(
+final entry = LogEntry(
   loggerName: 'bench.logger',
   level: LogLevel.info,
   message: 'This is a standard benchmark log message for engine comparison.',
@@ -57,6 +56,8 @@ Future<void> main() async {
         const StructuredFormatter(),
         [const HierarchyDepthPrefixDecorator(), const BoxDecorator()],
         40),
+    Scenario('4. Complex Native (TOON + Box + Nesting)', const ToonFormatter(),
+        [const BoxDecorator(), const HierarchyDepthPrefixDecorator()]),
   ];
 
   final report = <String, List<Result>>{};
@@ -72,6 +73,10 @@ Future<void> main() async {
     // Arena Engine
     results.add(await profile(
         vmService, isolateId, 'Arena', scenario, const ArenaEngine()));
+
+    // Native Engine (B-IR)
+    results.add(await profile(
+        vmService, isolateId, 'Native', scenario, const NativeEngine()));
 
     report[scenario.name] = results;
   }
@@ -142,9 +147,13 @@ Future<Result> profile(
   return Result(engineName, opsPerSec, p90, gcKb);
 }
 
-base class SilentSink extends LogSink<LogDocument> {
-  final int width;
-  SilentSink(this.width);
+base class SilentSink extends EncodingSink {
+  SilentSink(final int width)
+      : super(
+          delegate: (final _) {}, // No-op
+          encoder: const AnsiEncoder(),
+          preferredWidth: width,
+        );
 
   @override
   Future<void> output(
@@ -153,9 +162,9 @@ base class SilentSink extends LogSink<LogDocument> {
     final LogLevel level,
     final LogPipelineFactory factory,
   ) async {
-    const encoder = AnsiEncoder();
     final context = factory.checkoutContext();
-    encoder.encode(entry, document, level, context, factory, width: width);
+    encoder.encode(entry, document, level, context, factory,
+        width: preferredWidth);
     context.takeBytes();
     factory.release(context);
   }

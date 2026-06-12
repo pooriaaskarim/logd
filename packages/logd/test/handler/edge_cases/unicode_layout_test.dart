@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:logd/logd.dart';
 import 'package:logd/src/core/utils/utils.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -42,7 +41,7 @@ void main() {
         sink: sink,
       );
 
-      const entry = LogEntry(
+      final entry = LogEntry(
         level: LogLevel.info,
         message: 'Hello 🚀', // 8 visible chars
         loggerName: 'test',

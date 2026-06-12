@@ -128,6 +128,14 @@ class HandlerContext {
     _length = 0;
     _overflowBuilder = null;
   }
+
+  @override
+  String toString() {
+    if (_overflowBuilder != null) {
+      return convert.utf8.decode(_overflowBuilder!.toBytes());
+    }
+    return convert.utf8.decode(Uint8List.sublistView(_buffer, 0, _length));
+  }
 }
 
 /// A sink that redirects chunked data back into [HandlerContext].

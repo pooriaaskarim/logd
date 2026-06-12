@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import 'test_helpers.dart';
 
@@ -38,7 +37,7 @@ void main() {
         ],
       );
 
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
@@ -81,7 +80,7 @@ void main() {
         ],
       );
 
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,

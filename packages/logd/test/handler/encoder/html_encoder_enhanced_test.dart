@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -44,7 +43,7 @@ void main() {
         );
 
       const HtmlEncoder().encode(
-        const LogEntry(
+        LogEntry(
           level: LogLevel.info,
           message: 'Message Content',
           loggerName: 'test',
@@ -81,7 +80,7 @@ void main() {
         );
 
       const HtmlEncoder().encode(
-        const LogEntry(
+        LogEntry(
           level: LogLevel.info,
           message: 'Body',
           loggerName: 'test',
@@ -113,7 +112,7 @@ void main() {
       document.nodes.add(section);
 
       const HtmlEncoder().encode(
-        const LogEntry(
+        LogEntry(
           level: LogLevel.info,
           message: 'msg',
           loggerName: 'test',
@@ -162,7 +161,7 @@ void main() {
       document.nodes.add(box);
 
       const HtmlEncoder().encode(
-        const LogEntry(
+        LogEntry(
           level: LogLevel.warning,
           message: 'Box Content',
           loggerName: 'test',
@@ -204,7 +203,7 @@ void main() {
       document.nodes.add(row);
 
       const HtmlEncoder(theme: theme).encode(
-        const LogEntry(
+        LogEntry(
           level: LogLevel.info,
           message: '',
           loggerName: 'test',
@@ -234,7 +233,7 @@ void main() {
       );
 
       const HtmlEncoder().encode(
-        const LogEntry(
+        LogEntry(
           level: LogLevel.info,
           message: 'msg',
           loggerName: 'test',

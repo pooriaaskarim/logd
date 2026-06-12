@@ -7,12 +7,18 @@ This document details the internal processing pipeline of the `Handler` module.
 The `Handler` class acts as an orchestrator. When `handler.log(entry)` is called, data flows through five distinct stages.
 
 ```mermaid
-flowchart LR
-    Entry --> Filter --> Engine --> Sink --> IO
-    subgraph Engine [LogEngine Orchestration]
-      direction TB
-      Format --> Dec --> Emit
+flowchart TD
+    Entry --> Filter
+    Filter --> Engine
+    
+    subgraph Engine [LogEngine Choice]
+      direction LR
+      Standard[Standard/Arena Path] --> ObjFormat[Object Tree] --> ObjRender[TerminalLayout] --> ObjSink[EncodingSink]
+      Native[Native B-IR Path] --> BinStream[B-IR Stream] --> BinRender[BinaryAnsiEncoder] --> BinSink[NativeSink]
     end
+    
+    ObjSink --> IO
+    BinSink --> IO
 ```
 
 sequenceDiagram
@@ -43,9 +49,9 @@ sequenceDiagram
 
 The `Handler` delegates the processing cycle to a `LogEngine`, which manages the **LogPipelineFactory** (providing unified resource management):
 - **LogPipelineFactory**: The authoritative source for `LogDocument`, `LogNode`, and `HandlerContext` allocation.
-- **Unified Layout Sovereignty**: Managed during the encoding phase via `TerminalLayout`.
+- **Unified Layout Sovereignty**: Managed during the encoding phase via `TerminalLayout` (Standard) or `BinaryAnsiEncoder` (Native).
 
-Wrapping is no longer a top-level stage in the `Handler`. Instead, it is deferred to the **Encoding** phase, where the `LogEncoder` (typically using `TerminalLayout`) calculates the final physical geometry based on the `LogDocument` and the `totalWidth`. This ensures that wrapping happens with full knowledge of the target medium's constraints.
+**Native B-IR Fast-Path**: In `v0.8.0`, the `NativeEngine` introduces a streaming path that bypasses the object tree entirely when no decorators are present. It uses the `BinaryIRWriter` to serialize formatters directly into a contiguous native buffer.
 
 ### Stage 1: Filtering
 **Component**: `LogFilter`
@@ -65,7 +71,7 @@ The formatter transforms the structured log entry into a semantic `LogDocument`.
 - **Semantic IR**: Formatters like `JsonFormatter` and `ToonFormatter` no longer emit raw strings. They emit `MapNode`s containing the raw data, allowing specialized encoders to handle the physical serialization.
 - **Geometric Agnosticism**: Most formatters are now width-agnostic. They structure logs into semantic nodes (headers, messages, data blocks), delegating the final word-wrapping and alignment to the layout engine during encoding.
 - **StructuredFormatter**: Detailed layout (header, origin, message) with fine-grained semantic tagging. **(Best for Console)**
-- **ToonFormatter**: Produces a `MapNode` with TOON-specific metadata. **(Best for LLM/Streaming)**
+- **ToonFormatter**: Produces a `MapNode` with TOON-specific metadata. Supports **Explicit Schema Maturity** (v0.7.1+) for typed, aligned headers optimized for LLM zero-shot consumption. **(Best for LLM/Streaming)**
 - **JsonFormatter**: Produces a `MapNode` for pure structured logging. **(Best for HTTP/Storage)**
 - **JsonPrettyFormatter**: Produces a `MapNode` tagged for recursive, styled JSON inspection.
 - **PlainFormatter**: Streamlined semantic nodes for simple text output.
@@ -110,9 +116,10 @@ For a deep dive into how decorators interact, see [Decorator Composition](decora
 
 This stage transforms the semantic `LogDocument` into the final physical protocol. It is the final "Geometric Resolution" point.
 
-- **TerminalLayout**: For text-based formats (ANSI, Plain), the encoder uses `TerminalLayout` to perform word-wrapping, ASCII box rendering, and indentation based on the `totalWidth`.
+- **TerminalLayout**: For text-based formats (ANSI, Plain) in the **Object Pipeline**, the encoder uses `TerminalLayout` to perform word-wrapping, ASCII box rendering, and indentation based on the `totalWidth`.
+- **BinaryAnsiEncoder**: For the **Native Pipeline**, this reference implementation processes the linearized **Binary IR (B-IR)** stream in a single pass, performing high-speed rendering and wrapping with minimal memory overhead.
 - **MarkdownEncoder**: Specializes in GFM (GitHub Flavored Markdown) serialization, mapping semantic blocks to headers, bold text, alerts, and collapsible sections.
-- **Inversion of Control**: Sinks delegate to specialized encoders (`JsonEncoder`, `ToonEncoder`, `AnsiEncoder`, `MarkdownEncoder`), keeping the transport medium agnostic of the data format.
+- **Inversion of Control**: Sinks delegate to specialized encoders (`JsonEncoder`, `ToonEncoder`, `AnsiEncoder`, `BinaryAnsiEncoder`, `MarkdownEncoder`), keeping the transport medium agnostic of the data format.
 
 ### Stage 5: Output (Sinking)
 **Component**: `LogSink`

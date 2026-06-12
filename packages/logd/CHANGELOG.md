@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.8.0: The High-Performance Engine Milestone
+
+This milestone introduces a significant leap in logging performance by introducing a **Binary IR (B-IR)** pipeline, an **FFI-ready** execution engine, and an **Arena** object recycling engine. It also matures the **TOON Schema** system for improved AI-agent interoperability.
+
+- ### High-Performance Engine & Binary IR
+  - **StandardEngine (Default)**: Leverages standard Dart GC heap, ensuring out-of-the-box cross-platform support (including Web, Desktop, Mobile, and VM).
+  - **ArenaEngine (Opt-In)**: Uses isolate-local LIFO object pooling to eliminate GC pressure. Ideal for complex logs with many decorators.
+  - **NativeEngine (Experimental Opt-In)**: A new VM-only execution engine targeting native platforms via B-IR. Achieves up to **23,000+ ops/sec** (up to 2.7x speedup during narrow terminal wrapping) using direct native C-heap serialization.
+  - **Binary IR (B-IR) v1**: A linearized, language-agnostic instruction stream designed for zero-copy FFI compatibility.
+  - **Arena Pooling**: Hardened isolate-local object pooling for `ArenaDocument` and `LogNode` types, ensuring zero-allocation steady-state logging with restored semantic integrity.
+  - **BinaryAnsiEncoder**: A reference native-compatible renderer that processes B-IR streams in a single pass.
+  - **Fallback Safety**: Implemented robust fallback logic in `NativeEngine` to ensure compatibility with non-encoding sinks (e.g., `_MemorySink`).
+
+- ### TOON Schema Maturity
+  - **Semantic ToonType System**: Introduced specialized types (`iso8601`, `enum`, `markdown`, `stacktrace`) for rich, self-describing log schemas.
+  - **Aligned Schema Headers**: Implemented multi-line, aligned schema headers for improved human and machine readability.
+  - **Enum Introspection**: Automatic extraction of log level enums into the schema header.
+
+- ### Architectural Cleanup & Breaking Changes
+  - **LogDocument Abstraction**: Refactored `LogDocument` to an abstract class to support specialized engine implementations. Users should now use `StandardDocument` or `factory.checkoutDocument()`.
+  - **Standardized B-IR Header**: Aligned packet structure to 16-byte boundaries (including reserved `color` field) for consistent native memory alignment.
+  - **Isolate Readiness**: (Planned) Architecture prepared for zero-latency offloading of rendering to background isolates.
+
+---
+
 ## 0.7.1: The Flutter Visibility Fix (Critical Patch)
 
 This patch addresses a critical visibility issue where logs were invisible in Flutter IDE consoles (VS Code, Android Studio) due to `ConsoleSink` relying exclusively on `stdout`.

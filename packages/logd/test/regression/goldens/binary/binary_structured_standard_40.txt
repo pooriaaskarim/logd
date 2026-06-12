@@ -1,0 +1,4 @@
+[1;34m____[0m[2;34m2025-01-01[0m [2;34m12:00:00[0m[1;34m[0m [1;34m[0m[1;34m[INFO][0m[1;34m[0m [1;34m[0m[1;34m[[0m
+    [2;34mBinarySnap[0m[1;34m][0m[1;34m[0m [1;34m[0m[1;34m[[0m[1;34mbinary.dart:42[0m[1;34m][0m[1;34m________[0m
+[1;34m----|[0m[34mVerified[0m [34mBinary[0m [34mIR[0m [34mrendering[0m [34mwith[0m
+     [34msemantic[0m [34mcoloring[0m [34mand[0m [34malignment.[0m

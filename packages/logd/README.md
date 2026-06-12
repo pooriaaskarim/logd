@@ -205,18 +205,22 @@ Logger.configure('app', timestamp: timestamp);
 | Size | `FileSink('logs/app.log', fileRotation: SizeRotation(maxSize: '10 MB', backupCount: 5, compress: true))` |
 | Time | `FileSink('logs/app.log', fileRotation: TimeRotation(interval: Duration(hours: 1), timestamp: Timestamp(formatter: 'yyyy-MM-dd_HH'), backupCount: 24))` |
 
-### Performance Tuning
+### High-Performance Execution (v0.8.0+)
  
- ```dart
- Logger.get('app').freezeInheritance();   // snapshot config, eliminate runtime look‑ups
+ `logd` features a modular engine architecture to match your performance requirements:
+ 
+- **StandardEngine (Default)**: A reliable, platform-agnostic engine running on the Dart GC heap. Fully compatible with Web, Desktop, Mobile, and VM.
+- **ArenaEngine**: Uses isolate-local LIFO object pooling to eliminate GC pressure. Ideal for complex logs with many decorators.
+- **NativeEngine (Experimental)**: Leverages `dart:ffi` and a **Binary IR (B-IR)** instruction stream for native VM platforms.
 
-// Use the high-performance ArenaEngine for extreme throughput
-final fastHandler = Handler(
-  formatter: const JsonFormatter(),
-  sink: FileSink('logs/perf.log'),
-  engine: const ArenaEngine(), 
-);
- ```
+```dart
+// StandardEngine is used by default.
+// You can explicitly swap to ArenaEngine or NativeEngine in your Handler setup.
+// To optimize performance further, you can freeze inheritance:
+Logger.get('app').freezeInheritance(); 
+```
+
+For a detailed walkthrough of each engine, including real-world benchmarks and isolate-offloading configuration, see the [Execution Engines Guide](../../doc/handler/engines.md).
 
 ## Use Cases
 
@@ -263,7 +267,21 @@ Logger.configure('ai.agent', handlers: [
 ]);
 ```
 
-**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. The header is emitted only when the configuration changes. For human-readable structural TOON, use `ToonPrettyFormatter`.
+**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. 
+
+#### Schema Maturity
+v0.7.1+ introduces **Explicit Schemas** for TOON. By setting `explicitSchema: true`, the formatter generates a typed, aligned header block that describes every column (including enum values for levels):
+
+```text
+logs[]{
+  timestamp  : iso8601;
+  level      : enum(TRACE,DEBUG,INFO,WARNING,ERROR);
+  message    : markdown;
+}:
+```
+
+This provides zero-shot precision for machine-consumption without prior out-of-band configuration.
+
 
 
 ### Network Logging
@@ -340,6 +358,8 @@ void main() {
 - **[Logger Philosophy](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/philosophy.md)** - Design principles and rationale
 - **[Logger Architecture](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/architecture.md)** - Implementation details
 - **[Handler Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/architecture.md)** - Pipeline and sink customization
+- **[Execution Engines Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/engines.md)** - Standard, Arena, and Native engines guide
+- **[Engine Stability Report](https://github.com/pooriaaskarim/logd/blob/master/doc/engine_stability_report.md)** - Engine profiling & memory lifecycle report
 - **[Migration Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/migration.md)** - Upgrading from legacy components
 - **[Decorator Composition](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/decorator_compositions.md)** - Execution priority and flow
 - **[Time Module](https://github.com/pooriaaskarim/logd/blob/master/doc/time/architecture.md)** - Timestamp and timezone handling

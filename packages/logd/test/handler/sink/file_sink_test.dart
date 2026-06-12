@@ -6,7 +6,6 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/core/context/clock/clock.dart';
 import 'package:logd/src/core/context/context.dart';
 import 'package:logd/src/core/context/io/file_system.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -212,7 +211,7 @@ void main() {
       expect(() => FileSink('dir/'), throwsArgumentError);
     });
 
-    const testEntry = LogEntry(
+    final testEntry = LogEntry(
       loggerName: 'test',
       origin: 'main',
       level: LogLevel.info,

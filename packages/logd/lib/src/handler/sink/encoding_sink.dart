@@ -103,18 +103,20 @@ base class EncodingSink extends LogSink<LogDocument> {
   @mustCallSuper
   Future<void> dispose() async {
     if (strategy == WrappingStrategy.document && _preambleWritten) {
-      final context = HandlerContext();
-      // No specific level for postamble; use Info as safe default.
-      // TODO: Postamble might need a factory for pooled contexts.
-      // For now, heap allocation in Standard mode is safe.
-      encoder.postamble(
-        context,
-        LogLevel.info,
-        const StandardPipelineFactory(),
-      );
-      final data = context.takeBytes();
-      if (data.isNotEmpty) {
-        await delegate(data);
+      final factory = Arena.instance;
+      final context = factory.checkoutContext();
+      try {
+        encoder.postamble(
+          context,
+          LogLevel.info,
+          factory,
+        );
+        final data = context.takeBytes();
+        if (data.isNotEmpty) {
+          await delegate(data);
+        }
+      } finally {
+        factory.release(context);
       }
     }
     await super.dispose();

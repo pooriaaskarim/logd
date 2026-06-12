@@ -26,10 +26,11 @@ Each pipeline stage has a single responsibility:
 
 This separation ensures components remain reusable and testable in isolation.
 
-## Token-Efficient Communication (AI Agents)
+## Token-Efficient Communication (AI Agents & Native Performance)
 
-One of our core goals is to bridge the gap between human developers and AI agents (LLMs). 
+One of our core goals is to bridge the gap between human developers, AI agents (LLMs), and native performance:
 - **TOON (Token-Oriented Object Notation)**: By providing specialized formatters like `ToonFormatter`, we minimize the token cost of streaming logs into LLMs while maintaining structural integrity. Unlike JSON, which repeats keys for every entry, TOON emits a header once and thereafter only tiny rows of data.
+- **B-IR (Binary Intermediate Representation)**: For native machine-to-machine performance, we use a linearized, instruction-based binary format. This allows our `NativeEngine` to stream logs with zero-copy readiness, ensuring the logging pipeline never becomes a bottleneck for the application.
 
 ## The Zero-Bypass Principle (Performance)
 

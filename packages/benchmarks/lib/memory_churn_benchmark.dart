@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:vm_service/vm_service_io.dart';
 
 Future<void> runMemoryChurnBenchmark() async {
@@ -53,7 +52,7 @@ Future<void> runMemoryChurnBenchmark() async {
 
     // 3. Execution: 10,000 entries
     print('Logging 10,000 entries (Arena Active)...');
-    final entry = const LogEntry(
+    final entry = LogEntry(
       loggerName: 'bench.test.depth',
       origin: 'memory_churn_benchmark.dart:test',
       level: LogLevel.info,

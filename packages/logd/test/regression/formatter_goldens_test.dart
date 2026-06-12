@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../handler/test_helpers.dart';
@@ -10,7 +9,7 @@ import '../utils/log_snap.dart';
 
 void main() {
   group('Formatter Goldens (Baseline)', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'SnapTest',
       origin: 'snap.dart:10:5',
       level: LogLevel.info,
@@ -18,7 +17,7 @@ void main() {
       timestamp: '2025-01-01 12:00:00',
     );
 
-    const longEntry = LogEntry(
+    final longEntry = LogEntry(
       loggerName: 'LongSnap',
       origin: 'long.dart',
       level: LogLevel.warning,
@@ -99,7 +98,7 @@ void main() {
   });
 
   group('Html Goldens (Baseline)', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'HtmlTest',
       origin: 'html.dart:5:1',
       level: LogLevel.info,
@@ -107,7 +106,7 @@ void main() {
       timestamp: '2025-01-01 12:00:00',
     );
 
-    const errorEntry = LogEntry(
+    final errorEntry = LogEntry(
       loggerName: 'HtmlTest',
       origin: 'html.dart:10:1',
       level: LogLevel.error,

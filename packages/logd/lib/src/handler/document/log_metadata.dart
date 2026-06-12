@@ -37,4 +37,15 @@ enum LogMetadata {
         return LogTag.origin;
     }
   }
+
+  /// Returns the TOON semantic type associated with this metadata.
+  ToonType get toonType {
+    switch (this) {
+      case LogMetadata.timestamp:
+        return ToonType.iso8601;
+      case LogMetadata.logger:
+      case LogMetadata.origin:
+        return ToonType.string;
+    }
+  }
 }

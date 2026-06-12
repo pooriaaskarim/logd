@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -1,6 +1,5 @@
-____2025-01-01 12:00:01_________________
-____[WARNING] [LongSnap]________________
-____[long.dart]_________________________
+____2025-01-01 12:00:01 [WARNING] [_____
+____LongSnap] [long.dart]_______________
 ----|A very long message that should    
      trigger wrapping across multiple   
      lines to verify structural         

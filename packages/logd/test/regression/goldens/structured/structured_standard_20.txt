@@ -1,8 +1,7 @@
 ____2025-01-01______
-____12:00:00________
-____[INFO] [SnapTest
-____]_______________
-____[snap.dart:10:5]
+____12:00:00 [INFO] 
+____[SnapTest] [____
+____snap.dart:10:5]_
 ----|This is a      
      standard log   
      message for    

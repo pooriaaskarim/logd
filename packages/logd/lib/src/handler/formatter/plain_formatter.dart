@@ -29,12 +29,13 @@ final class PlainFormatter implements LogFormatter {
     final LogPipelineFactory factory,
   ) {
     // 1. Header Flow (Level + Metadata)
-    final headerSegments = <StyledText>[
-      StyledText(
-        '[${entry.level.name.toUpperCase()}]',
-        tags: LogTag.level,
-      ),
-    ];
+    final headerSegments = factory.checkoutDataList<StyledText>()
+      ..add(
+        StyledText(
+          '[${entry.level.name.toUpperCase()}]',
+          tags: LogTag.level,
+        ),
+      );
 
     for (final meta in metadata) {
       final value = meta.getValue(entry);
@@ -54,20 +55,21 @@ final class PlainFormatter implements LogFormatter {
 
     final msgNode = factory.checkoutMessage()
       ..segments.add(StyledText(entry.message, tags: LogTag.message));
+    final msgPara = factory.checkoutParagraph()..children.add(msgNode);
     final decorated = factory.checkoutDecorated()
       ..leading = headerSegments
       ..leadingWidth = headerWidth
       ..repeatLeading = false
       ..alignTrailing = false
-      ..children.add(msgNode);
-    document.nodes.add(decorated);
+      ..children.add(msgPara);
+    document.writeNode(decorated);
 
     // 2. Handle Error if present
     if (entry.error != null) {
       final errNode = factory.checkoutError()
         ..segments.add(StyledText('Error: ${entry.error}'));
       final para = factory.checkoutParagraph()..children.add(errNode);
-      document.nodes.add(para);
+      document.writeNode(para);
     }
 
     // 3. Handle Stack Trace if present
@@ -78,7 +80,7 @@ final class PlainFormatter implements LogFormatter {
         final foot = factory.checkoutFooter()
           ..segments.add(StyledText(text, tags: LogTag.stackFrame));
         final para = factory.checkoutParagraph()..children.add(foot);
-        document.nodes.add(para);
+        document.writeNode(para);
       }
     } else if (entry.stackTrace != null) {
       final traceLines = entry.stackTrace.toString().split('\n');
@@ -87,7 +89,7 @@ final class PlainFormatter implements LogFormatter {
           final foot = factory.checkoutFooter()
             ..segments.add(StyledText(line, tags: LogTag.stackFrame));
           final para = factory.checkoutParagraph()..children.add(foot);
-          document.nodes.add(para);
+          document.writeNode(para);
         }
       }
     }

@@ -5,7 +5,7 @@ part of '../handler.dart';
 /// It translates the semantic structure of the log into Markdown elements:
 /// - [HeaderNode]: Headers (###) + Emojis based on [LogLevel].
 /// - [MessageNode]: Bold text (**message**)
-/// - [ErrorNode]: Alert blocks (> [!ERROR])
+/// - [ErrorNode]: Alert blocks (`> [!ERROR]`)
 /// - [LogTag.collapsible]: `<details>` blocks for collapsible content.
 /// - [LogTag.stackFrame]: Code blocks (```).
 @immutable

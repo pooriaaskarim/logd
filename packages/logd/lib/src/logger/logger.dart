@@ -628,7 +628,7 @@ class Logger {
     if (parsed.caller == null) {
       return;
     }
-    final entry = LogEntry(
+    final entry = Arena.instance.checkoutLogEntry(
       loggerName: name,
       level: level,
       message: message?.toString() ?? '',
@@ -638,17 +638,22 @@ class Logger {
       error: error,
       stackTrace: stackTrace,
     );
-    for (final handler in handlers) {
-      try {
-        await handler.log(entry);
-      } catch (e, s) {
-        InternalLogger.log(
-          LogLevel.error,
-          'Handler failure: ${handler.runtimeType}',
-          error: e,
-          stackTrace: s,
-        );
+
+    try {
+      for (final handler in handlers) {
+        try {
+          await handler.log(entry);
+        } catch (e, s) {
+          InternalLogger.log(
+            LogLevel.error,
+            'Handler failure: ${handler.runtimeType}',
+            error: e,
+            stackTrace: s,
+          );
+        }
       }
+    } finally {
+      Arena.instance.releaseLogEntry(entry);
     }
   }
 

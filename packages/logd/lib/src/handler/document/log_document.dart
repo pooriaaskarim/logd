@@ -19,39 +19,150 @@ part of '../handler.dart';
 /// populated by formatters, and returned via [releaseRecursive] after
 /// the pipeline completes. Arena-owned documents **must not** be retained
 /// across log cycles.
-class LogDocument {
-  /// Creates a [LogDocument] with the given [nodes] and [metadata].
-  LogDocument({
+abstract class LogDocument {
+  /// Creates a [LogDocument].
+  LogDocument();
+
+  /// The root nodes of the document tree.
+  List<LogNode> get nodes;
+
+  /// Arbitrary metadata associated with the document.
+  Map<String, Object?> get metadata;
+
+  /// Resets this document to an empty state so it can be reused.
+  void reset();
+
+  /// Recursively releases this document and all its nodes back to [factory].
+  void releaseRecursive(final LogPipelineFactory factory);
+
+  // --- Emitter API (v0.7.X) ---
+
+  /// Appends a text segment to the document.
+  void text(
+    final String text, {
+    final LogStyle? style,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Appends a styled text segment to the document.
+  void styledText(final StyledText text, {final LogPipelineFactory? factory});
+
+  /// Appends a newline to the document.
+  void newline();
+
+  /// Starts a box scope.
+  void startBox({
+    final BoxBorderStyle border = BoxBorderStyle.rounded,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current box scope.
+  void endBox();
+
+  /// Starts an indentation scope.
+  void startIndent(
+    final String indent, {
+    final LogStyle? style,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current indentation scope.
+  void endIndent();
+
+  /// Appends a metadata block (Map) to the document.
+  void metadataBlock(
+    final Map<String, Object?> data, {
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Starts an alignment scope.
+  void startAlignment(
+    final LogAlignment alignment, {
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current alignment scope.
+  void endAlignment();
+
+  /// Starts a table.
+  void startTable({
+    final List<int>? columnWidths,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current table.
+  void endTable();
+
+  /// Starts a table row.
+  void startRow({final LogPipelineFactory? factory});
+
+  /// Ends the current table row.
+  void endRow();
+
+  /// Starts a table cell.
+  void startCell({
+    final int colspan = 1,
+    final int rowspan = 1,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current table cell.
+  void endCell();
+
+  /// Starts a decorated scope (e.g. with a leading prefix).
+  void startDecorated({
+    required final List<StyledText> leading,
+    final int leadingWidth = 0,
+    final String? leadingHint,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current decorated scope.
+  void endDecorated();
+
+  /// Appends a filler segment to the document.
+  void filler({
+    required final String char,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Appends an existing [LogNode] to the document.
+  ///
+  /// This allows mixing streaming and object-based node construction.
+  void writeNode(final LogNode node);
+}
+
+/// The standard, object-based implementation of [LogDocument].
+class StandardDocument extends LogDocument {
+  StandardDocument({
     final List<LogNode>? nodes,
     final Map<String, Object?>? metadata,
   })  : nodes = nodes ?? [],
         metadata = metadata ?? {};
 
-  /// Named constructor for arena pool allocation.
-  /// Creates an empty, uninitialized instance for recycling.
-  LogDocument._pooled()
+  StandardDocument._pooled()
       : nodes = [],
         metadata = {};
 
-  /// The root nodes of the document tree.
-  List<LogNode> nodes;
+  @override
+  final List<LogNode> nodes;
 
-  /// Arbitrary metadata associated with the document.
-  Map<String, Object?> metadata;
+  @override
+  final Map<String, Object?> metadata;
 
-  /// Resets this document to an empty state so it can be reused.
-  ///
-  /// **Warning**: This does NOT recursively release child nodes.
-  /// Call [releaseRecursive] to return the entire tree to the pool.
+  @override
   void reset() {
     nodes.clear();
     metadata.clear();
+    _nodeStack.clear();
   }
 
-  /// Recursively releases this document and all its nodes back to [factory].
-  ///
-  /// After calling this method, neither this document nor any of its nodes
-  /// may be used again until checked out from the arena.
+  @override
   void releaseRecursive(final LogPipelineFactory factory) {
     for (final node in nodes) {
       node.releaseRecursive(factory);
@@ -59,35 +170,237 @@ class LogDocument {
     factory.release(this);
   }
 
-  /// Creates a copy of this document with optional changes.
-  ///
-  /// Note: Returns a fresh heap-allocated document, not an arena checkout.
-  /// Use within the same pipeline cycle only.
-  LogDocument copyWith({
-    final List<LogNode>? nodes,
-    final Map<String, Object?>? metadata,
-  }) =>
-      LogDocument(
-        nodes: nodes ?? List<LogNode>.from(this.nodes),
-        metadata: metadata ?? Map<String, Object?>.from(this.metadata),
-      );
+  // --- Emitter Implementation ---
+
+  final List<List<LogNode>> _nodeStack = [];
+
+  List<LogNode> get _currentNodes =>
+      _nodeStack.isEmpty ? nodes : _nodeStack.last;
+
+  @override
+  void text(
+    final String text, {
+    final LogStyle? style,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  }) {
+    if (_currentNodes.isNotEmpty) {
+      final last = _currentNodes.last;
+      if (last is MessageNode && last.tags == tags) {
+        last.segments.add(StyledText(text, style: style ?? const LogStyle()));
+        return;
+      }
+    }
+
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutMessage()
+      ..tags = tags
+      ..segments.add(StyledText(text, style: style ?? const LogStyle()));
+    _currentNodes.add(node);
+  }
+
+  @override
+  void styledText(final StyledText text, {final LogPipelineFactory? factory}) {
+    if (_currentNodes.isNotEmpty) {
+      final last = _currentNodes.last;
+      if (last is MessageNode && last.tags == text.tags) {
+        last.segments.add(text);
+        return;
+      }
+    }
+
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutMessage()..segments.add(text);
+    _currentNodes.add(node);
+  }
+
+  @override
+  void newline() {
+    text('\n');
+  }
+
+  @override
+  void startBox({
+    final BoxBorderStyle border = BoxBorderStyle.rounded,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutBox()
+      ..tags = tags
+      ..border = border;
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endBox() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startIndent(
+    final String indent, {
+    final LogStyle? style,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutIndentation()
+      ..tags = tags
+      ..indentString = indent
+      ..style = style;
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endIndent() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void metadataBlock(
+    final Map<String, Object?> data, {
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutMap()
+      ..tags = tags
+      ..map = data;
+    _currentNodes.add(node);
+  }
+
+  @override
+  void startAlignment(
+    final LogAlignment alignment, {
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutAlignment()..alignment = alignment;
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endAlignment() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startTable({
+    final List<int>? columnWidths,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutTable()..columnWidths = columnWidths ?? [];
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endTable() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startRow({final LogPipelineFactory? factory}) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutTableRow();
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endRow() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startCell({
+    final int colspan = 1,
+    final int rowspan = 1,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutTableCell()
+      ..colSpan = colspan
+      ..rowSpan = rowspan;
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endCell() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startDecorated({
+    required final List<StyledText> leading,
+    final int leadingWidth = 0,
+    final String? leadingHint,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutDecorated()
+      ..leading = leading
+      ..leadingWidth = leadingWidth
+      ..leadingHint = leadingHint;
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endDecorated() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void filler({
+    required final String char,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutFiller()
+      ..char = char
+      ..tags = tags;
+    _currentNodes.add(node);
+  }
+
+  @override
+  void writeNode(final LogNode node) {
+    _currentNodes.add(node);
+  }
 
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
       other is LogDocument &&
-          runtimeType == other.runtimeType &&
           listEquals(nodes, other.nodes) &&
           mapEquals(metadata, other.metadata);
 
   @override
   int get hashCode => Object.hash(
         Object.hashAll(nodes),
-        Object.hashAll(
-          (metadata.entries.toList()
-                ..sort((final a, final b) => a.key.compareTo(b.key)))
-              .map((final e) => Object.hash(e.key, e.value)),
-        ),
+        Object.hashAll(metadata.keys),
+        Object.hashAll(metadata.values),
       );
 }
 

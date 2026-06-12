@@ -51,7 +51,7 @@ class StandardPipelineFactory implements LogPipelineFactory {
   const StandardPipelineFactory();
 
   @override
-  LogDocument checkoutDocument() => LogDocument();
+  LogDocument checkoutDocument() => StandardDocument();
 
   @override
   HeaderNode checkoutHeader() => HeaderNode(segments: []);
@@ -98,6 +98,27 @@ class StandardPipelineFactory implements LogPipelineFactory {
 
   @override
   ListNode checkoutList() => ListNode([]);
+
+  @override
+  AlignmentNode checkoutAlignment() => AlignmentNode(children: []);
+
+  @override
+  TableNode checkoutTable() => TableNode(children: []);
+
+  @override
+  TableRowNode checkoutTableRow() => TableRowNode(children: []);
+
+  @override
+  TableCellNode checkoutTableCell() => TableCellNode(children: []);
+
+  @override
+  Map<K, V> checkoutDataMap<K, V>() => <K, V>{};
+
+  @override
+  List<T> checkoutDataList<T>() => <T>[];
+
+  @override
+  Set<T> checkoutDataSet<T>() => <T>{};
 
   @override
   HandlerContext checkoutContext() => HandlerContext();

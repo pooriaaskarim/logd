@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -19,7 +18,7 @@ void main() {
   const httpUrl = 'https://example.com/logs';
   const wsUrl = 'ws://example.com/logs';
 
-  const testEntry = LogEntry(
+  final testEntry = LogEntry(
     loggerName: 'test',
     origin: 'main',
     level: LogLevel.info,

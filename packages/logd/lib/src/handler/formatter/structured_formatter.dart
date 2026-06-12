@@ -26,26 +26,25 @@ final class StructuredFormatter implements LogFormatter {
     final LogDocument document,
     final LogPipelineFactory factory,
   ) {
-    // 1. Phased Header (Legacy 1.0 Style: 3 separate lines)
+    // 1. Header (Combined single line)
+    final segments = factory.checkoutDataList<StyledText>();
 
-    // Phase 1: Timestamp
+    // Timestamp
     if (metadata.contains(LogMetadata.timestamp)) {
-      document.nodes.add(
-        _buildHeaderNode(factory, [
+      segments
+        ..add(
           StyledText(
             entry.timestamp,
             tags: LogTag.timestamp | LogTag.header,
           ),
-        ]),
-      );
+        )
+        ..add(RenderTokens.styledSpace);
     }
 
-    // Phase 2: Level & Logger
-    final levelLoggerSegments = [
-      RenderTokens.getLevelToken(entry.level),
-    ];
+    // Level & Logger
+    segments.add(RenderTokens.getLevelToken(entry.level));
     if (metadata.contains(LogMetadata.logger)) {
-      levelLoggerSegments
+      segments
         ..add(RenderTokens.styledSpace)
         ..add(RenderTokens.styledOpenBracket)
         ..add(
@@ -56,21 +55,23 @@ final class StructuredFormatter implements LogFormatter {
         )
         ..add(RenderTokens.styledCloseBracket);
     }
-    document.nodes.add(_buildHeaderNode(factory, levelLoggerSegments));
 
-    // Phase 3: Origin
+    // Origin
     if (metadata.contains(LogMetadata.origin)) {
-      document.nodes.add(
-        _buildHeaderNode(factory, [
-          RenderTokens.styledOpenBracket,
+      segments
+        ..add(RenderTokens.styledSpace)
+        ..add(RenderTokens.styledOpenBracket)
+        ..add(
           StyledText(
             entry.origin,
             tags: LogTag.origin | LogTag.header,
           ),
-          RenderTokens.styledCloseBracket,
-        ]),
-      );
+        )
+        ..add(RenderTokens.styledCloseBracket);
     }
+
+    _writeHeader(document, factory, segments);
+    factory.release(segments);
 
     // 2. Body (----| Message)
     final msgNode = factory.checkoutMessage()
@@ -79,9 +80,10 @@ final class StructuredFormatter implements LogFormatter {
     final msgDecorated = factory.checkoutDecorated()
       ..leadingWidth = 5
       ..leadingHint = DecorationHint.structuredMessage
-      ..leading = const [RenderTokens.styledMessagePrefix]
+      ..leading = (factory.checkoutDataList<StyledText>()
+        ..add(RenderTokens.styledMessagePrefix))
       ..children.add(msgPara);
-    document.nodes.add(msgDecorated);
+    document.writeNode(msgDecorated);
 
     // 3. Error
     if (entry.error != null) {
@@ -91,9 +93,10 @@ final class StructuredFormatter implements LogFormatter {
       final errDecorated = factory.checkoutDecorated()
         ..leadingWidth = 5
         ..leadingHint = DecorationHint.structuredMessage
-        ..leading = const [RenderTokens.styledMessagePrefix]
+        ..leading = (factory.checkoutDataList<StyledText>()
+          ..add(RenderTokens.styledMessagePrefix))
         ..children.add(errPara);
-      document.nodes.add(errDecorated);
+      document.writeNode(errDecorated);
     }
 
     // 4. Stack Trace
@@ -107,9 +110,10 @@ final class StructuredFormatter implements LogFormatter {
         final d = factory.checkoutDecorated()
           ..leadingWidth = 5
           ..leadingHint = DecorationHint.structuredMessage
-          ..leading = const [RenderTokens.styledMessagePrefix]
+          ..leading = (factory.checkoutDataList<StyledText>()
+            ..add(RenderTokens.styledMessagePrefix))
           ..children.add(para);
-        document.nodes.add(d);
+        document.writeNode(d);
       }
     } else if (entry.stackTrace != null) {
       final rawLines = entry.stackTrace.toString().split('\n');
@@ -123,17 +127,25 @@ final class StructuredFormatter implements LogFormatter {
         final d = factory.checkoutDecorated()
           ..leadingWidth = 5
           ..leadingHint = DecorationHint.structuredMessage
-          ..leading = const [StyledText('----|', tags: LogTag.header)]
+          ..leading = (factory.checkoutDataList<StyledText>()
+            ..add(const StyledText('----|', tags: LogTag.header)))
           ..children.add(para);
-        document.nodes.add(d);
+        document.writeNode(d);
       }
     }
   }
 
-  LogNode _buildHeaderNode(
+  void _writeHeader(
+    final LogDocument document,
     final LogPipelineFactory factory,
     final List<StyledText> segments,
   ) {
+    document.startDecorated(
+      leading: (factory.checkoutDataList<StyledText>()
+        ..add(RenderTokens.styledHeaderPrefix)),
+      leadingWidth: 4,
+      leadingHint: DecorationHint.structuredHeader,
+    );
     final header = factory.checkoutHeader()..segments.addAll(segments);
     final filler = factory.checkoutFiller()
       ..char = '_'
@@ -141,11 +153,9 @@ final class StructuredFormatter implements LogFormatter {
     final row = factory.checkoutRow()
       ..children.add(header)
       ..children.add(filler);
-    return factory.checkoutDecorated()
-      ..leadingWidth = 4
-      ..leadingHint = DecorationHint.structuredHeader
-      ..leading = const [RenderTokens.styledHeaderPrefix]
-      ..children.add(row);
+    document
+      ..writeNode(row)
+      ..endDecorated();
   }
 
   @override

@@ -2,7 +2,6 @@
 // and decorators.
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../test_helpers.dart';
 
@@ -11,7 +10,7 @@ void main() {
     test('StructuredFormatter handles null error and stackTrace gracefully',
         () {
       const formatter = StructuredFormatter();
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.error,
@@ -38,7 +37,7 @@ void main() {
     test('StructuredFormatter handles very long logger name by wrapping header',
         () {
       const formatter = StructuredFormatter();
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'very_long_logger_name_that_exceeds_line_length',
         origin: 'test',
         level: LogLevel.info,
@@ -73,7 +72,7 @@ void main() {
         sink: ConsoleSink(),
       );
 
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
@@ -100,7 +99,7 @@ void main() {
 
     test('JsonPrettyFormatter handles null error by omitting the field', () {
       const formatter = JsonPrettyFormatter();
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.error,

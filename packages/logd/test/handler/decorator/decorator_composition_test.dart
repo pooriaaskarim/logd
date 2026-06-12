@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -7,7 +6,7 @@ import '../test_helpers.dart';
 void main() {
   group('Decorator Composition', () {
     final lines = ['msg line 1', 'msg line 2'];
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test',
       origin: 'test',
       level: LogLevel.info,
@@ -125,7 +124,7 @@ void main() {
       const box = BoxDecorator();
       // 3. Indent it
       const hierarchy = HierarchyDepthPrefixDecorator(indent: '>> ');
-      const deepEntry = LogEntry(
+      final deepEntry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,

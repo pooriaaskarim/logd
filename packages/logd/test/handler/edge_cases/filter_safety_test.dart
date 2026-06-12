@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -8,7 +7,7 @@ void main() {
       // In Dart, Regexp(invalid) throws at construction.
       // But verify RegexFilter with complex patterns.
       final filter = RegexFilter(RegExp('[a-z]+', caseSensitive: false));
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
@@ -25,21 +24,21 @@ void main() {
         RegexFilter(RegExp('danger')),
       ];
 
-      const entry1 = LogEntry(
+      final entry1 = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
         message: 'danger',
         timestamp: '10:00:00',
       );
-      const entry2 = LogEntry(
+      final entry2 = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.warning,
         message: 'safe',
         timestamp: '10:00:00',
       );
-      const entry3 = LogEntry(
+      final entry3 = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.error,
@@ -66,7 +65,7 @@ void main() {
 
     test('RegexFilter handles empty messages', () {
       final filter = RegexFilter(RegExp('test'));
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,

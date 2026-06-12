@@ -1,13 +1,12 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../test_helpers.dart';
 
 void main() {
   group('PlainFormatter Semantic Verification', () {
     // A standard entry with a long message
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test.logger',
       origin: 'main.dart',
       level: LogLevel.info,

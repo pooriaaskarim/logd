@@ -1,34 +1,35 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:logd/src/handler/handler.dart';
 
 import 'formatter_benchmark.dart';
 
-class PipelineBenchmark extends BenchmarkBase {
+class PipelineBenchmark extends AsyncBenchmarkBase {
   PipelineBenchmark() : super('FullPipeline');
 
   late LogEntry entry;
   late Handler handler;
 
   @override
-  void setup() {
+  Future<void> setup() async {
     entry = createEntry();
-    handler = Handler(
-      formatter: const PlainFormatter(),
+    handler = const Handler(
+      formatter: PlainFormatter(),
       sink: RecordingSink(),
-      engine: const StandardEngine(),
+      engine: StandardEngine(),
     );
   }
 
   @override
-  void run() {
-    handler.log(entry);
+  Future<void> run() async {
+    await handler.log(entry);
   }
 }
 
 base class RecordingSink extends LogSink<LogDocument> {
+  const RecordingSink();
+
   @override
   Future<void> output(
     final LogDocument document,
@@ -36,32 +37,31 @@ base class RecordingSink extends LogSink<LogDocument> {
     final LogLevel level,
     final LogPipelineFactory factory,
   ) async {
-    // Release immediately to simulate memory pressure/cleanup
-    document.releaseRecursive(factory);
+    // Evaluates nodes to simulate a real sink, but does NOT release.
+    // The engine handles the lifecycle.
+    for (final _ in document.nodes) {}
   }
 }
 
-class ArenaPipelineBenchmark extends BenchmarkBase {
+class ArenaPipelineBenchmark extends AsyncBenchmarkBase {
   ArenaPipelineBenchmark() : super('ArenaFullPipeline');
 
   late LogEntry entry;
   late Handler handler;
 
   @override
-  void setup() {
+  Future<void> setup() async {
     entry = createEntry();
-    // Use an explicitly pooled configuration if possible,
-    // but here we just test the default which uses Arena.
-    handler = Handler(
-      formatter: const PlainFormatter(),
+    handler = const Handler(
+      formatter: PlainFormatter(),
       sink: RecordingSink(),
-      engine: const ArenaEngine(),
+      engine: ArenaEngine(),
     );
   }
 
   @override
-  void run() {
-    handler.log(entry);
+  Future<void> run() async {
+    await handler.log(entry);
   }
 }
 
@@ -89,7 +89,7 @@ class ManualPipelineBenchmark extends BenchmarkBase {
     try {
       formatter.format(entry, doc, factory);
       final physical = layout.layout(doc, LogLevel.info);
-      final context = HandlerContext();
+      final context = factory.checkoutContext();
       encoder.encode(entry, doc, LogLevel.info, context, factory);
       context.takeBytes();
       physical.releaseRecursive(factory);
@@ -99,9 +99,9 @@ class ManualPipelineBenchmark extends BenchmarkBase {
   }
 }
 
-void runPipelineBenchmarks() {
+Future<void> runPipelineBenchmarks() async {
   print('\n--- Pipeline Throughput ---');
-  PipelineBenchmark().report();
-  ArenaPipelineBenchmark().report();
+  await PipelineBenchmark().report();
+  await ArenaPipelineBenchmark().report();
   ManualPipelineBenchmark().report();
 }

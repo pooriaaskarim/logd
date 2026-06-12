@@ -4,9 +4,8 @@ part of 'logger.dart';
 ///
 /// Single source of truth for all log data. Handlers receive
 /// this object and decide how to format and where to output.
-@internal
 class LogEntry {
-  const LogEntry({
+  LogEntry({
     required this.loggerName,
     required this.origin,
     required this.level,
@@ -17,20 +16,28 @@ class LogEntry {
     this.stackTrace,
   });
 
+  @internal
+  LogEntry.pooled()
+      : loggerName = '',
+        origin = '',
+        level = LogLevel.debug,
+        message = '',
+        timestamp = '';
+
   /// Name of the logger that created this entry.
-  final String loggerName;
+  String loggerName;
 
   /// Caller origin string (e.g., 'Class.method').
-  final String origin;
+  String origin;
 
   /// Log severity level.
-  final LogLevel level;
+  LogLevel level;
 
   /// Log message content.
-  final String message;
+  String message;
 
   /// Formatted timestamp.
-  final String timestamp;
+  String timestamp;
 
   /// Hierarchy depth calculated from [loggerName].
   ///
@@ -45,13 +52,47 @@ class LogEntry {
   }
 
   /// Parsed stack frames if included.
-  final List<CallbackInfo>? stackFrames;
+  List<CallbackInfo>? stackFrames;
 
   /// Associated error object.
-  final Object? error;
+  Object? error;
 
   /// Full stack trace.
-  final StackTrace? stackTrace;
+  StackTrace? stackTrace;
+
+  /// Resets the entry for reuse in the pool.
+  void reset() {
+    loggerName = '';
+    origin = '';
+    level = LogLevel.debug;
+    message = '';
+    timestamp = '';
+    stackFrames = null;
+    error = null;
+    stackTrace = null;
+  }
+
+  /// Creates a copy of this entry with optional overrides.
+  LogEntry copyWith({
+    final String? loggerName,
+    final String? origin,
+    final LogLevel? level,
+    final String? message,
+    final String? timestamp,
+    final List<CallbackInfo>? stackFrames,
+    final Object? error,
+    final StackTrace? stackTrace,
+  }) =>
+      LogEntry(
+        loggerName: loggerName ?? this.loggerName,
+        origin: origin ?? this.origin,
+        level: level ?? this.level,
+        message: message ?? this.message,
+        timestamp: timestamp ?? this.timestamp,
+        stackFrames: stackFrames ?? this.stackFrames,
+        error: error ?? this.error,
+        stackTrace: stackTrace ?? this.stackTrace,
+      );
 
   @override
   String toString() => '[$level] (depth $hierarchyDepth) $origin: $message';

@@ -1,12 +1,11 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
 
 void main() {
   group('LogColorScheme Tag-Specific Overrides', () {
-    const infoEntry = LogEntry(
+    final infoEntry = LogEntry(
       loggerName: 'test',
       origin: 'test',
       level: LogLevel.info,

@@ -1,11 +1,10 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../test_helpers.dart';
 
 void main() {
   group('StructuredFormatter', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test',
       origin: 'main.dart',
       level: LogLevel.info,
@@ -19,18 +18,16 @@ void main() {
       try {
         final lines = renderLines(doc);
 
-        // Line 0: Timestamp
+        // Line 0: Combined Header
         expect(lines[0], startsWith('____'));
         expect(lines[0], contains('2025-01-01 10:00:00'));
+        expect(lines[0], contains('[INFO]'));
+        expect(lines[0], contains('[test]'));
+        expect(lines[0], contains('[main.dart]'));
 
-        // Line 1: Level + Logger
-        expect(lines[1], startsWith('____'));
-        expect(lines[1], contains('[INFO]'));
-        expect(lines[1], contains('[test]'));
-
-        // Line 2: Origin
-        expect(lines[2], startsWith('____'));
-        expect(lines[2], contains('[main.dart]'));
+        // Line 1: Message Body
+        expect(lines[1], startsWith('----|'));
+        expect(lines[1], contains('Hello World'));
       } finally {
         doc.releaseRecursive(Arena.instance);
       }
@@ -38,7 +35,7 @@ void main() {
 
     test('wraps long message', () {
       const formatter = StructuredFormatter();
-      const longEntry = LogEntry(
+      final longEntry = LogEntry(
         loggerName: 't',
         origin: 'o',
         level: LogLevel.info,

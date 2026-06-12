@@ -1,7 +1,6 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'package:benchmark_harness/benchmark_harness.dart';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'formatter_benchmark.dart';
 
 // No-op sink for benchmarking
