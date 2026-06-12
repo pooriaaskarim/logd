@@ -131,7 +131,9 @@ Native    █████████  4,399 ops/sec (320.0µs)
 
 ## 5. Architectural Recommendations
 
-1. **Adopt `ArenaEngine` as the Application Default**:
-   * It provides 100% layout fidelity guarantees and a massive safety margin while reducing GC pressure to zero on the Dart thread.
-2. **Isolate `NativeEngine` for Pure Performance Pipelines**:
-   * Restrict `NativeEngine` to standard human/JSON CLI profiles. Do not mix FFI-offloading with complex structured text protocols (TOON/Markdown) to avoid fallback rendering degradation.
+1. **StandardEngine is the Universal Default**:
+   * Out-of-the-box compatibility across Web, Desktop, Mobile, and CLI. Fully guarantees layout parity with zero platform bindings.
+2. **Opt into `ArenaEngine` for High-Throughput VM/Flutter Applications**:
+   * It provides 100% layout fidelity guarantees and eliminates GC pressure on the Dart thread by using a LIFO recycler pool.
+3. **Isolate `NativeEngine` for Pure Performance CLI Pipelines**:
+   * Restrict `NativeEngine` to standard human/JSON CLI profiles on VM. Do not mix FFI-offloading with complex structured text protocols (TOON/Markdown) to avoid double-formatting fallback rendering degradation.

@@ -1,11 +1,13 @@
 # Changelog
 
-## 0.8.0 (Work in Progress): The High-Performance Engine Milestone
+## 0.8.0: The High-Performance Engine Milestone
 
-This milestone introduces a significant leap in logging performance by transitioning to a **Binary IR (B-IR)** pipeline and an **FFI-ready** execution engine. It also matures the **TOON Schema** system for improved AI-agent interoperability.
+This milestone introduces a significant leap in logging performance by introducing a **Binary IR (B-IR)** pipeline, an **FFI-ready** execution engine, and an **Arena** object recycling engine. It also matures the **TOON Schema** system for improved AI-agent interoperability.
 
 - ### High-Performance Engine & Binary IR
-  - **NativeEngine (FFI-Ready)**: Introduced a new execution engine that targets native platforms via B-IR. Achieves up to **237,000 ops/sec**, a ~13x improvement over standard heap engines.
+  - **StandardEngine (Default)**: Leverages standard Dart GC heap, ensuring out-of-the-box cross-platform support (including Web, Desktop, Mobile, and VM).
+  - **ArenaEngine (Opt-In)**: Uses isolate-local LIFO object pooling to eliminate GC pressure. Ideal for complex logs with many decorators.
+  - **NativeEngine (Experimental Opt-In)**: A new VM-only execution engine targeting native platforms via B-IR. Achieves up to **23,000+ ops/sec** (up to 2.7x speedup during narrow terminal wrapping) using direct native C-heap serialization.
   - **Binary IR (B-IR) v1**: A linearized, language-agnostic instruction stream designed for zero-copy FFI compatibility.
   - **Arena Pooling**: Hardened isolate-local object pooling for `ArenaDocument` and `LogNode` types, ensuring zero-allocation steady-state logging with restored semantic integrity.
   - **BinaryAnsiEncoder**: A reference native-compatible renderer that processes B-IR streams in a single pass.

@@ -209,15 +209,18 @@ Logger.configure('app', timestamp: timestamp);
  
  `logd` features a modular engine architecture to match your performance requirements:
  
-- **NativeEngine (Default)**: Leverages `dart:ffi` and a **Binary IR (B-IR)** instruction stream. On native platforms, it provides up to 13x higher throughput than standard engines.
+- **StandardEngine (Default)**: A reliable, platform-agnostic engine running on the Dart GC heap. Fully compatible with Web, Desktop, Mobile, and VM.
 - **ArenaEngine**: Uses isolate-local LIFO object pooling to eliminate GC pressure. Ideal for complex logs with many decorators.
-- **StandardEngine**: A reliable fallback that relies on the native Dart garbage collector.
+- **NativeEngine (Experimental)**: Leverages `dart:ffi` and a **Binary IR (B-IR)** instruction stream for native VM platforms.
 
 ```dart
-// NativeEngine is used by default on native platforms.
-// You can freeze inheritance to eliminate runtime lookups:
+// StandardEngine is used by default.
+// You can explicitly swap to ArenaEngine or NativeEngine in your Handler setup.
+// To optimize performance further, you can freeze inheritance:
 Logger.get('app').freezeInheritance(); 
 ```
+
+For a detailed walkthrough of each engine, including real-world benchmarks and isolate-offloading configuration, see the [Execution Engines Guide](../../doc/handler/engines.md).
 
 ## Use Cases
 
@@ -355,6 +358,8 @@ void main() {
 - **[Logger Philosophy](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/philosophy.md)** - Design principles and rationale
 - **[Logger Architecture](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/architecture.md)** - Implementation details
 - **[Handler Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/architecture.md)** - Pipeline and sink customization
+- **[Execution Engines Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/engines.md)** - Standard, Arena, and Native engines guide
+- **[Engine Stability Report](https://github.com/pooriaaskarim/logd/blob/master/doc/engine_stability_report.md)** - Engine profiling & memory lifecycle report
 - **[Migration Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/migration.md)** - Upgrading from legacy components
 - **[Decorator Composition](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/decorator_compositions.md)** - Execution priority and flow
 - **[Time Module](https://github.com/pooriaaskarim/logd/blob/master/doc/time/architecture.md)** - Timestamp and timezone handling
