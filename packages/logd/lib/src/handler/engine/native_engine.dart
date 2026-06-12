@@ -39,8 +39,8 @@ class NativeEngine implements LogEngine {
         irPtr = document.writer.finalize();
       } else {
         // Standard Path: Apply decorators to the object tree
-        for (final decorator in decorators) {
-          decorator.decorate(document, entry, arena);
+        if (decorators.isNotEmpty) {
+          DecoratorPipeline(decorators).apply(document, entry, arena);
         }
         irPtr = document.writer.write(document);
       }
