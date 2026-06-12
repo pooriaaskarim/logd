@@ -1,5 +1,5 @@
 import 'dart:ffi' as ffi;
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart';
 
