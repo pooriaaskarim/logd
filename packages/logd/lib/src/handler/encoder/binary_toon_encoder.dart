@@ -93,7 +93,7 @@ final class BinaryToonEncoder {
         final val = rowMap[col.toString()];
         return _escape(val?.toString() ?? '', delimiter);
       }).join(delimiter);
-      
+
       buffer.write(row);
       if (i < rows.length - 1) {
         buffer.write('\n');

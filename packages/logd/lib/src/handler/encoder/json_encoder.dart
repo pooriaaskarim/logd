@@ -61,10 +61,7 @@ class JsonEncoder implements LogEncoder {
       }
     }
 
-    // Fallback: Serialize all nodes via toString() and possibly wrap in a list
-    // if there are multiple.
-    final list =
-        nodes.map((final n) => n is MapNode ? n.map : n.toString()).toList();
+    final list = nodes.map(_serializeNode).toList();
 
     context.writeString(
       encoder.convert(
@@ -72,4 +69,68 @@ class JsonEncoder implements LogEncoder {
       ),
     );
   }
+
+  Object? _serializeNode(final LogNode node) => switch (node) {
+        final MessageNode n => {
+            'type': 'message',
+            'text': n.segments.map((final s) => s.text).join(),
+            if (n.tags != LogTag.none) 'tags': n.tags,
+          },
+        final ErrorNode n => {
+            'type': 'error',
+            'text': n.segments.map((final s) => s.text).join(),
+            if (n.tags != LogTag.none) 'tags': n.tags,
+          },
+        final FooterNode n => {
+            'type': 'footer',
+            'text': n.segments.map((final s) => s.text).join(),
+            if (n.tags != LogTag.none) 'tags': n.tags,
+          },
+        final HeaderNode n => {
+            'type': 'header',
+            'text': n.segments.map((final s) => s.text).join(),
+            if (n.tags != LogTag.none) 'tags': n.tags,
+          },
+        final MapNode n => n.map,
+        final ListNode n => n.list,
+        final BoxNode n => {
+            'type': 'box',
+            'border': n.border.name,
+            if (n.title != null) 'title': n.title!.text,
+            'children': n.children.map(_serializeNode).toList(),
+          },
+        final IndentationNode n => {
+            'type': 'indent',
+            'value': n.indentString,
+            'children': n.children.map(_serializeNode).toList(),
+          },
+        final AlignmentNode n => {
+            'type': 'alignment',
+            'value': n.alignment.name,
+            'children': n.children.map(_serializeNode).toList(),
+          },
+        final TableNode n => {
+            'type': 'table',
+            if (n.columnWidths.isNotEmpty) 'columnWidths': n.columnWidths,
+            'rows': n.children.map(_serializeNode).toList(),
+          },
+        final TableRowNode n => n.children.map(_serializeNode).toList(),
+        final TableCellNode n => {
+            'type': 'cell',
+            if (n.colSpan > 1) 'colSpan': n.colSpan,
+            if (n.rowSpan > 1) 'rowSpan': n.rowSpan,
+            'children': n.children.map(_serializeNode).toList(),
+          },
+        final LayoutNode n => {
+            'type':
+                n.runtimeType.toString().toLowerCase().replaceAll('node', ''),
+            'children': n.children.map(_serializeNode).toList(),
+          },
+        final FillerNode n => {
+            'type': 'filler',
+            'char': n.char,
+            'count': n.count,
+          },
+        _ => node.toString(),
+      };
 }

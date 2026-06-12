@@ -7,12 +7,16 @@ void main() {
   group('Binary IR Standardization', () {
     test('Linearizes a simple log document into B-IR buffer', () {
       final arena = Arena.instance;
-
+      final doc = arena.checkoutDocument() as ArenaDocument;
       // 1. Build a document
-      final doc = arena.checkoutDocument();
       final header = arena.checkoutHeader();
-      header.segments
-          .add(const StyledText('INFO', style: LogStyle(bold: true)));
+      header.segments.add(
+        const StyledText(
+          'INFO',
+          style: LogStyle(bold: true),
+          tags: LogTag.header,
+        ),
+      );
       doc.nodes.add(header);
 
       final msg = arena.checkoutMessage();
@@ -20,7 +24,7 @@ void main() {
       doc.nodes.add(msg);
 
       // 2. Standardize
-      final writer = BinaryIRWriter(arena);
+      final writer = BinaryIRWriter(doc);
       final irPtr = writer.write(doc);
 
       // 3. Verify Header
@@ -32,10 +36,10 @@ void main() {
       // Offset: 16 (Header)
       final op1 = irPtr + 16;
       expect(op1[0], BinaryIR.opText);
-      expect(op1.cast<ffi.Uint16>()[1], LogTag.header);
+      expect(op1.cast<ffi.Uint32>()[1], LogTag.header);
 
       // Verify String Data in Op1
-      final strLen = (op1 + 12).cast<ffi.Uint32>()[0];
+      final strLen = op1.cast<ffi.Uint32>()[3];
       expect(strLen, 4); // "INFO"
 
       // 5. Cleanup

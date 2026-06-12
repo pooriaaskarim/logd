@@ -1,6 +1,5 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../test_helpers.dart';
 

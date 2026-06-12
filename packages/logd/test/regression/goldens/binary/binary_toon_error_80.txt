@@ -1,0 +1,1 @@
+{[2;31m"timestamp"[0m: [32m"2025-01-01 12:00:05"[0m, [2;31m"logger"[0m: [32m"BinaryError"[0m, [2;31m"origin"[0m: [32m"error.dart:1"[0m, [2;31m"level"[0m: [32m"ERROR"[0m, [2;31m"message"[0m: [32m"Critical system failure detected in the binary pipeline!"[0m, [2;31m"error"[0m: [32m""[0m, [2;31m"stackTrace"[0m: [32m""[0m}

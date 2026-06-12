@@ -29,12 +29,13 @@ final class PlainFormatter implements LogFormatter {
     final LogPipelineFactory factory,
   ) {
     // 1. Header Flow (Level + Metadata)
-    final headerSegments = <StyledText>[
-      StyledText(
-        '[${entry.level.name.toUpperCase()}]',
-        tags: LogTag.level,
-      ),
-    ];
+    final headerSegments = factory.checkoutDataList<StyledText>()
+      ..add(
+        StyledText(
+          '[${entry.level.name.toUpperCase()}]',
+          tags: LogTag.level,
+        ),
+      );
 
     for (final meta in metadata) {
       final value = meta.getValue(entry);

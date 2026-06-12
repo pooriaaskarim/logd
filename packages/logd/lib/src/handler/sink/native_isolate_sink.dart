@@ -41,13 +41,13 @@ base class NativeIsolateSink extends LogSink<dynamic> {
     });
 
     _commandPort = await receivePort.first as SendPort;
-    
+
     // Flush buffer
     for (final msg in _buffer) {
       _commandPort!.send(msg);
     }
     _buffer.clear();
-    
+
     _ready.complete();
   }
 

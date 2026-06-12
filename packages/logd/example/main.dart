@@ -24,6 +24,7 @@ void main() async {
       _showcasePipelines();
       _showcaseTimeAndLocalization();
       _showcaseAdvancedLayouts();
+      _showcaseGridLayouts();
       await _showcaseNetwork();
 
       print('\n\x1B[1mTutorial Complete!\x1B[0m');
@@ -188,6 +189,92 @@ void _showcaseAdvancedLayouts() {
     )
   ]);
   Logger.get('app.vibrant').info('Inspection of complex data.');
+}
+
+/// 6. Grid Layouts: Tables & Columns
+/// One of the most powerful features of logd is its ability to render true
+/// multi-column grids in the terminal.
+void _showcaseGridLayouts() {
+  _section('6. Grid Layouts');
+
+  final gridHandler = Handler(
+    formatter: const TableExampleFormatter(),
+    sink: const ConsoleSink(),
+  );
+
+  Logger.configure('app.grid', handlers: [gridHandler]);
+  Logger.get('app.grid').info('Rendering a professional report...');
+}
+
+class TableExampleFormatter implements LogFormatter {
+  const TableExampleFormatter();
+
+  @override
+  Set<LogMetadata> get metadata => {};
+
+  @override
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogPipelineFactory factory,
+  ) {
+    document.startBox(tags: LogTag.header);
+    document.startAlignment(LogAlignment.center);
+    document.text('SYSTEM PERFORMANCE REPORT',
+        style: const LogStyle(bold: true));
+    document.endAlignment();
+    document.endBox();
+
+    document.newline();
+
+    // 3-column table with specific widths
+    document.startTable(columnWidths: [15, 30, 10]);
+
+    // Header Row
+    document.startRow();
+    document.startCell();
+    document.text('COMPONENT', style: const LogStyle(bold: true));
+    document.endCell();
+    document.startCell();
+    document.text('STATUS & METRICS', style: const LogStyle(bold: true));
+    document.endCell();
+    document.startCell();
+    document.text('LOAD', style: const LogStyle(bold: true));
+    document.endCell();
+    document.endRow();
+
+    // Data Row 1
+    document.startRow();
+    document.startCell();
+    document.text('Database');
+    document.endCell();
+    document.startCell();
+    document.text('Operational\nLatency: 12ms');
+    document.endCell();
+    document.startCell();
+    document.startAlignment(LogAlignment.right);
+    document.text('Low');
+    document.endAlignment();
+    document.endCell();
+    document.endRow();
+
+    // Data Row 2 (with wrapping content)
+    document.startRow();
+    document.startCell();
+    document.text('API Gateway');
+    document.endCell();
+    document.startCell();
+    document.text('Stable - Processing 1.2k req/sec with no drops');
+    document.endCell();
+    document.startCell();
+    document.startAlignment(LogAlignment.right);
+    document.text('Medium');
+    document.endAlignment();
+    document.endCell();
+    document.endRow();
+
+    document.endTable();
+  }
 }
 
 /// 6. High-Performance Network Logging

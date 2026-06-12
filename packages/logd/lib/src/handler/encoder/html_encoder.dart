@@ -211,6 +211,40 @@ ${_css()}
         context.writeString('<p class="log-line">');
         _renderContent(context, node, level);
         context.writeString('</p>\n');
+      case AlignmentNode():
+        final align = node.alignment.name;
+        context.writeString(
+          '<div class="log-alignment" style="text-align: $align">',
+        );
+        for (final child in node.children) {
+          _renderNode(context, child, document, level);
+        }
+        context.writeString('</div>\n');
+      case TableNode():
+        context.writeString(
+          '<div class="log-table" style="display: grid; grid-template-columns:'
+          ' repeat(${node.columnWidths.length}, auto)">',
+        );
+        for (final child in node.children) {
+          _renderNode(context, child, document, level);
+        }
+        context.writeString('</div>\n');
+      case TableRowNode():
+        context.writeString(
+          '<div class="log-table-row" style="display: contents">',
+        );
+        for (final child in node.children) {
+          _renderNode(context, child, document, level);
+        }
+        context.writeString('</div>\n');
+      case TableCellNode():
+        final style =
+            'grid-column: span ${node.colSpan}; grid-row: span ${node.rowSpan}';
+        context.writeString('<div class="log-table-cell" style="$style">');
+        for (final child in node.children) {
+          _renderNode(context, child, document, level);
+        }
+        context.writeString('</div>\n');
     }
   }
 

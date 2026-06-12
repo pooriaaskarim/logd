@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../test_helpers.dart';
 
@@ -13,7 +12,7 @@ void main() {
       const formatter = StructuredFormatter(
         metadata: {LogMetadata.logger, LogMetadata.timestamp},
       );
-      const entry = LogEntry(
+      final entry = LogEntry(
         level: LogLevel.info,
         message: 'Hello Markdown',
         loggerName: 'test',
@@ -28,10 +27,10 @@ void main() {
         encoder.encode(entry, document, LogLevel.info, context, factory);
         final output = const Utf8Decoder().convert(context.takeBytes());
 
-        // StructuredFormatter now has joined headers: Timestamp • [INFO] [test]
+        // StructuredFormatter now has joined headers: Timestamp [INFO] [test]
         expect(
           output,
-          contains('### ℹ️ 2023-10-27T10:00:00.000Z • [INFO] [test]'),
+          contains('### ℹ️ 2023-10-27T10:00:00.000Z [INFO] [test]'),
         );
         expect(output, contains('**Hello Markdown**'));
         expect(output, contains('---'));
@@ -69,7 +68,7 @@ void main() {
 
     test('renders JsonFormatter map as a code block', () {
       const formatter = JsonFormatter(metadata: {});
-      const entry = LogEntry(
+      final entry = LogEntry(
         level: LogLevel.info,
         message: 'JSON Event',
         loggerName: 'test',

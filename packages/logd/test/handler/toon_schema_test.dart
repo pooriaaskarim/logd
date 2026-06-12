@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 
 void main() {
   group('TOON Schema Maturity', () {
@@ -8,7 +7,7 @@ void main() {
       const formatter = ToonFormatter(
         metadata: {LogMetadata.timestamp},
       );
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         level: LogLevel.info,
         message: 'hello',
@@ -38,7 +37,7 @@ void main() {
         metadata: {LogMetadata.timestamp},
         explicitSchema: true,
       );
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         level: LogLevel.info,
         message: 'hello',
@@ -74,7 +73,7 @@ void main() {
         metadata: {LogMetadata.logger},
         explicitSchema: true,
       );
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         level: LogLevel.debug,
         message: 'pretty',

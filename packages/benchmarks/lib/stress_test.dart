@@ -1,9 +1,8 @@
 // ignore_for_file: invalid_use_of_internal_member, implementation_imports
 import 'dart:io';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 
-final entry = const LogEntry(
+final entry = LogEntry(
   loggerName: 'bench.logger.a.b.c',
   level: LogLevel.info,
   message:
@@ -33,13 +32,13 @@ class Metrics {
   }
 }
 
-Metrics profilePipeline(
+Future<Metrics> profilePipeline(
   String name, {
   required LogFormatter formatter,
   List<LogDecorator> decorators = const [],
   int width = 80,
   int iterations = 50000,
-}) {
+}) async {
   print('Profiling: $name ...');
 
   final latencies = <int>[];
@@ -54,7 +53,7 @@ Metrics profilePipeline(
 
   // Warmup
   for (int i = 0; i < 1000; i++) {
-    handler.log(entry);
+    await handler.log(entry);
   }
 
   // Memory baseline
@@ -68,7 +67,7 @@ Metrics profilePipeline(
     iterWatch.reset();
     iterWatch.start();
 
-    handler.log(entry);
+    await handler.log(entry);
 
     iterWatch.stop();
     latencies.add(iterWatch.elapsedMicroseconds);
@@ -113,10 +112,10 @@ base class RecordingEncoderSink extends LogSink<LogDocument> {
   }
 }
 
-void runStressTests() {
+Future<void> runStressTests() async {
   print('\n--- Stress Test & Profiling ---');
   print('### 1. The Raw Machine (JSON -> FileSink)');
-  final machine = profilePipeline(
+  final machine = await profilePipeline(
     'Raw Machine',
     formatter: const JsonFormatter(),
   );
@@ -124,7 +123,7 @@ void runStressTests() {
   print('');
 
   print('### 2. The Modern Human (Structured -> Box -> ConsoleSink)');
-  final human = profilePipeline(
+  final human = await profilePipeline(
     'Modern Human',
     formatter: const StructuredFormatter(),
     decorators: const [BoxDecorator()],
@@ -133,7 +132,7 @@ void runStressTests() {
   print('');
 
   print('### 3. The Framing Squeeze (Prefix -> Box -> ConsoleSink @ 40 width)');
-  final squeeze = profilePipeline(
+  final squeeze = await profilePipeline(
     'Framing Squeeze',
     formatter: const StructuredFormatter(),
     decorators: const [
@@ -144,13 +143,4 @@ void runStressTests() {
   );
   print(squeeze);
   print('');
-}
-
-void main() {
-  print('# Logd Handler Pipeline - Stress Test & Profiling');
-  print('**Dart:** ${Platform.version}');
-  print(
-      '**OS:** ${Platform.operatingSystem} ${Platform.operatingSystemVersion}\n');
-
-  runStressTests();
 }

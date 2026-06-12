@@ -8,19 +8,20 @@ part of '../handler.dart';
 /// zero-copy consumption by FFI-based engines.
 @internal
 final class BinaryIRWriter {
-  BinaryIRWriter(this._arena);
+  BinaryIRWriter(this._document);
 
-  final Arena _arena;
+  final ArenaDocument _document;
+  Arena get _arena => _document.arena;
   int _nodeCount = 0;
   ffi.Pointer<ffi.Uint8>? _header;
 
   /// Starts a new Binary IR session.
   void start() {
-    _arena.resetNative();
+    _arena.resetNative(_document);
     _nodeCount = 0;
 
     // Write Header (16 bytes)
-    _header = _arena.allocateNative(BinaryIR.headerSize);
+    _header = _arena.allocateNative(BinaryIR.headerSize, _document);
     _header!.cast<ffi.Uint32>()[0] = BinaryIR.magic;
     _header!.cast<ffi.Uint16>()[2] = BinaryIR.version;
     _header!.cast<ffi.Uint16>()[3] = 0; // Reserved
@@ -38,287 +39,408 @@ final class BinaryIRWriter {
   }
 
   /// Linearizes [document] into a native buffer and returns the head pointer.
-  /// (Legacy support for non-streaming paths)
   ffi.Pointer<ffi.Uint8> write(final LogDocument document) {
     start();
+    writeDocumentMetadata(document.metadata);
     for (final node in document.nodes) {
-      _nodeCount += _writeNode(node);
+      _writeNode(node);
     }
     return finalize();
   }
 
   /// Linearizes a single [node] into the current buffer.
   void writeNode(final LogNode node) {
-    _nodeCount += _writeNode(node);
+    _writeNode(node);
   }
 
-  int _writeNode(final LogNode node) {
-    int count = 1;
+  void _writeNode(final LogNode node) {
     switch (node) {
       case final ContentNode n:
-        count = n.segments.length; // Each segment is an opText
         _writeContentNode(n);
       case final BoxNode n:
-        _writeBoxNode(n);
+        writeBoxStart(border: n.border, style: n.style, tags: n.tags);
         for (final child in n.children) {
-          count += _writeNode(child);
+          _writeNode(child);
         }
-        _writeOp(BinaryIR.opBoxEnd);
+        writeBoxEnd();
       case final IndentationNode n:
-        _writeIndentNode(n);
+        writeIndentStart(n.indentString, style: n.style, tags: n.tags);
         for (final child in n.children) {
-          count += _writeNode(child);
+          _writeNode(child);
         }
-        _writeOp(BinaryIR.opIndentEnd);
+        writeIndentEnd();
       case final FillerNode n:
-        _writeFillerNode(n);
+        writeFiller(char: n.char, count: n.count, style: n.style, tags: n.tags);
       case final MapNode n:
-        _writeMapNode(n);
+        writeMap(n.map, tags: n.tags);
       case final ListNode n:
-        _writeListNode(n);
+        final map = <String, Object?>{};
+        for (int i = 0; i < n.list.length; i++) {
+          map[i.toString()] = n.list[i];
+        }
+        writeMap(map, tags: n.tags);
       case final GroupNode n:
-        count = 0;
         for (final child in n.children) {
-          count += _writeNode(child);
+          _writeNode(child);
         }
-        return count;
+      case final ParagraphNode n:
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeNewline();
+      case final SectionNode n:
+        _writeNode(n.summary);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
       case final DecoratedNode n:
-        count = 0;
-        final hasLeading = n.leading != null && n.leading!.isNotEmpty;
-        final isRepeating = n.repeatLeading && hasLeading;
-
-        if (isRepeating) {
-          // Use opIndentStart to ensure repetition on newlines
-          final indent = n.leading!.map((final e) => e.text).join();
-          _writeIndent(indent, tags: n.tags);
-          count++;
-        } else if (hasLeading) {
-          // One-time leading
-          for (final segment in n.leading!) {
-            _writeText(
-              segment.text,
-              style: segment.style?.bitmask ?? 0,
-              tags: n.tags,
-            );
-            count++;
-          }
-        }
-
-        // 2. Write Children
+        writeDecoratedStart(
+          leading: n.leading ?? [],
+          leadingWidth: n.leadingWidth,
+          leadingHint: n.leadingHint,
+          tags: n.tags,
+          repeatLeading: n.repeatLeading,
+          repeatTrailing: n.repeatTrailing,
+        );
         for (final child in n.children) {
-          count += _writeNode(child);
+          _writeNode(child);
         }
-
-        if (isRepeating) {
-          _writeOp(BinaryIR.opIndentEnd);
-          count++;
-        }
-
-        // 3. Write Trailing (One-time only for now)
+        writeDecoratedEnd();
         if (n.trailing != null) {
           for (final segment in n.trailing!) {
-            _writeText(
+            writeText(
               segment.text,
-              style: segment.style?.bitmask ?? 0,
+              style: segment.style,
               tags: n.tags,
             );
-            count++;
           }
         }
-        return count;
       case final RowNode n:
-        // Row nodes are structural but transparent to LIS for now
-        count = 0;
         for (final child in n.children) {
-          count += _writeNode(child);
+          _writeNode(child);
         }
-        return count;
-      default:
-        return 0;
+        writeNewline();
+      case final AlignmentNode n:
+        writeAlignmentStart(n.alignment, tags: n.tags);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeAlignmentEnd();
+      case final TableNode n:
+        writeTableStart(columnWidths: n.columnWidths, tags: n.tags);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeTableEnd();
+      case final TableRowNode n:
+        writeRowStart(tags: n.tags);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeRowEnd();
+      case final TableCellNode n:
+        writeCellStart(
+          columnSpan: n.colSpan,
+          rowSpan: n.rowSpan,
+          tags: n.tags,
+        );
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeCellEnd();
     }
-    return count;
+  }
+
+  void _writeContentNode(final ContentNode node) {
+    for (final segment in node.segments) {
+      writeText(
+        segment.text,
+        style: segment.style,
+        tags: segment.tags,
+      );
+    }
+  }
+
+  // --- Public Emitters (Streaming API) ---
+
+  void writeDocumentMetadata(final Map<String, Object?> metadata) {
+    if (metadata.isEmpty) {
+      return;
+    }
+    // Standardize GlobalMetadata to 16-byte header
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opGlobalMetadata;
+    ptr.cast<ffi.Uint32>()[2] = metadata.length;
+    _nodeCount++;
+
+    for (final entry in metadata.entries) {
+      final keyBytes = convert.utf8.encode(entry.key);
+      final valStr = entry.value.toString();
+      final valBytes = convert.utf8.encode(valStr);
+
+      final entryPtr = _arena.allocateNative(
+        8 + keyBytes.length + valBytes.length,
+        _document,
+      );
+      entryPtr.cast<ffi.Uint16>()[0] = 0;
+      entryPtr.cast<ffi.Uint16>()[1] = keyBytes.length;
+      entryPtr.cast<ffi.Uint32>()[1] = valBytes.length;
+
+      final keyPtr = entryPtr + 8;
+      for (int i = 0; i < keyBytes.length; i++) {
+        keyPtr[i] = keyBytes[i];
+      }
+      final valPtr = keyPtr + keyBytes.length;
+      for (int i = 0; i < valBytes.length; i++) {
+        valPtr[i] = valBytes[i];
+      }
+    }
   }
 
   void writeText(
     final String text, {
-    final LogStyle? style,
+    final Object? style,
     final int tags = LogTag.none,
   }) {
-    _writeText(text, style: style?.bitmask ?? 0, tags: tags);
+    final mask = style is LogStyle ? style.bitmask : (style is int ? style : 0);
+    final bytes = convert.utf8.encode(text);
+    final ptr = _arena.allocateNative(16 + bytes.length, _document);
+    ptr[0] = BinaryIR.opText;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[2] = mask;
+    ptr.cast<ffi.Uint32>()[3] = bytes.length;
+
+    final dataPtr = ptr + 16;
+    for (int i = 0; i < bytes.length; i++) {
+      dataPtr[i] = bytes[i];
+    }
     _nodeCount++;
   }
 
   void writeNewline() {
-    _writeOp(BinaryIR.opNewline);
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opNewline;
     _nodeCount++;
   }
 
   void writeBoxStart({
     final BoxBorderStyle border = BoxBorderStyle.rounded,
+    final Object? style,
     final int tags = LogTag.none,
   }) {
-    _writeOp(BinaryIR.opBoxStart, tags: tags, payload: border.index);
+    final mask = style is LogStyle ? style.bitmask : (style is int ? style : 0);
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opBoxStart;
+    ptr[1] = border.index;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[2] = mask;
     _nodeCount++;
   }
 
   void writeBoxEnd() {
-    _writeOp(BinaryIR.opBoxEnd);
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opBoxEnd;
     _nodeCount++;
   }
 
   void writeIndentStart(
     final String indent, {
-    final LogStyle? style,
+    final Object? style,
     final int tags = LogTag.none,
   }) {
-    _writeIndent(indent, style: style?.bitmask ?? 0, tags: tags);
+    final bytes = convert.utf8.encode(indent);
+    final ptr = _arena.allocateNative(16 + bytes.length, _document);
+    ptr[0] = BinaryIR.opIndentStart;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[3] = bytes.length;
+
+    final dataPtr = ptr + 16;
+    for (int i = 0; i < bytes.length; i++) {
+      dataPtr[i] = bytes[i];
+    }
     _nodeCount++;
   }
 
   void writeIndentEnd() {
-    _writeOp(BinaryIR.opIndentEnd);
-    _nodeCount++;
-  }
-
-  /// Writes global document metadata.
-  void writeDocumentMetadata(final Map<String, Object?> metadata) {
-    if (metadata.isEmpty) {
-      return;
-    }
-    _writeOp(BinaryIR.opGlobalMetadata, payload: metadata.length);
-    for (final entry in metadata.entries) {
-      _writeMetadataEntry(entry.key, entry.value);
-    }
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opIndentEnd;
     _nodeCount++;
   }
 
   void writeMap(
-    final Map<String, Object?> map, {
+    final Map<String, Object?> data, {
     final int tags = LogTag.none,
   }) {
-    _writeOp(BinaryIR.opMetadata, tags: tags, payload: map.length);
-    for (final entry in map.entries) {
-      _writeMetadataEntry(entry.key, entry.value);
+    final metaPtr = _arena.allocateNative(16, _document);
+    metaPtr[0] = BinaryIR.opMetadata;
+    metaPtr.cast<ffi.Uint32>()[1] = tags;
+    metaPtr.cast<ffi.Uint32>()[2] = data.length;
+    _nodeCount++;
+
+    for (final entry in data.entries) {
+      final keyBytes = convert.utf8.encode(entry.key);
+      final valStr = entry.value.toString();
+      final valBytes = convert.utf8.encode(valStr);
+
+      final entryPtr = _arena.allocateNative(
+        8 + keyBytes.length + valBytes.length,
+        _document,
+      );
+      entryPtr.cast<ffi.Uint16>()[0] = 0;
+      entryPtr.cast<ffi.Uint16>()[1] = keyBytes.length;
+      entryPtr.cast<ffi.Uint32>()[1] = valBytes.length;
+
+      final keyPtr = entryPtr + 8;
+      for (int i = 0; i < keyBytes.length; i++) {
+        keyPtr[i] = keyBytes[i];
+      }
+      final valPtr = keyPtr + keyBytes.length;
+      for (int i = 0; i < valBytes.length; i++) {
+        valPtr[i] = valBytes[i];
+      }
+    }
+  }
+
+  void writeTableStart({
+    final List<int>? columnWidths,
+    final int tags = LogTag.none,
+  }) {
+    final widths = columnWidths ?? const [];
+    final ptr = _arena.allocateNative(16 + (widths.length * 2), _document);
+    ptr[0] = BinaryIR.opTableStart;
+    ptr[1] = widths.length;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+
+    final widthsPtr = ptr.cast<ffi.Uint16>() + 8;
+    for (int i = 0; i < widths.length; i++) {
+      widthsPtr[i] = widths[i];
     }
     _nodeCount++;
   }
 
-  void _writeOp(final int op, {final int tags = 0, final int payload = 0}) {
-    final ptr = _arena.allocateNative(8);
-    ptr[0] = op;
-    ptr[1] = 0; // Padding
-    ptr.cast<ffi.Uint16>()[1] = tags;
-    ptr.cast<ffi.Uint32>()[1] = payload;
+  void writeTableEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opTableEnd;
+    _nodeCount++;
   }
 
-  void _writeText(
-    final String text, {
-    final int style = 0,
-    final int tags = 0,
+  void writeCellStart({
+    final int columnSpan = 1,
+    final int rowSpan = 1,
+    final int tags = LogTag.none,
   }) {
-    final bytes = convert.utf8.encode(text);
-    final len = bytes.length;
-    final ptr = _arena.allocateNative(16 + len);
-
-    ptr[0] = BinaryIR.opText;
-    ptr[1] = 0; // Padding
-    ptr.cast<ffi.Uint16>()[1] = tags;
-    ptr.cast<ffi.Uint32>()[1] = 0; // Color (Reserved)
-    ptr.cast<ffi.Uint32>()[2] = style;
-    ptr.cast<ffi.Uint32>()[3] = len;
-
-    (ptr + 16).asTypedList(len).setAll(0, bytes);
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opTableCellStart;
+    ptr[1] = columnSpan;
+    ptr[2] = rowSpan;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    _nodeCount++;
   }
 
-  void _writeIndent(
-    final String indent, {
-    final int style = 0,
-    final int tags = 0,
+  void writeCellEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opTableCellEnd;
+    _nodeCount++;
+  }
+
+  void writeRowStart({final int tags = LogTag.none}) {
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opTableRowStart;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    _nodeCount++;
+  }
+
+  void writeRowEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opTableRowEnd;
+    _nodeCount++;
+  }
+
+  void writeDecoratedStart({
+    required final List<StyledText> leading,
+    final int leadingWidth = 0,
+    final String? leadingHint,
+    final int tags = LogTag.none,
+    final bool repeatLeading = false,
+    final bool repeatTrailing = false,
   }) {
-    final bytes = convert.utf8.encode(indent);
-    final len = bytes.length;
-    final ptr = _arena.allocateNative(16 + len);
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opDecoratedStart;
+    ptr[1] = leadingWidth;
+    ptr[2] = repeatLeading ? 1 : 0;
+    ptr[3] = repeatTrailing ? 1 : 0;
+    ptr.cast<ffi.Uint32>()[1] = tags;
 
-    ptr[0] = BinaryIR.opIndentStart;
-    ptr[1] = 0; // Padding
-    ptr.cast<ffi.Uint16>()[1] = tags;
-    ptr.cast<ffi.Uint32>()[1] = 0; // Color (Reserved)
-    ptr.cast<ffi.Uint32>()[2] = style;
-    ptr.cast<ffi.Uint32>()[3] = len;
+    int hintIdx = 0;
+    switch (leadingHint) {
+      case DecorationHint.structuredHeader:
+        hintIdx = 1;
+      case DecorationHint.structuredSeparator:
+        hintIdx = 2;
+      case DecorationHint.structuredMessage:
+        hintIdx = 3;
+      case DecorationHint.hierarchyTrace:
+        hintIdx = 4;
+      case _:
+        break;
+    }
 
-    (ptr + 16).asTypedList(len).setAll(0, bytes);
-  }
+    ptr.cast<ffi.Uint32>()[2] = hintIdx;
+    ptr.cast<ffi.Uint32>()[3] = leading.length;
 
-  void _writeContentNode(final ContentNode n) {
-    for (final segment in n.segments) {
-      _writeText(
-        segment.text,
-        style: segment.style?.bitmask ?? 0,
-        tags: n.tags,
-      );
+    _nodeCount++;
+
+    for (final segment in leading) {
+      writeText(segment.text, style: segment.style, tags: segment.tags);
     }
   }
 
-  void _writeBoxNode(final BoxNode n) {
-    _writeOp(BinaryIR.opBoxStart, tags: n.tags, payload: n.border.index);
+  void writeDecoratedEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opDecoratedEnd;
+    _nodeCount++;
   }
 
-  void _writeIndentNode(final IndentationNode n) {
-    _writeIndent(n.indentString, style: n.style?.bitmask ?? 0, tags: n.tags);
-  }
-
-  void _writeFillerNode(final FillerNode n) {
-    final ptr = _arena.allocateNative(20);
+  void writeFiller({
+    required final String char,
+    final int count = 0,
+    final Object? style,
+    final int tags = LogTag.none,
+  }) {
+    final mask = style is LogStyle ? style.bitmask : (style is int ? style : 0);
+    final ptr = _arena.allocateNative(16, _document);
     ptr[0] = BinaryIR.opFiller;
-    ptr[1] = 0; // Padding
-    ptr.cast<ffi.Uint16>()[1] = n.tags;
-    ptr.cast<ffi.Uint32>()[1] = 0; // Color (Reserved)
-    ptr.cast<ffi.Uint32>()[2] = n.style?.bitmask ?? 0;
-    ptr.cast<ffi.Uint32>()[3] = n.count; // count
-    ptr[16] = n.char.isNotEmpty ? n.char.codeUnitAt(0) : 32; // char
+    ptr[1] = char.codeUnitAt(0);
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[2] = mask;
+    ptr.cast<ffi.Uint32>()[3] = count;
+    _nodeCount++;
   }
 
-  void _writeMapNode(final MapNode n) {
-    _writeOp(BinaryIR.opMetadata, payload: n.map.length);
-    for (final entry in n.map.entries) {
-      _writeMetadataEntry(entry.key, entry.value);
+  void writeAlignmentStart(
+    final LogAlignment alignment, {
+    final int tags = LogTag.none,
+  }) {
+    int alignIdx = 0;
+    switch (alignment) {
+      case LogAlignment.center:
+        alignIdx = 1;
+      case LogAlignment.right:
+        alignIdx = 2;
+      case _:
+        break;
     }
+
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opAlignmentStart;
+    ptr[1] = alignIdx;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    _nodeCount++;
   }
 
-  void _writeListNode(final ListNode n) {
-    _writeOp(BinaryIR.opMetadata, payload: n.list.length);
-    for (int i = 0; i < n.list.length; i++) {
-      _writeMetadataEntry(i.toString(), n.list[i]);
-    }
-  }
-
-  void _writeMetadataEntry(final String key, final Object? value) {
-    final keyData = convert.utf8.encode(key);
-    final Object? val = value;
-    int type = BinaryIR.metaString;
-    String valStr = val?.toString() ?? 'null';
-
-    if (val is int) {
-      type = BinaryIR.metaInt;
-    } else if (val is bool) {
-      type = BinaryIR.metaBool;
-    } else if (val is Map || val is List) {
-      type = BinaryIR.metaJson;
-      valStr = convert.jsonEncode(val);
-    }
-
-    final valData = convert.utf8.encode(valStr);
-
-    final ptr = _arena.allocateNative(8 + keyData.length + valData.length);
-    ptr[0] = type;
-    ptr[1] = 0; // Padding
-    (ptr + 2).cast<ffi.Uint16>()[0] = keyData.length;
-    (ptr + 4).asTypedList(keyData.length).setAll(0, keyData);
-
-    final valLenPtr = (ptr + 4 + keyData.length).cast<ffi.Uint32>();
-    valLenPtr[0] = valData.length;
-    (ptr + 8 + keyData.length)
-        .asTypedList(valData.length)
-        .setAll(0, valData);
+  void writeAlignmentEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opAlignmentEnd;
+    _nodeCount++;
   }
 }

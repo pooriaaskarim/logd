@@ -2,7 +2,6 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/core/context/clock/clock.dart';
 import 'package:logd/src/core/context/context.dart';
 import 'package:logd/src/time/timezone.dart';
-import 'package:meta/meta.dart';
 import 'package:test/test.dart';
 
 // Mock Clock that returns null for timezoneName
@@ -49,7 +48,6 @@ void main() {
     });
 
     test('Falls back to system params when timezoneName is null', () {
-      @visibleForTesting
       final clock = FailClock();
       Context.setClock(clock);
 
@@ -61,7 +59,6 @@ void main() {
     });
 
     test('Falls back to fixed offset when timezoneName is unknown', () {
-      @visibleForTesting
       final clock = UnknownNameClock();
       Context.setClock(clock);
 
@@ -73,7 +70,6 @@ void main() {
     });
 
     test('Falls back to UTC when timezone fetch crashes', () {
-      @visibleForTesting
       final clock = ThrowingClock();
       Context.setClock(clock);
 

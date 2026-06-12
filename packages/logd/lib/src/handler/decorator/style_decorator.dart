@@ -32,64 +32,113 @@ final class StyleDecorator extends VisualDecorator {
     final LogEntry entry,
     final LogPipelineFactory factory,
   ) {
-    final snapshot = document.nodes.toList();
-    document.nodes
-      ..clear()
-      ..addAll(snapshot.map((final node) => _styleNode(node, entry.level)));
+    for (final node in document.nodes) {
+      _applyStyle(node, entry.level, factory);
+    }
   }
 
-  LogNode _styleNode(final LogNode node, final LogLevel level) =>
-      switch (node) {
-        final ContentNode n => n.copyWith(
-            segments: n.segments
-                .map((final s) => _styleStyledText(s, level))
-                .toList(),
-          ),
-        final BoxNode n => n.copyWith(
-            style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
-            title: n.title != null ? _styleStyledText(n.title!, level) : null,
-            children:
-                n.children.map((final c) => _styleNode(c, level)).toList(),
-          ),
-        final IndentationNode n => n.copyWith(
-            style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
-            children:
-                n.children.map((final c) => _styleNode(c, level)).toList(),
-          ),
-        final DecoratedNode n => n.copyWith(
-            style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
-            leading: n.leading
-                ?.map((final s) => _styleStyledText(s, level))
-                .toList(),
-            trailing: n.trailing
-                ?.map((final s) => _styleStyledText(s, level))
-                .toList(),
-            children:
-                n.children.map((final c) => _styleNode(c, level)).toList(),
-          ),
-        final GroupNode n => n.copyWith(
-            children:
-                n.children.map((final c) => _styleNode(c, level)).toList(),
-          ),
-        final ParagraphNode n => n.copyWith(
-            children:
-                n.children.map((final c) => _styleNode(c, level)).toList(),
-          ),
-        final RowNode n => n.copyWith(
-            children:
-                n.children.map((final c) => _styleNode(c, level)).toList(),
-          ),
-        final FillerNode n => n.copyWith(
-            style: _mergeStyles(theme.getStyle(level, n.tags), n.style),
-          ),
-        final MapNode n => n,
-        final ListNode n => n,
-        final SectionNode n => n.copyWith(
-            summary: _styleNode(n.summary, level),
-            children:
-                n.children.map((final c) => _styleNode(c, level)).toList(),
-          ),
-      };
+  void _applyStyle(
+    final LogNode node,
+    final LogLevel level,
+    final LogPipelineFactory factory,
+  ) {
+    switch (node) {
+      case final ContentNode n:
+        try {
+          final segments = n.segments;
+          for (int i = 0; i < segments.length; i++) {
+            segments[i] = _styleStyledText(segments[i], level);
+          }
+        } catch (_) {
+          // If the list was unmodifiable (e.g. from a legacy formatter),
+          // replace it with a pooled modifiable list.
+          final segments = factory.checkoutDataList<StyledText>()
+            ..addAll(n.segments);
+          for (int i = 0; i < segments.length; i++) {
+            segments[i] = _styleStyledText(segments[i], level);
+          }
+          n.segments = segments;
+        }
+        break;
+
+      case final BoxNode n:
+        n.style = _mergeStyles(theme.getStyle(level, n.tags), n.style);
+        if (n.title != null) {
+          n.title = _styleStyledText(n.title!, level);
+        }
+        for (final child in n.children) {
+          _applyStyle(child, level, factory);
+        }
+        break;
+
+      case final IndentationNode n:
+        n.style = _mergeStyles(theme.getStyle(level, n.tags), n.style);
+        for (final child in n.children) {
+          _applyStyle(child, level, factory);
+        }
+        break;
+
+      case final DecoratedNode n:
+        n.style = _mergeStyles(theme.getStyle(level, n.tags), n.style);
+        final leading = n.leading;
+        if (leading != null) {
+          try {
+            for (int i = 0; i < leading.length; i++) {
+              leading[i] = _styleStyledText(leading[i], level);
+            }
+          } catch (_) {
+            final styledLeading = factory.checkoutDataList<StyledText>()
+              ..addAll(leading);
+            for (int i = 0; i < styledLeading.length; i++) {
+              styledLeading[i] = _styleStyledText(styledLeading[i], level);
+            }
+            n.leading = styledLeading;
+          }
+        }
+        final trailing = n.trailing;
+        if (trailing != null) {
+          try {
+            for (int i = 0; i < trailing.length; i++) {
+              trailing[i] = _styleStyledText(trailing[i], level);
+            }
+          } catch (_) {
+            final styledTrailing = factory.checkoutDataList<StyledText>()
+              ..addAll(trailing);
+            for (int i = 0; i < styledTrailing.length; i++) {
+              styledTrailing[i] = _styleStyledText(styledTrailing[i], level);
+            }
+            n.trailing = styledTrailing;
+          }
+        }
+        for (final child in n.children) {
+          _applyStyle(child, level, factory);
+        }
+        break;
+
+      case final SectionNode n:
+        _applyStyle(n.summary, level, factory);
+        for (final child in n.children) {
+          _applyStyle(child, level, factory);
+        }
+        break;
+
+      case final LayoutNode n:
+        // Generic container handling (GroupNode, ParagraphNode, RowNode, etc.)
+        for (final child in n.children) {
+          _applyStyle(child, level, factory);
+        }
+        break;
+
+      case final FillerNode n:
+        n.style = _mergeStyles(theme.getStyle(level, n.tags), n.style);
+        break;
+
+      case final MapNode _:
+      case final ListNode _:
+        // Raw structured data carries no visual style within the doc tree.
+        break;
+    }
+  }
 
   StyledText _styleStyledText(final StyledText s, final LogLevel level) {
     final themeStyle = theme.getStyle(level, s.tags);

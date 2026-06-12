@@ -1,12 +1,11 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
 
 void main() {
   group('PlainFormatter', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test.logger',
       origin: 'main.dart:10:5',
       level: LogLevel.info,

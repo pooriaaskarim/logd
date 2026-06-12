@@ -1,6 +1,5 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -10,7 +9,7 @@ void main() {
     test('appends fixed suffix to each log line (alignToEnd: false)', () {
       const suffix = ' [SUFFIX]';
       const decorator = SuffixDecorator(suffix, aligned: false);
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
         level: LogLevel.info,
@@ -38,7 +37,7 @@ void main() {
       const suffix = '!!';
       const decorator = SuffixDecorator(suffix, aligned: true);
       // Total area is 20. Suffix is 2. Formatter gets 18.
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
         level: LogLevel.info,
@@ -66,7 +65,7 @@ void main() {
     test('reports correct paddingWidth', () {
       const suffix = '123';
       const decorator = SuffixDecorator(suffix);
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
         level: LogLevel.info,
@@ -81,7 +80,7 @@ void main() {
       const box = BoxDecorator();
       const suffix = ' !!';
       const decorator = SuffixDecorator(suffix, aligned: false);
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
         level: LogLevel.info,

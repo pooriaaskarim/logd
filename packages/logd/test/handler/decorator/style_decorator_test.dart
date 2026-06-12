@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -7,7 +6,7 @@ import '../test_helpers.dart';
 void main() {
   group('StyleDecorator', () {
     final lines = ['line 1', 'line 2'];
-    const infoEntry = LogEntry(
+    final infoEntry = LogEntry(
       loggerName: 'test',
       origin: 'test',
       level: LogLevel.info,
@@ -64,7 +63,7 @@ void main() {
       try {
         decorator.decorate(
           errorDoc,
-          const LogEntry(
+          LogEntry(
             loggerName: 'test',
             origin: 'test',
             level: LogLevel.error,
@@ -83,7 +82,7 @@ void main() {
       try {
         decorator.decorate(
           warningDoc,
-          const LogEntry(
+          LogEntry(
             loggerName: 'test',
             origin: 'test',
             level: LogLevel.warning,

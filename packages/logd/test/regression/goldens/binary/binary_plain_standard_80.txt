@@ -1,0 +1,2 @@
+[1;34m[INFO][0m[2;34m 2025-01-01 12:00:00[0m[2;34m [BinarySnap][0m[34m [0m[34mVerified[0m [34mBinary[0m [34mIR[0m [34mrendering[0m [34mwith[0m
+                                        [34msemantic[0m [34mcoloring[0m [34mand[0m [34malignment.[0m

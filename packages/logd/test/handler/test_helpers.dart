@@ -1,6 +1,5 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart';
-import 'package:logd/src/logger/logger.dart';
 
 /// Helper to create a simplified LogDocument from strings.
 LogDocument createTestDocument(

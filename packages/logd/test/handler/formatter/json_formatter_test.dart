@@ -2,14 +2,13 @@ import 'dart:convert';
 
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
 
 void main() {
   group('JsonFormatter', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test',
       origin: 'main.dart:10',
       level: LogLevel.info,
@@ -78,7 +77,7 @@ void main() {
   });
 
   group('JsonPrettyFormatter', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test',
       origin: 'main.dart:10',
       level: LogLevel.info,
@@ -222,7 +221,7 @@ void main() {
   });
 
   group('JsonFormatter metadata selection', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'app.service',
       origin: 'service.dart:42',
       level: LogLevel.info,
@@ -275,7 +274,7 @@ void main() {
   });
 
   group('JsonFormatter wrapping', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test',
       origin: 'main.dart:10',
       level: LogLevel.info,

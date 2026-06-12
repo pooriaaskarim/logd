@@ -2,12 +2,11 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:vm_service/vm_service_io.dart';
 
 const int iterations = 10000;
 
-final entry = const LogEntry(
+final entry = LogEntry(
   loggerName: 'bench.logger',
   level: LogLevel.info,
   message: 'This is a standard benchmark log message for engine comparison.',
@@ -52,7 +51,8 @@ Future<void> main() async {
     Scenario('1. Raw Machine (JSON)', const JsonFormatter(), []),
     Scenario('2. Modern Human (Structured + Box)', const StructuredFormatter(),
         [const BoxDecorator()]),
-    Scenario('3. Framing Squeeze (Prefix + Box @ 40)',
+    Scenario(
+        '3. Framing Squeeze (Prefix + Box @ 40)',
         const StructuredFormatter(),
         [const HierarchyDepthPrefixDecorator(), const BoxDecorator()],
         40),

@@ -2,14 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
 
 void main() {
   group('ToonFormatter', () {
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test.logger',
       origin: 'main.dart',
       level: LogLevel.info,
@@ -37,7 +36,7 @@ void main() {
     });
 
     test('handles multiline messages by repeating header data', () {
-      const multilineEntry = LogEntry(
+      final multilineEntry = LogEntry(
         loggerName: 'test.logger',
         origin: 'main.dart',
         level: LogLevel.info,
@@ -84,7 +83,7 @@ void main() {
     });
 
     test('renders MapNode values as JSON in columns', () {
-      const mapEntry = LogEntry(
+      final mapEntry = LogEntry(
         loggerName: 'test.logger',
         origin: 'main.dart',
         level: LogLevel.info,

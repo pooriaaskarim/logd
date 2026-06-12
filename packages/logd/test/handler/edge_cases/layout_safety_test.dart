@@ -1,6 +1,5 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -9,7 +8,7 @@ void main() {
   group('Layout & Encoding Safety', () {
     test('Unicode and Emoji handle widths correctly in BoxDecorator', () {
       const box = BoxDecorator(borderStyle: BorderStyle.rounded);
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
@@ -40,7 +39,7 @@ void main() {
 
     test('ANSI preservation across wrapping in BoxDecorator', () {
       const box = BoxDecorator(borderStyle: BorderStyle.double);
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
@@ -69,7 +68,7 @@ void main() {
 
     test('Very long words without spaces are forced to wrap', () {
       const formatter = StructuredFormatter();
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,

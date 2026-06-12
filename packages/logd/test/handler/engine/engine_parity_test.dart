@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -23,7 +22,7 @@ base class RecordingSink extends LogSink<LogDocument> {
 void main() {
   group('Engine Parity Verification', () {
     const formatter = StructuredFormatter();
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'ParityTest',
       origin: 'parity.dart:1:1',
       level: LogLevel.info,

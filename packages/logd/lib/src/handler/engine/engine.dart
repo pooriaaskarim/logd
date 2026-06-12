@@ -73,6 +73,27 @@ abstract interface class LogPipelineFactory {
   /// Checks out a [ListNode] from the pool, or allocates a fresh one.
   ListNode checkoutList();
 
+  /// Checks out an [AlignmentNode] from the pool, or allocates a fresh one.
+  AlignmentNode checkoutAlignment();
+
+  /// Checks out a [TableNode] from the pool, or allocates a fresh one.
+  TableNode checkoutTable();
+
+  /// Checks out a [TableRowNode] from the pool, or allocates a fresh one.
+  TableRowNode checkoutTableRow();
+
+  /// Checks out a [TableCellNode] from the pool, or allocates a fresh one.
+  TableCellNode checkoutTableCell();
+
+  /// Checks out a raw [Map] from the pool, or allocates a fresh one.
+  Map<K, V> checkoutDataMap<K, V>();
+
+  /// Checks out a raw [List] from the pool, or allocates a fresh one.
+  List<T> checkoutDataList<T>();
+
+  /// Checks out a raw [Set] from the pool, or allocates a fresh one.
+  Set<T> checkoutDataSet<T>();
+
   /// Checks out a [HandlerContext] from the pool, or allocates a fresh one.
   HandlerContext checkoutContext();
 

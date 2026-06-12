@@ -16,7 +16,7 @@ void main() {
               ..nodes.addAll([
                 MessageNode(segments: [const StyledText('Hello World')]),
               ]),
-            const LogEntry(
+            LogEntry(
               loggerName: 'test',
               origin: 'test',
               level: LogLevel.info,
@@ -51,7 +51,7 @@ void main() {
               ..nodes.addAll([
                 MessageNode(segments: [const StyledText('Console Hello')]),
               ]),
-            const LogEntry(
+            LogEntry(
               loggerName: 'test',
               origin: 'test',
               level: LogLevel.info,

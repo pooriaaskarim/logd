@@ -45,9 +45,20 @@ class Arena implements LogPipelineFactory {
   final List<FillerNode> _fillers = [];
   final List<MapNode> _maps = [];
   final List<ListNode> _lists = [];
+  final List<AlignmentNode> _alignments = [];
+  final List<TableNode> _tables = [];
+  final List<TableRowNode> _tableRows = [];
+  final List<TableCellNode> _tableCells = [];
   final List<HandlerContext> _contexts = [];
   final List<PhysicalLine> _physicalLines = [];
   final List<PhysicalDocument> _physicalDocuments = [];
+  final List<LogEntry> _logEntries = [];
+
+  final List<Map<String, Object?>> _dataMaps = [];
+  final List<List<LogNode>> _nodeLists = [];
+  final List<List<StyledText>> _segmentLists = [];
+  final List<List<dynamic>> _dynamicLists = [];
+  final List<Set<LogMetadata>> _metadataSets = [];
 
   // --- Native Memory Pool (B-IR Dispatch) ---
   final List<_NativeBuffer> _freeNativeBuffers = [];
@@ -57,7 +68,6 @@ class Arena implements LogPipelineFactory {
 
   static const _defaultPacketSize = 64 * 1024; // 64KB
 
-  _NativeBuffer? _currentBuffer;
   int _totalAllocatedBytes = 0;
 
   /// The maximum number of native packets allowed to be in-flight before
@@ -67,7 +77,7 @@ class Arena implements LogPipelineFactory {
   bool _saturationWarningFired = false;
 
   /// The maximum total native memory (in bytes) the arena can allocate.
-  static const int maxNativeMemory = 16 * 1024 * 1024; // 16MB
+  static const int maxNativeMemory = 128 * 1024 * 1024; // 128MB
 
   Completer<void>? _poolCapacityWaiter;
 
@@ -79,7 +89,8 @@ class Arena implements LogPipelineFactory {
         _freeNativeBuffers.add(buffer);
 
         // Notify waiters that capacity is available (with hysteresis)
-        if (_inFlightNativeBuffers.length < (maxInFlightPackets * 0.8).toInt()) {
+        final threshold = (maxInFlightPackets * 0.8).toInt();
+        if (_inFlightNativeBuffers.length < threshold) {
           _saturationWarningFired = false;
         }
 
@@ -93,45 +104,48 @@ class Arena implements LogPipelineFactory {
 
   /// Waits until the pool has capacity to accept new native packets.
   Future<void> waitForPoolCapacity() async {
+    if (_inFlightNativeBuffers.length < maxInFlightPackets) {
+      return;
+    }
+
+    final sw = Stopwatch()..start();
     while (_inFlightNativeBuffers.length >= maxInFlightPackets) {
       _poolCapacityWaiter ??= Completer<void>();
       await _poolCapacityWaiter!.future;
     }
-  }
-
-  /// Returns the offset into the current native buffer.
-  int get nativeOffset => _currentBuffer?.offset ?? 0;
-
-  /// Returns the completion port used for cross-isolate packet recycling.
-  SendPort get completionPort => _completionPort.sendPort;
-
-  /// Resets the native buffer for a new log cycle.
-  ///
-  /// If [releaseToPool] is true, the buffer is marked as free.
-  void resetNative({final bool releaseToPool = false}) {
-    if (_currentBuffer != null) {
-      if (releaseToPool) {
-        _currentBuffer!.offset = 0;
-        _freeNativeBuffers.add(_currentBuffer!);
-        _currentBuffer = null;
-      } else {
-        _currentBuffer!.offset = 0;
-      }
+    sw.stop();
+    if (sw.elapsedMilliseconds > 10) {
+      InternalLogger.log(
+        LogLevel.warning,
+        'Blocked main thread for ${sw.elapsedMilliseconds}ms '
+        'waiting for pool capacity.',
+      );
     }
   }
 
-  /// Checks out a [NativePacket] containing the current buffer's data.
-  ///
-  /// The buffer is moved to the "In-Flight" state and will be recycled
-  /// when the background isolate sends its address to the [completionPort].
-  NativePacket checkoutNativePacket({required final int terminalWidth}) {
-    final buffer = _currentBuffer;
+  /// Returns the offset into the current native buffer.
+
+  void resetNative(final ArenaDocument document) {
+    for (final buffer in document._buffers) {
+      buffer.offset = 0;
+      _freeNativeBuffers.add(buffer);
+    }
+    document._buffers.clear();
+    document._currentBuffer = null;
+  }
+
+  NativePacket checkoutNativePacket(
+    final ArenaDocument document, {
+    required final int terminalWidth,
+  }) {
+    final buffer = document._currentBuffer;
     if (buffer == null || buffer.offset == 0) {
       throw StateError('No native data to dispatch');
     }
 
     _inFlightNativeBuffers[buffer.pointer.address] = buffer;
-    _currentBuffer = null;
+    document._currentBuffer = null;
+    document._buffers.remove(buffer);
 
     // Log a warning if pool is saturated (blocking happens in NativeEngine)
     if (_inFlightNativeBuffers.length >= maxInFlightPackets &&
@@ -139,7 +153,8 @@ class Arena implements LogPipelineFactory {
       _saturationWarningFired = true;
       InternalLogger.log(
         LogLevel.warning,
-        'Arena saturation reached (${_inFlightNativeBuffers.length} packets). Blocking main thread.',
+        'Arena saturation reached (${_inFlightNativeBuffers.length} '
+        'packets). Blocking main thread.',
       );
     }
 
@@ -169,35 +184,40 @@ class Arena implements LogPipelineFactory {
     }
   }
 
-  /// Allocates [size] bytes from the native arena.
-  ffi.Pointer<ffi.Uint8> allocateNative(final int size) {
-    if (_currentBuffer == null ||
-        _currentBuffer!.offset + size > _currentBuffer!.size) {
-      _checkoutNewBuffer(max(_defaultPacketSize, size));
+  ffi.Pointer<ffi.Uint8> allocateNative(
+    final int size,
+    final ArenaDocument document,
+  ) {
+    final alignedSize = (size + 7) & ~7;
+
+    var buffer = document._currentBuffer;
+    if (buffer == null || buffer.offset + alignedSize > buffer.size) {
+      buffer = _checkoutNewBuffer(max(_defaultPacketSize, alignedSize));
+      document._buffers.add(buffer);
+      document._currentBuffer = buffer;
     }
 
-    final ptr = _currentBuffer!.pointer + _currentBuffer!.offset;
-    _currentBuffer!.offset += size;
+    final ptr = buffer.pointer + buffer.offset;
+    buffer.offset += alignedSize;
     return ptr.cast();
   }
 
-  void _checkoutNewBuffer(final int size) {
-    // 1. Try to find a free buffer that is large enough
+  _NativeBuffer _checkoutNewBuffer(final int size) {
+    // 1. Try free pool
     for (int i = 0; i < _freeNativeBuffers.length; i++) {
       if (_freeNativeBuffers[i].size >= size) {
-        _currentBuffer = _freeNativeBuffers.removeAt(i);
-        return;
+        return _freeNativeBuffers.removeAt(i)..offset = 0;
       }
     }
 
-    // 2. Allocate a new one if none available
+    // 2. Allocate fresh
     if (_totalAllocatedBytes + size > maxNativeMemory) {
       throw const OutOfMemoryError();
     }
 
     final pointer = pkg_ffi.malloc.allocate<ffi.Uint8>(size);
     _totalAllocatedBytes += size;
-    _currentBuffer = _NativeBuffer(pointer, size);
+    return _NativeBuffer(pointer, size);
   }
 
   // ---------------------------------------------------------------------------
@@ -208,6 +228,35 @@ class Arena implements LogPipelineFactory {
   @override
   LogDocument checkoutDocument() =>
       _documents.isNotEmpty ? _documents.removeLast() : ArenaDocument(this);
+
+  /// Checks out a [LogEntry] from the pool, or allocates a fresh one.
+  @internal
+  LogEntry checkoutLogEntry({
+    required final String loggerName,
+    required final String origin,
+    required final LogLevel level,
+    required final String message,
+    required final String timestamp,
+    final List<CallbackInfo>? stackFrames,
+    final Object? error,
+    final StackTrace? stackTrace,
+  }) =>
+      (_logEntries.isNotEmpty ? _logEntries.removeLast() : LogEntry.pooled())
+        ..loggerName = loggerName
+        ..origin = origin
+        ..level = level
+        ..message = message
+        ..timestamp = timestamp
+        ..stackFrames = stackFrames
+        ..error = error
+        ..stackTrace = stackTrace;
+
+  /// Releases a [LogEntry] back to the pool.
+  @internal
+  void releaseLogEntry(final LogEntry entry) {
+    entry.reset();
+    _logEntries.add(entry);
+  }
 
   /// Completely clears all object pools and reclaims all native memory.
   ///
@@ -231,17 +280,26 @@ class Arena implements LogPipelineFactory {
     _fillers.clear();
     _maps.clear();
     _lists.clear();
+    _alignments.clear();
+    _tables.clear();
+    _tableRows.clear();
+    _tableCells.clear();
     _contexts.clear();
     _physicalLines.clear();
     _physicalDocuments.clear();
+    _logEntries.clear();
+
+    _dataMaps.clear();
+    _nodeLists.clear();
+    _segmentLists.clear();
+    _dynamicLists.clear();
+    _metadataSets.clear();
 
     reclaimInFlightBuffers();
     for (final buffer in _freeNativeBuffers) {
       pkg_ffi.malloc.free(buffer.pointer);
     }
     _freeNativeBuffers.clear();
-    _currentBuffer = null;
-    _totalAllocatedBytes = 0;
   }
 
   /// Checks out a [HeaderNode] from the pool, or allocates a fresh one.
@@ -321,6 +379,24 @@ class Arena implements LogPipelineFactory {
   ListNode checkoutList() =>
       _lists.isNotEmpty ? _lists.removeLast() : ListNode._pooled();
 
+  @override
+  AlignmentNode checkoutAlignment() => _alignments.isNotEmpty
+      ? _alignments.removeLast()
+      : AlignmentNode._pooled();
+
+  @override
+  TableNode checkoutTable() =>
+      _tables.isNotEmpty ? _tables.removeLast() : TableNode._pooled();
+
+  @override
+  TableRowNode checkoutTableRow() =>
+      _tableRows.isNotEmpty ? _tableRows.removeLast() : TableRowNode._pooled();
+
+  @override
+  TableCellNode checkoutTableCell() => _tableCells.isNotEmpty
+      ? _tableCells.removeLast()
+      : TableCellNode._pooled();
+
   /// Checks out a [HandlerContext] from the pool, or allocates a fresh one.
   @override
   HandlerContext checkoutContext() =>
@@ -338,6 +414,36 @@ class Arena implements LogPipelineFactory {
       ? _physicalDocuments.removeLast()
       : PhysicalDocument._pooled();
 
+  @override
+  Map<K, V> checkoutDataMap<K, V>() {
+    if (K == String && V == _typeOf<Object?>() && _dataMaps.isNotEmpty) {
+      return _dataMaps.removeLast() as Map<K, V>;
+    }
+    return <K, V>{};
+  }
+
+  @override
+  List<T> checkoutDataList<T>() {
+    if (T == LogNode && _nodeLists.isNotEmpty) {
+      return _nodeLists.removeLast() as List<T>;
+    }
+    if (T == StyledText && _segmentLists.isNotEmpty) {
+      return _segmentLists.removeLast() as List<T>;
+    }
+    if (_dynamicLists.isNotEmpty) {
+      return _dynamicLists.removeLast().cast<T>();
+    }
+    return <T>[];
+  }
+
+  @override
+  Set<T> checkoutDataSet<T>() {
+    if (T == LogMetadata && _metadataSets.isNotEmpty) {
+      return _metadataSets.removeLast() as Set<T>;
+    }
+    return <T>{};
+  }
+
   // ---------------------------------------------------------------------------
   // Release — reset and push back onto the pool.
   // ---------------------------------------------------------------------------
@@ -353,60 +459,135 @@ class Arena implements LogPipelineFactory {
       case final LogDocument d:
         d.reset();
         _documents.add(d);
+        return;
       case final HeaderNode n:
         n.reset();
         _headers.add(n);
+        return;
       case final MessageNode n:
         n.reset();
         _messages.add(n);
+        return;
       case final ErrorNode n:
         n.reset();
         _errors.add(n);
+        return;
       case final FooterNode n:
         n.reset();
         _footers.add(n);
+        return;
       case final MetadataNode n:
         n.reset();
         _metadataNodes.add(n);
+        return;
       case final BoxNode n:
         n.reset();
         _boxes.add(n);
+        return;
       case final IndentationNode n:
         n.reset();
         _indents.add(n);
+        return;
       case final GroupNode n:
         n.reset();
         _groups.add(n);
+        return;
       case final DecoratedNode n:
         n.reset();
         _decorated.add(n);
+        return;
       case final ParagraphNode n:
         n.reset();
         _paragraphs.add(n);
+        return;
       case final RowNode n:
         n.reset();
         _rows.add(n);
+        return;
       case final SectionNode n:
         n.reset();
         _sections.add(n);
+        return;
       case final FillerNode n:
         n.reset();
         _fillers.add(n);
+        return;
       case final MapNode n:
         n.reset();
         _maps.add(n);
+        return;
       case final ListNode n:
         n.reset();
         _lists.add(n);
+        return;
+      case final AlignmentNode n:
+        n.reset();
+        _alignments.add(n);
+        return;
+      case final TableNode n:
+        n.reset();
+        _tables.add(n);
+        return;
+      case final TableRowNode n:
+        n.reset();
+        _tableRows.add(n);
+        return;
+      case final TableCellNode n:
+        n.reset();
+        _tableCells.add(n);
+        return;
       case final HandlerContext c:
         c.reset();
         _contexts.add(c);
+        return;
       case final PhysicalLine l:
         l.reset();
         _physicalLines.add(l);
+        return;
       case final PhysicalDocument d:
         d.reset();
         _physicalDocuments.add(d);
+        return;
+      case final Map<String, Object?> m:
+        if (m.runtimeType == _typeOf<Map<String, Object?>>()) {
+          try {
+            m.clear();
+            _dataMaps.add(m);
+          } catch (_) {}
+        }
+        return;
+      case final List<StyledText> l:
+        if (l.runtimeType == _typeOf<List<StyledText>>()) {
+          try {
+            l.clear();
+            _segmentLists.add(l);
+          } catch (_) {}
+        }
+        return;
+      case final List<LogNode> l:
+        if (l.runtimeType == _typeOf<List<LogNode>>()) {
+          try {
+            l.clear();
+            _nodeLists.add(l);
+          } catch (_) {}
+        }
+        return;
+      case final List l:
+        if (l.runtimeType == _typeOf<List<dynamic>>()) {
+          try {
+            l.clear();
+            _dynamicLists.add(l);
+          } catch (_) {}
+        }
+        return;
+      case final Set<LogMetadata> s:
+        if (s.runtimeType == _typeOf<Set<LogMetadata>>()) {
+          try {
+            s.clear();
+            _metadataSets.add(s);
+          } catch (_) {}
+        }
+        return;
     }
   }
 
@@ -432,6 +613,10 @@ class Arena implements LogPipelineFactory {
       _fillers.length +
       _maps.length +
       _lists.length +
+      _alignments.length +
+      _tables.length +
+      _tableRows.length +
+      _tableCells.length +
       _contexts.length +
       _physicalLines.length +
       _physicalDocuments.length;
@@ -439,11 +624,6 @@ class Arena implements LogPipelineFactory {
   /// Frees all native memory. Should only be called on isolate shutdown.
   void disposeNative() {
     _completionPort.close();
-
-    if (_currentBuffer != null) {
-      pkg_ffi.malloc.free(_currentBuffer!.pointer);
-      _currentBuffer = null;
-    }
 
     for (final buffer in _freeNativeBuffers) {
       pkg_ffi.malloc.free(buffer.pointer);
@@ -479,8 +659,10 @@ class ArenaDocument extends StandardDocument {
   final Arena arena;
 
   /// The writer used for streaming Binary IR.
-  late final BinaryIRWriter writer = BinaryIRWriter(arena);
+  late final BinaryIRWriter writer = BinaryIRWriter(this);
 
+  final List<_NativeBuffer> _buffers = [];
+  _NativeBuffer? _currentBuffer;
   bool _isStreaming = false;
 
   /// Returns whether this document is currently in streaming mode.
@@ -497,6 +679,9 @@ class ArenaDocument extends StandardDocument {
   @override
   void reset() {
     super.reset();
+    if (_buffers.isNotEmpty) {
+      arena.resetNative(this);
+    }
     _isStreaming = false;
   }
 
@@ -524,6 +709,24 @@ class ArenaDocument extends StandardDocument {
       writer.writeBoxStart(border: border, tags: tags);
     } else {
       super.startBox(border: border, tags: tags, factory: factory ?? arena);
+    }
+  }
+
+  @override
+  void styledText(final StyledText text, {final LogPipelineFactory? factory}) {
+    if (_isStreaming) {
+      writer.writeText(text.text, style: text.style, tags: text.tags);
+    } else {
+      super.styledText(text, factory: factory ?? arena);
+    }
+  }
+
+  @override
+  void newline() {
+    if (_isStreaming) {
+      writer.writeNewline();
+    } else {
+      super.newline();
     }
   }
 
@@ -578,6 +781,137 @@ class ArenaDocument extends StandardDocument {
   }
 
   @override
+  void startAlignment(
+    final LogAlignment alignment, {
+    final LogPipelineFactory? factory,
+  }) {
+    if (_isStreaming) {
+      writer.writeAlignmentStart(alignment);
+    } else {
+      super.startAlignment(alignment, factory: factory ?? arena);
+    }
+  }
+
+  @override
+  void endAlignment() {
+    if (_isStreaming) {
+      writer.writeAlignmentEnd();
+    } else {
+      super.endAlignment();
+    }
+  }
+
+  @override
+  void startTable({
+    final List<int>? columnWidths,
+    final LogPipelineFactory? factory,
+  }) {
+    if (_isStreaming) {
+      writer.writeTableStart(columnWidths: columnWidths);
+    } else {
+      super.startTable(columnWidths: columnWidths, factory: factory ?? arena);
+    }
+  }
+
+  @override
+  void endTable() {
+    if (_isStreaming) {
+      writer.writeTableEnd();
+    } else {
+      super.endTable();
+    }
+  }
+
+  @override
+  void startRow({final LogPipelineFactory? factory}) {
+    if (_isStreaming) {
+      writer.writeRowStart();
+    } else {
+      super.startRow(factory: factory ?? arena);
+    }
+  }
+
+  @override
+  void endRow() {
+    if (_isStreaming) {
+      writer.writeRowEnd();
+    } else {
+      super.endRow();
+    }
+  }
+
+  @override
+  void startCell({
+    final int colspan = 1,
+    final int rowspan = 1,
+    final LogPipelineFactory? factory,
+  }) {
+    if (_isStreaming) {
+      writer.writeCellStart(columnSpan: colspan, rowSpan: rowspan);
+    } else {
+      super.startCell(
+        colspan: colspan,
+        rowspan: rowspan,
+        factory: factory ?? arena,
+      );
+    }
+  }
+
+  @override
+  void endCell() {
+    if (_isStreaming) {
+      writer.writeCellEnd();
+    } else {
+      super.endCell();
+    }
+  }
+
+  @override
+  void startDecorated({
+    required final List<StyledText> leading,
+    final int leadingWidth = 0,
+    final String? leadingHint,
+    final LogPipelineFactory? factory,
+  }) {
+    if (_isStreaming) {
+      writer.writeDecoratedStart(
+        leading: leading,
+        leadingWidth: leadingWidth,
+        leadingHint: leadingHint,
+      );
+    } else {
+      super.startDecorated(
+        leading: leading,
+        leadingWidth: leadingWidth,
+        leadingHint: leadingHint,
+        factory: factory ?? arena,
+      );
+    }
+  }
+
+  @override
+  void endDecorated() {
+    if (_isStreaming) {
+      writer.writeDecoratedEnd();
+    } else {
+      super.endDecorated();
+    }
+  }
+
+  @override
+  void filler({
+    required final String char,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  }) {
+    if (_isStreaming) {
+      writer.writeFiller(char: char, tags: tags);
+    } else {
+      super.filler(char: char, tags: tags, factory: factory ?? arena);
+    }
+  }
+
+  @override
   void writeNode(final LogNode node) {
     if (_isStreaming) {
       writer.writeNode(node);
@@ -586,3 +920,5 @@ class ArenaDocument extends StandardDocument {
     }
   }
 }
+
+Type _typeOf<T>() => T;

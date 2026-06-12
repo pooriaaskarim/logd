@@ -440,6 +440,17 @@ final class DecoratedNode extends LayoutNode {
         alignTrailing,
         style,
       );
+
+  @override
+  void releaseRecursive(final LogPipelineFactory factory) {
+    if (leading != null) {
+      factory.release(leading!);
+    }
+    if (trailing != null) {
+      factory.release(trailing!);
+    }
+    super.releaseRecursive(factory);
+  }
 }
 
 /// A node that forces its children to be flowed and wrapped as a paragraph.
@@ -521,6 +532,150 @@ final class SectionNode extends LayoutNode {
       SectionNode(
         children: children ?? List<LogNode>.from(this.children),
         summary: summary ?? this.summary,
+        tags: tags ?? this.tags,
+      );
+}
+
+/// A container that applies horizontal alignment to its children.
+final class AlignmentNode extends LayoutNode {
+  /// Creates an [AlignmentNode].
+  AlignmentNode({
+    required super.children,
+    super.title,
+    this.alignment = LogAlignment.left,
+    super.tags,
+  });
+
+  /// Named constructor for arena pool allocation.
+  AlignmentNode._pooled()
+      : alignment = LogAlignment.left,
+        super(children: []);
+
+  /// The horizontal alignment to apply.
+  LogAlignment alignment;
+
+  @override
+  void reset() {
+    super.reset();
+    alignment = LogAlignment.left;
+  }
+
+  @override
+  AlignmentNode copyWith({
+    final List<LogNode>? children,
+    final StyledText? title,
+    final int? tags,
+    final LogAlignment? alignment,
+  }) =>
+      AlignmentNode(
+        children: children ?? List<LogNode>.from(this.children),
+        title: title ?? this.title,
+        tags: tags ?? this.tags,
+        alignment: alignment ?? this.alignment,
+      );
+}
+
+/// A structural node for grid-based layouts.
+final class TableNode extends LayoutNode {
+  /// Creates a [TableNode].
+  TableNode({
+    required super.children,
+    super.title,
+    this.columnWidths = const [],
+    super.tags,
+  });
+
+  /// Named constructor for arena pool allocation.
+  TableNode._pooled()
+      : columnWidths = [],
+        super(children: []);
+
+  /// Explicit widths for each column.
+  /// If empty, columns are sized dynamically.
+  List<int> columnWidths;
+
+  @override
+  void reset() {
+    super.reset();
+    columnWidths = [];
+  }
+
+  @override
+  TableNode copyWith({
+    final List<LogNode>? children,
+    final StyledText? title,
+    final int? tags,
+    final List<int>? columnWidths,
+  }) =>
+      TableNode(
+        children: children ?? List<LogNode>.from(this.children),
+        title: title ?? this.title,
+        tags: tags ?? this.tags,
+        columnWidths: columnWidths ?? List<int>.from(this.columnWidths),
+      );
+}
+
+/// A row within a [TableNode].
+final class TableRowNode extends LayoutNode {
+  /// Creates a [TableRowNode].
+  TableRowNode({required super.children, super.tags});
+
+  /// Named constructor for arena pool allocation.
+  TableRowNode._pooled() : super(children: []);
+
+  @override
+  TableRowNode copyWith({
+    final List<LogNode>? children,
+    final StyledText? title,
+    final int? tags,
+  }) =>
+      TableRowNode(
+        children: children ?? List<LogNode>.from(this.children),
+        tags: tags ?? this.tags,
+      );
+}
+
+/// A cell within a [TableRowNode].
+final class TableCellNode extends LayoutNode {
+  /// Creates a [TableCellNode].
+  TableCellNode({
+    required super.children,
+    this.colSpan = 1,
+    this.rowSpan = 1,
+    super.tags,
+  });
+
+  /// Named constructor for arena pool allocation.
+  TableCellNode._pooled()
+      : colSpan = 1,
+        rowSpan = 1,
+        super(children: []);
+
+  /// Number of columns this cell spans.
+  int colSpan;
+
+  /// Number of rows this cell spans.
+  int rowSpan;
+
+  @override
+  void reset() {
+    super.reset();
+    colSpan = 1;
+    rowSpan = 1;
+  }
+
+  @override
+  TableCellNode copyWith({
+    final List<LogNode>? children,
+    final StyledText? title,
+    final int? tags,
+    final int? colSpan,
+    final int? rowSpan,
+  }) =>
+      TableCellNode(
+        children: children ?? List<LogNode>.from(this.children),
+        colSpan: colSpan ?? this.colSpan,
+        rowSpan: rowSpan ?? this.rowSpan,
         tags: tags ?? this.tags,
       );
 }

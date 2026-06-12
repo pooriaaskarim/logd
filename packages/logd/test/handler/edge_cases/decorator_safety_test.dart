@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -19,7 +18,7 @@ void main() {
         sink: sink,
       );
 
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
@@ -44,7 +43,7 @@ void main() {
         sink: sink,
       );
 
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
@@ -60,7 +59,7 @@ void main() {
 
     test('BoxDecorator handles very small lineLength', () {
       const box = BoxDecorator();
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,
@@ -88,7 +87,7 @@ void main() {
 
     test('BoxDecorator handles lines with only ANSI codes', () {
       const box = BoxDecorator();
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,

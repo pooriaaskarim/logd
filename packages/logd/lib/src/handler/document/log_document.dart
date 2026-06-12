@@ -45,6 +45,9 @@ abstract class LogDocument {
     final LogPipelineFactory? factory,
   });
 
+  /// Appends a styled text segment to the document.
+  void styledText(final StyledText text, {final LogPipelineFactory? factory});
+
   /// Appends a newline to the document.
   void newline();
 
@@ -72,6 +75,58 @@ abstract class LogDocument {
   /// Appends a metadata block (Map) to the document.
   void metadataBlock(
     final Map<String, Object?> data, {
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Starts an alignment scope.
+  void startAlignment(
+    final LogAlignment alignment, {
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current alignment scope.
+  void endAlignment();
+
+  /// Starts a table.
+  void startTable({
+    final List<int>? columnWidths,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current table.
+  void endTable();
+
+  /// Starts a table row.
+  void startRow({final LogPipelineFactory? factory});
+
+  /// Ends the current table row.
+  void endRow();
+
+  /// Starts a table cell.
+  void startCell({
+    final int colspan = 1,
+    final int rowspan = 1,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current table cell.
+  void endCell();
+
+  /// Starts a decorated scope (e.g. with a leading prefix).
+  void startDecorated({
+    required final List<StyledText> leading,
+    final int leadingWidth = 0,
+    final String? leadingHint,
+    final LogPipelineFactory? factory,
+  });
+
+  /// Ends the current decorated scope.
+  void endDecorated();
+
+  /// Appends a filler segment to the document.
+  void filler({
+    required final String char,
     final int tags = LogTag.none,
     final LogPipelineFactory? factory,
   });
@@ -129,10 +184,33 @@ class StandardDocument extends LogDocument {
     final int tags = LogTag.none,
     final LogPipelineFactory? factory,
   }) {
+    if (_currentNodes.isNotEmpty) {
+      final last = _currentNodes.last;
+      if (last is MessageNode && last.tags == tags) {
+        last.segments.add(StyledText(text, style: style ?? const LogStyle()));
+        return;
+      }
+    }
+
     final f = factory ?? const StandardPipelineFactory();
     final node = f.checkoutMessage()
       ..tags = tags
       ..segments.add(StyledText(text, style: style ?? const LogStyle()));
+    _currentNodes.add(node);
+  }
+
+  @override
+  void styledText(final StyledText text, {final LogPipelineFactory? factory}) {
+    if (_currentNodes.isNotEmpty) {
+      final last = _currentNodes.last;
+      if (last is MessageNode && last.tags == text.tags) {
+        last.segments.add(text);
+        return;
+      }
+    }
+
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutMessage()..segments.add(text);
     _currentNodes.add(node);
   }
 
@@ -195,6 +273,114 @@ class StandardDocument extends LogDocument {
     final node = f.checkoutMap()
       ..tags = tags
       ..map = data;
+    _currentNodes.add(node);
+  }
+
+  @override
+  void startAlignment(
+    final LogAlignment alignment, {
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutAlignment()..alignment = alignment;
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endAlignment() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startTable({
+    final List<int>? columnWidths,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutTable()..columnWidths = columnWidths ?? [];
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endTable() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startRow({final LogPipelineFactory? factory}) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutTableRow();
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endRow() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startCell({
+    final int colspan = 1,
+    final int rowspan = 1,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutTableCell()
+      ..colSpan = colspan
+      ..rowSpan = rowspan;
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endCell() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void startDecorated({
+    required final List<StyledText> leading,
+    final int leadingWidth = 0,
+    final String? leadingHint,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutDecorated()
+      ..leading = leading
+      ..leadingWidth = leadingWidth
+      ..leadingHint = leadingHint;
+    _currentNodes.add(node);
+    _nodeStack.add(node.children);
+  }
+
+  @override
+  void endDecorated() {
+    if (_nodeStack.isNotEmpty) {
+      _nodeStack.removeLast();
+    }
+  }
+
+  @override
+  void filler({
+    required final String char,
+    final int tags = LogTag.none,
+    final LogPipelineFactory? factory,
+  }) {
+    final f = factory ?? const StandardPipelineFactory();
+    final node = f.checkoutFiller()
+      ..char = char
+      ..tags = tags;
     _currentNodes.add(node);
   }
 

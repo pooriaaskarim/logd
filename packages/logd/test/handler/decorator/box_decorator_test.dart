@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 import '../test_helpers.dart';
@@ -7,7 +6,7 @@ import '../test_helpers.dart';
 void main() {
   group('BoxDecorator', () {
     final lines = ['line 1', 'line 2'];
-    const entry = LogEntry(
+    final entry = LogEntry(
       loggerName: 'test',
       origin: 'test',
       level: LogLevel.info,

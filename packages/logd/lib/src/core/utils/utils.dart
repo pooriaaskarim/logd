@@ -1,3 +1,4 @@
+import 'dart:io' as io;
 import 'package:characters/characters.dart';
 import 'package:meta/meta.dart';
 
@@ -370,4 +371,34 @@ Iterable<List<(String, T)>> wrapWithData<T>(
   if (currentLine.isNotEmpty) {
     yield currentLine;
   }
+}
+
+/// Resolves absolute file:/// URIs in a string to workspace-relative paths.
+@internal
+String resolveFileUris(final String input) {
+  if (!input.contains('file:///')) {
+    return input;
+  }
+  final regex = RegExp(r'file:\/\/\/[^\s\)]+');
+  return input.replaceAllMapped(regex, (final match) {
+    final absoluteUriStr = match.group(0)!;
+    try {
+      final uri = Uri.parse(absoluteUriStr);
+      final filePath = uri.toFilePath();
+      final currentDir = io.Directory.current.path;
+      if (filePath.startsWith(currentDir)) {
+        var rel = filePath.substring(currentDir.length);
+        if (rel.startsWith(io.Platform.pathSeparator)) {
+          rel = rel.substring(1);
+        }
+        return rel;
+      }
+      const projectDir = 'logd';
+      if (filePath.contains(projectDir)) {
+        final index = filePath.indexOf(projectDir);
+        return filePath.substring(index + projectDir.length + 1);
+      }
+    } catch (_) {}
+    return absoluteUriStr;
+  });
 }

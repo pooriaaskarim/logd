@@ -1,6 +1,5 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../test_helpers.dart';
 
@@ -8,7 +7,7 @@ void main() {
   group('JsonPrettyFormatter Wisdom', () {
     test('compacts small composites onto a single line', () {
       const formatter = JsonPrettyFormatter(color: false);
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test.dart',
         timestamp: '2025-01-01',
@@ -29,7 +28,7 @@ void main() {
 
     test('sorts keys alphabetically when sortKeys is true', () {
       const formatter = JsonPrettyFormatter(sortKeys: true);
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test.dart',
         timestamp: '2025-01-01',
@@ -54,7 +53,7 @@ void main() {
 
     test('stacks keys above complex values exceeding threshold', () {
       const formatter = JsonPrettyFormatter(stackThreshold: 5);
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test.dart',
         timestamp: '2025-01-01',
@@ -80,7 +79,7 @@ void main() {
 
     test('handles multiline scalars as distinct blocks', () {
       const formatter = JsonPrettyFormatter();
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'test.dart',
         timestamp: '2025-01-01',

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 
 /// A utility to capture snapshots of log output for verification.
 class LogSnap {

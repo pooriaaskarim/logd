@@ -121,6 +121,18 @@ class TerminalLayout {
         for (final child in n.children) {
           _renderNode(child, document, level, availableWidth, out);
         }
+      case final AlignmentNode n:
+        _renderAlignment(n, document, level, availableWidth, out);
+      case final TableNode n:
+        _renderTable(n, document, level, availableWidth, out);
+      case final TableRowNode n:
+        for (final child in n.children) {
+          _renderNode(child, document, level, availableWidth, out);
+        }
+      case final TableCellNode n:
+        for (final child in n.children) {
+          _renderNode(child, document, level, availableWidth, out);
+        }
     }
   }
 
@@ -266,10 +278,11 @@ class TerminalLayout {
       if ((segment.tags & LogTag.preview) != 0) {
         continue;
       }
+      final resolvedText = resolveFileUris(segment.text);
       // If segment is tagged noWrap, we bypass width constraints.
       if ((segment.tags & LogTag.noWrap) != 0) {
         // Just append the whole text. If there are newlines, respect them.
-        final physicalLines = segment.text.split('\n');
+        final physicalLines = resolvedText.split('\n');
         for (var l = 0; l < physicalLines.length; l++) {
           if (l > 0) {
             commitLine();
@@ -287,7 +300,7 @@ class TerminalLayout {
         continue;
       }
 
-      final physicalLines = segment.text.split('\n');
+      final physicalLines = resolvedText.split('\n');
 
       for (var l = 0; l < physicalLines.length; l++) {
         if (l > 0) {
@@ -717,5 +730,211 @@ class TerminalLayout {
       }
     }
     return x - startX;
+  }
+
+  void _renderAlignment(
+    final AlignmentNode node,
+    final LogDocument document,
+    final LogLevel level,
+    final int availableWidth,
+    final List<PhysicalLine> out,
+  ) {
+    final tempLines = <PhysicalLine>[];
+    for (final child in node.children) {
+      _renderNode(child, document, level, availableWidth, tempLines);
+    }
+
+    for (final line in tempLines) {
+      final visibleLen = line.visibleLength;
+      final padding = (availableWidth - visibleLen).clamp(0, availableWidth);
+
+      final alignedLine = factory.checkoutPhysicalLine();
+      switch (node.alignment) {
+        case LogAlignment.left:
+          alignedLine.segments.addAll(line.segments);
+          break;
+        case LogAlignment.center:
+          final leftPad = padding ~/ 2;
+          if (leftPad > 0) {
+            alignedLine.segments.add(StyledText(' ' * leftPad));
+          }
+          alignedLine.segments.addAll(line.segments);
+          break;
+        case LogAlignment.right:
+          if (padding > 0) {
+            alignedLine.segments.add(StyledText(' ' * padding));
+          }
+          alignedLine.segments.addAll(line.segments);
+          break;
+        case LogAlignment.justify:
+          // Justify is tricky in terminal, fall back to left for now
+          alignedLine.segments.addAll(line.segments);
+          break;
+      }
+      out.add(alignedLine);
+      line.releaseRecursive(factory);
+    }
+  }
+
+  void _renderTable(
+    final TableNode node,
+    final LogDocument document,
+    final LogLevel level,
+    final int availableWidth,
+    final List<PhysicalLine> out,
+  ) {
+    if (availableWidth <= 0) {
+      return;
+    }
+
+    // 1. Calculate column widths
+    final columnWidths = _calculateColumnWidths(node, availableWidth);
+    final totalCols = columnWidths.length;
+    if (totalCols == 0) {
+      return;
+    }
+
+    // 2. Render rows
+    for (final row in node.children) {
+      if (row is! TableRowNode) {
+        continue;
+      }
+
+      // Each row is rendered by "zipping" its cells
+      final cellLinesLists = <List<PhysicalLine>>[];
+      int colIndex = 0;
+
+      for (final cell in row.children) {
+        if (cell is! TableCellNode) {
+          continue;
+        }
+
+        // Calculate cell width based on colSpan
+        int cellWidth = 0;
+        final span = min(cell.colSpan, totalCols - colIndex);
+        for (int i = 0; i < span; i++) {
+          cellWidth += columnWidths[colIndex + i];
+        }
+
+        final rawLines = <PhysicalLine>[];
+        _renderNode(cell, document, level, cellWidth, rawLines);
+
+        // Truncate if needed and ensure we have fresh lines to modify
+        final processedLines = rawLines.map((final l) {
+          final t = l.truncate(factory, cellWidth);
+          if (identical(t, l)) {
+            // If truncate didn't create a new line, we should copy segments
+            // because we will be modifying this line's length by padding it.
+            // Actually, we create a NEW line in the zip phase, so we don't
+            // need to copy here.
+          }
+          return t;
+        }).toList();
+
+        cellLinesLists.add(processedLines);
+
+        // Important: release original rawLines if truncate created new ones
+        for (int i = 0; i < rawLines.length; i++) {
+          if (!identical(rawLines[i], processedLines[i])) {
+            rawLines[i].releaseRecursive(factory);
+          }
+        }
+
+        colIndex += span;
+      }
+
+      // 3. Zip lines together
+      int maxLines = 0;
+      for (final lines in cellLinesLists) {
+        if (lines.length > maxLines) {
+          maxLines = lines.length;
+        }
+      }
+
+      for (int i = 0; i < maxLines; i++) {
+        final rowLine = factory.checkoutPhysicalLine();
+        int currentCellColIndex = 0;
+
+        for (int c = 0; c < cellLinesLists.length; c++) {
+          final lines = cellLinesLists[c];
+          final cell = row.children[c] as TableCellNode;
+          final span = min(cell.colSpan, totalCols - currentCellColIndex);
+
+          int cellWidth = 0;
+          for (int k = 0; k < span; k++) {
+            cellWidth += columnWidths[currentCellColIndex + k];
+          }
+
+          if (i < lines.length) {
+            final line = lines[i];
+            rowLine.segments.addAll(line.segments);
+            final len = line.visibleLength;
+            if (len < cellWidth) {
+              rowLine.segments.add(StyledText(' ' * (cellWidth - len)));
+            }
+          } else {
+            rowLine.segments.add(StyledText(' ' * cellWidth));
+          }
+          currentCellColIndex += span;
+        }
+        out.add(rowLine);
+      }
+
+      // Cleanup temporary cell lines
+      for (final lines in cellLinesLists) {
+        for (final line in lines) {
+          line.releaseRecursive(factory);
+        }
+      }
+    }
+  }
+
+  List<int> _calculateColumnWidths(
+    final TableNode node,
+    final int availableWidth,
+  ) {
+    if (node.columnWidths.isNotEmpty) {
+      // Simple validation: if sum exceeds width, scale down.
+      // If sum is less, we might want to expand the last column.
+      final sum = node.columnWidths.reduce((final a, final b) => a + b);
+      if (sum == availableWidth) {
+        return node.columnWidths;
+      }
+
+      final scaled = node.columnWidths
+          .map((final w) => (w * availableWidth) ~/ sum)
+          .toList();
+      final newSum = scaled.fold<int>(0, (final a, final b) => a + b);
+      if (newSum < availableWidth && scaled.isNotEmpty) {
+        scaled[scaled.length - 1] += availableWidth - newSum;
+      }
+      return scaled;
+    }
+
+    // Heuristic: Equal distribution based on max column count
+    int maxCols = 0;
+    for (final child in node.children) {
+      if (child is TableRowNode) {
+        int cols = 0;
+        for (final cell in child.children) {
+          if (cell is TableCellNode) {
+            cols += cell.colSpan;
+          }
+        }
+        if (cols > maxCols) {
+          maxCols = cols;
+        }
+      }
+    }
+
+    if (maxCols == 0) {
+      return const [];
+    }
+
+    final widthPerCol = availableWidth ~/ maxCols;
+    final result = List<int>.filled(maxCols, widthPerCol);
+    result[maxCols - 1] += availableWidth % maxCols;
+
+    return result;
   }
 }

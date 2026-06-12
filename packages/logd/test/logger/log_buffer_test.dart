@@ -1,5 +1,4 @@
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -98,6 +97,6 @@ class EntryCollectorHandler extends Handler {
 
   @override
   Future<void> log(final LogEntry entry) async {
-    entries.add(entry);
+    entries.add(entry.copyWith());
   }
 }

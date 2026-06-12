@@ -1,6 +1,5 @@
 import 'dart:io' as io;
 import 'package:logd/logd.dart';
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -109,7 +108,7 @@ void main() {
       final handler = Handler(formatter: const PlainFormatter(), sink: sink);
 
       await handler.log(
-        const LogEntry(
+        LogEntry(
           loggerName: 'test',
           origin: 'test',
           level: LogLevel.info,
@@ -121,7 +120,7 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 200));
 
       await handler.log(
-        const LogEntry(
+        LogEntry(
           loggerName: 'test',
           origin: 'test',
           level: LogLevel.info,

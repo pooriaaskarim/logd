@@ -24,8 +24,10 @@ import '../core/context/io/file_system.dart';
 import '../core/theme/log_theme.dart';
 import '../core/utils/utils.dart';
 import '../logger/logger.dart';
+import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
 
+part '../core/utils/alignment.dart';
 part 'decorator/box_decorator.dart';
 part 'decorator/decoration_hint.dart';
 part 'decorator/decorator.dart';

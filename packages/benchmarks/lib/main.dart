@@ -13,14 +13,19 @@ Future<void> main() async {
 
   runFormatterBenchmarks();
   runDecoratorBenchmarks();
-  runPipelineBenchmarks();
+  await runPipelineBenchmarks();
   runMultiSinkBenchmarks();
+
   await runNativeOffloadBenchmarks();
+
   // ignore: invalid_use_of_internal_member
   Arena.instance.clear();
 
-  runStressTests();
+  await runStressTests();
   await runMemoryChurnBenchmark();
+
+  // ignore: invalid_use_of_internal_member
+  Arena.instance.disposeNative();
 
   print('==============================');
   print('Benchmarks Complete.');

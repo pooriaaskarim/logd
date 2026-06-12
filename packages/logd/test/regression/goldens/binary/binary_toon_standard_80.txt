@@ -1,0 +1,1 @@
+{[2;34m"timestamp"[0m: [32m"2025-01-01 12:00:00"[0m, [2;34m"logger"[0m: [32m"BinarySnap"[0m, [2;34m"origin"[0m: [32m"binary.dart:42"[0m, [2;34m"level"[0m: [32m"INFO"[0m, [2;34m"message"[0m: [32m"Verified Binary IR rendering with semantic coloring and alignment."[0m, [2;34m"error"[0m: [32m""[0m, [2;34m"stackTrace"[0m: [32m""[0m}

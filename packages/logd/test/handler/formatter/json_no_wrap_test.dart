@@ -1,6 +1,5 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../test_helpers.dart';
 
@@ -8,7 +7,7 @@ void main() {
   group('JsonFormatter NoWrap Audit', () {
     test('JsonFormatter allows wrapping (no noWrap tag)', () {
       const formatter = JsonFormatter();
-      const entryLong = LogEntry(
+      final entryLong = LogEntry(
         loggerName: 'test',
         origin: 'test',
         level: LogLevel.info,

@@ -1,6 +1,5 @@
 import 'package:logd/logd.dart';
 import 'package:logd/src/handler/handler.dart' show TerminalLayout;
-import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 import '../test_helpers.dart';
 
@@ -12,7 +11,7 @@ void main() {
       const formatter = PlainFormatter();
       const box = BoxDecorator();
 
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'test',
         origin: 'main.dart',
         level: LogLevel.info,
@@ -53,7 +52,7 @@ void main() {
       const formatter = JsonFormatter();
       const box = BoxDecorator();
 
-      const entry = LogEntry(
+      final entry = LogEntry(
         loggerName: 'very_long_logger_name_that_will_push_json_over_the_limit',
         origin: 'some_long_file_path.dart',
         level: LogLevel.error,
