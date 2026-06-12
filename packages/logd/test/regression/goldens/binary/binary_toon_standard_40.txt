@@ -1,1 +1,6 @@
-{[2;34m"timestamp"[0m: [32m"2025-01-01 12:00:00"[0m, [2;34m"logger"[0m: [32m"BinarySnap"[0m, [2;34m"origin"[0m: [32m"binary.dart:42"[0m, [2;34m"level"[0m: [32m"INFO"[0m, [2;34m"message"[0m: [32m"Verified Binary IR rendering with semantic coloring and alignment."[0m, [2;34m"error"[0m: [32m""[0m, [2;34m"stackTrace"[0m: [32m""[0m}
+{[0m[2;34m"timestamp"[0m:[0m [0m[32m"[0m[32m2025-01-01[0m[32m [0m[32m12:00:00[0m[32m"[0m,[0m [0m
+[2;34m"logger"[0m:[0m [0m[32m"[0m[32mBinarySnap[0m[32m"[0m,[0m [0m[2;34m"origin"[0m:[0m [0m[32m"[0m
+[32mbinary.dart:42[0m[32m"[0m,[0m [0m[2;34m"level"[0m:[0m [0m[32m"[0m[32mINFO[0m[32m"[0m,[0m [0m
+[2;34m"message"[0m:[0m [0m[32m"[0m[32mVerified[0m[32m [0m[32mBinary[0m[32m [0m[32mIR[0m[32m [0m[32mrendering[0m
+[32m [0m[32mwith[0m[32m [0m[32msemantic[0m[32m [0m[32mcoloring[0m[32m [0m[32mand[0m[32m [0m[32malignment.[0m[32m"[0m,[0m
+ [0m[2;34m"error"[0m:[0m [0m[32m"[0m[32m[0m[32m"[0m,[0m [0m[2;34m"stackTrace"[0m:[0m [0m[32m"[0m[32m[0m[32m"[0m}[0m

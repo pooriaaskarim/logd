@@ -85,6 +85,161 @@ final class BinaryAnsiEncoder {
       currentLineWidth = 0;
     }
 
+    void renderJsonWrapped(final Map<String, String> map, final int tags) {
+      if ((tags & LogTag.noWrap) != 0) {
+        final sb = StringBuffer('{');
+        int count = 0;
+        for (final entry in map.entries) {
+          if (count > 0) {
+            sb.write(', ');
+          }
+          final keyStyle = theme.getStyle(level, LogTag.loggerName);
+          _applyStyle(sb, keyStyle);
+          sb.write('"${entry.key}"');
+          _resetStyle(sb);
+          sb.write(': ');
+          final val = entry.value;
+          final LogStyle? valStyle;
+          if (val == 'true' || val == 'false') {
+            valStyle = theme.getStyle(level, LogTag.origin);
+          } else if (RegExp(r'^-?\d+\.?\d*$').hasMatch(val)) {
+            valStyle = theme.getStyle(level, LogTag.timestamp);
+          } else {
+            valStyle = const LogStyle(color: LogColor.green);
+          }
+          _applyStyle(sb, valStyle);
+          sb.write('"${entry.value}"');
+          _resetStyle(sb);
+          count++;
+        }
+        sb.write('}');
+        final renderedStr = sb.toString();
+        ensureIndent();
+        buffer.write(renderedStr);
+        currentLineWidth += _stripAnsi(renderedStr).length;
+        closeLine();
+        return;
+      }
+
+      final tokens = <_JsonToken>[
+        const _JsonToken('{', null),
+      ];
+
+      int count = 0;
+      for (final entry in map.entries) {
+        if (count > 0) {
+          tokens.addAll(const [
+            _JsonToken(',', null),
+            _JsonToken(' ', null, isSpace: true),
+          ]);
+        }
+
+        // Key (Yellow)
+        final keyStyle = theme.getStyle(level, LogTag.loggerName);
+        tokens
+          ..add(_JsonToken('"${entry.key}"', keyStyle))
+          ..addAll(const [
+            _JsonToken(':', null),
+            _JsonToken(' ', null, isSpace: true),
+          ]);
+
+        // Value (Green/Cyan/White based on content)
+        final val = entry.value;
+        final LogStyle? valStyle;
+        if (val == 'true' || val == 'false') {
+          valStyle = theme.getStyle(level, LogTag.origin);
+        } else if (RegExp(r'^-?\d+\.?\d*$').hasMatch(val)) {
+          valStyle = theme.getStyle(level, LogTag.timestamp);
+        } else {
+          valStyle = const LogStyle(color: LogColor.green);
+        }
+
+        tokens.add(_JsonToken('"', valStyle));
+        final valWords = val.split(' ');
+        for (int k = 0; k < valWords.length; k++) {
+          if (k > 0) {
+            tokens.add(_JsonToken(' ', valStyle, isSpace: true));
+          }
+          tokens.add(_JsonToken(valWords[k], valStyle));
+        }
+        tokens.add(_JsonToken('"', valStyle));
+
+        count++;
+      }
+      tokens.add(const _JsonToken('}', null));
+
+      int getIndentWidth() {
+        int w = 0;
+        for (final entry in indentStack) {
+          if (entry is _StringIndent) {
+            w += entry.value.length;
+          } else if (entry is _BoxIndent) {
+            w += 2;
+          }
+        }
+        return w;
+      }
+
+      for (final token in tokens) {
+        if (token.isSpace) {
+          final indentWidth = getIndentWidth();
+          if (currentLineWidth <= indentWidth) {
+            continue;
+          }
+        }
+
+        final tokenLen = token.text.length;
+        ensureIndent();
+
+        final boxCount = indentStack.whereType<_BoxIndent>().length;
+        final maxContentWidth = terminalWidth - boxCount * 2;
+
+        if (currentLineWidth + tokenLen > maxContentWidth) {
+          final indentWidth = getIndentWidth();
+          if (currentLineWidth > indentWidth) {
+            closeLine();
+            ensureIndent();
+          }
+
+          if (tokenLen > maxContentWidth - currentLineWidth) {
+            var remaining = token.text;
+            while (remaining.isNotEmpty) {
+              final currentAvail = max(1, maxContentWidth - currentLineWidth);
+              if (remaining.length <= currentAvail) {
+                _applyStyle(buffer, token.style);
+                buffer.write(remaining);
+                _resetStyle(buffer);
+                currentLineWidth += remaining.length;
+                break;
+              } else {
+                final chunk =
+                    remaining.characters.take(currentAvail).toString();
+                _applyStyle(buffer, token.style);
+                buffer.write(chunk);
+                _resetStyle(buffer);
+                currentLineWidth += chunk.length;
+
+                remaining = remaining.substring(chunk.length);
+                closeLine();
+                ensureIndent();
+              }
+            }
+          } else {
+            _applyStyle(buffer, token.style);
+            buffer.write(token.text);
+            _resetStyle(buffer);
+            currentLineWidth += tokenLen;
+          }
+        } else {
+          _applyStyle(buffer, token.style);
+          buffer.write(token.text);
+          _resetStyle(buffer);
+          currentLineWidth += tokenLen;
+        }
+      }
+      closeLine();
+    }
+
     // 3. Process Instructions
     int i = 0;
     while (i < nodeCount) {
@@ -495,9 +650,7 @@ final class BinaryAnsiEncoder {
             currentOffset += (8 + keyLen + valLen + 7) & ~7;
           }
 
-          ensureIndent();
-          currentLineWidth += _renderJson(buffer, map, level);
-          closeLine();
+          renderJsonWrapped(map, tags);
           break;
 
         default:
@@ -508,50 +661,6 @@ final class BinaryAnsiEncoder {
     }
 
     return buffer.toString();
-  }
-
-  int _renderJson(
-    final StringBuffer buffer,
-    final Map<String, String> map,
-    final LogLevel level,
-  ) {
-    int length = 0;
-    buffer.write('{');
-    length += 1;
-    int count = 0;
-    for (final entry in map.entries) {
-      if (count > 0) {
-        buffer.write(', ');
-        length += 2;
-      }
-
-      // Key (Yellow)
-      _applyStyle(buffer, theme.getStyle(level, LogTag.loggerName));
-      buffer.write('"${entry.key}"');
-      _resetStyle(buffer);
-      length += entry.key.length + 2;
-
-      buffer.write(': ');
-      length += 2;
-
-      // Value (Green/Cyan/White based on content)
-      final val = entry.value;
-      if (val == 'true' || val == 'false') {
-        _applyStyle(buffer, theme.getStyle(level, LogTag.origin));
-      } else if (RegExp(r'^-?\d+\.?\d*$').hasMatch(val)) {
-        _applyStyle(buffer, theme.getStyle(level, LogTag.timestamp));
-      } else {
-        _applyStyle(buffer, const LogStyle(color: LogColor.green));
-      }
-      buffer.write('"${entry.value}"');
-      _resetStyle(buffer);
-      length += entry.value.length + 2;
-
-      count++;
-    }
-    buffer.write('}');
-    length += 1;
-    return length;
   }
 
   void _applyStyle(final StringBuffer buffer, final LogStyle? style) {
@@ -668,4 +777,12 @@ class _TableState {
   final List<int> columnWidths;
   int currentColumn = -1;
   int cellStartWidth = 0;
+}
+
+class _JsonToken {
+  const _JsonToken(this.text, this.style, {this.isSpace = false});
+
+  final String text;
+  final LogStyle? style;
+  final bool isSpace;
 }
