@@ -496,7 +496,7 @@ final class BinaryAnsiEncoder {
           }
 
           ensureIndent();
-          _renderJson(buffer, map, level);
+          currentLineWidth += _renderJson(buffer, map, level);
           closeLine();
           break;
 
@@ -510,24 +510,29 @@ final class BinaryAnsiEncoder {
     return buffer.toString();
   }
 
-  void _renderJson(
+  int _renderJson(
     final StringBuffer buffer,
     final Map<String, String> map,
     final LogLevel level,
   ) {
+    int length = 0;
     buffer.write('{');
+    length += 1;
     int count = 0;
     for (final entry in map.entries) {
       if (count > 0) {
         buffer.write(', ');
+        length += 2;
       }
 
       // Key (Yellow)
       _applyStyle(buffer, theme.getStyle(level, LogTag.loggerName));
       buffer.write('"${entry.key}"');
       _resetStyle(buffer);
+      length += entry.key.length + 2;
 
       buffer.write(': ');
+      length += 2;
 
       // Value (Green/Cyan/White based on content)
       final val = entry.value;
@@ -540,10 +545,13 @@ final class BinaryAnsiEncoder {
       }
       buffer.write('"${entry.value}"');
       _resetStyle(buffer);
+      length += entry.value.length + 2;
 
       count++;
     }
     buffer.write('}');
+    length += 1;
+    return length;
   }
 
   void _applyStyle(final StringBuffer buffer, final LogStyle? style) {
