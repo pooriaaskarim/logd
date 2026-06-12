@@ -67,27 +67,36 @@
 - [x] Comprehensive test coverage (8 tests passing)
 ---
 
+### ✅ v0.8.0: The Engine & Schema Milestone
+**Goal**: Consolidate high-performance native rendering with AI-native structured schemas.
+**Result**: Fully stabilized Standard, Arena, and Native execution engines with support for B-IR v2 serialization and TOON explicit schemas.
+* **TOON Schema Maturity**:
+  - [x] Define semantic `ToonType` system (iso8601, enum, markdown, etc.)
+  - [x] Implement aligned, multi-line schema headers
+  - [x] Add Enum introspection for log levels in schema
+  - [x] Update `TerminalLayout` to detect and render explicit schemas in console
+* **Engine Optimizations (Binary IR & Native Engine)**:
+  - [x] Define B-IR v1 & v2 instruction stream specifications
+  - [x] Implement `BinaryIRWriter` for linearized document streaming
+  - [x] Create `NativeEngine` with fast-path bypassing object-tree traversal
+  - [x] Standardize 16-byte B-IR header with color/padding support
+  - [x] Implement `BinaryAnsiEncoder` as reference native-compatible renderer
+  - [x] Achieve ~13x throughput improvement over standard heap engine
+  - [x] Build golden-testing suite for complete engine parity verification
+  - [x] Stabilize LIFO-based Arena memory allocation and deterministic resource release
+
+---
+
 ## Active Development
 
 ## Features
 
-### 🟡 v0.8.0: The Engine & Schema Milestone (WIP)
-**Goal**: Consolidate high-performance native rendering with AI-native structured schemas.
+### 🟡 v0.9.0: Performance & Latency Isolation (Active)
+**Goal**: Maximize throughput and isolate calling threads from disk/network delays.
 
-**TOON Schema Maturity**:
-- [x] Define semantic `ToonType` system (iso8601, enum, markdown, etc.)
-- [x] Implement aligned, multi-line schema headers
-- [x] Add Enum introspection for log levels in schema
-- [x] Update `TerminalLayout` to detect and render explicit schemas in console
-
-**Engine Optimizations (Binary IR & Native Engine)**:
-- [x] Define B-IR v1 instruction stream spec
-- [x] Implement `BinaryIRWriter` for linearized document streaming
-- [x] Create `NativeEngine` with fast-path bypassing object-tree traversal
-- [x] Standardize 16-byte B-IR header with color/padding support
-- [x] Implement `BinaryAnsiEncoder` as reference native-compatible renderer
-- [x] Achieve ~13x throughput improvement over standard heap engine
+**Isolate-based Dispatch**:
 - [ ] Implement Isolate-based dispatch for zero-latency main-thread logging
+- [ ] Profile thread boundaries under high contention
 
 ---
 
