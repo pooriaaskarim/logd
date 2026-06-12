@@ -1,6 +1,7 @@
 import 'dart:ffi' as ffi;
-import 'package:test/test.dart';
+
 import 'package:logd/src/handler/handler.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('BinaryIR v2 Serialization', () {

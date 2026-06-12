@@ -1,6 +1,6 @@
-import 'package:test/test.dart';
 import 'package:logd/src/core/log_level.dart';
 import 'package:logd/src/handler/handler.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('TerminalLayout Table Rendering', () {
