@@ -503,10 +503,12 @@ final class BinaryAnsiEncoder {
               leadingSegments
                   .add(StyledText(segText, style: segStyle, tags: segTags));
 
-              _applyStyle(buffer, segStyle);
-              buffer.write(segText);
-              _resetStyle(buffer);
-              currentLineWidth += segText.length;
+              if (!useFallback) {
+                _applyStyle(buffer, segStyle);
+                buffer.write(segText);
+                _resetStyle(buffer);
+                currentLineWidth += segText.length;
+              }
               currentOffset += (16 + segLen + 7) & ~7;
             } else {
               currentOffset += 8;
@@ -515,6 +517,84 @@ final class BinaryAnsiEncoder {
           i += leadingCount;
 
           if (useFallback) {
+            for (final segment in leadingSegments) {
+              final text = resolveFileUris(segment.text);
+              final style = segment.style;
+              final lines = text.split('\n');
+              for (int l = 0; l < lines.length; l++) {
+                if (l > 0) {
+                  closeLine();
+                }
+
+                final lineText = lines[l];
+                final words = lineText.split(' ');
+                for (var j = 0; j < words.length; j++) {
+                  final word = words[j];
+                  final wordLen = word.length;
+                  final spacePrefix = (j == 0) ? '' : ' ';
+
+                  ensureIndent();
+
+                  if (currentLineWidth + wordLen + spacePrefix.length >
+                      maxContentWidth) {
+                    int indentWidth = 0;
+                    for (final entry in indentStack) {
+                      if (entry is _StringIndent) {
+                        indentWidth += entry.value.length;
+                      } else if (entry is _BoxIndent) {
+                        indentWidth += 2;
+                      }
+                    }
+                    if (currentLineWidth > indentWidth) {
+                      closeLine();
+                      ensureIndent();
+                    }
+
+                    final avail = maxContentWidth - currentLineWidth;
+                    if (wordLen > avail) {
+                      var remaining = word;
+                      while (remaining.isNotEmpty) {
+                        final currentAvail =
+                            max(1, maxContentWidth - currentLineWidth);
+                        if (remaining.length <= currentAvail) {
+                          _applyStyle(buffer, style);
+                          buffer.write(remaining);
+                          _resetStyle(buffer);
+                          currentLineWidth += remaining.length;
+                          break;
+                        } else {
+                          final chunk = remaining.characters
+                              .take(currentAvail)
+                              .toString();
+                          _applyStyle(buffer, style);
+                          buffer.write(chunk);
+                          _resetStyle(buffer);
+                          currentLineWidth += chunk.length;
+
+                          remaining = remaining.substring(chunk.length);
+                          closeLine();
+                          ensureIndent();
+                        }
+                      }
+                    } else {
+                      _applyStyle(buffer, style);
+                      buffer.write(word);
+                      _resetStyle(buffer);
+                      currentLineWidth += wordLen;
+                    }
+                  } else {
+                    if (j > 0) {
+                      buffer.write(' ');
+                      currentLineWidth++;
+                    }
+                    _applyStyle(buffer, style);
+                    buffer.write(word);
+                    _resetStyle(buffer);
+                    currentLineWidth += wordLen;
+                  }
+                }
+              }
+            }
             closeLine();
             indentStack.add(_StringIndent(''));
           } else {
