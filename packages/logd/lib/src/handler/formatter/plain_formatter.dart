@@ -55,12 +55,13 @@ final class PlainFormatter implements LogFormatter {
 
     final msgNode = factory.checkoutMessage()
       ..segments.add(StyledText(entry.message, tags: LogTag.message));
+    final msgPara = factory.checkoutParagraph()..children.add(msgNode);
     final decorated = factory.checkoutDecorated()
       ..leading = headerSegments
       ..leadingWidth = headerWidth
       ..repeatLeading = false
       ..alignTrailing = false
-      ..children.add(msgNode);
+      ..children.add(msgPara);
     document.writeNode(decorated);
 
     // 2. Handle Error if present

@@ -850,6 +850,10 @@ final class BinaryAnsiEncoder {
       i++;
     }
 
+    if (currentLineWidth > 0) {
+      closeLine();
+    }
+
     return buffer.toString();
   }
 
