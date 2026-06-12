@@ -10,11 +10,15 @@
   - For pooled documents (recommended), use **`factory.checkoutDocument()`**.
   - **Why?**: This allows the `NativeEngine` and `ArenaEngine` to swap in specialized, high-performance document types (like `ArenaDocument`) without changing your formatting logic.
 
-### 2. `NativeEngine` is now the Default
-**Change**: `Handler` now defaults to **`NativeEngine`** (on native platforms).
-- **Impact**: Logs are now standardized into a **Binary IR (B-IR)** stream for high-speed delivery.
-- **Benefit**: Up to 13x higher throughput out-of-the-box.
-- **Note**: The engine automatically falls back to `StandardEngine` if a custom `LogSink` is used that does not support binary streaming.
+### 2. StandardEngine remains the Default (Universal Compatibility)
+**Decision**: To ensure complete cross-platform safety out-of-the-box (especially for Web compilation via DDC/Dart2js), the `Handler` continues to default to **`StandardEngine`**.
+- **Opt-in Performance**: You can explicitly select **`ArenaEngine`** (zero GC overhead) or **`NativeEngine`** (high-speed FFI-ready binary stream serialization) depending on your target platforms.
+- **Opt-in Example**:
+  ```dart
+  final handler = Handler(
+    engine: const ArenaEngine(),
+  );
+  ```
 
 ### 3. Custom `LogNode` Implementation
 **Change**: All `LogNode` subclasses must now implement a **`reset()`** method.

@@ -108,9 +108,9 @@ Complex formats like JSON and TOON use semantic tags (`LogTag.timestamp`, `LogTa
 
 ### Engines (Orchestration)
 The engine is the "mechanical core" of the pipeline, responsible for orchestration and resource management.
-- `NativeEngine`: **(New Default)** Targets native platforms via `dart:ffi` and **Binary IR (B-IR)**. Achieves ~230k ops/sec.
-- `StandardEngine`: Standard heap-allocated execution. Prioritizes simplicity and serves as a reliable fallback.
-- `ArenaEngine`: High-performance execution using LIFO object pooling. Best for complex decorated logs where B-IR streaming is not possible.
+- `StandardEngine`: **(Default)** Standard heap-allocated execution. Prioritizes simplicity, universal platform compatibility (including Web), and serves as the reliable default.
+- `ArenaEngine`: High-performance execution using LIFO object pooling. Eliminates garbage collection overhead for complex decorated logs.
+- `NativeEngine`: **(Experimental Opt-in)** Targets native VM platforms via `dart:ffi` and **Binary IR (B-IR)**. Achieves ~230k ops/sec by compiling to direct C-heap native streams.
 
 ## Composition
 
@@ -124,9 +124,9 @@ Handler(
     StyleDecorator(),
   ],
   sink: const ConsoleSink(),
-  // NativeEngine is used by default. 
-  // It will automatically use the high-performance Arena pooling 
-  // for this "Object Pipeline" scenario (since decorators are present).
+  // StandardEngine is used by default.
+  // To optimize this decorated pipeline, you can explicitly opt in to the Arena pool:
+  // engine: const ArenaEngine(),
 )
 ```
 
