@@ -36,6 +36,15 @@ final class BinaryAnsiEncoder {
     int currentLineWidth = 0;
     final indentStack = <_IndentEntry>[];
     final tableStack = <_TableState>[];
+    final decoratedStack = <_DecoratedState>[];
+
+    int activeTrailingWidth() {
+      int w = 0;
+      for (final state in decoratedStack) {
+        w += state.trailingWidth;
+      }
+      return w;
+    }
 
     String fullIndent() {
       final base = indentStack.map((final e) => e.value).join();
@@ -59,6 +68,61 @@ final class BinaryAnsiEncoder {
     }
 
     void closeLine() {
+      // 1. Render trailing decorations
+      for (int i = 0; i < decoratedStack.length; i++) {
+        final state = decoratedStack[i];
+        final isFirst = state.isFirstLine;
+        state.isFirstLine = false;
+
+        final showTrailing = isFirst || state.repeatTrailing;
+        if (showTrailing && state.trailingSegments.isNotEmpty) {
+          if (state.alignTrailing) {
+            int outerTrailingWidth = 0;
+            for (int k = i + 1; k < decoratedStack.length; k++) {
+              final outerState = decoratedStack[k];
+              outerTrailingWidth += outerState.trailingWidth;
+            }
+            final boxCount = indentStack.whereType<_BoxIndent>().length;
+            final targetPos = terminalWidth -
+                (boxCount * 2) -
+                outerTrailingWidth -
+                state.trailingWidth;
+            final pad = targetPos - currentLineWidth;
+            if (pad > 0) {
+              buffer.write(' ' * pad);
+              currentLineWidth += pad;
+            }
+          }
+          for (final seg in state.trailingSegments) {
+            _applyStyle(buffer, seg.style);
+            buffer.write(seg.text);
+            _resetStyle(buffer);
+            currentLineWidth += seg.text.length;
+          }
+        } else if (state.trailingWidth > 0) {
+          if (state.alignTrailing) {
+            int outerTrailingWidth = 0;
+            for (int k = i + 1; k < decoratedStack.length; k++) {
+              final outerState = decoratedStack[k];
+              outerTrailingWidth += outerState.trailingWidth;
+            }
+            final boxCount = indentStack.whereType<_BoxIndent>().length;
+            final targetPos = terminalWidth -
+                (boxCount * 2) -
+                outerTrailingWidth -
+                state.trailingWidth;
+            final pad = targetPos - currentLineWidth;
+            if (pad > 0) {
+              buffer.write(' ' * pad);
+              currentLineWidth += pad;
+            }
+          }
+          buffer.write(' ' * state.trailingWidth);
+          currentLineWidth += state.trailingWidth;
+        }
+      }
+
+      // 2. Pad to the right box borders and print them
       final boxCount = indentStack.whereType<_BoxIndent>().length;
       if (boxCount > 0) {
         ensureIndent();
@@ -192,7 +256,8 @@ final class BinaryAnsiEncoder {
         ensureIndent();
 
         final boxCount = indentStack.whereType<_BoxIndent>().length;
-        final maxContentWidth = terminalWidth - boxCount * 2;
+        final maxContentWidth =
+            terminalWidth - boxCount * 2 - activeTrailingWidth();
 
         if (currentLineWidth + tokenLen > maxContentWidth) {
           final indentWidth = getIndentWidth();
@@ -292,7 +357,8 @@ final class BinaryAnsiEncoder {
               ensureIndent();
 
               final boxCount = indentStack.whereType<_BoxIndent>().length;
-              final maxContentWidth = terminalWidth - boxCount * 2;
+              final maxContentWidth =
+                  terminalWidth - boxCount * 2 - activeTrailingWidth();
               if (currentLineWidth + wordLen + spacePrefix.length >
                   maxContentWidth) {
                 int indentWidth = 0;
@@ -450,7 +516,8 @@ final class BinaryAnsiEncoder {
 
           ensureIndent();
           final boxCount = indentStack.whereType<_BoxIndent>().length;
-          final maxContentWidth = terminalWidth - boxCount * 2;
+          final maxContentWidth =
+              terminalWidth - boxCount * 2 - activeTrailingWidth();
           final actualCount = (count == 0)
               ? (maxContentWidth - currentLineWidth).clamp(0, terminalWidth)
               : count;
@@ -464,21 +531,26 @@ final class BinaryAnsiEncoder {
 
         case BinaryIR.opDecoratedStart:
           final leadingWidth = opPtr[1];
-          // ignore: unused_local_variable
-          final repeatLeading = opPtr[2] == 1;
-          // ignore: unused_local_variable
-          final repeatTrailing = opPtr[3] == 1;
+          final trailingWidth = opPtr[2];
+          final flags = opPtr[3];
+          final repeatLeading = (flags & 1) != 0;
+          final repeatTrailing = (flags & 2) != 0;
+          final alignTrailing = (flags & 4) != 0;
           // ignore: unused_local_variable
           final tags = opPtr.cast<ffi.Uint32>()[1];
           // ignore: unused_local_variable
           final hintIdx = opPtr.cast<ffi.Uint32>()[2];
           final leadingCount = opPtr.cast<ffi.Uint32>()[3];
+          final trailingCount = opPtr.cast<ffi.Uint32>()[4];
 
-          currentOffset += 16;
+          currentOffset += 24;
           ensureIndent();
 
           final boxCount = indentStack.whereType<_BoxIndent>().length;
-          final maxContentWidth = terminalWidth - boxCount * 2;
+          final maxContentWidth = terminalWidth -
+              boxCount * 2 -
+              activeTrailingWidth() -
+              trailingWidth;
           final contentWidth =
               maxContentWidth - currentLineWidth - leadingWidth;
           final useFallback = contentWidth < 12 && !repeatLeading;
@@ -514,7 +586,39 @@ final class BinaryAnsiEncoder {
               currentOffset += 8;
             }
           }
-          i += leadingCount;
+
+          final trailingSegments = <StyledText>[];
+          for (int j = 0; j < trailingCount; j++) {
+            final segPtr = irPtr + currentOffset;
+            final segOp = segPtr[0];
+            if (segOp == BinaryIR.opText) {
+              final segTags = segPtr.cast<ffi.Uint32>()[1];
+              final segStyleBitmask = segPtr.cast<ffi.Uint32>()[2];
+              final segLen = segPtr.cast<ffi.Uint32>()[3];
+              final segDataPtr = segPtr + 16;
+              final segText =
+                  convert.utf8.decode(segDataPtr.asTypedList(segLen));
+              final segStyle = segStyleBitmask != 0
+                  ? logStyleFromBitmask(segStyleBitmask)
+                  : theme.getStyle(level, segTags);
+
+              trailingSegments
+                  .add(StyledText(segText, style: segStyle, tags: segTags));
+              currentOffset += (16 + segLen + 7) & ~7;
+            } else {
+              currentOffset += 8;
+            }
+          }
+
+          i += leadingCount + trailingCount;
+
+          final state = _DecoratedState(
+            trailingSegments: trailingSegments,
+            trailingWidth: trailingWidth,
+            repeatTrailing: repeatTrailing,
+            alignTrailing: alignTrailing,
+          );
+          decoratedStack.add(state);
 
           if (useFallback) {
             for (final segment in leadingSegments) {
@@ -535,8 +639,11 @@ final class BinaryAnsiEncoder {
 
                   ensureIndent();
 
+                  final dynamicMaxContentWidth =
+                      terminalWidth - boxCount * 2 - activeTrailingWidth();
+
                   if (currentLineWidth + wordLen + spacePrefix.length >
-                      maxContentWidth) {
+                      dynamicMaxContentWidth) {
                     int indentWidth = 0;
                     for (final entry in indentStack) {
                       if (entry is _StringIndent) {
@@ -550,12 +657,12 @@ final class BinaryAnsiEncoder {
                       ensureIndent();
                     }
 
-                    final avail = maxContentWidth - currentLineWidth;
+                    final avail = dynamicMaxContentWidth - currentLineWidth;
                     if (wordLen > avail) {
                       var remaining = word;
                       while (remaining.isNotEmpty) {
                         final currentAvail =
-                            max(1, maxContentWidth - currentLineWidth);
+                            max(1, dynamicMaxContentWidth - currentLineWidth);
                         if (remaining.length <= currentAvail) {
                           _applyStyle(buffer, style);
                           buffer.write(remaining);
@@ -624,6 +731,9 @@ final class BinaryAnsiEncoder {
           break;
 
         case BinaryIR.opDecoratedEnd:
+          if (decoratedStack.isNotEmpty) {
+            decoratedStack.removeLast();
+          }
           final idx =
               indentStack.lastIndexWhere((final e) => e is _StringIndent);
           if (idx != -1) {
@@ -865,4 +975,20 @@ class _JsonToken {
   final String text;
   final LogStyle? style;
   final bool isSpace;
+}
+
+class _DecoratedState {
+  _DecoratedState({
+    required this.trailingSegments,
+    required this.trailingWidth,
+    required this.repeatTrailing,
+    required this.alignTrailing,
+  });
+
+  final List<StyledText> trailingSegments;
+  final int trailingWidth;
+  final bool repeatTrailing;
+  final bool alignTrailing;
+
+  bool isFirstLine = true;
 }

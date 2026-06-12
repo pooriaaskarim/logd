@@ -101,20 +101,14 @@ final class BinaryIRWriter {
           tags: n.tags,
           repeatLeading: n.repeatLeading,
           repeatTrailing: n.repeatTrailing,
+          alignTrailing: n.alignTrailing,
+          trailing: n.trailing ?? [],
+          trailingWidth: n.trailingWidth,
         );
         for (final child in n.children) {
           _writeNode(child);
         }
         writeDecoratedEnd();
-        if (n.trailing != null) {
-          for (final segment in n.trailing!) {
-            writeText(
-              segment.text,
-              style: segment.style,
-              tags: n.tags,
-            );
-          }
-        }
       case final RowNode n:
         for (final child in n.children) {
           _writeNode(child);
@@ -363,12 +357,27 @@ final class BinaryIRWriter {
     final int tags = LogTag.none,
     final bool repeatLeading = false,
     final bool repeatTrailing = false,
+    final bool alignTrailing = false,
+    final List<StyledText> trailing = const [],
+    final int trailingWidth = 0,
   }) {
-    final ptr = _arena.allocateNative(16, _document);
+    final ptr = _arena.allocateNative(24, _document);
     ptr[0] = BinaryIR.opDecoratedStart;
     ptr[1] = leadingWidth;
-    ptr[2] = repeatLeading ? 1 : 0;
-    ptr[3] = repeatTrailing ? 1 : 0;
+    ptr[2] = trailingWidth;
+
+    int flags = 0;
+    if (repeatLeading) {
+      flags |= 1;
+    }
+    if (repeatTrailing) {
+      flags |= 2;
+    }
+    if (alignTrailing) {
+      flags |= 4;
+    }
+    ptr[3] = flags;
+
     ptr.cast<ffi.Uint32>()[1] = tags;
 
     int hintIdx = 0;
@@ -387,10 +396,14 @@ final class BinaryIRWriter {
 
     ptr.cast<ffi.Uint32>()[2] = hintIdx;
     ptr.cast<ffi.Uint32>()[3] = leading.length;
+    ptr.cast<ffi.Uint32>()[4] = trailing.length;
 
     _nodeCount++;
 
     for (final segment in leading) {
+      writeText(segment.text, style: segment.style, tags: segment.tags);
+    }
+    for (final segment in trailing) {
       writeText(segment.text, style: segment.style, tags: segment.tags);
     }
   }

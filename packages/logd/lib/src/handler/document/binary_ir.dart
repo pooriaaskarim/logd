@@ -67,8 +67,8 @@ abstract final class BinaryIR {
   static const int opReset = 0x0A;
 
   /// Start of a decorated block (leading/trailing).
-  /// Payload: [uint8 leadingWidth][uint32 tags][uint32 hintIdx]
-  /// [uint32 leadingCount]
+  /// Payload: [uint8 leadingWidth][uint8 trailingWidth][uint8 flags]
+  /// [uint32 tags][uint32 hintIdx][uint32 leadingCount][uint32 trailingCount]
   static const int opDecoratedStart = 0x0B;
 
   /// End of a decorated block.

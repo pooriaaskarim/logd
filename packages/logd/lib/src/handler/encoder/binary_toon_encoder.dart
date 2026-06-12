@@ -69,6 +69,23 @@ final class BinaryToonEncoder {
           currentOffset += 8;
         case BinaryIR.opFiller:
           currentOffset += 20;
+        case BinaryIR.opDecoratedStart:
+          final leadingCount = opPtr.cast<ffi.Uint32>()[3];
+          final trailingCount = opPtr.cast<ffi.Uint32>()[4];
+          currentOffset += 24;
+          for (int j = 0; j < leadingCount; j++) {
+            final segPtr = irPtr + currentOffset;
+            final segLen = segPtr.cast<ffi.Uint32>()[3];
+            currentOffset += (16 + segLen + 7) & ~7;
+          }
+          for (int j = 0; j < trailingCount; j++) {
+            final segPtr = irPtr + currentOffset;
+            final segLen = segPtr.cast<ffi.Uint32>()[3];
+            currentOffset += (16 + segLen + 7) & ~7;
+          }
+          i += leadingCount + trailingCount;
+        case BinaryIR.opDecoratedEnd:
+          currentOffset += 8;
         default:
           currentOffset += 8;
       }
