@@ -50,76 +50,77 @@ class AnsiEncoder implements LogEncoder {
     final layoutEngine = TerminalLayout(width: totalWidth, factory: factory);
     final physicalDoc = layoutEngine.layout(document, level);
 
+    LogStyle? activeStyle;
+
+    void applyStyle(final String text, final LogStyle style) {
+      if (text.isEmpty) {
+        return;
+      }
+      if (activeStyle == style) {
+        context.writeString(text);
+        return;
+      }
+      if (activeStyle != null) {
+        context.addToken(RenderTokens.ansiReset);
+        activeStyle = null;
+      }
+      final codes = <int>[];
+      if (style.bold == true) {
+        codes.add(1);
+      }
+      if (style.dim == true) {
+        codes.add(2);
+      }
+      if (style.italic == true) {
+        codes.add(3);
+      }
+      if (style.inverse == true) {
+        codes.add(7);
+      }
+      if (style.underline == true) {
+        codes.add(4);
+      }
+      if (style.color != null) {
+        codes.add(_getColorCode(style.color!, background: false));
+      }
+      if (style.backgroundColor != null) {
+        codes.add(_getColorCode(style.backgroundColor!, background: true));
+      }
+      if (codes.isEmpty) {
+        context.writeString(text);
+      } else {
+        context
+          ..addByte(0x1B) // ESC
+          ..addByte(0x5B) // '['
+          ..writeString(codes.join(';'))
+          ..addByte(0x6D) // 'm'
+          ..writeString(text);
+        activeStyle = style;
+      }
+    }
+
+    void resetStyle() {
+      if (activeStyle != null) {
+        context.addToken(RenderTokens.ansiReset);
+        activeStyle = null;
+      }
+    }
+
     // 2. Encode with styles
     for (int i = 0; i < physicalDoc.lines.length; i++) {
-      _encodeLine(physicalDoc.lines[i], level, context);
+      final line = physicalDoc.lines[i];
+      for (final segment in line.segments) {
+        final style = segment.style ?? theme.getStyle(level, segment.tags);
+        applyStyle(segment.text, style);
+      }
+      resetStyle();
       if (i < physicalDoc.lines.length - 1) {
         context.addByte(0x0A); // '\n'
       }
     }
+    resetStyle();
 
     physicalDoc.releaseRecursive(factory);
-  }
-
-  void _encodeLine(
-    final PhysicalLine line,
-    final LogLevel level,
-    final HandlerContext context,
-  ) {
-    for (final segment in line.segments) {
-      final style = segment.style ?? theme.getStyle(level, segment.tags);
-      _applyStyle(segment.text, style, context);
-    }
-  }
-
-  void _applyStyle(
-    final String text,
-    final LogStyle style,
-    final HandlerContext context,
-  ) {
-    if (text.isEmpty) {
-      return;
-    }
-
-    final codes = <int>[];
-
-    if (style.bold == true) {
-      codes.add(1);
-    }
-    if (style.dim == true) {
-      codes.add(2);
-    }
-    if (style.italic == true) {
-      codes.add(3);
-    }
-    if (style.inverse == true) {
-      codes.add(7);
-    }
-    if (style.underline == true) {
-      codes.add(4);
-    }
-
-    if (style.color != null) {
-      codes.add(_getColorCode(style.color!, background: false));
-    }
-    if (style.backgroundColor != null) {
-      codes.add(_getColorCode(style.backgroundColor!, background: true));
-    }
-
-    if (codes.isEmpty) {
-      context.writeString(text);
-      return;
-    }
-
-    final codeString = codes.join(';');
-    // We can avoid string concats mostly
-    context
-      ..addByte(0x1B) // ESC
-      ..addByte(0x5B) // '['
-      ..writeString(codeString)
-      ..addByte(0x6D) // 'm'
-      ..writeString(text)
-      ..addToken(RenderTokens.ansiReset);
   }
 
   int _getColorCode(final LogColor color, {required final bool background}) {

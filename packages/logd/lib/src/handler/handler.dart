@@ -99,7 +99,7 @@ class Handler {
     required this.sink,
     this.filters = const [],
     this.decorators = const [],
-    this.engine = const StandardEngine(),
+    this.engine = const NativeEngine(),
   });
 
   /// The formatter used to transform a [LogEntry] into a [LogDocument].

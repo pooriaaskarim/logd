@@ -1,6 +1,6 @@
-{[0m[2;31m"timestamp"[0m:[0m [0m[32m"[0m[32m2025-01-01[0m[32m [0m[32m12:00:05[0m[32m"[0m,[0m [0m
-[2;31m"logger"[0m:[0m [0m[32m"[0m[32mBinaryError[0m[32m"[0m,[0m [0m[2;31m"origin"[0m:[0m [0m[32m"[0m
-[32merror.dart:1[0m[32m"[0m,[0m [0m[2;31m"level"[0m:[0m [0m[32m"[0m[32mERROR[0m[32m"[0m,[0m [0m
-[2;31m"message"[0m:[0m [0m[32m"[0m[32mCritical[0m[32m [0m[32msystem[0m[32m [0m[32mfailure[0m[32m [0m
-[32mdetected[0m[32m [0m[32min[0m[32m [0m[32mthe[0m[32m [0m[32mbinary[0m[32m [0m[32mpipeline![0m[32m"[0m,[0m [0m
-[2;31m"error"[0m:[0m [0m[32m"[0m[32m[0m[32m"[0m,[0m [0m[2;31m"stackTrace"[0m:[0m [0m[32m"[0m[32m[0m[32m"[0m}[0m
+[31m{"timestamp":"2025-01-01[0m
+[31m12:00:05","logger":"BinaryError","origin[0m
+[31m":"error.dart:1","level":"ERROR","messag[0m
+[31me":"Critical system failure detected in[0m
+[31mthe binary[0m
+[31mpipeline!","error":"","stackTrace":""}[0m

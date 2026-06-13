@@ -52,6 +52,13 @@ void main() {
 
         final layout = TerminalLayout(width: 20, factory: Arena.instance);
         final decorated = layout.layout(doc, LogLevel.info).lines;
+        for (int i = 0; i < decorated[0].segments.length; i++) {
+          print(
+            'segment $i: text="${decorated[0].segments[i].text}", style='
+            '${decorated[0].segments[i].style},'
+            ' tags=${decorated[0].segments[i].tags}',
+          );
+        }
 
         // Content (5) + Padding (13) + Suffix (2) = 20 total (contentLimit)
         expect(decorated[0].visibleLength, equals(20));

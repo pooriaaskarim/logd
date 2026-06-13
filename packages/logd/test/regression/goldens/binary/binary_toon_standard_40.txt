@@ -1,6 +1,6 @@
-{[0m[2;34m"timestamp"[0m:[0m [0m[32m"[0m[32m2025-01-01[0m[32m [0m[32m12:00:00[0m[32m"[0m,[0m [0m
-[2;34m"logger"[0m:[0m [0m[32m"[0m[32mBinarySnap[0m[32m"[0m,[0m [0m[2;34m"origin"[0m:[0m [0m[32m"[0m
-[32mbinary.dart:42[0m[32m"[0m,[0m [0m[2;34m"level"[0m:[0m [0m[32m"[0m[32mINFO[0m[32m"[0m,[0m [0m
-[2;34m"message"[0m:[0m [0m[32m"[0m[32mVerified[0m[32m [0m[32mBinary[0m[32m [0m[32mIR[0m[32m [0m[32mrendering[0m
-[32m [0m[32mwith[0m[32m [0m[32msemantic[0m[32m [0m[32mcoloring[0m[32m [0m[32mand[0m[32m [0m[32malignment.[0m[32m"[0m,[0m
- [0m[2;34m"error"[0m:[0m [0m[32m"[0m[32m[0m[32m"[0m,[0m [0m[2;34m"stackTrace"[0m:[0m [0m[32m"[0m[32m[0m[32m"[0m}[0m
+[34m{"timestamp":"2025-01-01[0m
+[34m12:00:00","logger":"BinarySnap","origin"[0m
+[34m:"binary.dart:42","level":"INFO","messag[0m
+[34me":"Verified Binary IR rendering with[0m
+[34msemantic coloring and[0m
+[34malignment.","error":"","stackTrace":""}[0m

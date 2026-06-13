@@ -57,8 +57,7 @@ class NativeEngine implements LogEngine {
         sink.dispatchPacket(packet);
         arena.resetNative(document); // Buffer already moved to in-flight
       } else if (sink is EncodingSink &&
-          (sink.encoder is AnsiEncoder ||
-              sink.encoder is AutoConsoleEncoder) &&
+          (sink.encoder is AnsiEncoder || sink.encoder is AutoConsoleEncoder) &&
           !document.metadata.containsKey('toon_columns')) {
         // Standard Path: Render locally and delegate to sink
         const binaryEncoder = BinaryAnsiEncoder();

@@ -103,6 +103,13 @@ abstract final class BinaryIR {
   /// End of a table row.
   static const int opTableRowEnd = 0x16;
 
+  /// Start of a layout row.
+  /// Payload: [uint8 char][uint32 tags][uint32 styleBitmask]
+  static const int opRowStart = 0x17;
+
+  /// End of a layout row.
+  static const int opRowEnd = 0x18;
+
   // --- Metadata Types ---
   static const int metaString = 0x01;
   static const int metaInt = 0x02;

@@ -90,9 +90,11 @@ final class BinaryIRWriter {
         writeNewline();
       case final SectionNode n:
         _writeNode(n.summary);
+        writeNewline();
         for (final child in n.children) {
           _writeNode(child);
         }
+        writeNewline();
       case final DecoratedNode n:
         writeDecoratedStart(
           leading: n.leading ?? [],
@@ -110,10 +112,30 @@ final class BinaryIRWriter {
         }
         writeDecoratedEnd();
       case final RowNode n:
+        FillerNode? filler;
         for (final child in n.children) {
-          _writeNode(child);
+          if (child is FillerNode) {
+            filler = child;
+            break;
+          }
         }
-        writeNewline();
+        if (filler != null) {
+          writeLayoutRowStart(
+            char: filler.char,
+            style: filler.style,
+            tags: filler.tags,
+          );
+        }
+        for (final child in n.children) {
+          if (child != filler) {
+            _writeNode(child);
+          }
+        }
+        if (filler != null) {
+          writeLayoutRowEnd();
+        } else {
+          writeNewline();
+        }
       case final AlignmentNode n:
         writeAlignmentStart(n.alignment, tags: n.tags);
         for (final child in n.children) {
@@ -454,6 +476,26 @@ final class BinaryIRWriter {
   void writeAlignmentEnd() {
     final ptr = _arena.allocateNative(8, _document);
     ptr[0] = BinaryIR.opAlignmentEnd;
+    _nodeCount++;
+  }
+
+  void writeLayoutRowStart({
+    required final String char,
+    final Object? style,
+    final int tags = LogTag.none,
+  }) {
+    final mask = style is LogStyle ? style.bitmask : (style is int ? style : 0);
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opRowStart;
+    ptr[1] = char.codeUnitAt(0);
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[2] = mask;
+    _nodeCount++;
+  }
+
+  void writeLayoutRowEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opRowEnd;
     _nodeCount++;
   }
 }
