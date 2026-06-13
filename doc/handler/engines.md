@@ -26,8 +26,8 @@ The arena engine uses an isolate-local LIFO (Last In, First Out) object pool to 
 
 ---
 
-### 3. `NativeEngine` (Default)
-The native engine serializes the formatted log snapshots directly into a language-agnostic **Binary Intermediate Representation (B-IR)** byte stream. On VM platforms, it is the default engine and can offload both rendering and byte I/O to a background isolate worker.
+### 3. `NativeEngine` (Opt-in)
+The native engine serializes the formatted log snapshots directly into a language-agnostic **Binary Intermediate Representation (B-IR)** byte stream. On VM platforms, it can be opted into to offload both rendering and byte I/O to a background isolate worker.
 
 *   **Platform Support**: 🟡 **VM-Only** (Requires `dart:ffi` and `dart:io`. **Does not compile on Web**).
 *   **Stability**: 🟢 **Production Ready** (Fully stabilized and bounds-checked. Memory-safe dynamic LIFO pooling guarantees zero memory corruption or leaks).
@@ -39,7 +39,7 @@ The native engine serializes the formatted log snapshots directly into a languag
 ## How-To Configuration Examples
 
 ### A. Configuring the default `StandardEngine` (Explicitly)
-By default, `Handler` uses `NativeEngine` on VM and falls back gracefully to `StandardEngine` on Web. You can configure `StandardEngine` explicitly as follows:
+By default, `Handler` uses `StandardEngine`. You can configure it explicitly as follows:
 
 ```dart
 final consoleHandler = Handler(
@@ -49,7 +49,7 @@ final consoleHandler = Handler(
     StyleDecorator(),
   ],
   sink: const ConsoleSink(),
-  engine: const StandardEngine(), // Force standard engine
+  engine: const StandardEngine(), // Default
 );
 
 Logger.configure('global', handlers: [consoleHandler]);
