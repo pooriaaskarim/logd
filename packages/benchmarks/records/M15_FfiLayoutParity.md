@@ -61,3 +61,33 @@ Benchmarks Complete.
 - **100% Visual Parity**: All 2,048 layout configurations run against both engines yield identical terminal outputs, verified via strict differential tests.
 - **Zero Performance Regression**: The additional wrapping and margin tracking logic added to `BinaryAnsiEncoder` did not regress pipeline speeds, with Plain/Structured formatters showing a 5-8% runtime reduction compared to the M14 baseline.
 - **High Throughput Ceiling**: The Modern Human logging profile handles **9,848 Ops/sec** (compared to 9,019 in M14 Phase 2), while the Raw Machine profile maintains a high ceiling of **13,311 Ops/sec**.
+
+## 3. Three-Engine Performance Comparison
+Run via `packages/benchmarks/lib/three_engines_comparison.dart` on a level playing field using a standard `EncodingSink` (no-op delegate) to capture the full production serialization pipeline across all three engines.
+
+### Scenario: 1. Plain Text (Compact)
+| Engine | Throughput (ops/sec) | p90 Latency (µs) | GC Pressure (KB/10k) |
+| :--- | :---: | :---: | :---: |
+| **Standard** | 16,971 | 85.0 | 25,358 |
+| **Arena** | **23,918** | **61.0** | **22,341** |
+| **Native** | 14,498 | 99.0 | 53,560 |
+
+### Scenario: 2. Modern Human (Structured + Box)
+| Engine | Throughput (ops/sec) | p90 Latency (µs) | GC Pressure (KB/10k) |
+| :--- | :---: | :---: | :---: |
+| **Standard** | 9,157 | 166.0 | 35,313 |
+| **Arena** | 9,638 | 157.0 | 35,502 |
+| **Native** | **10,528** | **124.0** | **25,341** |
+
+### Scenario: 3. Framing Squeeze (Prefix + Box @ 40)
+| Engine | Throughput (ops/sec) | p90 Latency (µs) | GC Pressure (KB/10k) |
+| :--- | :---: | :---: | :---: |
+| **Standard** | 4,240 | 366.0 | 25,428 |
+| **Arena** | 4,815 | 266.0 | 49,618 |
+| **Native** | **6,442** | **180.0** | **53,187** |
+
+### Insights:
+1. **Plain Text**: Standard and Arena pipelines are highly efficient for plain text, since they bypass complex layout trees entirely. Arena pooling provides a ~40% throughput increase by eliminating new object allocations. Native FFI incurs a minor overhead here due to the flat instruction stream packaging and subsequent parser decoding.
+2. **Modern Human**: As layout complexity grows (with structured mapping and box styling), the Native engine starts to outperform Standard/Arena (+15% and +9% throughput respectively) and significantly drops memory allocations/GC pressure.
+3. **Framing Squeeze (Complex wrapping & constraints)**: Under tight constraint bounds (e.g. 40-character wrapping width, hierarchical prefix depth, and box decorators), the Native engine dominates, delivering **+51.9% higher throughput** and a **50% p90 latency reduction** compared to the Standard engine by bypassing the heavy Dart object graph layout step.
+
