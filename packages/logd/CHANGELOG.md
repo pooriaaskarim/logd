@@ -17,6 +17,7 @@ This patch stabilizes the `NativeEngine` rendering pipeline to achieve full visu
 - ### Fixes & Cleanup
   - Reverted `NativeEngine` as the `Handler` default; `StandardEngine` remains the universal default engine.
   - Corrected `NativeEngine` documentation to reflect **opt-in** production-ready status with 1.5x throughput advantage in layout-heavy scenarios (narrow word-wrapping).
+  - **iOS Timezone Crash (issue #21)**: `clock_native.dart` now uses `DateTime.now().timeZoneName` as the primary, process-free timezone source on iOS. `Process.runSync` (used by `systemsetup` and symlink resolution) is sandbox-prohibited on iOS, causing a `ProcessException` on every log call. The fix avoids all process and filesystem access on iOS while preserving the existing macOS symlink + `systemsetup` fallback chain intact.
   - Applied project-wide `dart format` and resolved all outstanding lint warnings.
 
 ---

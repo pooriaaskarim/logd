@@ -25,6 +25,17 @@ String fetchNativeTimezoneName() {
       throw Exception('Android timezone fetch failed: empty response');
     case 'ios':
     case 'macos':
+      // On iOS, Process.runSync is sandbox-prohibited (issue #21).
+      // Use DateTime.now().timeZoneName as the primary, process-free source.
+      // This works on both iOS and macOS and avoids any filesystem or
+      // process access that the iOS sandbox would reject.
+      final dartTzName = io.Platform.isIOS ? DateTime.now().timeZoneName : null;
+      if (dartTzName != null && dartTzName.isNotEmpty) {
+        return dartTzName;
+      }
+
+      // On macOS (and as a secondary attempt on iOS simulators that may have
+      // the zoneinfo symlink), try resolving the /etc/localtime symlink.
       for (final path in [
         '/etc/localtime',
         '/var/db/timezone/localtime',
