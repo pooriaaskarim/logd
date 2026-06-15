@@ -426,7 +426,8 @@ final class JsonPrettyFormatter implements LogFormatter {
 
         destination.add(
           factory.checkoutDecorated()
-            ..leading = prefixSegments
+            ..leading =
+                (factory.checkoutDataList<StyledText>()..addAll(prefixSegments))
             ..leadingWidth = keyWidth
             ..repeatLeading = false
             ..children.add(factory.checkoutParagraph()..children.add(msg)),

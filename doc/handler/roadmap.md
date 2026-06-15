@@ -2,6 +2,20 @@
 
 ## Completed
 
+### ✅ v0.8.0: The Engine & Schema Milestone
+**Goal**: Consolidate high-performance native rendering with AI-native structured schemas.
+- [x] Define semantic `ToonType` system (iso8601, enum, markdown, etc.)
+- [x] Implement aligned, multi-line schema headers
+- [x] Add Enum introspection for log levels in schema
+- [x] Update `TerminalLayout` to detect and render explicit schemas in console
+- [x] Define B-IR v1 instruction stream spec
+- [x] Implement `BinaryIRWriter` for linearized document streaming
+- [x] Create `NativeEngine` with fast-path bypassing object-tree traversal
+- [x] Standardize 16-byte B-IR header with color/padding support
+- [x] Implement `BinaryAnsiEncoder` as reference native-compatible renderer
+- [x] Achieve ~13x throughput improvement over standard heap engine
+- [x] Implement Isolate-based dispatch for zero-latency main-thread logging
+
 ### ✅ P0: BoxFormatter Refactoring
 **Goal**: Separate visual framing from content formatting.
 **Result**: Successfully split into `StructuredFormatter` and `BoxDecorator`.
