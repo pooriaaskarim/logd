@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.1: FFI Layout Parity & Stabilization
+
+This patch stabilizes the `NativeEngine` rendering pipeline to achieve full visual parity with the Standard Dart-based engine across all supported layout configurations.
+
+- ### NativeEngine / BinaryAnsiEncoder Stabilization
+  - **100% Layout Parity**: `BinaryAnsiEncoder` now produces character-for-character identical output to the standard `AnsiEncoder` across a differential matrix of **2,048 test configurations** (varying widths, formatters, and decorators).
+  - **State-Aware Word Wrapping**: Implemented a `wrapSegmentText` simulator inside `BinaryAnsiEncoder` that correctly models line-break budgets and segment continuations under tight width constraints.
+  - **Nested Decorator Tracking**: Added `_DecoratedState` to track `leadingWidth` accumulation across nested `PrefixDecorator` and `BoxDecorator` boundaries, ensuring indentation is geometrically consistent with the standard path.
+  - **Memory Safety**: Confirmed zero memory corruption or leaks under high-throughput stress runs; FFI pointer bounds checking hardened throughout the encoder.
+
+- ### Benchmarking Infrastructure
+  - **Three-Engine Comparison**: Introduced `three_engines_comparison.dart` using a `BenchmarkEncodingSink` to measure fully synchronous, end-to-end pipeline throughput across all three engines on a level playing field.
+  - **M15 Milestone Record**: Archived the layout parity verification results in `packages/benchmarks/records/M15_FfiLayoutParity.md`.
+
+- ### Fixes & Cleanup
+  - Reverted `NativeEngine` as the `Handler` default; `StandardEngine` remains the universal default engine.
+  - Corrected `NativeEngine` documentation to reflect **opt-in** production-ready status with 1.5x throughput advantage in layout-heavy scenarios (narrow word-wrapping).
+  - Applied project-wide `dart format` and resolved all outstanding lint warnings.
+
+---
+
 ## 0.8.0: The High-Performance Engine Milestone
 
 This milestone introduces a significant leap in logging performance by introducing a **Binary IR (B-IR)** pipeline, an **FFI-ready** execution engine, and an **Arena** object recycling engine. It also matures the **TOON Schema** system for improved AI-agent interoperability.
