@@ -7,7 +7,7 @@ This milestone introduces a significant leap in logging performance by introduci
 - ### High-Performance Engine & Binary IR
   - **StandardEngine (Default)**: Leverages standard Dart GC heap, ensuring out-of-the-box cross-platform support (including Web, Desktop, Mobile, and VM).
   - **ArenaEngine (Opt-In)**: Uses isolate-local LIFO object pooling to eliminate GC pressure. Ideal for complex logs with many decorators.
-  - **NativeEngine (Experimental Opt-In)**: A new VM-only execution engine targeting native platforms via B-IR. Achieves up to **23,000+ ops/sec** (up to 2.7x speedup during narrow terminal wrapping) using direct native C-heap serialization.
+  - **NativeEngine (Opt-In)**: A VM-only execution engine targeting native platforms via B-IR. Achieves up to **10,000+ ops/sec** (1.5x speedup during narrow terminal wrapping) under level-playing-field synchronous benchmarks using direct native C-heap serialization.
   - **Binary IR (B-IR) v1**: A linearized, language-agnostic instruction stream designed for zero-copy FFI compatibility.
   - **Arena Pooling**: Hardened isolate-local object pooling for `ArenaDocument` and `LogNode` types, ensuring zero-allocation steady-state logging with restored semantic integrity.
   - **BinaryAnsiEncoder**: A reference native-compatible renderer that processes B-IR streams in a single pass.
