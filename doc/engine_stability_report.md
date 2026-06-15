@@ -136,5 +136,5 @@ Native    █████████  4,399 ops/sec (320.0µs)
 2. **Opt into `ArenaEngine` for High-Throughput VM/Flutter Applications**:
    * It provides 100% layout fidelity guarantees and eliminates GC pressure on the Dart thread by using a LIFO recycler pool.
 3. **Opt into `NativeEngine` for Performance-Critical VM pipelines**:
-   * Now fully stabilized in `v0.8.0` with 100% verified visual layout parity, `NativeEngine` can be selected as an opt-in execution strategy for native CLI and server applications. Restrict it to standard human/JSON CLI profiles to avoid double-formatting fallback rendering degradation on unsupported layouts.
+   * Fully stabilized in `v0.8.1` with 100% verified visual layout parity, `NativeEngine` can be selected as an opt-in execution strategy for native CLI and server applications. Restrict it to standard human/JSON CLI profiles to avoid double-formatting fallback rendering degradation on unsupported layouts.
 

@@ -126,7 +126,7 @@ Logger.configure('global', handlers: [nativeHandler]);
 ## Long-Term Perspective & Tradeoffs
 *   **Opt for Safety First**: For production application builds on multi-platform architectures (especially Web and Mobile), always stick with `StandardEngine`.
 *   **GC Reduction**: For CLI logs in production servers, `ArenaEngine` offers a free throughput boost (~10-40%) without any platform-dependent risks.
-*   **Future of NativeEngine**: Once B-IR v2 serialization and layout stabilization are fully completed, `NativeEngine` is planned to be compiled into standalone C-libraries to support other languages (like Rust/Go/Python) using the exact same visual formatting specs of the Dart pipeline.
+*   **Future of NativeEngine**: With B-IR v2 serialization and layout parity fully completed in `v0.8.1`, `NativeEngine` is on track to be compiled into standalone C-libraries to support other languages (like Rust/Go/Python) using the exact same visual formatting specs of the Dart pipeline.
 
 ---
 

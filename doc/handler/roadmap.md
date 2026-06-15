@@ -105,7 +105,9 @@
 - [x] Introduce `three_engines_comparison.dart` benchmark on a level playing field
 - [x] Archive M15 milestone record in `packages/benchmarks/records/`
 - [x] Restore `StandardEngine` as the universal default engine
-- [ ] PR and merge into `dev`, then cut `v0.8.1` tag
+- [x] Fix iOS `ProcessException` on timezone fetch (closes #21)
+- [x] Merge into `dev`
+- [ ] PR to `master` and cut `v0.8.1` tag
 
 ---
 
