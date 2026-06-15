@@ -34,9 +34,63 @@ final class BinaryAnsiEncoder {
 
     // 2. Rendering State
     int currentLineWidth = 0;
+    LogStyle? activeStyle;
+
+    void applyStyle(final StringBuffer _, final LogStyle? style) {
+      if (activeStyle == style) {
+        return;
+      }
+      if (activeStyle != null) {
+        buffer.write('\x1B[0m');
+        activeStyle = null;
+      }
+      if (style != null) {
+        final codes = <int>[];
+        if (style.bold == true) {
+          codes.add(1);
+        }
+        if (style.dim == true) {
+          codes.add(2);
+        }
+        if (style.italic == true) {
+          codes.add(3);
+        }
+        if (style.inverse == true) {
+          codes.add(7);
+        }
+        if (style.underline == true) {
+          codes.add(4);
+        }
+        if (style.color != null) {
+          codes.add(_getColorCode(style.color!, background: false));
+        }
+        if (style.backgroundColor != null) {
+          codes.add(_getColorCode(style.backgroundColor!, background: true));
+        }
+        if (codes.isNotEmpty) {
+          buffer.write('\x1B[${codes.join(';')}m');
+          activeStyle = style;
+        }
+      }
+    }
+
+    void resetStyle(final StringBuffer buffer) {
+      if (activeStyle != null) {
+        buffer.write('\x1B[0m');
+        activeStyle = null;
+      }
+    }
+
+    void forceResetStyle() {
+      resetStyle(buffer);
+    }
+
     final indentStack = <_IndentEntry>[];
     final tableStack = <_TableState>[];
     final decoratedStack = <_DecoratedState>[];
+    final rowFillerStack = <_RowFiller>[];
+    _RowFiller? activeRowFiller() =>
+        rowFillerStack.isNotEmpty ? rowFillerStack.last : null;
 
     int activeTrailingWidth() {
       int w = 0;
@@ -59,65 +113,206 @@ final class BinaryAnsiEncoder {
       return base;
     }
 
+    int getVisualLength(final String text, final int startPos) {
+      int length = 0;
+      int currentPos = startPos;
+      for (final char in text.characters) {
+        if (char == '\t') {
+          final advance = 8 - (currentPos % 8);
+          length += advance;
+          currentPos += advance;
+        } else {
+          final advance = isWide(char) ? 2 : 1;
+          length += advance;
+          currentPos += advance;
+        }
+      }
+      return length;
+    }
+
     void ensureIndent() {
       if (currentLineWidth == 0) {
+        for (final entry in indentStack) {
+          entry.write(buffer, applyStyle);
+        }
+        if (tableStack.isNotEmpty) {
+          final state = tableStack.last;
+          int tablePad = 0;
+          for (int j = 0; j < state.currentColumn; j++) {
+            tablePad += state.columnWidths[j] + 2;
+          }
+          if (tablePad > 0) {
+            applyStyle(buffer, null);
+            buffer.write(' ' * tablePad);
+          }
+        }
         final indent = fullIndent();
-        buffer.write(indent);
-        currentLineWidth = _stripAnsi(indent).length;
+        currentLineWidth = getVisualLength(indent, 0);
       }
     }
 
+    _WrappedSegment wrapSegmentText(
+      final String text,
+      final int startLength,
+      final int availableWidth, {
+      required final bool noWrap,
+    }) {
+      if (noWrap) {
+        return _WrappedSegment(text.split('\n'), '');
+      }
+
+      final completedLines = <String>[];
+      var currentLineText = '';
+      var currentLength = startLength;
+
+      final physicalLines = text.split('\n');
+      for (var l = 0; l < physicalLines.length; l++) {
+        if (l > 0) {
+          completedLines.add(currentLineText);
+          currentLineText = '';
+          currentLength = 0;
+        }
+
+        final lineText = physicalLines[l];
+        if (lineText.isEmpty) {
+          continue;
+        }
+
+        final words = lineText.split(' ');
+        for (var i = 0; i < words.length; i++) {
+          final isLastWord = i == words.length - 1;
+          var word = words[i];
+          if (!isLastWord) {
+            word = '$word ';
+          }
+
+          // If even the single word is too long, we must break it
+          if (getVisualLength(word, 0) > availableWidth) {
+            if (currentLineText.isNotEmpty) {
+              completedLines.add(currentLineText);
+              currentLineText = '';
+              currentLength = 0;
+            } else if (currentLength > 0) {
+              completedLines.add('');
+              currentLength = 0;
+            }
+
+            var remaining = word;
+            while (remaining.isNotEmpty &&
+                getVisualLength(remaining, 0) > availableWidth) {
+              var fitLen = 0;
+              var takeCount = 0;
+              for (final char in remaining.characters) {
+                final clen =
+                    (char == '\t') ? 8 - (fitLen % 8) : (isWide(char) ? 2 : 1);
+                if (fitLen + clen > availableWidth && takeCount > 0) {
+                  break;
+                }
+                fitLen += clen;
+                takeCount += char.length;
+              }
+
+              final chunk = remaining.substring(0, takeCount);
+              completedLines.add(chunk);
+              remaining = remaining.substring(takeCount);
+            }
+            if (remaining.isNotEmpty) {
+              currentLineText = remaining;
+              currentLength = getVisualLength(remaining, 0);
+            }
+            continue;
+          }
+
+          final wordLenTrimmed = getVisualLength(
+            word.replaceFirst(RegExp(r' +$'), ''),
+            currentLength,
+          );
+          if (currentLength + wordLenTrimmed > availableWidth &&
+              currentLength > 0) {
+            if (currentLineText.isNotEmpty) {
+              completedLines.add(currentLineText);
+              currentLineText = '';
+            } else {
+              completedLines.add('');
+            }
+            currentLength = 0;
+          }
+
+          currentLineText += word;
+          currentLength += getVisualLength(word, currentLength);
+        }
+      }
+
+      return _WrappedSegment(completedLines, currentLineText);
+    }
+
     void closeLine() {
+      final filler = activeRowFiller();
+      if (filler != null) {
+        final boxCount = indentStack.whereType<_BoxIndent>().length;
+        final maxContentWidth =
+            terminalWidth - boxCount * 2 - activeTrailingWidth();
+        final pad = maxContentWidth - currentLineWidth;
+        if (pad > 0) {
+          applyStyle(buffer, filler.style);
+          buffer.write(filler.char * pad);
+          currentLineWidth += pad;
+        }
+      }
+
       // 1. Render trailing decorations
-      for (int i = 0; i < decoratedStack.length; i++) {
+      for (int i = decoratedStack.length - 1; i >= 0; i--) {
         final state = decoratedStack[i];
         final isFirst = state.isFirstLine;
         state.isFirstLine = false;
 
         final showTrailing = isFirst || state.repeatTrailing;
-        if (showTrailing && state.trailingSegments.isNotEmpty) {
-          if (state.alignTrailing) {
-            int outerTrailingWidth = 0;
-            for (int k = i + 1; k < decoratedStack.length; k++) {
-              final outerState = decoratedStack[k];
-              outerTrailingWidth += outerState.trailingWidth;
-            }
-            final boxCount = indentStack.whereType<_BoxIndent>().length;
-            final targetPos = terminalWidth -
-                (boxCount * 2) -
-                outerTrailingWidth -
-                state.trailingWidth;
-            final pad = targetPos - currentLineWidth;
-            if (pad > 0) {
-              buffer.write(' ' * pad);
-              currentLineWidth += pad;
-            }
+        if (state.alignTrailing) {
+          int outerTrailingWidth = 0;
+          for (int k = 0; k < i; k++) {
+            final outerState = decoratedStack[k];
+            outerTrailingWidth += outerState.trailingWidth;
           }
+          final boxCount = indentStack.whereType<_BoxIndent>().length;
+          final targetPos = terminalWidth -
+              (boxCount * 2) -
+              outerTrailingWidth -
+              state.trailingWidth;
+          final pad = targetPos - currentLineWidth;
+          if (pad > 0) {
+            final filler = activeRowFiller();
+            if (filler != null) {
+              applyStyle(buffer, filler.style);
+              buffer.write(filler.char * pad);
+            } else {
+              final innermostBox =
+                  indentStack.reversed.whereType<_BoxIndent>().firstOrNull;
+              final style = (innermostBox != null)
+                  ? innermostBox.style
+                  : theme.getStyle(level, LogTag.none);
+              applyStyle(buffer, style);
+              buffer.write(' ' * pad);
+            }
+            currentLineWidth += pad;
+          }
+        }
+
+        if (showTrailing && state.trailingSegments.isNotEmpty) {
           for (final seg in state.trailingSegments) {
-            _applyStyle(buffer, seg.style);
+            applyStyle(buffer, seg.style);
             buffer.write(seg.text);
-            _resetStyle(buffer);
-            currentLineWidth += seg.text.length;
+            currentLineWidth += getVisualLength(seg.text, currentLineWidth);
           }
         } else if (state.trailingWidth > 0) {
-          if (state.alignTrailing) {
-            int outerTrailingWidth = 0;
-            for (int k = i + 1; k < decoratedStack.length; k++) {
-              final outerState = decoratedStack[k];
-              outerTrailingWidth += outerState.trailingWidth;
-            }
-            final boxCount = indentStack.whereType<_BoxIndent>().length;
-            final targetPos = terminalWidth -
-                (boxCount * 2) -
-                outerTrailingWidth -
-                state.trailingWidth;
-            final pad = targetPos - currentLineWidth;
-            if (pad > 0) {
-              buffer.write(' ' * pad);
-              currentLineWidth += pad;
-            }
+          final filler = activeRowFiller();
+          if (filler != null) {
+            applyStyle(buffer, filler.style);
+            buffer.write(filler.char * state.trailingWidth);
+          } else {
+            final style = theme.getStyle(level, LogTag.none);
+            applyStyle(buffer, style);
+            buffer.write(' ' * state.trailingWidth);
           }
-          buffer.write(' ' * state.trailingWidth);
           currentLineWidth += state.trailingWidth;
         }
       }
@@ -129,179 +324,163 @@ final class BinaryAnsiEncoder {
         final suffixLen = boxCount * 2;
         final paddingNeeded = (terminalWidth - suffixLen - currentLineWidth)
             .clamp(0, terminalWidth);
+
         if (paddingNeeded > 0) {
-          buffer.write(' ' * paddingNeeded);
+          final filler = activeRowFiller();
+          if (filler != null) {
+            applyStyle(buffer, filler.style);
+            buffer.write(filler.char * paddingNeeded);
+          } else {
+            final innermostBox =
+                indentStack.reversed.whereType<_BoxIndent>().firstOrNull;
+            final style = (innermostBox != null)
+                ? innermostBox.style
+                : theme.getStyle(level, LogTag.none);
+            applyStyle(buffer, style);
+            buffer.write(' ' * paddingNeeded);
+          }
           currentLineWidth += paddingNeeded;
         }
+
         for (int j = indentStack.length - 1; j >= 0; j--) {
           final entry = indentStack[j];
           if (entry is _BoxIndent) {
             final sideChar = entry.border.getChar(BoxBorderPosition.vertical);
+            applyStyle(buffer, entry.style);
             buffer.write(' ');
-            _applyStyle(buffer, entry.style);
+            applyStyle(buffer, entry.style);
             buffer.write(sideChar);
-            _resetStyle(buffer);
             currentLineWidth += 2;
           }
         }
       }
+      forceResetStyle();
       buffer.writeln();
       currentLineWidth = 0;
     }
 
     void renderJsonWrapped(final Map<String, String> map, final int tags) {
+      final jsonStr = convert.jsonEncode(map);
+      final style = theme.getStyle(level, tags);
+
       if ((tags & LogTag.noWrap) != 0) {
-        final sb = StringBuffer('{');
-        int count = 0;
-        for (final entry in map.entries) {
-          if (count > 0) {
-            sb.write(', ');
-          }
-          final keyStyle = theme.getStyle(level, LogTag.loggerName);
-          _applyStyle(sb, keyStyle);
-          sb.write('"${entry.key}"');
-          _resetStyle(sb);
-          sb.write(': ');
-          final val = entry.value;
-          final LogStyle? valStyle;
-          if (val == 'true' || val == 'false') {
-            valStyle = theme.getStyle(level, LogTag.origin);
-          } else if (RegExp(r'^-?\d+\.?\d*$').hasMatch(val)) {
-            valStyle = theme.getStyle(level, LogTag.timestamp);
-          } else {
-            valStyle = const LogStyle(color: LogColor.green);
-          }
-          _applyStyle(sb, valStyle);
-          sb.write('"${entry.value}"');
-          _resetStyle(sb);
-          count++;
-        }
-        sb.write('}');
-        final renderedStr = sb.toString();
         ensureIndent();
-        buffer.write(renderedStr);
-        currentLineWidth += _stripAnsi(renderedStr).length;
+        applyStyle(buffer, style);
+        buffer.write(jsonStr);
+        currentLineWidth +=
+            getVisualLength(_stripAnsi(jsonStr), currentLineWidth);
         closeLine();
         return;
       }
 
-      final tokens = <_JsonToken>[
-        const _JsonToken('{', null),
-      ];
+      final contentSegments = <StyledText>[];
 
-      int count = 0;
-      for (final entry in map.entries) {
-        if (count > 0) {
-          tokens.addAll(const [
-            _JsonToken(',', null),
-            _JsonToken(' ', null, isSpace: true),
-          ]);
-        }
-
-        // Key (Yellow)
-        final keyStyle = theme.getStyle(level, LogTag.loggerName);
-        tokens
-          ..add(_JsonToken('"${entry.key}"', keyStyle))
-          ..addAll(const [
-            _JsonToken(':', null),
-            _JsonToken(' ', null, isSpace: true),
-          ]);
-
-        // Value (Green/Cyan/White based on content)
-        final val = entry.value;
-        final LogStyle? valStyle;
-        if (val == 'true' || val == 'false') {
-          valStyle = theme.getStyle(level, LogTag.origin);
-        } else if (RegExp(r'^-?\d+\.?\d*$').hasMatch(val)) {
-          valStyle = theme.getStyle(level, LogTag.timestamp);
-        } else {
-          valStyle = const LogStyle(color: LogColor.green);
-        }
-
-        tokens.add(_JsonToken('"', valStyle));
-        final valWords = val.split(' ');
-        for (int k = 0; k < valWords.length; k++) {
-          if (k > 0) {
-            tokens.add(_JsonToken(' ', valStyle, isSpace: true));
+      void flushContentSegments() {
+        if (contentSegments.isNotEmpty) {
+          final last = contentSegments.last;
+          final trimmedText = last.text.replaceFirst(RegExp(r' +$'), '');
+          if (trimmedText != last.text) {
+            final diff = last.text.length - trimmedText.length;
+            currentLineWidth -= diff;
+            contentSegments[contentSegments.length - 1] =
+                StyledText(trimmedText, style: last.style, tags: last.tags);
           }
-          tokens.add(_JsonToken(valWords[k], valStyle));
-        }
-        tokens.add(_JsonToken('"', valStyle));
-
-        count++;
-      }
-      tokens.add(const _JsonToken('}', null));
-
-      int getIndentWidth() {
-        int w = 0;
-        for (final entry in indentStack) {
-          if (entry is _StringIndent) {
-            w += entry.value.length;
-          } else if (entry is _BoxIndent) {
-            w += 2;
+          for (final seg in contentSegments) {
+            if (seg.text.isEmpty) {
+              continue;
+            }
+            applyStyle(buffer, seg.style ?? style);
+            buffer.write(seg.text);
           }
+          contentSegments.clear();
         }
-        return w;
       }
 
-      for (final token in tokens) {
-        if (token.isSpace) {
-          final indentWidth = getIndentWidth();
-          if (currentLineWidth <= indentWidth) {
-            continue;
-          }
+      final lines = jsonStr.split('\n');
+      for (int l = 0; l < lines.length; l++) {
+        if (l > 0) {
+          flushContentSegments();
+          closeLine();
         }
 
-        final tokenLen = token.text.length;
-        ensureIndent();
+        final lineText = lines[l];
+        if (lineText.isEmpty) {
+          continue;
+        }
 
         final boxCount = indentStack.whereType<_BoxIndent>().length;
         final maxContentWidth =
             terminalWidth - boxCount * 2 - activeTrailingWidth();
 
-        if (currentLineWidth + tokenLen > maxContentWidth) {
-          final indentWidth = getIndentWidth();
-          if (currentLineWidth > indentWidth) {
+        final words = lineText.split(' ');
+        for (var j = 0; j < words.length; j++) {
+          final isLastWord = j == words.length - 1;
+          final rawWord = words[j];
+          final word = isLastWord ? rawWord : '$rawWord ';
+
+          final indentWidth = getVisualLength(fullIndent(), 0);
+
+          final trimmedWord = word.replaceFirst(RegExp(r' +$'), '');
+          final wordLenTrimmed = getVisualLength(trimmedWord, currentLineWidth);
+
+          if (currentLineWidth + wordLenTrimmed > maxContentWidth &&
+              currentLineWidth > indentWidth) {
+            flushContentSegments();
             closeLine();
             ensureIndent();
           }
 
-          if (tokenLen > maxContentWidth - currentLineWidth) {
-            var remaining = token.text;
+          ensureIndent();
+
+          final wordLen = getVisualLength(word, currentLineWidth);
+          final availableWidth = maxContentWidth - indentWidth;
+
+          if (wordLen > availableWidth) {
+            if (currentLineWidth > indentWidth) {
+              flushContentSegments();
+              closeLine();
+              ensureIndent();
+            }
+
+            var remaining = word;
             while (remaining.isNotEmpty) {
               final currentAvail = max(1, maxContentWidth - currentLineWidth);
-              if (remaining.length <= currentAvail) {
-                _applyStyle(buffer, token.style);
-                buffer.write(remaining);
-                _resetStyle(buffer);
-                currentLineWidth += remaining.length;
+              final remLen = getVisualLength(remaining, currentLineWidth);
+              if (remLen <= currentAvail) {
+                contentSegments.add(StyledText(remaining, style: style));
+                currentLineWidth += remLen;
                 break;
               } else {
-                final chunk =
-                    remaining.characters.take(currentAvail).toString();
-                _applyStyle(buffer, token.style);
-                buffer.write(chunk);
-                _resetStyle(buffer);
-                currentLineWidth += chunk.length;
+                var chunk = '';
+                var chunkWidth = 0;
+                for (final char in remaining.characters) {
+                  final charWidth =
+                      getVisualLength(char, currentLineWidth + chunkWidth);
+                  if (chunkWidth + charWidth <= currentAvail || chunk.isEmpty) {
+                    chunk += char;
+                    chunkWidth += charWidth;
+                  } else {
+                    break;
+                  }
+                }
+                contentSegments.add(StyledText(chunk, style: style));
+                currentLineWidth += chunkWidth;
 
                 remaining = remaining.substring(chunk.length);
+                flushContentSegments();
                 closeLine();
                 ensureIndent();
               }
             }
           } else {
-            _applyStyle(buffer, token.style);
-            buffer.write(token.text);
-            _resetStyle(buffer);
-            currentLineWidth += tokenLen;
+            if (word.isNotEmpty) {
+              contentSegments.add(StyledText(word, style: style));
+              currentLineWidth += wordLen;
+            }
           }
-        } else {
-          _applyStyle(buffer, token.style);
-          buffer.write(token.text);
-          _resetStyle(buffer);
-          currentLineWidth += tokenLen;
         }
       }
+      flushContentSegments();
       closeLine();
     }
 
@@ -340,83 +519,66 @@ final class BinaryAnsiEncoder {
               ? logStyleFromBitmask(styleBitmask)
               : theme.getStyle(level, tags);
 
-          // Handle explicit newlines in the text
-          final lines = text.split('\n');
-          for (int l = 0; l < lines.length; l++) {
-            if (l > 0) {
+          void openStyle() {
+            applyStyle(buffer, style);
+          }
+
+          final noWrap = (tags & LogTag.noWrap) != 0;
+          final boxCount = indentStack.whereType<_BoxIndent>().length;
+          final maxContentWidth =
+              terminalWidth - boxCount * 2 - activeTrailingWidth();
+
+          final indentWidth = getVisualLength(fullIndent(), 0);
+          final textLen = currentLineWidth == 0
+              ? getVisualLength(text, indentWidth)
+              : getVisualLength(text, currentLineWidth);
+          final expectedWidth = currentLineWidth == 0
+              ? indentWidth + textLen
+              : currentLineWidth + textLen;
+
+          if (noWrap || (expectedWidth <= maxContentWidth)) {
+            final lines = text.split('\n');
+            for (int l = 0; l < lines.length; l++) {
+              if (l > 0) {
+                closeLine();
+              }
+              ensureIndent();
+              final lineText = lines[l];
+              if (lineText.isNotEmpty) {
+                openStyle();
+                buffer.write(lineText);
+                currentLineWidth += getVisualLength(lineText, currentLineWidth);
+              }
+            }
+          } else {
+            final indentWidth = getVisualLength(fullIndent(), 0);
+            final wrapped = wrapSegmentText(
+              text,
+              max(0, currentLineWidth - indentWidth),
+              max(0, maxContentWidth - indentWidth),
+              noWrap: noWrap,
+            );
+
+            for (final line in wrapped.completedLines) {
+              ensureIndent();
+              final trimmed = line.replaceFirst(RegExp(r' +$'), '');
+              if (trimmed.isNotEmpty) {
+                openStyle();
+                buffer.write(trimmed);
+                currentLineWidth += getVisualLength(trimmed, currentLineWidth);
+              }
               closeLine();
             }
 
-            final lineText = lines[l];
-            final words = lineText.split(' ');
-            for (var j = 0; j < words.length; j++) {
-              final word = words[j];
-              final wordLen = word.length;
-              final spacePrefix = (j == 0) ? '' : ' ';
-
+            if (wrapped.activeLine.isNotEmpty) {
               ensureIndent();
-
-              final boxCount = indentStack.whereType<_BoxIndent>().length;
-              final maxContentWidth =
-                  terminalWidth - boxCount * 2 - activeTrailingWidth();
-              if (currentLineWidth + wordLen + spacePrefix.length >
-                  maxContentWidth) {
-                int indentWidth = 0;
-                for (final entry in indentStack) {
-                  if (entry is _StringIndent) {
-                    indentWidth += entry.value.length;
-                  } else if (entry is _BoxIndent) {
-                    indentWidth += 2;
-                  }
-                }
-                if (currentLineWidth > indentWidth) {
-                  closeLine();
-                  ensureIndent();
-                }
-
-                final avail = maxContentWidth - currentLineWidth;
-                if (wordLen > avail) {
-                  var remaining = word;
-                  while (remaining.isNotEmpty) {
-                    final currentAvail =
-                        max(1, maxContentWidth - currentLineWidth);
-                    if (remaining.length <= currentAvail) {
-                      _applyStyle(buffer, style);
-                      buffer.write(remaining);
-                      _resetStyle(buffer);
-                      currentLineWidth += remaining.length;
-                      break;
-                    } else {
-                      final chunk =
-                          remaining.characters.take(currentAvail).toString();
-                      _applyStyle(buffer, style);
-                      buffer.write(chunk);
-                      _resetStyle(buffer);
-                      currentLineWidth += chunk.length;
-
-                      remaining = remaining.substring(chunk.length);
-                      closeLine();
-                      ensureIndent();
-                    }
-                  }
-                } else {
-                  _applyStyle(buffer, style);
-                  buffer.write(word);
-                  _resetStyle(buffer);
-                  currentLineWidth += wordLen;
-                }
-              } else {
-                if (j > 0) {
-                  buffer.write(' ');
-                  currentLineWidth++;
-                }
-                _applyStyle(buffer, style);
-                buffer.write(word);
-                _resetStyle(buffer);
-                currentLineWidth += wordLen;
-              }
+              openStyle();
+              buffer.write(wrapped.activeLine);
+              currentLineWidth +=
+                  getVisualLength(wrapped.activeLine, currentLineWidth);
             }
           }
+
           currentOffset += (16 + len + 7) & ~7;
           break;
 
@@ -436,7 +598,7 @@ final class BinaryAnsiEncoder {
 
           ensureIndent();
 
-          _applyStyle(buffer, style);
+          applyStyle(buffer, style);
           buffer.write(
             border.getCorner(BoxBorderPosition.top, BoxBorderCorner.left),
           );
@@ -447,7 +609,7 @@ final class BinaryAnsiEncoder {
           buffer.write(
             border.getCorner(BoxBorderPosition.top, BoxBorderCorner.right),
           );
-          _resetStyle(buffer);
+          resetStyle(buffer);
           buffer.writeln();
 
           indentStack.add(_BoxIndent(border, style, this));
@@ -465,7 +627,7 @@ final class BinaryAnsiEncoder {
             );
             final ctx = indentStack.removeAt(idx) as _BoxIndent;
             ensureIndent();
-            _applyStyle(buffer, ctx.style);
+            applyStyle(buffer, ctx.style);
             buffer
               ..write(
                 ctx.border
@@ -479,7 +641,7 @@ final class BinaryAnsiEncoder {
                 ctx.border
                     .getCorner(BoxBorderPosition.bottom, BoxBorderCorner.right),
               );
-            _resetStyle(buffer);
+            resetStyle(buffer);
             buffer.writeln();
             currentLineWidth = 0;
           }
@@ -522,9 +684,8 @@ final class BinaryAnsiEncoder {
               ? (maxContentWidth - currentLineWidth).clamp(0, terminalWidth)
               : count;
 
-          _applyStyle(buffer, style);
+          applyStyle(buffer, style);
           buffer.write(char * actualCount);
-          _resetStyle(buffer);
           currentLineWidth += actualCount;
           currentOffset += 16;
           break;
@@ -538,7 +699,6 @@ final class BinaryAnsiEncoder {
           final alignTrailing = (flags & 4) != 0;
           // ignore: unused_local_variable
           final tags = opPtr.cast<ffi.Uint32>()[1];
-          // ignore: unused_local_variable
           final hintIdx = opPtr.cast<ffi.Uint32>()[2];
           final leadingCount = opPtr.cast<ffi.Uint32>()[3];
           final trailingCount = opPtr.cast<ffi.Uint32>()[4];
@@ -553,7 +713,8 @@ final class BinaryAnsiEncoder {
               trailingWidth;
           final contentWidth =
               maxContentWidth - currentLineWidth - leadingWidth;
-          final useFallback = contentWidth < 12 && !repeatLeading;
+          final useFallback =
+              contentWidth < 12 && !repeatLeading && leadingCount > 0;
 
           final leadingSegments = <StyledText>[];
           final initialWidth = currentLineWidth;
@@ -576,10 +737,9 @@ final class BinaryAnsiEncoder {
                   .add(StyledText(segText, style: segStyle, tags: segTags));
 
               if (!useFallback) {
-                _applyStyle(buffer, segStyle);
+                applyStyle(buffer, segStyle);
                 buffer.write(segText);
-                _resetStyle(buffer);
-                currentLineWidth += segText.length;
+                currentLineWidth += getVisualLength(segText, currentLineWidth);
               }
               currentOffset += (16 + segLen + 7) & ~7;
             } else {
@@ -613,10 +773,11 @@ final class BinaryAnsiEncoder {
           i += leadingCount + trailingCount;
 
           final state = _DecoratedState(
-            trailingSegments: trailingSegments,
-            trailingWidth: trailingWidth,
-            repeatTrailing: repeatTrailing,
-            alignTrailing: alignTrailing,
+            leadingWidth: useFallback ? 0 : leadingWidth,
+            trailingSegments: useFallback ? const [] : trailingSegments,
+            trailingWidth: useFallback ? 0 : trailingWidth,
+            repeatTrailing: !useFallback && repeatTrailing,
+            alignTrailing: !useFallback && alignTrailing,
           );
           decoratedStack.add(state);
 
@@ -631,52 +792,94 @@ final class BinaryAnsiEncoder {
                 }
 
                 final lineText = lines[l];
+                if (lineText.isEmpty) {
+                  continue;
+                }
+
+                final dynamicMaxContentWidth =
+                    terminalWidth - boxCount * 2 - activeTrailingWidth();
+
                 final words = lineText.split(' ');
                 for (var j = 0; j < words.length; j++) {
-                  final word = words[j];
-                  final wordLen = word.length;
-                  final spacePrefix = (j == 0) ? '' : ' ';
+                  final isLastWord = j == words.length - 1;
+                  var word = words[j];
+
+                  // 1. Check if the current word (without space) wraps.
+                  final currentWordLen =
+                      getVisualLength(word, currentLineWidth);
+
+                  if (currentLineWidth + currentWordLen >
+                      dynamicMaxContentWidth) {
+                    final indentWidth = getVisualLength(fullIndent(), 0);
+                    if (currentLineWidth > indentWidth) {
+                      closeLine();
+                    }
+                  }
 
                   ensureIndent();
 
-                  final dynamicMaxContentWidth =
-                      terminalWidth - boxCount * 2 - activeTrailingWidth();
+                  // 2. Now currentLineWidth is where the word will be printed.
+                  final wordStartLineWidth = currentLineWidth;
 
-                  if (currentLineWidth + wordLen + spacePrefix.length >
-                      dynamicMaxContentWidth) {
-                    int indentWidth = 0;
-                    for (final entry in indentStack) {
-                      if (entry is _StringIndent) {
-                        indentWidth += entry.value.length;
-                      } else if (entry is _BoxIndent) {
-                        indentWidth += 2;
-                      }
+                  // 3. Determine if we should append a space
+                  bool appendSpace = !isLastWord;
+                  bool forceCloseAfter = false;
+                  if (appendSpace) {
+                    final currentWordLenWithSpace =
+                        getVisualLength('$word ', wordStartLineWidth);
+                    final nextWord = words[j + 1];
+                    final nextWordLen = getVisualLength(
+                      nextWord,
+                      wordStartLineWidth + currentWordLenWithSpace,
+                    );
+                    if (wordStartLineWidth +
+                            currentWordLenWithSpace +
+                            nextWordLen >
+                        dynamicMaxContentWidth) {
+                      appendSpace = false;
+                      forceCloseAfter = true;
                     }
-                    if (currentLineWidth > indentWidth) {
-                      closeLine();
-                      ensureIndent();
-                    }
+                  }
 
+                  if (appendSpace) {
+                    word = '$word ';
+                  }
+                  final wordLen = getVisualLength(word, currentLineWidth);
+
+                  if (word.isNotEmpty) {
                     final avail = dynamicMaxContentWidth - currentLineWidth;
                     if (wordLen > avail) {
+                      // Word is too long, we must chunk it
                       var remaining = word;
                       while (remaining.isNotEmpty) {
                         final currentAvail =
                             max(1, dynamicMaxContentWidth - currentLineWidth);
-                        if (remaining.length <= currentAvail) {
-                          _applyStyle(buffer, style);
+                        final remLen =
+                            getVisualLength(remaining, currentLineWidth);
+                        if (remLen <= currentAvail) {
+                          applyStyle(buffer, style);
                           buffer.write(remaining);
-                          _resetStyle(buffer);
-                          currentLineWidth += remaining.length;
+                          currentLineWidth += remLen;
                           break;
                         } else {
-                          final chunk = remaining.characters
-                              .take(currentAvail)
-                              .toString();
-                          _applyStyle(buffer, style);
+                          var chunk = '';
+                          var chunkWidth = 0;
+                          for (final char in remaining.characters) {
+                            final charWidth = getVisualLength(
+                              char,
+                              currentLineWidth + chunkWidth,
+                            );
+                            if (chunkWidth + charWidth <= currentAvail ||
+                                chunk.isEmpty) {
+                              chunk += char;
+                              chunkWidth += charWidth;
+                            } else {
+                              break;
+                            }
+                          }
+                          applyStyle(buffer, style);
                           buffer.write(chunk);
-                          _resetStyle(buffer);
-                          currentLineWidth += chunk.length;
+                          currentLineWidth += chunkWidth;
 
                           remaining = remaining.substring(chunk.length);
                           closeLine();
@@ -684,20 +887,14 @@ final class BinaryAnsiEncoder {
                         }
                       }
                     } else {
-                      _applyStyle(buffer, style);
+                      applyStyle(buffer, style);
                       buffer.write(word);
-                      _resetStyle(buffer);
                       currentLineWidth += wordLen;
                     }
-                  } else {
-                    if (j > 0) {
-                      buffer.write(' ');
-                      currentLineWidth++;
-                    }
-                    _applyStyle(buffer, style);
-                    buffer.write(word);
-                    _resetStyle(buffer);
-                    currentLineWidth += wordLen;
+                  }
+
+                  if (forceCloseAfter) {
+                    closeLine();
                   }
                 }
               }
@@ -712,20 +909,25 @@ final class BinaryAnsiEncoder {
             }
 
             if (repeatLeading) {
-              final sb = StringBuffer();
+              final segs = List<StyledText>.from(leadingSegments);
               int renderedWidth = 0;
               for (final seg in leadingSegments) {
-                _applyStyle(sb, seg.style);
-                sb.write(seg.text);
-                _resetStyle(sb);
-                renderedWidth += seg.text.length;
+                renderedWidth += getVisualLength(seg.text, renderedWidth);
               }
               if (renderedWidth < leadingWidth) {
-                sb.write(' ' * (leadingWidth - renderedWidth));
+                segs.add(StyledText(' ' * (leadingWidth - renderedWidth)));
               }
-              indentStack.add(_StringIndent(sb.toString()));
+              indentStack.add(_DecoratedIndent(segs));
             } else {
-              indentStack.add(_StringIndent(' ' * leadingWidth));
+              String rawDec = ' ' * leadingWidth;
+              if (hintIdx == 1 || hintIdx == 2) {
+                rawDec = '_' * leadingWidth;
+              } else if (hintIdx == 4) {
+                rawDec = '│${' ' * (leadingWidth - 1)}';
+              }
+              final decStyle = theme.getStyle(level, LogTag.hierarchy);
+              indentStack
+                  .add(_DecoratedIndent([StyledText(rawDec, style: decStyle)]));
             }
           }
           break;
@@ -734,8 +936,9 @@ final class BinaryAnsiEncoder {
           if (decoratedStack.isNotEmpty) {
             decoratedStack.removeLast();
           }
-          final idx =
-              indentStack.lastIndexWhere((final e) => e is _StringIndent);
+          final idx = indentStack.lastIndexWhere(
+            (final e) => e is _DecoratedIndent || e is _StringIndent,
+          );
           if (idx != -1) {
             indentStack.removeAt(idx);
           }
@@ -843,6 +1046,25 @@ final class BinaryAnsiEncoder {
           renderJsonWrapped(map, tags);
           break;
 
+        case BinaryIR.opRowStart:
+          final char = String.fromCharCode(opPtr[1]);
+          final tags = opPtr.cast<ffi.Uint32>()[1];
+          final styleBitmask = opPtr.cast<ffi.Uint32>()[2];
+          final style = styleBitmask != 0
+              ? logStyleFromBitmask(styleBitmask)
+              : theme.getStyle(level, tags);
+          rowFillerStack.add(_RowFiller(char, style));
+          currentOffset += 16;
+          break;
+
+        case BinaryIR.opRowEnd:
+          closeLine();
+          if (rowFillerStack.isNotEmpty) {
+            rowFillerStack.removeLast();
+          }
+          currentOffset += 8;
+          break;
+
         default:
           currentOffset += 8;
           break;
@@ -853,43 +1075,9 @@ final class BinaryAnsiEncoder {
     if (currentLineWidth > 0) {
       closeLine();
     }
+    forceResetStyle();
 
     return buffer.toString();
-  }
-
-  void _applyStyle(final StringBuffer buffer, final LogStyle? style) {
-    if (style == null) {
-      return;
-    }
-    final codes = <int>[];
-
-    if (style.bold == true) {
-      codes.add(1);
-    }
-    if (style.dim == true) {
-      codes.add(2);
-    }
-    if (style.italic == true) {
-      codes.add(3);
-    }
-    if (style.inverse == true) {
-      codes.add(7);
-    }
-    if (style.underline == true) {
-      codes.add(4);
-    }
-
-    if (style.color != null) {
-      codes.add(_getColorCode(style.color!, background: false));
-    }
-    if (style.backgroundColor != null) {
-      codes.add(_getColorCode(style.backgroundColor!, background: true));
-    }
-
-    if (codes.isEmpty) {
-      return;
-    }
-    buffer.write('\x1B[${codes.join(';')}m');
   }
 
   int _getColorCode(final LogColor color, {required final bool background}) {
@@ -912,10 +1100,6 @@ final class BinaryAnsiEncoder {
       LogColor.brightCyan => base + 66,
       LogColor.brightWhite => base + 67,
     };
-  }
-
-  void _resetStyle(final StringBuffer buffer) {
-    buffer.write('\x1B[0m');
   }
 
   String _stripAnsi(final String text) =>
@@ -941,12 +1125,26 @@ LogStyle logStyleFromBitmask(final int mask) {
 
 abstract class _IndentEntry {
   String get value;
+  void write(
+    final StringBuffer buffer,
+    final void Function(StringBuffer, LogStyle?) applyStyle,
+  );
 }
 
 class _StringIndent extends _IndentEntry {
   _StringIndent(this.value);
   @override
   final String value;
+  @override
+  void write(
+    final StringBuffer buffer,
+    final void Function(StringBuffer, LogStyle?) applyStyle,
+  ) {
+    if (value.isNotEmpty) {
+      applyStyle(buffer, null);
+      buffer.write(value);
+    }
+  }
 }
 
 class _BoxIndent extends _IndentEntry {
@@ -956,13 +1154,38 @@ class _BoxIndent extends _IndentEntry {
   final BinaryAnsiEncoder encoder;
 
   @override
-  String get value {
-    final sb = StringBuffer();
-    encoder._applyStyle(sb, style);
-    sb.write(border.getChar(BoxBorderPosition.vertical));
-    encoder._resetStyle(sb);
-    sb.write(' ');
-    return sb.toString();
+  String get value => '${border.getChar(BoxBorderPosition.vertical)} ';
+
+  @override
+  void write(
+    final StringBuffer buffer,
+    final void Function(StringBuffer, LogStyle?) applyStyle,
+  ) {
+    applyStyle(buffer, style);
+    buffer.write(border.getChar(BoxBorderPosition.vertical));
+    applyStyle(buffer, style);
+    buffer.write(' ');
+  }
+}
+
+class _DecoratedIndent extends _IndentEntry {
+  _DecoratedIndent(this.segments);
+  final List<StyledText> segments;
+
+  @override
+  String get value => segments.map((final s) => s.text).join();
+
+  @override
+  void write(
+    final StringBuffer buffer,
+    final void Function(StringBuffer, LogStyle?) applyStyle,
+  ) {
+    for (final seg in segments) {
+      if (seg.text.isNotEmpty) {
+        applyStyle(buffer, seg.style);
+        buffer.write(seg.text);
+      }
+    }
   }
 }
 
@@ -973,26 +1196,32 @@ class _TableState {
   int cellStartWidth = 0;
 }
 
-class _JsonToken {
-  const _JsonToken(this.text, this.style, {this.isSpace = false});
-
-  final String text;
-  final LogStyle? style;
-  final bool isSpace;
-}
-
 class _DecoratedState {
   _DecoratedState({
+    required this.leadingWidth,
     required this.trailingSegments,
     required this.trailingWidth,
     required this.repeatTrailing,
     required this.alignTrailing,
   });
 
+  final int leadingWidth;
   final List<StyledText> trailingSegments;
   final int trailingWidth;
   final bool repeatTrailing;
   final bool alignTrailing;
 
   bool isFirstLine = true;
+}
+
+class _RowFiller {
+  _RowFiller(this.char, this.style);
+  final String char;
+  final LogStyle? style;
+}
+
+class _WrappedSegment {
+  const _WrappedSegment(this.completedLines, this.activeLine);
+  final List<String> completedLines;
+  final String activeLine;
 }

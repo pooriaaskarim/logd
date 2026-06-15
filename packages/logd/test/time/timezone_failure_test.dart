@@ -37,6 +37,17 @@ class ThrowingClock extends Clock {
   String? get timezoneName => throw Exception("System failure");
 }
 
+// Mock Clock simulating what clock_native.dart does on iOS (issue #21):
+// returns DateTime.now().timeZoneName — process-free and sandbox-safe.
+class IosFallbackClock extends Clock {
+  @override
+  DateTime get now => DateTime.now();
+
+  @override
+  // ignore: override_on_non_overriding_member
+  String? get timezoneName => DateTime.now().timeZoneName;
+}
+
 void main() {
   group('Timezone Failure Emulation', () {
     setUpAll(() {
@@ -83,6 +94,20 @@ void main() {
       // systemTimezoneName is null.
       // So `name: systemTimezoneName ?? 'UTC'` kicks in.
       expect(tz.name, equals('UTC'));
+      expect(tz.offset, equals(clock.now.timeZoneOffset));
+    });
+
+    // Regression test for issue #21: iOS sandbox prohibits Process.runSync.
+    // clock_native.dart now uses DateTime.now().timeZoneName on iOS, which
+    // is process-free. This test verifies that path resolves without throwing.
+    test('Resolves timezone from DateTime.now().timeZoneName (iOS path)', () {
+      final clock = IosFallbackClock();
+      Context.setClock(clock);
+
+      // Should not throw — and should produce a valid Timezone.
+      expect(() => Timezone.local(), returnsNormally);
+      final tz = Timezone.local();
+      // The resolved offset must match the system offset.
       expect(tz.offset, equals(clock.now.timeZoneOffset));
     });
   });

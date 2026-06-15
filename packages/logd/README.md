@@ -211,7 +211,7 @@ Logger.configure('app', timestamp: timestamp);
  
 - **StandardEngine (Default)**: A reliable, platform-agnostic engine running on the Dart GC heap. Fully compatible with Web, Desktop, Mobile, and VM.
 - **ArenaEngine**: Uses isolate-local LIFO object pooling to eliminate GC pressure. Ideal for complex logs with many decorators.
-- **NativeEngine (Experimental)**: Leverages `dart:ffi` and a **Binary IR (B-IR)** instruction stream for native VM platforms.
+- **NativeEngine (Opt-in)**: Leverages `dart:ffi` and a **Binary IR (B-IR)** instruction stream for native VM platforms. Fully stabilized in v0.8.1 with 100% verified layout parity.
 
 ```dart
 // StandardEngine is used by default.

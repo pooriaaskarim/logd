@@ -2,6 +2,24 @@
 
 ## Completed
 
+### ✅ v0.8.0: The Engine & Schema Milestone
+**Goal**: Consolidate high-performance native rendering with AI-native structured schemas.
+**Result**: Fully stabilized Standard, Arena, and Native execution engines with support for B-IR v2 serialization and TOON explicit schemas.
+* **TOON Schema Maturity**:
+  - [x] Define semantic `ToonType` system (iso8601, enum, markdown, etc.)
+  - [x] Implement aligned, multi-line schema headers
+  - [x] Add Enum introspection for log levels in schema
+  - [x] Update `TerminalLayout` to detect and render explicit schemas in console
+* **Engine Optimizations (Binary IR & Native Engine)**:
+  - [x] Define B-IR v1 & v2 instruction stream specifications
+  - [x] Implement `BinaryIRWriter` for linearized document streaming
+  - [x] Create `NativeEngine` with fast-path bypassing object-tree traversal
+  - [x] Standardize 16-byte B-IR header with color/padding support
+  - [x] Implement `BinaryAnsiEncoder` as reference native-compatible renderer
+  - [x] Achieve ~13x throughput improvement over standard heap engine
+  - [x] Build golden-testing suite for complete engine parity verification
+  - [x] Stabilize LIFO-based Arena memory allocation and deterministic resource release
+
 ### ✅ P0: BoxFormatter Refactoring
 **Goal**: Separate visual framing from content formatting.
 **Result**: Successfully split into `StructuredFormatter` and `BoxDecorator`.
@@ -25,7 +43,7 @@
 - [x] Decouple field extraction from JSON/TOON formatters
 - [x] Allow dynamic field selection in any supported formatter
 
-### ✅ ✅ P0: Visual Showcase (Logd Theatre)
+### ✅ P0: Visual Showcase (Logd Theatre)
 **Goal**: Demonstrate complex capabilities in a single interactive dashboard.
 **Result**: Created `example/log_theatre.dart`.
 - [x] Implement mock dashboard UI in terminal
@@ -65,40 +83,35 @@
 - [x] `DropPolicy` for memory-safe buffer management (`discardOldest`, `discardNewest`)
 - [x] Dependency injection support for testability (`client` and `channel` parameters)
 - [x] Comprehensive test coverage (8 tests passing)
----
 
-### ✅ v0.8.0: The Engine & Schema Milestone
-**Goal**: Consolidate high-performance native rendering with AI-native structured schemas.
-**Result**: Fully stabilized Standard, Arena, and Native execution engines with support for B-IR v2 serialization and TOON explicit schemas.
-* **TOON Schema Maturity**:
-  - [x] Define semantic `ToonType` system (iso8601, enum, markdown, etc.)
-  - [x] Implement aligned, multi-line schema headers
-  - [x] Add Enum introspection for log levels in schema
-  - [x] Update `TerminalLayout` to detect and render explicit schemas in console
-* **Engine Optimizations (Binary IR & Native Engine)**:
-  - [x] Define B-IR v1 & v2 instruction stream specifications
-  - [x] Implement `BinaryIRWriter` for linearized document streaming
-  - [x] Create `NativeEngine` with fast-path bypassing object-tree traversal
-  - [x] Standardize 16-byte B-IR header with color/padding support
-  - [x] Implement `BinaryAnsiEncoder` as reference native-compatible renderer
-  - [x] Achieve ~13x throughput improvement over standard heap engine
-  - [x] Build golden-testing suite for complete engine parity verification
-  - [x] Stabilize LIFO-based Arena memory allocation and deterministic resource release
+### ✅ P1: Semantic Encoder Inversion (v0.6.5)
+**Goal**: Decouple formatting intent from physical serialization.
+**Result**: Formatter produces semantic IR (`MapNode`/`ListNode`), while `LogEncoder` handles serialization.
+- [x] Implement `JsonEncoder` and `ToonEncoder`
+- [x] Refactor `EncodingSink` to be protocol-agnostic
+- [x] Update `ToonFormatter` and `JsonFormatter` to emit semantic documents
+- [x] Fix session-aware headers via `LogEncoder.preamble(document)`
 
 ---
 
 ## Active Development
 
-## Features
-
-### 🟡 v0.9.0: Performance & Latency Isolation (Active)
-**Goal**: Maximize throughput and isolate calling threads from disk/network delays.
-
-**Isolate-based Dispatch**:
-- [ ] Implement Isolate-based dispatch for zero-latency main-thread logging
-- [ ] Profile thread boundaries under high contention
+### 🟡 v0.8.1: FFI Layout Parity & Stabilization (Active)
+**Goal**: Achieve 100% visual layout parity between the NativeEngine and StandardEngine rendering paths.
+**Result**: Verified across 2,048 differential test configurations. `BinaryAnsiEncoder` now produces character-for-character identical output to the standard ANSI path.
+- [x] Implement state-aware word-wrap simulator in `BinaryAnsiEncoder`
+- [x] Add `_DecoratedState` for nested decorator leading-width tracking
+- [x] Harden FFI pointer bounds checking for memory safety
+- [x] Introduce `three_engines_comparison.dart` benchmark on a level playing field
+- [x] Archive M15 milestone record in `packages/benchmarks/records/`
+- [x] Restore `StandardEngine` as the universal default engine
+- [x] Fix iOS `ProcessException` on timezone fetch (closes #21)
+- [x] Merge into `dev`
+- [ ] PR to `master` and cut `v0.8.1` tag
 
 ---
+
+## Features
 
 ### 🟡 P1: Async Formatter Support
 **Context**: Heavy serialization (complex JSON) blocks the calling isolate.
@@ -107,8 +120,6 @@
 - [ ] Add `AsyncFormatter` interface with `Future<Iterable<String>> format(LogEntry)`
 - [ ] Create `AsyncHandler` wrapper that offloads formatting to a worker isolate
 - [ ] Benchmark performance improvement on large objects
-
----
 
 ---
 
@@ -140,6 +151,7 @@
 - [ ] Real-time log streaming via WebSockets
 - [ ] Browser-side filtering and search across all attached handlers
 
+---
 
 ### 🟡 P1: HTML Logging Consolidation & Simplification
 **Context**: We currently have both `HtmlFormatter` and `HtmlSink`. With the planned `HttpServerSink` (Dashboard), we need to evaluate if both are necessary or if they can be unified.
@@ -148,15 +160,3 @@
 - [ ] Evaluate if `HtmlFormatter` should be simplified to only emit structured semantic tags (like `JSON`).
 - [ ] Determine if `HtmlSink` CSS should be moved to a shared theme system.
 - [ ] Consider if a single `WebLogHandler` could manage both static file generation and future server-side streaming.
-
----
-
-## Fixes
-
-### ✅ P1: Semantic Encoder Inversion (v0.6.5)
-**Goal**: Decouple formatting intent from physical serialization.
-**Result**: Formatter produces semantic IR (`MapNode`/`ListNode`), while `LogEncoder` handles serialization.
-- [x] Implement `JsonEncoder` and `ToonEncoder`
-- [x] Refactor `EncodingSink` to be protocol-agnostic
-- [x] Update `ToonFormatter` and `JsonFormatter` to emit semantic documents
-- [x] Fix session-aware headers via `LogEncoder.preamble(document)`

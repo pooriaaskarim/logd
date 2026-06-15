@@ -1,2 +1,2 @@
-[1;31m____[0m[2;31m2025-01-01[0m [2;31m12:00:05[0m[1;31m[0m [1;31m[0m[1;31m[ERROR][0m[1;31m[0m [1;31m[0m[1;31m[[0m[2;31mBinaryError[0m[1;31m][0m[1;31m[0m [1;31m[0m[1;31m[[0m[1;31merror.dart:1[0m[1;31m][0m[1;31m____________________[0m
-[1;31m----|[0m[31mCritical[0m [31msystem[0m [31mfailure[0m [31mdetected[0m [31min[0m [31mthe[0m [31mbinary[0m [31mpipeline![0m
+[1;31m____[0m[2;31m2025-01-01 12:00:05[0m[1;31m [ERROR] [[0m[2;31mBinaryError[0m[1;31m] [error.dart:1]____________________[0m
+[1;31m----|[0m[31mCritical system failure detected in the binary pipeline!                   [0m

@@ -20,7 +20,12 @@ The following table tracks the performance evolution of the `logd` handler archi
 | **M9** | `HEAD` | Static Tokens & Fast Paths | 135.7 | 305.8 | 242.1 |
 | **M10** | `HEAD` | Zero-Churn & Isolate Sinks | **136.7** | **299.2** | **247.0** |
 | **M11** | `HEAD` | Arena Engine Comparison | -- | **303.8** (Raw) | **129.1** (Human) |
+| **M12** | `HEAD` | FFI Binary IR Groundwork | -- | 12.0 (Native)* | 5.0 (Native)* |
+| **M13** | `606fcce` | Pipeline Stability & Alignment | 161.2 | 331.7 | 281.0 |
+| **M14** | `0d14f22` | Zero-Latency Native Offload | 171.3 | 355.5 | 319.6 |
+| **M15** | `9ea5843` | FFI Layout Parity & Stabilization | **221.1** | **342.0** | **366.3** |
 
+*\*M12 represents Native/FFI micro-benchmarks.*
 *\*Legacy JSON utilized raw `jsonEncode` without semantic layout support.*
 
 ## Record Artifacts
@@ -37,6 +42,11 @@ The following table tracks the performance evolution of the `logd` handler archi
 - [Milestone 9: Static Tokens & Fast Paths](./M09_StaticTokens.md)
 - [Milestone 10: Zero-Churn Encoding & Isolate Sinks](./M10_FinalCeiling.md)
 - [Milestone 11: Arena Engine Comparison](./M11_ArenaEngineComparison.md)
+- [Milestone 12: FFI Binary IR Groundwork](./M12_FFIBinaryIR.md)
+- [Milestone 13: Pipeline Stability & Alignment](./M13_PipelineStability.md)
+- [Milestone 14 (Phase 1): Native Offload](./M14_Phase1_NativeOffload.md)
+- [Milestone 14 (Phase 2): LogEntry Pooling](./M14_Phase2_LogEntryPooling.md)
+- [Milestone 15: FFI Layout Parity & Stabilization](./M15_FfiLayoutParity.md)
 
 ## Usage & Maintenance
 
