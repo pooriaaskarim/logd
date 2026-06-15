@@ -13,7 +13,8 @@ void main() {
       expect(name, isNotEmpty);
     });
 
-    test('returns a result consistent with DateTime.now().timeZoneName '
+    test(
+        'returns a result consistent with DateTime.now().timeZoneName '
         'or a valid IANA name', () {
       final name = fetchNativeTimezoneName();
       // Should either be an IANA name (contains '/') or an offset like '+03:30'
@@ -31,8 +32,8 @@ void main() {
     test('returns null when path is a plain file (not a symlink to zoneinfo)',
         () {
       // Create a temporary non-symlink file
-      final tmp = File('/tmp/logd_tz_test_plain');
-      tmp.writeAsStringSync('not_a_tz');
+      final tmp = File('/tmp/logd_tz_test_plain')
+        ..writeAsStringSync('not_a_tz');
       addTearDown(tmp.deleteSync);
 
       // resolveTimezonePath requires a symlink, so a plain file → null
@@ -42,7 +43,9 @@ void main() {
     // On a standard Linux system, /etc/localtime is a symlink into
     // /usr/share/zoneinfo/, so this validates the production path.
     test('resolves /etc/localtime to a valid IANA name (Linux only)', () {
-      if (!Platform.isLinux) return;
+      if (!Platform.isLinux) {
+        return;
+      }
 
       final link = Link('/etc/localtime');
       if (!link.existsSync()) {
@@ -52,7 +55,7 @@ void main() {
 
       final name = resolveTimezonePath('/etc/localtime');
       expect(name, isNotNull);
-      expect(name!, contains('/')); // IANA names are Region/City
+      expect(name, contains('/')); // IANA names are Region/City
     });
   });
 }
