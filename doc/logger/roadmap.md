@@ -84,7 +84,7 @@ Items in this phase are prerequisites for subsequent phases.
 
 Depends on Phase 1 (particularly the freeze no-op fix).
 
-### 🟡 P1: Inheritance Maturation (Monitoring, Unfreeze & Visibility)
+### ~~🟡 P1: Inheritance Maturation (Monitoring, Unfreeze & Visibility)~~ ✅ v0.8.2
 
 **Issue**: Once frozen, inheritance can never be restored. Additionally, the inheritance system lacks visibility for advanced users.
 
@@ -93,12 +93,12 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Solution**: Track frozen fields with `Set<String> _frozenFields` per config.
 
 **TODO**:
-- [ ] Add monitoring utilities to track the state of the inheritance system
-- [ ] Add `_frozenFields` tracking to `LoggerConfig`
-- [ ] `freezeInheritance()` populates `_frozenFields` for each field it fills
-- [ ] `unfreezeInheritance()` nulls out only `_frozenFields` entries, restoring dynamic resolution
-- [ ] Test: freeze → unfreeze → parent change → child updates dynamically again
-- [ ] Architecture & Philosophy Refinement: Further document the nuances of hierarchical overrides vs. freezing
+- [x] Add monitoring utilities to track the state of the inheritance system
+- [x] Add `_frozenFields` tracking to `LoggerConfig`
+- [x] `freezeInheritance()` populates `_frozenFields` for each field it fills
+- [x] `unfreezeInheritance()` nulls out only `_frozenFields` entries, restoring dynamic resolution
+- [x] Test: freeze → unfreeze → parent change → child updates dynamically again
+- [x] Architecture & Philosophy Refinement: Further document the nuances of hierarchical overrides vs. freezing
 
 ---
 
@@ -107,7 +107,7 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Issue**: Most `@immutable` annotations were added in v0.3.1, but `LoggerConfig` and `_ResolvedConfig` may need review.
 
 **TODO**:
-- [ ] Audit remaining classes for immutability gaps
+- [x] Audit remaining classes for immutability gaps
 - [ ] Consider making `LoggerConfig` immutable (assess breaking-change impact)
 
 ---
@@ -254,10 +254,10 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Issue**: Hard to understand current logger tree structure at runtime.
 
 **TODO**:
-- [ ] Implement `Logger.printHierarchy()` debug utility
-- [ ] Implement `Logger.exportHierarchy()` → `Map<String, dynamic>`
-- [ ] Show: name, explicit config, effective (resolved) config, frozen fields
-- [ ] Document in README
+- [x] Implement `Logger.printHierarchy()` debug utility
+- [x] Implement `Logger.exportHierarchy()` → `Map<String, dynamic>`
+- [x] Show: name, explicit config, effective (resolved) config, frozen fields
+- [x] Document in README
 
 ---
 
@@ -312,15 +312,15 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 ---
 
-### 🔵 P3: Production Reset API
+### ~~🔵 P3: Production Reset API~~ ✅ v0.8.2
 
 **Issue**: `clearRegistry()` is `@visibleForTesting`, no public reset.
 
 **Use Case**: Long-lived servers, plugin systems, multi-tenant apps.
 
 **TODO**:
-- [ ] Expose `Logger.reset()` or `Logger.clearAll()`
-- [ ] Add warning documentation (loses all configs)
+- [x] Expose `Logger.reset()` or `Logger.clearAll()`
+- [x] Add warning documentation (loses all configs)
 - [ ] Consider partial reset: `Logger.reset('subtree')`
 
 ---

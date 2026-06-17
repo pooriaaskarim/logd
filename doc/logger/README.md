@@ -121,9 +121,20 @@ try {
 > [!IMPORTANT]
 > Always call `.sink()` when using a buffer. By default, `autoSinkBuffer` is **disabled** (`false`). If a buffer is garbage collected without being sinked, a leak warning is logged via `InternalLogger` and data is lost unless explicitly enabled.
 
+### Inheritance Control & Diagnostics
+
+`logd` features a mature, production-grade logger inheritance management system for hot paths and troubleshooting:
+
+- **`logger.freezeInheritance({bool force = false})`**: Bakes the resolved configuration into descendants, avoiding tree walks. Returns the total number of fields written. Pass `force: true` to re-snapshot previously frozen fields after ancestry changes.
+- **`logger.unfreezeInheritance({Set<String>? fields, bool includeSelf = true})`**: Restores dynamic resolution. Can target a specific set of fields, and optionally exclude the calling logger itself to only unfreeze descendants.
+- **`Logger.formatHierarchy()`**: Pure string generator for visualizing the entire logger tree, complete with frozen status annotations and effective values.
+- **`Logger.printHierarchy({void Function(String)? sink})`**: Pipes the tree hierarchy into a logging sink (defaults to `InternalLogger.debug`).
+- **`Logger.exportHierarchy()`**: Exports the hierarchy tree as a JSON-serializable map, including ghost-node (`implicit`) detection and effective resolved values.
+- **`Logger.reset([String? loggerName])`**: Resets the entire registry (if no name or `'global'` is provided) or a specific subtree to default unresolved configurations.
+
 ### Performance Optimization
-- `logger.freezeInheritance()` - Bake current configuration into descendants for zero-cost lookups
-- Use for hot paths where configuration is guaranteed static
+
+- Use `logger.freezeInheritance()` for hot paths (e.g., tight loops) where configuration is guaranteed static. This reduces lookup latency to a simple O(1) cache access.
 
 ### Flutter Integration
 - `Logger.attachToFlutterErrors()` - Route Flutter errors through logd pipeline

@@ -184,7 +184,7 @@ void main() {
                   nativeLines.length,
                   stdLines.length,
                   reason: 'Mismatch in line counts. '
-                      'Standard had ${stdLines.length} lines, Native had '  
+                      'Standard had ${stdLines.length} lines, Native had '
                       '${nativeLines.length} lines.\n'
                       'Standard:\n$stdOut\n'
                       'Native:\n$nativeOut',

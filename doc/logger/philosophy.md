@@ -44,12 +44,20 @@ The system utilizes a versioning strategy. Modifying a parent node increments it
 
 **Rationale**: Without deep equality, reconfiguring a logger with the same values would invalidate all descendant caches unnecessarily. This is especially important for programmatic configuration in tests or dynamic systems.
 
-### Inheritance Freezing
-For hot-paths where even the overhead of checking a version number is too high, the library supports `freezeInheritance()`.
-- **The Optimization**: It flattens the resolved configuration and bakes it into a private, immutable instance
-- **Trade-off**: The logger becomes disconnected from future parent configuration updates, but achieves the absolute minimum CPU overhead possible in Dart
+### Inheritance Freezing & Control
 
-**Rationale**: In performance-critical code paths (e.g., game loops, real-time systems), even a single map lookup can be measurable. Freezing allows developers to opt into zero-cost logging for specific subtrees.
+For hot-paths where even the overhead of checking a version number is too high, the library supports freezing the resolved configuration.
+
+- **The Optimization**: `logger.freezeInheritance()` flattens resolved configuration properties down the logger hierarchy and bakes them into descendant `LoggerConfig` configurations. This eliminates the O(D) walk up the hierarchy tree on every log call, reducing it to a single O(1) cache lookup.
+- **Dynamic Restructuring (`force: true`)**: By default, once a node's fields are frozen, subsequent changes to its ancestor will be ignored by those fields. However, calling `logger.freezeInheritance(force: true)` will re-snapshot and update currently frozen configurations with the latest resolved values from their ancestors, while keeping user-defined explicit configurations intact.
+- **Selective Restoration (`unfreezeInheritance`)**: Dynamic resolution can be restored globally or selectively using `logger.unfreezeInheritance({Set<String>? fields, bool includeSelf = true})`. This allows restoring dynamic resolution on specific properties (like `logLevel` or `handlers`) without touching others, or restricting the unfreeze operation purely to descendants.
+- **Safety Safeguards**:
+  - **Implicit Node Warning**: If `freezeInheritance` is called on a "ghost node" (a logger created via `Logger.get()` that was never explicitly configured), a warning is logged via `InternalLogger` to alert the developer that they may be freezing unresolved default values.
+  - **Promotion Warning**: If `Logger.configure()` is called on a logger for a property that is currently frozen, the property is promoted to explicit, and a warning is emitted to alert the developer that they are erasing the frozen status (suggesting `unfreezeInheritance()` first if they wanted dynamic propagation instead).
+
+**Rationale**: In performance-critical paths (e.g., hot event loops, high-throughput message handlers), every microsecond matters. Freezing allows developers to opt into zero-overhead logging, while diagnostics warnings and unfreezing tools keep the configuration lifecycle clean and manageable.
+
+- **Registry and Subtree Reset**: The central registry can be cleared globally or partially using `Logger.reset([String? loggerName])`. Passing a specific logger name/namespace clears only that subtree and its descendants from the registry, leaving the rest of the hierarchy untouched. If no argument is provided, the entire registry is reset to its default unresolved configurations (useful for teardowns in test suites).
 
 ## 4. Atomic Multi-Line Logging
 

@@ -7,7 +7,7 @@ void main() {
     late EntryCollectorHandler entryCollector;
 
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
       entryCollector = EntryCollectorHandler();
       logger = Logger.get('buffer_test');
       Logger.configure(

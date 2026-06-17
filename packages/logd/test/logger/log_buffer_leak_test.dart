@@ -7,7 +7,7 @@ void main() {
     late Logger logger;
 
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
       logger = Logger.get('test_auto_sink');
     });
 

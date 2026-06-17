@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.8.2: Logger Inheritance Maturation & Diagnostics
+
+This release delivers the maturation of the logger hierarchical inheritance control and diagnostics features.
+
+- ### Inheritance System Control
+  - **Selective Unfreeze**: Added `fields` filter to `Logger.unfreezeInheritance()`, allowing restoring dynamic propagation on specific fields (like `logLevel`) while keeping others frozen.
+  - **Descendants-Only Unfreeze**: Added `includeSelf` toggle to `Logger.unfreezeInheritance()`. Passing `includeSelf: false` applies unfreezing strictly to descendants of the target logger.
+  - **Force Re-snapshot**: Added `force: true` to `Logger.freezeInheritance()`, enabling re-freezing currently frozen fields with updated ancestor configurations, while leaving explicit configuration overrides intact.
+  - **Write Tracking**: `Logger.freezeInheritance()` now returns the total count of field configuration changes written across all descendants (returns `0` if it was a complete no-op).
+  - **Production Reset & Subtree Clear**: Added static `Logger.reset([String? loggerName])` to reset the entire logger registry (or a specific namespace subtree) and invalidate caches, replacing the internal `@visibleForTesting` `clearRegistry()`.
+
+- ### Diagnostics & Monitoring
+  - **Hierarchy Visualization**: Added `Logger.formatHierarchy()` to compile a visual text representation of the registered logger tree, with annotations for explicit/frozen settings and actual effective values.
+  - **Hierarchy Redirection**: Enhanced `Logger.printHierarchy()` to accept an optional `sink` function, routing through `InternalLogger.debug` by default.
+  - **Effective Value Export**: Enriched `Logger.exportHierarchy()` to include a JSON-serializable `effective` dictionary mapping all resolved primitive properties, formatters, and handler definitions.
+  - **Ghost Node Detection**: Added `'implicit'` key in exported metadata to identify lazily-instantiated loggers. Added warnings when `freezeInheritance()` is called on an implicit node or when `configure()` erases a frozen field state.
+
+---
+
 ## 0.8.1: FFI Layout Parity & Stabilization
 
 This patch stabilizes the `NativeEngine` rendering pipeline to achieve full visual parity with the Standard Dart-based engine across all supported layout configurations.

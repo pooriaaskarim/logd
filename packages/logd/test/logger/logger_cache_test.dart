@@ -4,11 +4,11 @@ import 'package:test/test.dart';
 void main() {
   group('LoggerCache', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     tearDown(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('resolves default values for global logger', () {

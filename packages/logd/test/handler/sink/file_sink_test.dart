@@ -202,7 +202,7 @@ void main() {
     });
 
     tearDown(() {
-      Logger.clearRegistry();
+      Logger.reset();
       Context.reset();
     });
 

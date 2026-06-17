@@ -47,7 +47,7 @@ void main() {
 
   group('Logger Hierarchy & Inheritance', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('Child inherits logLevel from global by default', () {
@@ -89,7 +89,7 @@ void main() {
 
   group('Logger Caching & Invalidation', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('Config values are cached after search', () {
@@ -119,7 +119,7 @@ void main() {
 
   group('Logger freezeInheritance', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('freezeInheritance snapshots current effective config to children',
@@ -164,7 +164,7 @@ void main() {
 
   group('Logger Deep Equality Optimization', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('Identical but new collections do NOT trigger cache invalidation', () {
@@ -223,7 +223,7 @@ void main() {
 
   group('InternalLogger', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('InternalLogger does not recursively log when a handler fails',
@@ -271,7 +271,7 @@ void main() {
 
   group('Logger.configure() Input Validation', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('rejects negative stackMethodCount values', () {
@@ -313,7 +313,7 @@ void main() {
 
   group('freezeInheritance no-op optimization', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('freeze when all fields explicit does not bump version', () {
@@ -364,7 +364,7 @@ void main() {
 
   group('Null message behavior', () {
     setUp(() {
-      Logger.clearRegistry();
+      Logger.reset();
     });
 
     test('logger.info(null) produces output with empty message', () async {

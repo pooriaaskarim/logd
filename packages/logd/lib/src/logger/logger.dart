@@ -48,6 +48,17 @@ class LoggerConfig {
 
   /// Cache version tracker.
   int _version = 0;
+
+  /// The set of fields that were populated by `freezeInheritance`.
+  final Set<String> _frozenFields = {};
+
+  /// Whether this logger was implicitly materialised by [Logger.get] without
+  /// ever being explicitly configured via [Logger.configure].
+  ///
+  /// An implicit logger inherits everything from its ancestors and produces no
+  /// explicit or frozen fields of its own. It is a phantom node in the
+  /// registry and [Logger.exportHierarchy] marks it accordingly.
+  bool _implicit = true;
 }
 
 /// Internal cache for resolved Logger configurations.
@@ -193,6 +204,7 @@ class LoggerCache {
 }
 
 /// Internal container for resolved logger settings.
+@immutable
 class _ResolvedConfig {
   const _ResolvedConfig({
     required this.version,
@@ -324,43 +336,131 @@ class Logger {
     }
 
     final normalized = _normalizeName(name);
-    final config = _registry.putIfAbsent(normalized, () => LoggerConfig());
+    final config = _registry.putIfAbsent(normalized, () => LoggerConfig())
+      // Mark as explicitly configured (not a ghost/implicit node).
+      .._implicit = false;
 
     bool changed = false;
-    if (enabled != null && enabled != config.enabled) {
-      config.enabled = enabled;
-      changed = true;
+    if (enabled != null) {
+      final removed = config._frozenFields.remove('enabled');
+      if (removed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          "'$normalized' field 'enabled' was frozen; configure() has promoted "
+          "it to explicit. Call unfreezeInheritance() first to restore dynamic "
+          'resolution instead.',
+        );
+      }
+      if (enabled != config.enabled || removed) {
+        config.enabled = enabled;
+        changed = true;
+      }
     }
-    if (logLevel != null && logLevel != config.logLevel) {
-      config.logLevel = logLevel;
-      changed = true;
+    if (logLevel != null) {
+      final removed = config._frozenFields.remove('logLevel');
+      if (removed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          "'$normalized' field 'logLevel' was frozen; configure() has promoted "
+          "it to explicit. Call unfreezeInheritance() first to restore dynamic "
+          'resolution instead.',
+        );
+      }
+      if (logLevel != config.logLevel || removed) {
+        config.logLevel = logLevel;
+        changed = true;
+      }
     }
-    if (includeFileLineInHeader != null &&
-        includeFileLineInHeader != config.includeFileLineInHeader) {
-      config.includeFileLineInHeader = includeFileLineInHeader;
-      changed = true;
+    if (includeFileLineInHeader != null) {
+      final removed = config._frozenFields.remove('includeFileLineInHeader');
+      if (removed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          "'$normalized' field 'includeFileLineInHeader' was frozen; "
+          'configure() has promoted it to explicit. Call '
+          'unfreezeInheritance() first to restore dynamic resolution instead.',
+        );
+      }
+      if (includeFileLineInHeader != config.includeFileLineInHeader ||
+          removed) {
+        config.includeFileLineInHeader = includeFileLineInHeader;
+        changed = true;
+      }
     }
-    if (stackMethodCount != null &&
-        !mapEquals(stackMethodCount, config.stackMethodCount)) {
-      config.stackMethodCount = stackMethodCount;
-      changed = true;
+    if (stackMethodCount != null) {
+      final removed = config._frozenFields.remove('stackMethodCount');
+      if (removed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          "'$normalized' field 'stackMethodCount' was frozen; configure() has "
+          "promoted it to explicit. Call unfreezeInheritance() first to "
+          'restore dynamic resolution instead.',
+        );
+      }
+      if (!mapEquals(stackMethodCount, config.stackMethodCount) || removed) {
+        config.stackMethodCount = stackMethodCount;
+        changed = true;
+      }
     }
-    if (timestamp != null && timestamp != config.timestamp) {
-      config.timestamp = timestamp;
-      changed = true;
+    if (timestamp != null) {
+      final removed = config._frozenFields.remove('timestamp');
+      if (removed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          "'$normalized' field 'timestamp' was frozen; configure() has "
+          "promoted it to explicit. Call unfreezeInheritance() first to "
+          'restore dynamic resolution instead.',
+        );
+      }
+      if (timestamp != config.timestamp || removed) {
+        config.timestamp = timestamp;
+        changed = true;
+      }
     }
-    if (stackTraceParser != null &&
-        stackTraceParser != config.stackTraceParser) {
-      config.stackTraceParser = stackTraceParser;
-      changed = true;
+    if (stackTraceParser != null) {
+      final removed = config._frozenFields.remove('stackTraceParser');
+      if (removed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          "'$normalized' field 'stackTraceParser' was frozen; configure() has "
+          "promoted it to explicit. Call unfreezeInheritance() first to "
+          'restore dynamic resolution instead.',
+        );
+      }
+      if (stackTraceParser != config.stackTraceParser || removed) {
+        config.stackTraceParser = stackTraceParser;
+        changed = true;
+      }
     }
-    if (handlers != null && !listEquals(handlers, config.handlers)) {
-      config.handlers = handlers;
-      changed = true;
+    if (handlers != null) {
+      final removed = config._frozenFields.remove('handlers');
+      if (removed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          "'$normalized' field 'handlers' was frozen; configure() has promoted "
+          "it to explicit. Call unfreezeInheritance() first to restore dynamic "
+          'resolution instead.',
+        );
+      }
+      if (!listEquals(handlers, config.handlers) || removed) {
+        config.handlers = handlers;
+        changed = true;
+      }
     }
-    if (autoSinkBuffer != null && autoSinkBuffer != config.autoSinkBuffer) {
-      config.autoSinkBuffer = autoSinkBuffer;
-      changed = true;
+    if (autoSinkBuffer != null) {
+      final removed = config._frozenFields.remove('autoSinkBuffer');
+      if (removed) {
+        InternalLogger.log(
+          LogLevel.warning,
+          "'$normalized' field 'autoSinkBuffer' was frozen; configure() has "
+          "promoted it to explicit. Call unfreezeInheritance() first to "
+          'restore dynamic resolution instead.',
+        );
+      }
+      if (autoSinkBuffer != config.autoSinkBuffer || removed) {
+        config.autoSinkBuffer = autoSinkBuffer;
+        changed = true;
+      }
     }
 
     if (changed) {
@@ -409,59 +509,404 @@ class Logger {
 
   /// Freezes the current inherited configurations into descendant loggers.
   ///
-  /// Intentions: "Bakes" this logger's effective configs down the Logger tree
-  /// hierarchy where children are not explicitly set.
-  /// Useful for performance (reduces resolution depth) or to snapshot state so
-  /// future parent changes don't propagate dynamically.
+  /// "Bakes" this logger's effective configs down the logger tree where
+  /// children have not explicitly set a field. Useful for performance (reduces
+  /// resolution depth) or to snapshot state so future parent changes don't
+  /// propagate dynamically.
+  ///
+  /// Parameters:
+  /// - [force]: When `true`, re-snapshots fields that are already frozen on
+  ///   descendants (updates them to this logger's current effective value).
+  ///   Explicit user overrides are **never** overwritten by [force].
+  ///   Defaults to `false` (original behaviour — skips already-set fields).
+  ///
+  /// Returns the total number of fields written across all affected
+  /// descendants. A return value of `0` means the call was a complete no-op.
   ///
   /// How to use:
   /// - Call on a logger to apply to all descendants recursively via registry.
-  /// - Only sets null child fields to this logger's effective values.
-  /// - No-op if children have all fields explicit.
+  /// - `force: true` is useful after a parent config change to re-snapshot.
   ///
-  /// Example: parentLogger.freezeInheritance(); // Snapshots to subtree
-  void freezeInheritance() {
+  /// Example:
+  ///   final written = parentLogger.freezeInheritance();
+  ///   parentLogger.freezeInheritance(force: true); // re-snapshot
+  int freezeInheritance({final bool force = false}) {
+    final callerConfig = _registry[name];
+    if (callerConfig != null &&
+        callerConfig._implicit &&
+        callerConfig._frozenFields.isEmpty) {
+      InternalLogger.log(
+        LogLevel.warning,
+        "freezeInheritance() called on implicit node '$name'. "
+        'This node was never explicitly configured. The freeze will propagate '
+        "resolved defaults. Consider calling Logger.configure('$name', ...) "
+        'first if intentional.',
+      );
+    }
+
+    int writtenCount = 0;
     for (final key in _registry.keys.toList()) {
       if (key == name || _isDescendant(key, name)) {
         final childConfig = _registry[key]!;
         bool changed = false;
-        if (childConfig.enabled == null) {
+
+        // Helper: should this field be written?
+        // force=false → only if null; force=true → if null OR already frozen
+        // (but never if explicitly set by user).
+        bool shouldWrite({
+          required final String field,
+          required final bool isNull,
+        }) =>
+            isNull || (force && childConfig._frozenFields.contains(field));
+
+        if (shouldWrite(
+          field: 'enabled',
+          isNull: childConfig.enabled == null,
+        )) {
           childConfig.enabled = enabled;
+          childConfig._frozenFields.add('enabled');
           changed = true;
+          writtenCount++;
         }
-        if (childConfig.logLevel == null) {
+        if (shouldWrite(
+          field: 'logLevel',
+          isNull: childConfig.logLevel == null,
+        )) {
           childConfig.logLevel = logLevel;
+          childConfig._frozenFields.add('logLevel');
           changed = true;
+          writtenCount++;
         }
-        if (childConfig.includeFileLineInHeader == null) {
+        if (shouldWrite(
+          field: 'includeFileLineInHeader',
+          isNull: childConfig.includeFileLineInHeader == null,
+        )) {
           childConfig.includeFileLineInHeader = includeFileLineInHeader;
+          childConfig._frozenFields.add('includeFileLineInHeader');
           changed = true;
+          writtenCount++;
         }
-        if (childConfig.stackMethodCount == null) {
+        if (shouldWrite(
+          field: 'stackMethodCount',
+          isNull: childConfig.stackMethodCount == null,
+        )) {
           childConfig.stackMethodCount = Map.from(stackMethodCount);
+          childConfig._frozenFields.add('stackMethodCount');
           changed = true;
+          writtenCount++;
         }
-        if (childConfig.timestamp == null) {
+        if (shouldWrite(
+          field: 'timestamp',
+          isNull: childConfig.timestamp == null,
+        )) {
           childConfig.timestamp = timestamp;
+          childConfig._frozenFields.add('timestamp');
           changed = true;
+          writtenCount++;
         }
-        if (childConfig.stackTraceParser == null) {
+        if (shouldWrite(
+          field: 'stackTraceParser',
+          isNull: childConfig.stackTraceParser == null,
+        )) {
           childConfig.stackTraceParser = stackTraceParser;
+          childConfig._frozenFields.add('stackTraceParser');
           changed = true;
+          writtenCount++;
         }
-        if (childConfig.handlers == null) {
+        if (shouldWrite(
+          field: 'handlers',
+          isNull: childConfig.handlers == null,
+        )) {
           childConfig.handlers = List.from(handlers);
+          childConfig._frozenFields.add('handlers');
           changed = true;
+          writtenCount++;
         }
-        if (childConfig.autoSinkBuffer == null) {
+        if (shouldWrite(
+          field: 'autoSinkBuffer',
+          isNull: childConfig.autoSinkBuffer == null,
+        )) {
           childConfig.autoSinkBuffer = autoSinkBuffer;
+          childConfig._frozenFields.add('autoSinkBuffer');
           changed = true;
+          writtenCount++;
         }
         if (changed) {
           childConfig._version++;
           LoggerCache.invalidate(key);
         }
       }
+    }
+    return writtenCount;
+  }
+
+  /// Unfreezes configurations that were previously frozen on descendant
+  /// loggers.
+  ///
+  /// Reverts fields populated by [freezeInheritance] back to `null`, restoring
+  /// Unfreezes configurations that were previously frozen on descendant
+  /// loggers.
+  ///
+  /// Reverts fields populated by [freezeInheritance] back to `null`, restoring
+  /// dynamic resolution from ancestor loggers. Fields that were explicitly
+  /// configured by the user are not affected.
+  ///
+  /// Parameters:
+  /// - [fields]: Optional set of field names to selectively unfreeze. When
+  ///   provided, only those named fields are cleared — all other frozen fields
+  ///   are left intact. Unknown field names are silently ignored.
+  ///   When `null` (default), all frozen fields are cleared.
+  /// - [includeSelf]: Whether to also unfreeze the receiver's own frozen
+  ///   fields. Defaults to `true`. Pass `false` to restrict the operation to
+  ///   strict descendants only.
+  ///
+  /// Example:
+  ///   // Full subtree unfreeze (default)
+  ///   logger.unfreezeInheritance();
+  ///   // Unfreeze only logLevel, excluding self
+  ///   logger.unfreezeInheritance(fields: {'logLevel'}, includeSelf: false);
+  void unfreezeInheritance({
+    final Set<String>? fields,
+    final bool includeSelf = true,
+  }) {
+    for (final key in _registry.keys.toList()) {
+      final isSelf = key == name;
+      if ((isSelf && !includeSelf) || (!isSelf && !_isDescendant(key, name))) {
+        continue;
+      }
+      final childConfig = _registry[key]!;
+      bool changed = false;
+      if (childConfig._frozenFields.isNotEmpty) {
+        // Determine which frozen fields to actually clear.
+        final toClear = fields == null
+            ? Set.of(childConfig._frozenFields)
+            : childConfig._frozenFields.intersection(fields);
+
+        for (final field in toClear) {
+          switch (field) {
+            case 'enabled':
+              childConfig.enabled = null;
+            case 'logLevel':
+              childConfig.logLevel = null;
+            case 'includeFileLineInHeader':
+              childConfig.includeFileLineInHeader = null;
+            case 'stackMethodCount':
+              childConfig.stackMethodCount = null;
+            case 'timestamp':
+              childConfig.timestamp = null;
+            case 'stackTraceParser':
+              childConfig.stackTraceParser = null;
+            case 'handlers':
+              childConfig.handlers = null;
+            case 'autoSinkBuffer':
+              childConfig.autoSinkBuffer = null;
+          }
+          childConfig._frozenFields.remove(field);
+          changed = true;
+        }
+      }
+      if (changed) {
+        childConfig._version++;
+        LoggerCache.invalidate(key);
+      }
+    }
+  }
+
+  /// The set of fields that have been explicitly configured on this logger.
+  Set<String> get explicitFields {
+    final config = _registry[name];
+    if (config == null) {
+      return const {};
+    }
+    final fields = <String>{};
+    if (config.enabled != null && !config._frozenFields.contains('enabled')) {
+      fields.add('enabled');
+    }
+    if (config.logLevel != null && !config._frozenFields.contains('logLevel')) {
+      fields.add('logLevel');
+    }
+    if (config.includeFileLineInHeader != null &&
+        !config._frozenFields.contains('includeFileLineInHeader')) {
+      fields.add('includeFileLineInHeader');
+    }
+    if (config.stackMethodCount != null &&
+        !config._frozenFields.contains('stackMethodCount')) {
+      fields.add('stackMethodCount');
+    }
+    if (config.timestamp != null &&
+        !config._frozenFields.contains('timestamp')) {
+      fields.add('timestamp');
+    }
+    if (config.stackTraceParser != null &&
+        !config._frozenFields.contains('stackTraceParser')) {
+      fields.add('stackTraceParser');
+    }
+    if (config.handlers != null && !config._frozenFields.contains('handlers')) {
+      fields.add('handlers');
+    }
+    if (config.autoSinkBuffer != null &&
+        !config._frozenFields.contains('autoSinkBuffer')) {
+      fields.add('autoSinkBuffer');
+    }
+    return fields;
+  }
+
+  /// The set of fields that were frozen on this logger by [freezeInheritance].
+  Set<String> get frozenFields {
+    final config = _registry[name];
+    if (config == null) {
+      return const {};
+    }
+    return Set.unmodifiable(config._frozenFields);
+  }
+
+  /// The set of fields that are currently inherited from ancestor loggers.
+  Set<String> get inheritedFields {
+    final config = _registry[name];
+    if (config == null) {
+      return const {
+        'enabled',
+        'logLevel',
+        'includeFileLineInHeader',
+        'stackMethodCount',
+        'timestamp',
+        'stackTraceParser',
+        'handlers',
+        'autoSinkBuffer',
+      };
+    }
+    final fields = <String>{};
+    if (config.enabled == null) {
+      fields.add('enabled');
+    }
+    if (config.logLevel == null) {
+      fields.add('logLevel');
+    }
+    if (config.includeFileLineInHeader == null) {
+      fields.add('includeFileLineInHeader');
+    }
+    if (config.stackMethodCount == null) {
+      fields.add('stackMethodCount');
+    }
+    if (config.timestamp == null) {
+      fields.add('timestamp');
+    }
+    if (config.stackTraceParser == null) {
+      fields.add('stackTraceParser');
+    }
+    if (config.handlers == null) {
+      fields.add('handlers');
+    }
+    if (config.autoSinkBuffer == null) {
+      fields.add('autoSinkBuffer');
+    }
+    return fields;
+  }
+
+  /// Exports the registry configuration hierarchy.
+  ///
+  /// Returns a map representation of the active loggers and their configuration
+  /// states, including explicit, frozen, inherited, and effective fields.
+  ///
+  /// Each entry contains:
+  /// - `'explicit'`: Fields explicitly set by [Logger.configure] on this node.
+  /// - `'frozen'`: Fields baked in by [freezeInheritance].
+  /// - `'inherited'`: Fields resolved dynamically from ancestor loggers.
+  /// - `'implicit'`: `true` if this logger was only materialised by
+  ///   [Logger.get] and was never passed to [Logger.configure].
+  /// - `'effective'`: Resolved field values as JSON-serialisable primitives.
+  ///   Useful for crash diagnostics and debug overlays.
+  static Map<String, dynamic> exportHierarchy() {
+    final map = <String, dynamic>{};
+    final sortedKeys = _registry.keys.toList()..sort();
+    for (final n in sortedKeys) {
+      final logger = Logger.get(n);
+      final config = _registry[n]!;
+
+      // Build effective map with JSON-serialisable primitives.
+      final smc = logger.stackMethodCount;
+      final effective = <String, dynamic>{
+        'enabled': logger.enabled,
+        'logLevel': logger.logLevel.name,
+        'includeFileLineInHeader': logger.includeFileLineInHeader,
+        'stackMethodCount': {
+          for (final e in smc.entries) e.key.name: e.value,
+        },
+        'timestamp': logger.timestamp.formatter.pattern,
+        'stackTraceParser': logger.stackTraceParser.ignorePackages.toString(),
+        'handlers': logger.handlers
+            .map(
+              (final h) => '${h.formatter.runtimeType}(${h.sink.runtimeType})',
+            )
+            .toList(),
+        'autoSinkBuffer': logger.autoSinkBuffer,
+      };
+
+      map[n] = {
+        'explicit': logger.explicitFields.toList(),
+        'frozen': logger.frozenFields.toList(),
+        'inherited': logger.inheritedFields.toList(),
+        'implicit': config._implicit,
+        'effective': effective,
+      };
+    }
+    return map;
+  }
+
+  /// Returns a formatted string representation of the active logger hierarchy.
+  ///
+  /// Each line includes the logger name, its depth-indented short name, field
+  /// state annotations (explicit / frozen) with their current values, and an
+  /// `(implicit)` label for loggers that were never explicitly configured.
+  ///
+  /// This is the pure string-builder counterpart to [printHierarchy]. Use it
+  /// to embed hierarchy output in crash reports, debug overlays, or tests.
+  static String formatHierarchy() {
+    final hierarchy = exportHierarchy();
+    final sortedKeys = hierarchy.keys.toList()..sort();
+    final buf = StringBuffer();
+    for (final key in sortedKeys) {
+      final data = hierarchy[key] as Map<String, dynamic>;
+      final indent = '  ' * (key.split('.').length - 1);
+      final displayName = key.split('.').last;
+      final isImplicit = data['implicit'] as bool;
+      final effective = data['effective'] as Map<String, dynamic>;
+
+      final details = <String>[];
+      final explicit = (data['explicit'] as List).cast<String>();
+      final frozen = (data['frozen'] as List).cast<String>();
+
+      if (explicit.isNotEmpty) {
+        final annotations =
+            explicit.map((final f) => '$f=${effective[f]}').join(', ');
+        details.add('explicit: $annotations');
+      }
+      if (frozen.isNotEmpty) {
+        final annotations =
+            frozen.map((final f) => '$f=${effective[f]}').join(', ');
+        details.add('frozen: $annotations');
+      }
+
+      final implicitLabel = isImplicit ? ' (implicit)' : '';
+      final suffix = details.isEmpty ? '' : ' [${details.join(" | ")}]';
+      buf.writeln('$indent- $displayName ($key)$implicitLabel$suffix');
+    }
+    return buf.toString().trimRight();
+  }
+
+  /// Prints a visual representation of the active logger hierarchy.
+  ///
+  /// By default routes output through [InternalLogger] at the debug level so
+  /// it is test-capturable and production-safe. Pass a custom [sink] to
+  /// redirect output (e.g. `debugPrint`, or a list collector in tests).
+  ///
+  /// Use [formatHierarchy] directly to obtain the string without side-effects.
+  static void printHierarchy({final void Function(String)? sink}) {
+    final output = formatHierarchy();
+    if (sink != null) {
+      sink(output);
+    } else {
+      InternalLogger.log(LogLevel.debug, 'Logger hierarchy:\n$output');
     }
   }
 
@@ -705,10 +1150,27 @@ class Logger {
     flutter_stubs.attachToFlutterErrors();
   }
 
-  /// Internal: Clears the registry (used for tests).
-  @visibleForTesting
-  static void clearRegistry() {
-    _registry.clear();
-    LoggerCache.clear();
+  /// Clears the logger registry for the specified [loggerName] and all its
+  /// descendants, restoring them to default unresolved settings.
+  ///
+  /// If [loggerName] is not specified (or is `'global'`), the entire registry
+  /// is cleared.
+  ///
+  /// WARNING: This will remove custom configurations and cached resolution
+  /// states.
+  static void reset([final String? loggerName]) {
+    final name = loggerName == null ? 'global' : _normalizeName(loggerName);
+    if (name == 'global') {
+      _registry.clear();
+      LoggerCache.clear();
+    } else {
+      _registry.remove(name);
+      for (final key in _registry.keys.toList()) {
+        if (_isDescendant(key, name)) {
+          _registry.remove(key);
+        }
+      }
+      LoggerCache.invalidate(name);
+    }
   }
 }
