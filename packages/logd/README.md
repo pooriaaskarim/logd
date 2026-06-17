@@ -220,7 +220,31 @@ Logger.configure('app', timestamp: timestamp);
 Logger.get('app').freezeInheritance(); 
 ```
 
-For a detailed walkthrough of each engine, including real-world benchmarks and isolate-offloading configuration, see the [Execution Engines Guide](../../doc/handler/engines.md).
+### Inheritance Control & Diagnostics (v0.8.2+)
+
+`logd` features a mature, production-ready logger inheritance management system for hot paths and troubleshooting:
+
+- **Bake & Force Update**: `logger.freezeInheritance()` bakes configuration down the hierarchy to bypass tree-walks. It returns the number of fields written. To re-snapshot currently frozen configurations after ancestry changes, call `logger.freezeInheritance(force: true)`.
+- **Selective Unfreeze**: Restore dynamic propagation to the parent hierarchy on specific fields, or restrict the restoration strictly to descendants:
+  ```dart
+  logger.unfreezeInheritance(
+    fields: {'logLevel'},
+    includeSelf: false, // only unfreeze descendants
+  );
+  ```
+- **Tree Visualization**: Visualize the active registry tree, with annotations for explicit/frozen settings and actual effective values:
+  ```dart
+  final textTree = Logger.formatHierarchy();
+  Logger.printHierarchy(sink: print); // or custom sink
+  ```
+- **JSON-serializable Export**: `Logger.exportHierarchy()` returns a map of all registered loggers, including effective resolved values and ghost-node detection (`'implicit': true` for implicit loggers).
+- **Subtree & Global Reset**: Reset the entire registry or a specific namespace subtree to default unresolved settings:
+  ```dart
+  Logger.reset('app.ui'); // Resets only 'app.ui' and its descendants
+  Logger.reset();        // Global reset, clears the entire registry
+  ```
+
+For a detailed walkthrough of each execution engine, see the [Execution Engines Guide](../../doc/handler/engines.md).
 
 ## Use Cases
 
