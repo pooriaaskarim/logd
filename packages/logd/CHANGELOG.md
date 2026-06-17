@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.3: Performance Enhancements & Pipeline Refinements
+
+This release introduces critical hot-path optimizations, reducing GC overhead and improving execution latency in configuration resolution, timestamp formatting, and hierarchy calculations.
+
+- ### Performance Optimizations
+  - **Inline-Friendly Cache Resolution**: Split `LoggerCache._resolve` into a highly inlined fast-path check and a slow-path walk, reducing hot-path configuration resolution overhead.
+  - **Lazy Timestamp Token Formatting**: Replaced per-log-line Map allocation with lazy, switch-case based token formatting, reordered by token frequency to optimize branch prediction.
+  - **Allocation-Free Hierarchy Depth**: Replaced string-split operations with cached dot-counting to eliminate list allocations on the hot path.
+  - **Throughput & Latency Gains**: Reduced `FullPipeline` latency by **~34.7%** (from `4.67 us` to `3.05 us`) and increased `Framing Squeeze` throughput by **~43.5%** (from `1,876` to `2,692` Ops/sec).
+
+---
+
 ## 0.8.2: Logger Inheritance Maturation & Diagnostics
 
 This release delivers the maturation of the logger hierarchical inheritance control and diagnostics features.

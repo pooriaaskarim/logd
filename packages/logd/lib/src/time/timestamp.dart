@@ -151,18 +151,10 @@ class TimestampFormatter {
 
     _parsedSegments ??= _parseFormatter(pattern);
     final stringBuffer = StringBuffer();
-    final tokenReplacements = _getReplacements(time, timezone);
 
     for (final segment in _parsedSegments!) {
       if (segment.isToken) {
-        final token = segment.value;
-        if (tokenReplacements.containsKey(token)) {
-          stringBuffer.write(tokenReplacements[token]);
-        } else {
-          throw FormatException(
-            'Unrecognized token "$token" in timestamp format: "$pattern"',
-          );
-        }
+        stringBuffer.write(_resolveToken(segment.value, time, timezone));
       } else {
         stringBuffer.write(segment.value);
       }
@@ -170,59 +162,96 @@ class TimestampFormatter {
     return stringBuffer.toString();
   }
 
-  /// Dictionary of defined format tokens.
-  Map<String, String> _getReplacements(
+  String _resolveToken(
+    final String token,
     final DateTime time,
     final Timezone? timezone,
   ) {
-    final ampm = time.hour < 12 ? 'AM' : 'PM';
-    final String hourInTwelveHourFormat =
-        '${time.hour % 12 == 0 ? 12 : time.hour % 12}';
-    final resolvedTimezone = timezone ?? Timezone.local();
-    final millisecondsStr = time.millisecond.toString().padLeft(3, '0');
-    final microsecondsStr = time.microsecond.toString().padLeft(3, '0');
+    switch (token) {
+      // Prioritize most common tokens first to optimize JIT/branch prediction.
+      case 'yyyy':
+        return time.year.toString().padLeft(4, '0');
+      case 'MM':
+        return time.month.toString().padLeft(2, '0');
+      case 'dd':
+        return time.day.toString().padLeft(2, '0');
+      case 'HH':
+        return time.hour.toString().padLeft(2, '0');
+      case 'mm':
+        return time.minute.toString().padLeft(2, '0');
+      case 'ss':
+        return time.second.toString().padLeft(2, '0');
+      case 'SSS':
+        return time.millisecond.toString().padLeft(3, '0');
+      case 'Z':
+        return (timezone ?? Timezone.local()).offsetLiteral;
+      case 'z_iso8601':
+        return (timezone ?? Timezone.local()).iso8601OffsetLiteral;
+      case 'z_rfc2822':
+        return (timezone ?? Timezone.local()).rfc2822OffsetLiteral;
 
-    return <String, String>{
-      // Date related tokens.
-      'yyyy': time.year.toString().padLeft(4, '0'),
-      'yy': (time.year % 100).toString().padLeft(2, '0'),
-      'MMMM': _monthNames[time.month - 1],
-      'MMM': _abbreviatedMonthNames[time.month - 1],
-      'MM': time.month.toString().padLeft(2, '0'),
-      'M': time.month.toString(),
-      'dd': time.day.toString().padLeft(2, '0'),
-      'd': time.day.toString(),
-      'EEEE': _weekdayNames[time.weekday - 1],
-      'EEE': _abbreviatedWeekdayNames[time.weekday - 1],
-      'EE': time.weekday.toString().padLeft(2, '0'),
-      'E': time.weekday.toString(),
-      // Time related tokens.
-      'HH': time.hour.toString().padLeft(2, '0'),
-      'H': time.hour.toString(),
-      'hhhh': '${hourInTwelveHourFormat.padLeft(2, '0')}$ampm',
-      'hhh': '$hourInTwelveHourFormat$ampm',
-      'hh': hourInTwelveHourFormat.padLeft(2, '0'),
-      'h': hourInTwelveHourFormat,
-      'A': ampm,
-      'a': ampm.toLowerCase(),
-      'mm': time.minute.toString().padLeft(2, '0'),
-      'm': time.minute.toString(),
-      'ss': time.second.toString().padLeft(2, '0'),
-      's': time.second.toString(),
-      // Sub-seconds related tokens.
-      'SSS': millisecondsStr,
-      'SS': millisecondsStr.substring(0, 2),
-      'S': millisecondsStr.substring(0, 1),
-      'FFF': microsecondsStr,
-      'FF': microsecondsStr.substring(0, 2),
-      'F': microsecondsStr.substring(0, 1),
-      // Timezone related tokens.
-      'z_iso8601': resolvedTimezone.iso8601OffsetLiteral,
-      'z_rfc2822': resolvedTimezone.rfc2822OffsetLiteral,
-      'Z': resolvedTimezone.offsetLiteral,
-      'ZZ': resolvedTimezone.name,
-      'ZZZ': resolvedTimezone.name + resolvedTimezone.offsetLiteral,
-    };
+      // Other tokens.
+      case 'yy':
+        return (time.year % 100).toString().padLeft(2, '0');
+      case 'MMMM':
+        return _monthNames[time.month - 1];
+      case 'MMM':
+        return _abbreviatedMonthNames[time.month - 1];
+      case 'M':
+        return time.month.toString();
+      case 'd':
+        return time.day.toString();
+      case 'EEEE':
+        return _weekdayNames[time.weekday - 1];
+      case 'EEE':
+        return _abbreviatedWeekdayNames[time.weekday - 1];
+      case 'EE':
+        return time.weekday.toString().padLeft(2, '0');
+      case 'E':
+        return time.weekday.toString();
+      case 'H':
+        return time.hour.toString();
+      case 'hhhh':
+        final ampm = time.hour < 12 ? 'AM' : 'PM';
+        final hr = time.hour % 12 == 0 ? 12 : time.hour % 12;
+        return '${hr.toString().padLeft(2, '0')}$ampm';
+      case 'hhh':
+        final ampm = time.hour < 12 ? 'AM' : 'PM';
+        final hr = time.hour % 12 == 0 ? 12 : time.hour % 12;
+        return '$hr$ampm';
+      case 'hh':
+        final hr = time.hour % 12 == 0 ? 12 : time.hour % 12;
+        return hr.toString().padLeft(2, '0');
+      case 'h':
+        return '${time.hour % 12 == 0 ? 12 : time.hour % 12}';
+      case 'A':
+        return time.hour < 12 ? 'AM' : 'PM';
+      case 'a':
+        return time.hour < 12 ? 'am' : 'pm';
+      case 'm':
+        return time.minute.toString();
+      case 's':
+        return time.second.toString();
+      case 'SS':
+        return time.millisecond.toString().padLeft(3, '0').substring(0, 2);
+      case 'S':
+        return time.millisecond.toString().padLeft(3, '0').substring(0, 1);
+      case 'FFF':
+        return time.microsecond.toString().padLeft(3, '0');
+      case 'FF':
+        return time.microsecond.toString().padLeft(3, '0').substring(0, 2);
+      case 'F':
+        return time.microsecond.toString().padLeft(3, '0').substring(0, 1);
+      case 'ZZ':
+        return (timezone ?? Timezone.local()).name;
+      case 'ZZZ':
+        final tz = timezone ?? Timezone.local();
+        return tz.name + tz.offsetLiteral;
+      default:
+        throw FormatException(
+          'Unrecognized token "$token" in timestamp format: "$pattern"',
+        );
+    }
   }
 
   /// Available format tokens.

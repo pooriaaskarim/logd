@@ -105,6 +105,7 @@ class LoggerCache {
 
   /// Internal: Resolves and caches the effective configuration for
   /// [loggerName]. Expects [loggerName] to be normalized.
+  @pragma('vm:prefer-inline')
   static _ResolvedConfig _resolve(final String loggerName) {
     final config =
         Logger._registry.putIfAbsent(loggerName, () => LoggerConfig());
@@ -114,6 +115,13 @@ class LoggerCache {
       return cached;
     }
 
+    return _resolveSlow(loggerName, config);
+  }
+
+  static _ResolvedConfig _resolveSlow(
+    final String loggerName,
+    final LoggerConfig config,
+  ) {
     // Resolve by walking hierarchy
     var currentName = loggerName;
     bool? resolvedEnabled;
@@ -191,12 +199,11 @@ class LoggerCache {
   /// Invalidates the cache for a specific logger and all its descendants.
   static void invalidate(final String loggerName) {
     final normalized = Logger._normalizeName(loggerName);
-    _cache.remove(normalized);
-    for (final key in _cache.keys.toList()) {
-      if (Logger._isDescendant(key, normalized)) {
-        _cache.remove(key);
-      }
-    }
+    _cache
+      ..remove(normalized)
+      ..removeWhere(
+        (final key, final value) => Logger._isDescendant(key, normalized),
+      );
   }
 
   /// Clears the entire logger cache.
@@ -1117,11 +1124,14 @@ class Logger {
 
   /// Internal: Helper for retrieving parent name.
   static String? _getParentName(final String name) {
-    final parts = name.split('.');
-    if (parts.length <= 1) {
-      return name == 'global' ? null : 'global';
+    if (name == 'global') {
+      return null;
     }
-    return parts.sublist(0, parts.length - 1).join('.');
+    final lastDot = name.lastIndexOf('.');
+    if (lastDot == -1) {
+      return 'global';
+    }
+    return name.substring(0, lastDot);
   }
 
   /// Internal: Normalizes logger name to lowercase for case-insensitivity.
