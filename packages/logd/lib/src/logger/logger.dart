@@ -70,6 +70,37 @@ class LoggerCache {
   const LoggerCache._();
 
   static final Map<String, _ResolvedConfig> _cache = {};
+  static final Map<String, Set<String>> _descendants = {};
+
+  static List<String> _getAncestors(final String loggerName) {
+    if (loggerName == 'global') {
+      return const [];
+    }
+    final ancestors = <String>['global'];
+    var current = loggerName;
+    while (true) {
+      final parent = Logger._getParentName(current);
+      if (parent == null || parent == 'global') {
+        break;
+      }
+      ancestors.add(parent);
+      current = parent;
+    }
+    return ancestors;
+  }
+
+  static void _registerDescendant(final String loggerName) {
+    for (final ancestor in _getAncestors(loggerName)) {
+      _descendants.putIfAbsent(ancestor, () => {}).add(loggerName);
+    }
+  }
+
+  static void _unregisterLogger(final String loggerName) {
+    for (final ancestor in _getAncestors(loggerName)) {
+      _descendants[ancestor]?.remove(loggerName);
+    }
+    _descendants.remove(loggerName);
+  }
 
   /// Resolves the effective [enabled] state for [loggerName].
   static bool enabled(final String loggerName) =>
@@ -105,15 +136,25 @@ class LoggerCache {
 
   /// Internal: Resolves and caches the effective configuration for
   /// [loggerName]. Expects [loggerName] to be normalized.
+  @pragma('vm:prefer-inline')
   static _ResolvedConfig _resolve(final String loggerName) {
-    final config =
-        Logger._registry.putIfAbsent(loggerName, () => LoggerConfig());
+    if (!Logger._registry.containsKey(loggerName)) {
+      Logger._registerLogger(loggerName);
+    }
+    final config = Logger._registry[loggerName]!;
     final cached = _cache[loggerName];
 
     if (cached != null && cached.version == config._version) {
       return cached;
     }
 
+    return _resolveSlow(loggerName, config);
+  }
+
+  static _ResolvedConfig _resolveSlow(
+    final String loggerName,
+    final LoggerConfig config,
+  ) {
     // Resolve by walking hierarchy
     var currentName = loggerName;
     bool? resolvedEnabled;
@@ -192,15 +233,19 @@ class LoggerCache {
   static void invalidate(final String loggerName) {
     final normalized = Logger._normalizeName(loggerName);
     _cache.remove(normalized);
-    for (final key in _cache.keys.toList()) {
-      if (Logger._isDescendant(key, normalized)) {
-        _cache.remove(key);
+    final descendantsList = _descendants[normalized];
+    if (descendantsList != null) {
+      for (final descendant in descendantsList) {
+        _cache.remove(descendant);
       }
     }
   }
 
   /// Clears the entire logger cache.
-  static void clear() => _cache.clear();
+  static void clear() {
+    _cache.clear();
+    _descendants.clear();
+  }
 }
 
 /// Internal container for resolved logger settings.
@@ -268,9 +313,22 @@ class Logger {
   /// Returns: The logger instance.
   ///
   /// Example: final uiLogger = Logger.get('app.ui');
+  static void _registerLogger(final String name) {
+    if (!_registry.containsKey(name)) {
+      _registry[name] = LoggerConfig();
+      LoggerCache._registerDescendant(name);
+    }
+  }
+
+  /// - Basic: Logger.get('app').info('Message');
+  /// - Global: Logger.get(), Logger.get(''), Logger.get('global')
+  ///
+  /// Returns: The logger instance.
+  ///
+  /// Example: final uiLogger = Logger.get('app.ui');
   static Logger get([final String? name]) {
     final normalized = _normalizeName(name);
-    _registry.putIfAbsent(normalized, () => LoggerConfig());
+    _registerLogger(normalized);
     return Logger._(normalized);
   }
 
@@ -336,7 +394,8 @@ class Logger {
     }
 
     final normalized = _normalizeName(name);
-    final config = _registry.putIfAbsent(normalized, () => LoggerConfig())
+    _registerLogger(normalized);
+    final config = _registry[normalized]!
       // Mark as explicitly configured (not a ghost/implicit node).
       .._implicit = false;
 
@@ -971,10 +1030,12 @@ class Logger {
   /// How to use: logger.trace('Trace event', error: e);
   void trace(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.trace, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.trace, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -987,10 +1048,12 @@ class Logger {
   /// How to use: logger.debug('Debug info');
   void debug(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.debug, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.debug, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1003,10 +1066,12 @@ class Logger {
   /// How to use: logger.info('App started');
   void info(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.info, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.info, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1019,10 +1084,12 @@ class Logger {
   /// How to use: logger.warning('Low memory', stackTrace: stack);
   void warning(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.warning, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.warning, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1035,10 +1102,12 @@ class Logger {
   /// How to use: logger.error('Failed to load', error: e, stackTrace: stack);
   void error(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.error, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.error, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1059,8 +1128,9 @@ class Logger {
     final LogLevel level,
     final Object? message,
     final Object? error,
-    final StackTrace? stackTrace,
-  ) async {
+    final StackTrace? stackTrace, [
+    final Map<String, dynamic>? context,
+  ]) async {
     if (!enabled || level.index < logLevel.index) {
       return;
     }
@@ -1082,6 +1152,7 @@ class Logger {
       stackFrames: parsed.frames.isEmpty ? null : parsed.frames,
       error: error,
       stackTrace: stackTrace,
+      context: context,
     );
 
     try {
@@ -1117,11 +1188,14 @@ class Logger {
 
   /// Internal: Helper for retrieving parent name.
   static String? _getParentName(final String name) {
-    final parts = name.split('.');
-    if (parts.length <= 1) {
-      return name == 'global' ? null : 'global';
+    if (name == 'global') {
+      return null;
     }
-    return parts.sublist(0, parts.length - 1).join('.');
+    final lastDot = name.lastIndexOf('.');
+    if (lastDot == -1) {
+      return 'global';
+    }
+    return name.substring(0, lastDot);
   }
 
   /// Internal: Normalizes logger name to lowercase for case-insensitivity.
@@ -1164,13 +1238,15 @@ class Logger {
       _registry.clear();
       LoggerCache.clear();
     } else {
+      LoggerCache.invalidate(name);
       _registry.remove(name);
+      LoggerCache._unregisterLogger(name);
       for (final key in _registry.keys.toList()) {
         if (_isDescendant(key, name)) {
           _registry.remove(key);
+          LoggerCache._unregisterLogger(key);
         }
       }
-      LoggerCache.invalidate(name);
     }
   }
 }

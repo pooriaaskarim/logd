@@ -14,6 +14,7 @@ class LogEntry {
     this.stackFrames,
     this.error,
     this.stackTrace,
+    this.context,
   });
 
   @internal
@@ -39,16 +40,30 @@ class LogEntry {
   /// Formatted timestamp.
   String timestamp;
 
+  /// Cached hierarchy depth. Dot-counting instead of split() avoids allocation.
+  int? _hierarchyDepthCache;
+
   /// Hierarchy depth calculated from [loggerName].
   ///
   /// 'global' -> 0
   /// 'a' -> 1
   /// 'a.b' -> 2
+  @pragma('vm:prefer-inline')
   int get hierarchyDepth {
-    if (loggerName == 'global') {
-      return 0;
+    if (_hierarchyDepthCache != null) {
+      return _hierarchyDepthCache!;
     }
-    return loggerName.split('.').length;
+    if (loggerName == 'global' || loggerName.isEmpty) {
+      return _hierarchyDepthCache = 0;
+    }
+    int count = 1;
+    final len = loggerName.length;
+    for (int i = 0; i < len; i++) {
+      if (loggerName.codeUnitAt(i) == 46) {
+        count++;
+      }
+    }
+    return _hierarchyDepthCache = count;
   }
 
   /// Parsed stack frames if included.
@@ -60,7 +75,11 @@ class LogEntry {
   /// Full stack trace.
   StackTrace? stackTrace;
 
+  /// Structured context map.
+  Map<String, dynamic>? context;
+
   /// Resets the entry for reuse in the pool.
+  @pragma('vm:prefer-inline')
   void reset() {
     loggerName = '';
     origin = '';
@@ -70,9 +89,13 @@ class LogEntry {
     stackFrames = null;
     error = null;
     stackTrace = null;
+    context = null;
+    _hierarchyDepthCache = null;
   }
 
   /// Creates a copy of this entry with optional overrides.
+  /// Note: copyWith does not preserve the cached hierarchy depth,
+  /// as the new instance will recompute it on first access.
   LogEntry copyWith({
     final String? loggerName,
     final String? origin,
@@ -82,6 +105,7 @@ class LogEntry {
     final List<CallbackInfo>? stackFrames,
     final Object? error,
     final StackTrace? stackTrace,
+    final Map<String, dynamic>? context,
   }) =>
       LogEntry(
         loggerName: loggerName ?? this.loggerName,
@@ -92,6 +116,7 @@ class LogEntry {
         stackFrames: stackFrames ?? this.stackFrames,
         error: error ?? this.error,
         stackTrace: stackTrace ?? this.stackTrace,
+        context: context ?? this.context,
       );
 
   @override

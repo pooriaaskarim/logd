@@ -19,6 +19,10 @@ void main() {
     int? socketPort;
     int? httpPort;
 
+    bool hasPython = false;
+    String? socketPython;
+    String? httpPython;
+
     // Helper to wait for a specific string in process output
     Future<void> waitForOutput(
       final Stream<String> stdout,
@@ -48,13 +52,44 @@ void main() {
     }
 
     setUpAll(() async {
+      const socketVenvDir = '../../scripts/servers/socket';
+      final socketPythonExe = Platform.isWindows
+          ? '$socketVenvDir/.venv/Scripts/python.exe'
+          : '$socketVenvDir/.venv/bin/python';
+
+      const httpVenvDir = '../../scripts/servers/http';
+      final httpPythonExe = Platform.isWindows
+          ? '$httpVenvDir/.venv/Scripts/python.exe'
+          : '$httpVenvDir/.venv/bin/python';
+
+      if (File(socketPythonExe).existsSync() &&
+          File(httpPythonExe).existsSync()) {
+        hasPython = true;
+        socketPython = socketPythonExe;
+        httpPython = httpPythonExe;
+      } else {
+        // Fallback: check system python.
+        try {
+          final res = await Process.run('python', ['--version']);
+          if (res.exitCode == 0) {
+            hasPython = true;
+            socketPython = 'python';
+            httpPython = 'python';
+          }
+        } catch (_) {}
+      }
+
+      if (!hasPython) {
+        return;
+      }
+
       // 1. Dynamic Port Discovery
       socketPort = await NetworkTestUtils.findAvailablePort(12347);
       httpPort = await NetworkTestUtils.findAvailablePort(8081);
 
       // 2. Start WebSocket server
       socketProcess = await Process.start(
-        './.venv/bin/python',
+        socketPython!,
         ['main.py', '--port', socketPort.toString()],
         workingDirectory: '../../scripts/servers/socket',
         environment: {
@@ -73,7 +108,7 @@ void main() {
 
       // 3. Start HTTP server
       httpProcess = await Process.start(
-        './.venv/bin/python',
+        httpPython!,
         ['main.py', '--port', httpPort.toString()],
         workingDirectory: '../../scripts/servers/http',
         environment: {
@@ -98,6 +133,9 @@ void main() {
     });
 
     tearDownAll(() async {
+      if (!hasPython) {
+        return;
+      }
       socketProcess?.kill();
       httpProcess?.kill();
       await Future.wait([
@@ -107,6 +145,10 @@ void main() {
     });
 
     test('SocketSink streams logs in real-time', () async {
+      if (!hasPython) {
+        markTestSkipped('Python environment with requirements not found');
+        return;
+      }
       final sink = SocketSink(url: 'ws://127.0.0.1:$socketPort');
 
       final handler = Handler(
@@ -135,6 +177,10 @@ void main() {
     });
 
     test('HttpSink ships logs in batches', () async {
+      if (!hasPython) {
+        markTestSkipped('Python environment with requirements not found');
+        return;
+      }
       final sink = HttpSink(
         url: 'http://127.0.0.1:$httpPort/logs',
         batchSize: 2,

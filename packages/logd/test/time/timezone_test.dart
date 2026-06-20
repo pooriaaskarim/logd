@@ -69,6 +69,14 @@ void main() {
       ); // DST in March 2025 (started March 9)
     });
 
+    test('local() resolves Windows timezone name to standard IANA name', () {
+      // Mock Windows timezone name
+      Context.setClock(MockClock(fixedUtcTime, 'Iran Standard Time'));
+      final tzWin = Timezone.local();
+      expect(tzWin.name, equals('Asia/Tehran'));
+      expect(tzWin.offset.inMinutes, equals(210));
+    });
+
     test('local() falls back to fixed offset if system name unknown', () {
       // Mock unknown name, but fixed offset
       Context.setClock(MockClock(fixedUtcTime, 'System/Unknown'));

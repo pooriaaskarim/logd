@@ -2,6 +2,25 @@
 
 ## Completed
 
+### ✅ v0.8.3: Performance, Structured Context & Parity
+**Goal**: Optimize performance bottlenecks, support structured logging context, and achieve full cross-platform compatibility on Windows.
+**Result**: Fully stabilized cache and formatting hot-paths, full structured context propagation across formatters, and resolved all timezone and layout constraints on Windows.
+* **Performance Optimizations**:
+  - [x] Optimize `LoggerCache._resolve` with inline-friendly fast-paths
+  - [x] Optimize `TimestampFormatter` token formatting by ordering by token frequency
+  - [x] Make hierarchy depth calculation allocation-free by counting dots
+  - [x] Introduce $O(m)$ descendant invalidation reverse-index in `LoggerCache`
+* **Structured Context Support**:
+  - [x] Add `Map<String, dynamic> context` to `LogEntry` / `Logger` methods
+  - [x] Integrate structured context maps into all core formatters (Json, Toon, Plain)
+  - [x] Add context merging and sinking to `LogBuffer`
+* **Cross-Platform Parity**:
+  - [x] Fix Windows path separator issues in rotation tests
+  - [x] Fix golden test CRLF line-ending mismatches on Windows
+  - [x] Resolve Windows timezone names to standard IANA timezone identifiers via Unicode CLDR mapping table
+
+---
+
 ### ✅ v0.8.0: The Engine & Schema Milestone
 **Goal**: Consolidate high-performance native rendering with AI-native structured schemas.
 **Result**: Fully stabilized Standard, Arena, and Native execution engines with support for B-IR v2 serialization and TOON explicit schemas.
@@ -133,13 +152,11 @@
 
 ---
 
-### 🟡 P1: Structured Context Support
-**Context**: Modern apps need to log semi-structured data (maps, objects) per log entry.
+### 🟡 P1: Context Filtering Support
+**Context**: Once structured context is present, users should be able to filter logs based on context keys or values.
 
 **Proposal**:
-- [ ] Add `Map<String, dynamic> context` to `LogEntry` / `Logger` methods
-- [ ] Update `JsonFormatter` and `ToonFormatter` to incorporate arbitrary context keys
-- [ ] Allow filtering based on context values (e.g., `ContextFilter('userId', '123')`)
+- [ ] Implement `ContextFilter` to filter log entries based on matching key-value pairs (e.g. `ContextFilter('userId', '123')`)
 
 ---
 

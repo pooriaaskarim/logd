@@ -17,6 +17,19 @@ class _LogBuffer extends StringBuffer {
   /// Optional stack trace associated with this log.
   StackTrace? stackTrace;
 
+  /// Optional context associated with this log.
+  Map<String, dynamic>? context;
+
+  /// Merges key-value pairs into the current context map.
+  void addContext(final Map<String, dynamic> other) {
+    final current = context;
+    if (current == null) {
+      context = Map<String, dynamic>.from(other);
+    } else {
+      context = Map<String, dynamic>.from(current)..addAll(other);
+    }
+  }
+
   @override
   void writeAll(final Iterable objects, [final String separator = '']) {
     for (final object in objects) {
@@ -28,13 +41,17 @@ class _LogBuffer extends StringBuffer {
   void clear() {
     error = null;
     stackTrace = null;
+    context = null;
     super.clear();
   }
 
   /// Sinks the buffer and clears it.
   void sink() {
-    if (isNotEmpty || error != null || stackTrace != null) {
-      _logger._log(logLevel, toString(), error, stackTrace).catchError(
+    if (isNotEmpty ||
+        error != null ||
+        stackTrace != null ||
+        (context != null && context!.isNotEmpty)) {
+      _logger._log(logLevel, toString(), error, stackTrace, context).catchError(
             (final e) => InternalLogger.log(
               LogLevel.error,
               'Error while logging from buffer.',
@@ -67,7 +84,8 @@ class LogBuffer implements StringSink {
       Finalizer<_LogBuffer>((final buffer) {
     if (buffer.isNotEmpty ||
         buffer.error != null ||
-        buffer.stackTrace != null) {
+        buffer.stackTrace != null ||
+        (buffer.context != null && buffer.context!.isNotEmpty)) {
       // Log leak warning
       if (buffer._logger.autoSinkBuffer) {
         // Auto-sink the content
@@ -77,6 +95,7 @@ class LogBuffer implements StringSink {
               buffer.toString(),
               buffer.error,
               buffer.stackTrace,
+              buffer.context,
             )
             .catchError(
               (final e) => InternalLogger.log(
@@ -122,6 +141,16 @@ class LogBuffer implements StringSink {
   /// Gets the current stack trace.
   StackTrace? get stackTrace => _buffer.stackTrace;
 
+  /// Sets the context map for this log message.
+  set context(final Map<String, dynamic>? value) => _buffer.context = value;
+
+  /// Gets the current context map.
+  Map<String, dynamic>? get context => _buffer.context;
+
+  /// Merges key-value pairs into the current context map.
+  void addContext(final Map<String, dynamic> other) =>
+      _buffer.addContext(other);
+
   int get length => _buffer.length;
 
   bool get isEmpty => _buffer.isEmpty;
@@ -148,7 +177,10 @@ class LogBuffer implements StringSink {
 
   /// Sinks the buffer and clears it.
   void sink() {
-    if (isNotEmpty || error != null || stackTrace != null) {
+    if (isNotEmpty ||
+        error != null ||
+        stackTrace != null ||
+        (context != null && context!.isNotEmpty)) {
       _buffer.sink();
     }
   }

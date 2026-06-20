@@ -32,7 +32,7 @@ void main() {
     test('returns null when path is a plain file (not a symlink to zoneinfo)',
         () {
       // Create a temporary non-symlink file
-      final tmp = File('/tmp/logd_tz_test_plain')
+      final tmp = File('${Directory.systemTemp.path}/logd_tz_test_plain')
         ..writeAsStringSync('not_a_tz');
       addTearDown(tmp.deleteSync);
 

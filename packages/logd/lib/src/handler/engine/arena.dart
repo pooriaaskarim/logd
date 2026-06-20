@@ -240,6 +240,7 @@ class Arena implements LogPipelineFactory {
     final List<CallbackInfo>? stackFrames,
     final Object? error,
     final StackTrace? stackTrace,
+    final Map<String, dynamic>? context,
   }) =>
       (_logEntries.isNotEmpty ? _logEntries.removeLast() : LogEntry.pooled())
         ..loggerName = loggerName
@@ -249,7 +250,8 @@ class Arena implements LogPipelineFactory {
         ..timestamp = timestamp
         ..stackFrames = stackFrames
         ..error = error
-        ..stackTrace = stackTrace;
+        ..stackTrace = stackTrace
+        ..context = context;
 
   /// Releases a [LogEntry] back to the pool.
   @internal
