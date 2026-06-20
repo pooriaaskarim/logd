@@ -49,8 +49,13 @@
 - Library updates to `logd` will bump `timezone` package version.
 - Users verify accurate rules based on `timezone` version.
 
-### 🟡 P1: IOS Timezone name resolution corrupted.
-**context:** IOS platform based timezone fetch implementation flaky!
+### ✅ P1: IOS Timezone name resolution corrupted
+**Status**: Completed (v0.8.1).
+**Context**: IOS platform-based timezone fetch was flaky and sandboxed. Resolved by using `DateTime.now().timeZoneName` as the primary process-free source on iOS.
+
+### ✅ P1: Windows Timezone name resolution failure
+**Status**: Completed (v0.8.3).
+**Context**: On Windows, the system timezone names (e.g. `'Iran Standard Time'`) were not recognized by standard IANA databases, resulting in location exceptions. Resolved by embedding a Unicode CLDR mapping table to translate Windows timezone names to standard IANA timezone identifiers.
 
 ---
 
