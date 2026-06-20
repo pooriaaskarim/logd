@@ -9,6 +9,11 @@ This release introduces critical hot-path optimizations, reducing GC overhead an
   - **Lazy Timestamp Token Formatting**: Replaced per-log-line Map allocation with lazy, switch-case based token formatting, reordered by token frequency to optimize branch prediction.
   - **Allocation-Free Hierarchy Depth**: Replaced string-split operations with cached dot-counting to eliminate list allocations on the hot path.
   - **Throughput & Latency Gains**: Reduced `FullPipeline` latency by **~34.7%** (from `4.67 us` to `3.05 us`) and increased `Framing Squeeze` throughput by **~43.5%** (from `1,876` to `2,692` Ops/sec).
+- ### Test Suite Hardening & Cross-Platform Parity
+  - **Platform-Agnostic Goldens**: Normalized line endings to LF before comparing actual outputs against goldens, resolving Windows-specific CRLF test mismatches.
+  - **Windows Path Separators**: Normalized path separators in file rotation sink tests to ensure robust path checks on Windows.
+  - **Cross-Platform Temp Directories**: Switched `clock_native_test.dart` to use `Directory.systemTemp` instead of hardcoded `/tmp` paths.
+  - **Graceful Network Integration Skipping**: Enhanced Python integration tests to dynamically detect Python executables and fallback safely, skipping tests cleanly when missing dependencies.
 
 ---
 

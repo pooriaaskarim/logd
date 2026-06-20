@@ -91,10 +91,14 @@ void main() {
       await Future.wait(futures);
       await Future.delayed(const Duration(milliseconds: 200));
 
+      final normalizedTarget = testLogPath.replaceAll('\\', '/');
       final rotated = io.Directory('logs')
           .listSync()
           .whereType<io.File>()
-          .where((final f) => f.path.contains(testLogPath))
+          .where(
+            (final f) =>
+                f.path.replaceAll('\\', '/').contains(normalizedTarget),
+          )
           .toList();
 
       expect(rotated.length, greaterThanOrEqualTo(1));

@@ -81,9 +81,11 @@ void main() {
                       print('Generated Binary golden: ${file.path}');
                     }
                   } else {
-                    final expected = file.readAsStringSync();
+                    final expected =
+                        file.readAsStringSync().replaceAll('\r\n', '\n');
+                    final normalizedOutput = output.replaceAll('\r\n', '\n');
                     expect(
-                      output,
+                      normalizedOutput,
                       expected,
                       reason: 'Binary IR output mismatch for $formatterName | '
                           '$entryName | $width',

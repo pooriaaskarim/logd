@@ -75,9 +75,11 @@ void main() {
                     file.writeAsStringSync(output);
                     print('Generated golden: ${file.path}');
                   } else {
-                    final expected = file.readAsStringSync();
+                    final expected =
+                        file.readAsStringSync().replaceAll('\r\n', '\n');
+                    final normalizedOutput = output.replaceAll('\r\n', '\n');
                     expect(
-                      output,
+                      normalizedOutput,
                       expected,
                       reason:
                           'Output mismatch for $formatterName | $entryName | '
@@ -157,9 +159,10 @@ void main() {
               file.writeAsStringSync(html);
               print('Generated HTML golden: ${file.path}');
             } else {
-              final expected = file.readAsStringSync();
+              final expected = file.readAsStringSync().replaceAll('\r\n', '\n');
+              final normalizedHtml = html.replaceAll('\r\n', '\n');
               expect(
-                html,
+                normalizedHtml,
                 expected,
                 reason: 'HTML output mismatch for $formatterName | $entryName. '
                     'If intentional, delete the golden file and re-run.',
