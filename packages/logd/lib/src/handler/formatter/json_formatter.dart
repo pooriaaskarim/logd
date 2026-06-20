@@ -54,6 +54,9 @@ final class JsonFormatter implements LogFormatter {
     if (entry.stackTrace != null) {
       map['stackTrace'] = entry.stackTrace.toString();
     }
+    if (entry.context != null && entry.context!.isNotEmpty) {
+      map['context'] = entry.context;
+    }
 
     document.writeNode(node);
   }
@@ -167,6 +170,10 @@ final class JsonPrettyFormatter implements LogFormatter {
     if (entry.stackTrace != null) {
       map['stackTrace'] = entry.stackTrace.toString();
       fieldTags['stackTrace'] = LogTag.stackFrame;
+    }
+    if (entry.context != null && entry.context!.isNotEmpty) {
+      map['context'] = entry.context;
+      fieldTags['context'] = color ? LogTag.value : LogTag.none;
     }
 
     final nodes = factory.checkoutDataList<LogNode>();

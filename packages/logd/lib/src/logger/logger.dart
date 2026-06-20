@@ -1030,10 +1030,12 @@ class Logger {
   /// How to use: logger.trace('Trace event', error: e);
   void trace(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.trace, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.trace, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1046,10 +1048,12 @@ class Logger {
   /// How to use: logger.debug('Debug info');
   void debug(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.debug, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.debug, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1062,10 +1066,12 @@ class Logger {
   /// How to use: logger.info('App started');
   void info(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.info, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.info, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1078,10 +1084,12 @@ class Logger {
   /// How to use: logger.warning('Low memory', stackTrace: stack);
   void warning(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.warning, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.warning, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1094,10 +1102,12 @@ class Logger {
   /// How to use: logger.error('Failed to load', error: e, stackTrace: stack);
   void error(
     final Object? message, {
+    final Map<String, dynamic>? context,
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.error, message, error, stackTrace).catchError((final e) {
+      _log(LogLevel.error, message, error, stackTrace, context)
+          .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
 
@@ -1118,8 +1128,9 @@ class Logger {
     final LogLevel level,
     final Object? message,
     final Object? error,
-    final StackTrace? stackTrace,
-  ) async {
+    final StackTrace? stackTrace, [
+    final Map<String, dynamic>? context,
+  ]) async {
     if (!enabled || level.index < logLevel.index) {
       return;
     }
@@ -1141,6 +1152,7 @@ class Logger {
       stackFrames: parsed.frames.isEmpty ? null : parsed.frames,
       error: error,
       stackTrace: stackTrace,
+      context: context,
     );
 
     try {

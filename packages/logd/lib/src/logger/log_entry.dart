@@ -14,6 +14,7 @@ class LogEntry {
     this.stackFrames,
     this.error,
     this.stackTrace,
+    this.context,
   });
 
   @internal
@@ -74,6 +75,9 @@ class LogEntry {
   /// Full stack trace.
   StackTrace? stackTrace;
 
+  /// Structured context map.
+  Map<String, dynamic>? context;
+
   /// Resets the entry for reuse in the pool.
   @pragma('vm:prefer-inline')
   void reset() {
@@ -85,6 +89,7 @@ class LogEntry {
     stackFrames = null;
     error = null;
     stackTrace = null;
+    context = null;
     _hierarchyDepthCache = null;
   }
 
@@ -100,6 +105,7 @@ class LogEntry {
     final List<CallbackInfo>? stackFrames,
     final Object? error,
     final StackTrace? stackTrace,
+    final Map<String, dynamic>? context,
   }) =>
       LogEntry(
         loggerName: loggerName ?? this.loggerName,
@@ -110,6 +116,7 @@ class LogEntry {
         stackFrames: stackFrames ?? this.stackFrames,
         error: error ?? this.error,
         stackTrace: stackTrace ?? this.stackTrace,
+        context: context ?? this.context,
       );
 
   @override

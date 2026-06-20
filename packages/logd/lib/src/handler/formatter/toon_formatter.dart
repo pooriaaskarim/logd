@@ -78,6 +78,9 @@ final class ToonFormatter implements LogFormatter {
       add('message', line, ToonType.markdown);
       add('error', entry.error ?? '', ToonType.string);
       add('stackTrace', entry.stackTrace ?? '', ToonType.stacktrace);
+      if (entry.context != null && entry.context!.isNotEmpty) {
+        add('context', entry.context, ToonType.string);
+      }
 
       document.metadataBlock(map, factory: factory);
       isFirst = false;
@@ -206,6 +209,9 @@ final class ToonPrettyFormatter implements LogFormatter {
         LogTag.stackFrame,
         ToonType.stacktrace,
       );
+      if (entry.context != null && entry.context!.isNotEmpty) {
+        add('context', entry.context, LogTag.preview, ToonType.string);
+      }
 
       document.metadataBlock(
         map,
