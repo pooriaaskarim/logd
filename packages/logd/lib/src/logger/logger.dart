@@ -70,6 +70,37 @@ class LoggerCache {
   const LoggerCache._();
 
   static final Map<String, _ResolvedConfig> _cache = {};
+  static final Map<String, Set<String>> _descendants = {};
+
+  static List<String> _getAncestors(final String loggerName) {
+    if (loggerName == 'global') {
+      return const [];
+    }
+    final ancestors = <String>['global'];
+    var current = loggerName;
+    while (true) {
+      final parent = Logger._getParentName(current);
+      if (parent == null || parent == 'global') {
+        break;
+      }
+      ancestors.add(parent);
+      current = parent;
+    }
+    return ancestors;
+  }
+
+  static void _registerDescendant(final String loggerName) {
+    for (final ancestor in _getAncestors(loggerName)) {
+      _descendants.putIfAbsent(ancestor, () => {}).add(loggerName);
+    }
+  }
+
+  static void _unregisterLogger(final String loggerName) {
+    for (final ancestor in _getAncestors(loggerName)) {
+      _descendants[ancestor]?.remove(loggerName);
+    }
+    _descendants.remove(loggerName);
+  }
 
   /// Resolves the effective [enabled] state for [loggerName].
   static bool enabled(final String loggerName) =>
@@ -107,8 +138,10 @@ class LoggerCache {
   /// [loggerName]. Expects [loggerName] to be normalized.
   @pragma('vm:prefer-inline')
   static _ResolvedConfig _resolve(final String loggerName) {
-    final config =
-        Logger._registry.putIfAbsent(loggerName, () => LoggerConfig());
+    if (!Logger._registry.containsKey(loggerName)) {
+      Logger._registerLogger(loggerName);
+    }
+    final config = Logger._registry[loggerName]!;
     final cached = _cache[loggerName];
 
     if (cached != null && cached.version == config._version) {
@@ -199,15 +232,20 @@ class LoggerCache {
   /// Invalidates the cache for a specific logger and all its descendants.
   static void invalidate(final String loggerName) {
     final normalized = Logger._normalizeName(loggerName);
-    _cache
-      ..remove(normalized)
-      ..removeWhere(
-        (final key, final value) => Logger._isDescendant(key, normalized),
-      );
+    _cache.remove(normalized);
+    final descendantsList = _descendants[normalized];
+    if (descendantsList != null) {
+      for (final descendant in descendantsList) {
+        _cache.remove(descendant);
+      }
+    }
   }
 
   /// Clears the entire logger cache.
-  static void clear() => _cache.clear();
+  static void clear() {
+    _cache.clear();
+    _descendants.clear();
+  }
 }
 
 /// Internal container for resolved logger settings.
@@ -275,9 +313,22 @@ class Logger {
   /// Returns: The logger instance.
   ///
   /// Example: final uiLogger = Logger.get('app.ui');
+  static void _registerLogger(final String name) {
+    if (!_registry.containsKey(name)) {
+      _registry[name] = LoggerConfig();
+      LoggerCache._registerDescendant(name);
+    }
+  }
+
+  /// - Basic: Logger.get('app').info('Message');
+  /// - Global: Logger.get(), Logger.get(''), Logger.get('global')
+  ///
+  /// Returns: The logger instance.
+  ///
+  /// Example: final uiLogger = Logger.get('app.ui');
   static Logger get([final String? name]) {
     final normalized = _normalizeName(name);
-    _registry.putIfAbsent(normalized, () => LoggerConfig());
+    _registerLogger(normalized);
     return Logger._(normalized);
   }
 
@@ -343,7 +394,8 @@ class Logger {
     }
 
     final normalized = _normalizeName(name);
-    final config = _registry.putIfAbsent(normalized, () => LoggerConfig())
+    _registerLogger(normalized);
+    final config = _registry[normalized]!
       // Mark as explicitly configured (not a ghost/implicit node).
       .._implicit = false;
 
@@ -1174,13 +1226,15 @@ class Logger {
       _registry.clear();
       LoggerCache.clear();
     } else {
+      LoggerCache.invalidate(name);
       _registry.remove(name);
+      LoggerCache._unregisterLogger(name);
       for (final key in _registry.keys.toList()) {
         if (_isDescendant(key, name)) {
           _registry.remove(key);
+          LoggerCache._unregisterLogger(key);
         }
       }
-      LoggerCache.invalidate(name);
     }
   }
 }
