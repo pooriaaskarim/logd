@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.8.3: Performance Enhancements & Pipeline Refinements
+## 0.8.3: Performance, Structured Context & Parity
 
-This release introduces critical hot-path optimizations, reducing GC overhead and improving execution latency in configuration resolution, timestamp formatting, and hierarchy calculations.
+This release introduces critical hot-path optimizations (reducing GC overhead and improving execution latency), full structured context logging support, and key cross-platform Windows compatibility refinements.
 
 - ### Performance Optimizations
   - **Inline-Friendly Cache Resolution**: Split `LoggerCache._resolve` into a highly inlined fast-path check and a slow-path walk, reducing hot-path configuration resolution overhead.
@@ -10,6 +10,10 @@ This release introduces critical hot-path optimizations, reducing GC overhead an
   - **Allocation-Free Hierarchy Depth**: Replaced string-split operations with cached dot-counting to eliminate list allocations on the hot path.
   - **Throughput & Latency Gains**: Reduced `FullPipeline` latency by **~34.7%** (from `4.67 us` to `3.05 us`) and increased `Framing Squeeze` throughput by **~43.5%** (from `1,876` to `2,692` Ops/sec).
   - **Descendant Invalidation Reverse-Index**: Replaced $O(n)$ cache scanning on logger reconfigurations with an index-based $O(m)$ descendant invalidation lookup, removing cache scan overhead.
+- ### Structured Context Support
+  - **Context-Aware Logging**: Added support for passing arbitrary structured context maps (`Map<String, dynamic>`) to all logger levels (e.g., `logger.info('message', context: {'userId': 123})`).
+  - **Multi-Formatter Integration**: Integrated structured context serialization into `JsonFormatter`, `JsonPrettyFormatter`, `ToonFormatter`, `ToonPrettyFormatter`, and `PlainFormatter`.
+  - **Buffered Context Merging**: Added context support to `LogBuffer` with capabilities to set and dynamically merge context key-value pairs (via `addContext`) before sinking.
 - ### Test Suite Hardening & Cross-Platform Parity
   - **Platform-Agnostic Goldens**: Normalized line endings to LF before comparing actual outputs against goldens, resolving Windows-specific CRLF test mismatches.
   - **Windows Path Separators**: Normalized path separators in file rotation sink tests to ensure robust path checks on Windows.
