@@ -4,6 +4,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../core/context/context.dart';
 import '../logger/logger.dart';
+import 'windows_zones.dart';
 
 /// Timezone configuration using IANA Time Zone Database.
 ///
@@ -45,13 +46,15 @@ class Timezone {
     }
 
     if (systemTimezoneName != null) {
+      final ianaName = windowsToIana[systemTimezoneName] ?? systemTimezoneName;
       try {
-        final location = tz.getLocation(systemTimezoneName);
+        final location = tz.getLocation(ianaName);
         return _localCache = Timezone._(location);
       } catch (e, s) {
         InternalLogger.log(
           LogLevel.error,
-          'Timezone "$systemTimezoneName" not found in database.',
+          'Timezone "$systemTimezoneName" (resolved to "$ianaName") '
+          'not found in database.',
           error: e,
           stackTrace: s,
         );

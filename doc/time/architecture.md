@@ -56,5 +56,6 @@ graph TD
 2.  **Initialization**: `Timezone.ensureInitialized()` loads the IANA database (bundled with the package). This is handled implicitly by `local()` and `named()` factories if not done manually.
 3.  **Local Resolution**: 
     - `Timezone.local()` attempts to match the system's timezone name against the IANA database.
-    - If the name is unknown (e.g., on some minimal Android environments), it falls back to a **Fixed Offset** timezone derived from the system's current offset, ensuring application stability even if DST rules are unavailable.
+    - **Windows Compatibility**: On Windows, system timezone names (e.g., `'Iran Standard Time'`) are mapped to their standard IANA identifiers (e.g., `'Asia/Tehran'`) using an internal Unicode CLDR mapping table before querying the IANA database.
+    - If the name remains unknown (e.g., on some minimal Android environments or custom systems), it falls back to a **Fixed Offset** timezone derived from the system's current offset, ensuring application stability even if DST rules are unavailable.
 

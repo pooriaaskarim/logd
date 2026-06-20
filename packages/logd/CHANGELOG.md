@@ -15,6 +15,7 @@ This release introduces critical hot-path optimizations, reducing GC overhead an
   - **Windows Path Separators**: Normalized path separators in file rotation sink tests to ensure robust path checks on Windows.
   - **Cross-Platform Temp Directories**: Switched `clock_native_test.dart` to use `Directory.systemTemp` instead of hardcoded `/tmp` paths.
   - **Graceful Network Integration Skipping**: Enhanced Python integration tests to dynamically detect Python executables and fallback safely, skipping tests cleanly when missing dependencies.
+  - **Windows Timezone Resolution**: Added a comprehensive Unicode CLDR-based mapping of Windows timezone names to standard IANA timezone identifiers, enabling correct local timezone resolution and preventing invalid location warnings/exceptions on Windows.
 
 ---
 

@@ -2,6 +2,7 @@ import 'package:logd/logd.dart';
 import 'package:logd/src/core/context/clock/clock.dart';
 import 'package:logd/src/core/context/context.dart';
 import 'package:logd/src/time/timezone.dart';
+import 'package:logd/src/time/windows_zones.dart';
 import 'package:test/test.dart';
 
 // Mock Clock that returns null for timezoneName
@@ -64,8 +65,11 @@ void main() {
 
       final tz = Timezone.local();
 
-      // When null, it falls back to systemTime.timeZoneName
-      expect(tz.name, equals(clock.now.timeZoneName));
+      // When null, it falls back to systemTime.timeZoneName (which might be
+      // mapped if it is a Windows timezone name).
+      final expectedName =
+          windowsToIana[clock.now.timeZoneName] ?? clock.now.timeZoneName;
+      expect(tz.name, equals(expectedName));
       expect(tz.offset, equals(clock.now.timeZoneOffset));
     });
 
