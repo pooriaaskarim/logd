@@ -2,6 +2,20 @@
 
 ## Completed
 
+### ✅ v0.8.4: Decoupling, Decorator Optimization & Context Filtering
+**Goal**: Resolve pure-Dart compatibility packaging issues, optimize decorator performance, introduce fallback warning diagnostics, and implement structured context filters.
+**Result**: Removed Flutter dependencies/stubs, cached visible length measurements in decorators, implemented compile-time safe diagnostics in NativeEngine, and added a ContextFilter.
+* **Pure Dart Decoupling**:
+  - [x] Move `flutter` SDK dependency from runtime dependencies to dev dependencies (closes #44)
+  - [x] Delete `flutter_stubs` files and transition logger to manual FlutterError hook setup
+* **Performance Optimizations**:
+  - [x] Benchmark and profile SuffixDecorator/PrefixDecorator latency
+  - [x] Cache visible length calculations in static decorators (`getCachedVisibleLength`)
+* **Fallback Warnings**:
+  - [x] Implement one-time warning in `NativeEngine` on StandardEngine fallbacks
+* **Context Filtering**:
+  - [x] Implement `ContextFilter` to filter log entries by structured context key/value
+
 ### ✅ v0.8.3: Performance, Structured Context & Parity
 **Goal**: Optimize performance bottlenecks, support structured logging context, and achieve full cross-platform compatibility on Windows.
 **Result**: Fully stabilized cache and formatting hot-paths, full structured context propagation across formatters, and resolved all timezone and layout constraints on Windows.
@@ -130,12 +144,12 @@
 
 ## Active Development
 
-### 🟡 v0.8.4: Maintenance, Technical Debt & Context Filtering (Active)
-**Goal**: Resolve pure-Dart compatibility packaging issues, investigate SuffixDecorator performance overhead, introduce TOON fallback warnings, and implement structured context filters.
-- [ ] Move `flutter` SDK dependency from `dependencies` to `dev_dependencies` in `pubspec.yaml` (closes pure-Dart resolution issues)
-- [ ] Profile `SuffixDecorator` to identify the cause of its high rendering latency (~1,942 µs)
-- [ ] Implement debug-mode warnings in `NativeEngine` when fallback to `StandardEngine` formatting is triggered (e.g. on TOON formats)
-- [ ] Implement `ContextFilter` to enable filtering logs by keys/values in the structured context Map
+### 🟡 v0.8.5: Async Formatter & Sinks (Planned)
+**Goal**: Offload heavy formatting tasks to worker isolates and expand available log destinations (Sqlite, Sentry, Memory).
+- [ ] Add `AsyncFormatter` and an worker-isolate `AsyncHandler` wrapper.
+- [ ] Implement `SqliteSink` with customizable persistence schemas.
+- [ ] Implement `SentrySink` for production error tracking.
+- [ ] Implement `MemorySink` with ring-buffer capabilities for testing.
 
 ---
 

@@ -397,6 +397,7 @@ Resolved by switch to `parse()` — configured parser is always used.
 | Production Reset API | v0.8.2 | Exposed static `Logger.reset` for production sub-tree registry reset |
 | Inheritance maturation | v0.8.2 | Added selective unfreeze, freeze force option, monitoring visualizer |
 | Descendant invalidation reverse-index | v0.8.3 | Replaced cache invalidation linear scanning with O(m) descendant index |
+| Pure-Dart & Flutter Decoupling | v0.8.4 | Removed Flutter SDK dependency, deleted conditional stubs, and switched to manual hook setup |
 
 ---
 
