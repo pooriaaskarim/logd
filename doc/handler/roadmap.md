@@ -21,6 +21,21 @@
 
 ---
 
+### ✅ v0.8.1: FFI Layout Parity & Stabilization
+**Goal**: Achieve 100% visual layout parity between the NativeEngine and StandardEngine rendering paths.
+**Result**: Verified across 2,048 differential test configurations. `BinaryAnsiEncoder` now produces character-for-character identical output to the standard ANSI path.
+- [x] Implement state-aware word-wrap simulator in `BinaryAnsiEncoder`
+- [x] Add `_DecoratedState` for nested decorator leading-width tracking
+- [x] Harden FFI pointer bounds checking for memory safety
+- [x] Introduce `three_engines_comparison.dart` benchmark on a level playing field
+- [x] Archive M15 milestone record in `packages/benchmarks/records/`
+- [x] Restore `StandardEngine` as the universal default engine
+- [x] Fix iOS `ProcessException` on timezone fetch (closes #21)
+- [x] Merge into `dev`
+- [x] PR to `master` and cut `v0.8.1` / `v0.8.3` release tags
+
+---
+
 ### ✅ v0.8.0: The Engine & Schema Milestone
 **Goal**: Consolidate high-performance native rendering with AI-native structured schemas.
 **Result**: Fully stabilized Standard, Arena, and Native execution engines with support for B-IR v2 serialization and TOON explicit schemas.
@@ -115,18 +130,12 @@
 
 ## Active Development
 
-### 🟡 v0.8.1: FFI Layout Parity & Stabilization (Active)
-**Goal**: Achieve 100% visual layout parity between the NativeEngine and StandardEngine rendering paths.
-**Result**: Verified across 2,048 differential test configurations. `BinaryAnsiEncoder` now produces character-for-character identical output to the standard ANSI path.
-- [x] Implement state-aware word-wrap simulator in `BinaryAnsiEncoder`
-- [x] Add `_DecoratedState` for nested decorator leading-width tracking
-- [x] Harden FFI pointer bounds checking for memory safety
-- [x] Introduce `three_engines_comparison.dart` benchmark on a level playing field
-- [x] Archive M15 milestone record in `packages/benchmarks/records/`
-- [x] Restore `StandardEngine` as the universal default engine
-- [x] Fix iOS `ProcessException` on timezone fetch (closes #21)
-- [x] Merge into `dev`
-- [ ] PR to `master` and cut `v0.8.1` tag
+### 🟡 v0.8.4: Maintenance, Technical Debt & Context Filtering (Active)
+**Goal**: Resolve pure-Dart compatibility packaging issues, investigate SuffixDecorator performance overhead, introduce TOON fallback warnings, and implement structured context filters.
+- [ ] Move `flutter` SDK dependency from `dependencies` to `dev_dependencies` in `pubspec.yaml` (closes pure-Dart resolution issues)
+- [ ] Profile `SuffixDecorator` to identify the cause of its high rendering latency (~1,942 µs)
+- [ ] Implement debug-mode warnings in `NativeEngine` when fallback to `StandardEngine` formatting is triggered (e.g. on TOON formats)
+- [ ] Implement `ContextFilter` to enable filtering logs by keys/values in the structured context Map
 
 ---
 

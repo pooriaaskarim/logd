@@ -114,7 +114,7 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 ## Phase 3 — Performance & Cache Efficiency
 
-### 🟡 P1: Optimize Descendant Invalidation (O(n) → O(m))
+### ~~🟡 P1: Optimize Descendant Invalidation (O(n) → O(m))~~ ✅ v0.8.3
 
 **Issue**: Cache invalidation scans entire cache on every `configure()`.
 
@@ -132,10 +132,10 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Recommendation**: Start with reverse index (simpler, sufficient for realistic hierarchy sizes).
 
 **TODO**:
-- [ ] Implement `_descendants` reverse index, populated on `Logger.get()`
-- [ ] Update `invalidate()` to use reverse index
-- [ ] Benchmark before/after on hierarchy of 100+ loggers
-- [ ] Add regression test for invalidation correctness
+- [x] Implement `_descendants` reverse index, populated on `Logger.get()`
+- [x] Update `invalidate()` to use reverse index
+- [x] Benchmark before/after on hierarchy of 100+ loggers
+- [x] Add regression test for invalidation correctness
 
 ---
 
@@ -394,6 +394,9 @@ Resolved by switch to `parse()` — configured parser is always used.
 | Regex caching (stack_trace) | v0.6.3 | Regex compiled once as `static final _frameRegex` |
 | Redundant parsing elimination | v0.6.3 | `StackFrameSet` + `parse()` — single-pass parsing |
 | LogBuffer leak protection | v0.6.4 | Finalizer-based detection and atomic error/stackTrace support |
+| Production Reset API | v0.8.2 | Exposed static `Logger.reset` for production sub-tree registry reset |
+| Inheritance maturation | v0.8.2 | Added selective unfreeze, freeze force option, monitoring visualizer |
+| Descendant invalidation reverse-index | v0.8.3 | Replaced cache invalidation linear scanning with O(m) descendant index |
 
 ---
 
