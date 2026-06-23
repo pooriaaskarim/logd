@@ -150,5 +150,51 @@ void main() {
       // message for now Based on previous analysis, RegexFilter usually
       // checks entry.message
     });
+
+    group('ContextFilter', () {
+      final entryWithContext = LogEntry(
+        loggerName: 'app',
+        origin: 'main',
+        level: LogLevel.info,
+        message: 'hello',
+        timestamp: '2025-01-01 12:00:00',
+        context: const {'userId': 123, 'env': 'prod'},
+      );
+
+      final entryWithoutContext = LogEntry(
+        loggerName: 'app',
+        origin: 'main',
+        level: LogLevel.info,
+        message: 'hello',
+        timestamp: '2025-01-01 12:00:00',
+      );
+
+      test('matches key existence', () {
+        const filter = ContextFilter('userId');
+        expect(filter.shouldLog(entryWithContext), isTrue);
+        expect(filter.shouldLog(entryWithoutContext), isFalse);
+      });
+
+      test('matches key and value', () {
+        const filter = ContextFilter('userId', value: 123);
+        const filterWrongValue = ContextFilter('userId', value: 456);
+        expect(filter.shouldLog(entryWithContext), isTrue);
+        expect(filterWrongValue.shouldLog(entryWithContext), isFalse);
+      });
+
+      test('excludes matching key existence', () {
+        const filter = ContextFilter('userId', exclude: true);
+        expect(filter.shouldLog(entryWithContext), isFalse);
+        expect(filter.shouldLog(entryWithoutContext), isTrue);
+      });
+
+      test('excludes matching key and value', () {
+        const filter = ContextFilter('userId', value: 123, exclude: true);
+        const filterWrongValue =
+            ContextFilter('userId', value: 456, exclude: true);
+        expect(filter.shouldLog(entryWithContext), isFalse);
+        expect(filterWrongValue.shouldLog(entryWithContext), isTrue);
+      });
+    });
   });
 }

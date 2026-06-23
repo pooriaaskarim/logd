@@ -67,6 +67,7 @@ part 'engine/standard_engine.dart';
 part 'filter/filter.dart';
 part 'filter/level_filter.dart';
 part 'filter/regex_filter.dart';
+part 'filter/context_filter.dart';
 part 'formatter/formatter.dart';
 part 'formatter/json_formatter.dart';
 part 'formatter/plain_formatter.dart';
