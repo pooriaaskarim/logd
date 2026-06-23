@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.4: Flutter Decoupling, Decorator Optimization & Context Filtering
+
+This release decouples the logging pipeline from the Flutter SDK for pure Dart CLI/VM runtime support, optimizes decorator layout performance with cached visible length calculations, introduces diagnostics for NativeEngine fallback paths, and adds a context filter for log entry routing.
+
+- ### Flutter Decoupling (Pure Dart)
+  - **Complete SDK Decoupling**: Moved `flutter` from runtime dependencies to dev dependencies to eliminate compile-time and analysis-time requirements on Flutter for CLI, server, and VM environments.
+  - **Stub Removal**: Removed conditional stubs (`flutter_stubs.dart` and `flutter_stubs_flutter.dart`) and the `Logger.attachToFlutterErrors` API.
+  - **Manual Hook Setup**: Updated docs to guide manual integration with Flutter error handlers via `FlutterError.onError`.
+- ### Performance Optimizations
+  - **Cached Decorator Layouts**: Added static length cache (`getCachedVisibleLength`) for string terminal width estimations, bypassing regex-heavy measurements.
+  - **Overhead Reduction**: Reduced `PrefixDecorator` and `SuffixDecorator` rendering overhead by ~25-30% and improved `FullPipeline` throughput by ~24-32%.
+- ### Diagnostics & Warnings
+  - **NativeEngine Fallback Notifications**: Added a single-trigger warning via `InternalLogger` when `NativeEngine` falls back to `StandardEngine` due to formatter/sink incompatibilities.
+- ### Structured Context Filtering
+  - **ContextFilter Implementation**: Added `ContextFilter` to filter logs by structured context key presence or exact value matches, supporting exclusions.
+
 ## 0.8.3: Performance, Structured Context & Parity
 
 This release introduces critical hot-path optimizations (reducing GC overhead and improving execution latency), full structured context logging support, and key cross-platform Windows compatibility refinements.
