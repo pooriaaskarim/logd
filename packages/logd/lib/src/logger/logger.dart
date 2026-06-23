@@ -6,8 +6,6 @@ import '../handler/handler.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
 import '../time/timezone.dart';
-import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
-    as flutter_stubs;
 
 export '../core/log_level.dart';
 
@@ -1218,11 +1216,6 @@ class Logger {
   }
 
   static final _nameRegex = RegExp(r'^[a-z0-9_]+(\.[a-z0-9_]+)*$');
-
-  /// Attach to Flutter errors.
-  static void attachToFlutterErrors() {
-    flutter_stubs.attachToFlutterErrors();
-  }
 
   /// Clears the logger registry for the specified [loggerName] and all its
   /// descendants, restoring them to default unresolved settings.

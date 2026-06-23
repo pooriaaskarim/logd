@@ -29,7 +29,7 @@ final dbLogger = Logger.get('app.db');  // Inherits from 'app'
 
 ## Component Overview
 
-The logger module consists of 6 source files:
+The logger module consists of 4 source files:
 
 ### Core Components
 
@@ -55,11 +55,6 @@ Main implementation file containing:
 - **`InternalLogger`** - Fail-safe internal logging to prevent circularity
 - Bypasses handler pipeline, outputs directly to console
 - Used for logging library errors without triggering infinite loops
-
-#### [flutter_stubs.dart](../../packages/logd/lib/src/logger/flutter_stubs.dart) / [flutter_stubs_flutter.dart](../../packages/logd/lib/src/logger/flutter_stubs_flutter.dart)
-- Conditional Flutter integration using conditional imports
-- `flutter_stubs.dart` - No-op for pure Dart environments
-- `flutter_stubs_flutter.dart` - Hooks into `FlutterError.onError` when Flutter is available
 
 ## Responsibilities
 
@@ -137,7 +132,16 @@ try {
 - Use `logger.freezeInheritance()` for hot paths (e.g., tight loops) where configuration is guaranteed static. This reduces lookup latency to a simple O(1) cache access.
 
 ### Flutter Integration
-- `Logger.attachToFlutterErrors()` - Route Flutter errors through logd pipeline
+Uncaught Flutter framework errors can be manually forwarded to `logd` inside the app's `main()` entrypoint:
+```dart
+FlutterError.onError = (final details) {
+  Logger.get('app.crash').error(
+    'Flutter error',
+    error: details.exception,
+    stackTrace: details.stack,
+  );
+};
+```
 
 ## Configuration Properties
 

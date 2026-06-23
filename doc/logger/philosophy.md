@@ -92,21 +92,15 @@ buffer?.sink();  // Atomically logs both lines
 ### The Challenge
 `logd` must work in both pure Dart and Flutter environments without requiring Flutter as a dependency for non-Flutter users.
 
-### The Solution: Conditional Imports
-```dart
-import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
-    as flutter_stubs;
-```
+### The Solution: Complete Decoupling
+Rather than maintaining fragile conditional imports or runtime stub bindings that complicate package resolution, `logd` chooses complete decoupling. It does not package Flutter-specific dependencies at runtime. 
 
-**How it works**:
-- In pure Dart: `flutter_stubs.dart` is imported (throws `UnsupportedError` if called)
-- In Flutter: `flutter_stubs_flutter.dart` is imported (hooks into `FlutterError.onError`)
+Instead, Flutter users manually forward errors to `logd` by binding their error handlers (e.g. `FlutterError.onError`) to the logger in their main app.
 
 **Rationale**: This approach:
-- Avoids runtime dependencies on Flutter for pure Dart users
-- Provides seamless Flutter integration when available
-- Maintains a single API surface (`Logger.attachToFlutterErrors()`)
-- Fails fast with clear error messages in unsupported environments
+- Eliminates compile-time/analysis-time Flutter SDK dependencies for pure Dart VM, CLI, and server users.
+- Gives developers explicit control over how and where uncaught Flutter errors are routed.
+- Eliminates stubs and complex conditional target compilations, resulting in a cleaner and more stable codebase.
 
 ## 6. Default Configuration Philosophy
 
@@ -212,7 +206,7 @@ Immutability increases GC pressure (new objects on every config change), but con
 4. **Version-Based Invalidation**: O(1) configuration updates with lazy cache invalidation
 5. **Deep Equality**: Avoid unnecessary cache clears for logically identical configurations
 6. **Atomic Multi-Line Logging**: `LogBuffer` for readable concurrent output
-7. **Platform Abstraction**: Conditional imports for Flutter integration without dependencies
+7. **Platform Abstraction**: Decoupled design allows easy integration with Flutter error handlers without runtime SDK dependencies
 8. **Development-First Defaults**: Sensible defaults for immediate usability
 9. **Fail-Safe Core**: `InternalLogger` prevents logging failures from crashing the app
 10. **API Surface Protection**: `@internal` annotations preserve integrity and enable future optimizations

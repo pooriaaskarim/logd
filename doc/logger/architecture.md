@@ -12,8 +12,6 @@ The logger module is organized into 6 files:
 | [`log_entry.dart`](../../packages/logd/lib/src/logger/log_entry.dart) | 59 | Structured log event representation |
 | [`log_buffer.dart`](../../packages/logd/lib/src/logger/log_buffer.dart) | 155 | Multi-line log buffering |
 | [`internal_logger.dart`](../../packages/logd/lib/src/logger/internal_logger.dart) | 26 | Fail-safe internal logging |
-| [`flutter_stubs.dart`](../../packages/logd/lib/src/logger/flutter_stubs.dart) | 6 | No-op Flutter stubs for pure Dart |
-| [`flutter_stubs_flutter.dart`](../../packages/logd/lib/src/logger/flutter_stubs_flutter.dart) | 14 | Flutter error integration |
 
 ## System Components
 
@@ -235,28 +233,23 @@ stack_trace_lines
 
 ### 8. Flutter Integration
 
-**Conditional Import Mechanism** (see top of [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)):
-```dart
-import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
-    as flutter_stubs;
-```
+Since `logd` is a pure Dart package with zero runtime dependency on the Flutter SDK, it does not package built-in Flutter bindings. Instead, developers can easily forward Flutter framework errors to the `logd` pipeline manually:
 
-**Pure Dart Environment** ([`flutter_stubs.dart`](../../packages/logd/lib/src/logger/flutter_stubs.dart)):
-- `attachToFlutterErrors()` throws `UnsupportedError`
-- Prevents runtime errors in non-Flutter environments
-
-**Flutter Environment** ([`flutter_stubs_flutter.dart`](../../packages/logd/lib/src/logger/flutter_stubs_flutter.dart)):
-- Hooks into `FlutterError.onError`
-- Routes Flutter framework errors through logd pipeline
-- Logs to global logger with error level
-
-**Usage**:
 ```dart
 void main() {
-  Logger.attachToFlutterErrors();
+  FlutterError.onError = (final details) {
+    Logger.get('app.crash').error(
+      'Flutter error',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+  
   runApp(MyApp());
 }
 ```
+
+This keeps `logd` compatible with pure Dart environments (VM, CLI, server, web) without SDK compilation blocks.
 
 ## Freezing Inheritance
 

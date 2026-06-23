@@ -361,7 +361,14 @@ Capture framework errors and async errors:
 
 ```dart
 void main() {
-  Logger.attachToFlutterErrors(); // listens to all uncaught Flutter errors
+  // Listen to all uncaught Flutter errors
+  FlutterError.onError = (final details) {
+    Logger.get('app.crash').error(
+      'Flutter error',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
 
   runZonedGuarded(
     () => runApp(MyApp()),
