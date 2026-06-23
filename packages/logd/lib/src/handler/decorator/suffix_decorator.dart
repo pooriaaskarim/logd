@@ -38,7 +38,7 @@ final class SuffixDecorator extends ContentDecorator {
     document.nodes.clear();
     for (final child in snapshot) {
       final node = factory.checkoutDecorated()
-        ..trailingWidth = suffix.visibleLength
+        ..trailingWidth = getCachedVisibleLength(suffix)
         ..trailing = [StyledText(suffix, tags: LogTag.suffix, style: style)]
         ..repeatTrailing = true
         ..alignTrailing = aligned
@@ -48,7 +48,7 @@ final class SuffixDecorator extends ContentDecorator {
   }
 
   @override
-  int paddingWidth(final LogEntry entry) => suffix.visibleLength;
+  int paddingWidth(final LogEntry entry) => getCachedVisibleLength(suffix);
 
   @override
   bool operator ==(final Object other) =>

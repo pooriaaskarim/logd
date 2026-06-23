@@ -29,7 +29,7 @@ final class PrefixDecorator extends ContentDecorator {
     document.nodes.clear();
     for (final child in snapshot) {
       final node = factory.checkoutDecorated()
-        ..leadingWidth = prefix.visibleLength
+        ..leadingWidth = getCachedVisibleLength(prefix)
         ..leading = [StyledText(prefix, tags: LogTag.prefix, style: style)]
         ..repeatLeading = true
         ..alignTrailing = false
@@ -39,7 +39,7 @@ final class PrefixDecorator extends ContentDecorator {
   }
 
   @override
-  int paddingWidth(final LogEntry entry) => prefix.visibleLength;
+  int paddingWidth(final LogEntry entry) => getCachedVisibleLength(prefix);
 
   @override
   bool operator ==(final Object other) =>
