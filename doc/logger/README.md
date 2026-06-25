@@ -29,7 +29,7 @@ final dbLogger = Logger.get('app.db');  // Inherits from 'app'
 
 ## Component Overview
 
-The logger module consists of 6 source files:
+The logger module consists of 4 source files:
 
 ### Core Components
 
@@ -56,10 +56,9 @@ Main implementation file containing:
 - Bypasses handler pipeline, outputs directly to console
 - Used for logging library errors without triggering infinite loops
 
-#### [flutter_stubs.dart](../../packages/logd/lib/src/logger/flutter_stubs.dart) / [flutter_stubs_flutter.dart](../../packages/logd/lib/src/logger/flutter_stubs_flutter.dart)
-- Conditional Flutter integration using conditional imports
-- `flutter_stubs.dart` - No-op for pure Dart environments
-- `flutter_stubs_flutter.dart` - Hooks into `FlutterError.onError` when Flutter is available
+#### [serialization_registry.dart](../../packages/logd/lib/src/logger/serialization_registry.dart)
+- **`LoggerSerializationRegistry`** - JSON serialization registry for isolate transport
+- Enables `exportConfig` and `importConfig` for syncing logger configurations across Dart isolates
 
 ## Responsibilities
 
@@ -67,7 +66,9 @@ Main implementation file containing:
 - **Lazy Resolution**: Sparse configuration storage with version-based cache invalidation (O(1) access)
 - **Log Dispatch**: Implicit `LogEntry` generation and routing to the `Handler` pipeline
 - **Multi-Line Buffering**: Atomic multi-line log output via `LogBuffer`
-- **Fail-Safe Logging**: Internal error handling via `InternalLogger`
+- **Fail-Safe Logging**: Internal error handling and graceful fallbacks via `InternalLogger` and `fallbackHandler`
+- **Observability**: Zero-cost framework telemetry via `LoggerMetrics`
+- **Isolate Transport**: Cross-isolate configuration syncing via `LoggerSerializationRegistry`
 
 ## Core Concepts
 
@@ -132,12 +133,43 @@ try {
 - **`Logger.exportHierarchy()`**: Exports the hierarchy tree as a JSON-serializable map, including ghost-node (`implicit`) detection and effective resolved values.
 - **`Logger.reset([String? loggerName])`**: Resets the entire registry (if no name or `'global'` is provided) or a specific subtree to default unresolved configurations.
 
+### Observability & Metrics
+
+`logd` provides zero-cost internal telemetry to monitor the health of your logging pipeline:
+- **`LoggerMetrics.toJson()`**: Returns a snapshot of internal counters (`cacheHits`, `cacheMisses`, `drops`, `bufferLeaks`, `handlerFailures`, etc.).
+- **`LoggerMetrics.reset()`**: Resets all counters to zero.
+
+### Graceful Fallback
+
+If all configured handlers fail (e.g. disk is full, network is down), the log is redirected to a fallback handler to prevent data loss:
+- **`Logger.fallbackHandler`**: A global callback (defaults to console printing) that receives the `LogEntry` if the primary pipeline completely fails.
+
+### Isolate Transport
+
+Configurations are isolate-local. To synchronize logger configurations from a main isolate to worker isolates:
+```dart
+// Main isolate
+final snapshot = Logger.exportConfig();
+
+// Worker isolate
+Logger.importConfig(snapshot);
+```
+
 ### Performance Optimization
 
 - Use `logger.freezeInheritance()` for hot paths (e.g., tight loops) where configuration is guaranteed static. This reduces lookup latency to a simple O(1) cache access.
 
 ### Flutter Integration
-- `Logger.attachToFlutterErrors()` - Route Flutter errors through logd pipeline
+Uncaught Flutter framework errors can be manually forwarded to `logd` inside the app's `main()` entrypoint:
+```dart
+FlutterError.onError = (final details) {
+  Logger.get('app.crash').error(
+    'Flutter error',
+    error: details.exception,
+    stackTrace: details.stack,
+  );
+};
+```
 
 ## Configuration Properties
 

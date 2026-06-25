@@ -108,13 +108,13 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 **TODO**:
 - [x] Audit remaining classes for immutability gaps
-- [ ] Consider making `LoggerConfig` immutable (assess breaking-change impact)
+- [x] Consider making `LoggerConfig` immutable (assess breaking-change impact)
 
 ---
 
 ## Phase 3 — Performance & Cache Efficiency
 
-### 🟡 P1: Optimize Descendant Invalidation (O(n) → O(m))
+### ~~🟡 P1: Optimize Descendant Invalidation (O(n) → O(m))~~ ✅ v0.8.3
 
 **Issue**: Cache invalidation scans entire cache on every `configure()`.
 
@@ -132,10 +132,10 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Recommendation**: Start with reverse index (simpler, sufficient for realistic hierarchy sizes).
 
 **TODO**:
-- [ ] Implement `_descendants` reverse index, populated on `Logger.get()`
-- [ ] Update `invalidate()` to use reverse index
-- [ ] Benchmark before/after on hierarchy of 100+ loggers
-- [ ] Add regression test for invalidation correctness
+- [x] Implement `_descendants` reverse index, populated on `Logger.get()`
+- [x] Update `invalidate()` to use reverse index
+- [x] Benchmark before/after on hierarchy of 100+ loggers
+- [x] Add regression test for invalidation correctness
 
 ---
 
@@ -160,8 +160,8 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 **TODO**:
 - [ ] Profile to confirm this is measurable
-- [ ] Refactor to `StringBuffer` for complex origin strings
-- [ ] Add fast path for the common simple case
+- [x] Refactor to `StringBuffer` for complex origin strings
+- [x] Add fast path for the common simple case
 
 ---
 
@@ -170,7 +170,7 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Issue**: Each buffer access creates a new `LogBuffer` instance.
 
 **TODO**:
-- [ ] Implement object pool with configurable max size
+- [x] Implement object pool (no-config LIFO)
 - [ ] Benchmark allocation reduction
 - [ ] Document pool behavior and sizing guidance
 
@@ -185,13 +185,13 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Use Case**: Server with worker isolates, multi-isolate app coordination.
 
 **TODO**:
-- [ ] Design serialization format (JSON?)
-- [ ] Implement `Logger.exportConfig()` → `Map<String, dynamic>`
-- [ ] Implement `Logger.importConfig(Map<String, dynamic>)`
-- [ ] Handle non-serializable fields (Timestamp, StackTraceParser, Handlers)
+- [x] Design serialization format (JSON?)
+- [x] Implement `Logger.exportConfig()` → `Map<String, dynamic>`
+- [x] Implement `Logger.importConfig(Map<String, dynamic>)`
+- [x] Handle non-serializable fields (Timestamp, StackTraceParser, Handlers)
   - Option A: Skip them
   - Option B: Allow registration of serializers
-- [ ] Add tests
+- [x] Add tests
 - [ ] Document isolate coordination pattern
 
 ---
@@ -203,8 +203,8 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Current**: All-or-nothing replacement.
 
 **TODO**:
-- [ ] **Decision**: Keep current behavior OR implement merge
-- [ ] If merge: update resolution, documentation, and add tests
+- [x] **Decision**: Keep current behavior OR implement merge (implemented merge)
+- [x] If merge: update resolution and add tests
 - [ ] If keep current: document clearly in `Logger.configure` docs and add FAQ entry
 
 **Recommendation**: Document current behavior first, consider merge if requested.
@@ -216,10 +216,10 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Issue**: No way to monitor logger health or performance.
 
 **TODO**:
-- [ ] Design `LoggerMetrics` API (cache hit/miss, drops, handler failures, buffer usage)
-- [ ] Opt-in only (zero overhead when disabled)
-- [ ] Implement `LoggerMetrics.toJson()` for export
-- [ ] Document in README
+- [x] Design `LoggerMetrics` API (cache hit/miss, drops, handler failures, buffer usage)
+- [x] Opt-in only (zero overhead when disabled)
+- [x] Implement `LoggerMetrics.toJson()` for export
+- [x] Document in README
 
 ---
 
@@ -241,11 +241,11 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Issue**: Hard to test code that uses loggers.
 
 **TODO**:
-- [ ] Create `TestLogger` utility class
-- [ ] Implement `CaptureSink` for log capture
-- [ ] Add assertion helpers (`hasLog`, `hasLogMatching`, etc.)
-- [ ] Add `package:logd/testing.dart` export
-- [ ] Document testing patterns with examples
+- [x] Create `TestLogger` utility class
+- [x] Implement `CaptureSink` for log capture
+- [x] Add assertion helpers (`hasLog`, `hasLogMatching`, etc.)
+- [x] Add `package:logd/testing.dart` export
+- [x] Document testing patterns with examples
 
 ---
 
@@ -266,9 +266,9 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Issue**: If all handlers fail, logs are silently lost (except InternalLogger output).
 
 **TODO**:
-- [ ] Implement fallback-to-console when all configured handlers fail
-- [ ] Make fallback behavior configurable
-- [ ] Document in README
+- [x] Implement fallback-to-console when all configured handlers fail
+- [x] Make fallback behavior configurable
+- [x] Document in README
 
 ---
 
@@ -394,6 +394,10 @@ Resolved by switch to `parse()` — configured parser is always used.
 | Regex caching (stack_trace) | v0.6.3 | Regex compiled once as `static final _frameRegex` |
 | Redundant parsing elimination | v0.6.3 | `StackFrameSet` + `parse()` — single-pass parsing |
 | LogBuffer leak protection | v0.6.4 | Finalizer-based detection and atomic error/stackTrace support |
+| Production Reset API | v0.8.2 | Exposed static `Logger.reset` for production sub-tree registry reset |
+| Inheritance maturation | v0.8.2 | Added selective unfreeze, freeze force option, monitoring visualizer |
+| Descendant invalidation reverse-index | v0.8.3 | Replaced cache invalidation linear scanning with O(m) descendant index |
+| Pure-Dart & Flutter Decoupling | v0.8.4 | Removed Flutter SDK dependency, deleted conditional stubs, and switched to manual hook setup |
 
 ---
 

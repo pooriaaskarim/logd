@@ -134,8 +134,16 @@ class TimestampFormatter {
   /// RFC 2822 / HTTP Date format
   static const rfc2822Pattern = "EEE, dd MMM yyyy HH:mm:ss z_rfc2822";
 
+  /// Date only [Timestamp] pattern.
+  static const dateOnlyPattern = 'yyyy-MM-dd';
+
   /// Timestamp in milliseconds since epoch.
   static const epochPattern = 'EPOCH';
+
+  static int _cachedDateYear = 0;
+  static int _cachedDateMonth = 0;
+  static int _cachedDateDay = 0;
+  static String? _cachedDateString;
 
   /// Formats the given [time] using this formatter's pattern.
   ///
@@ -143,6 +151,22 @@ class TimestampFormatter {
   String? format(final DateTime time, {final Timezone? timezone}) {
     if (pattern.isEmpty) {
       return null;
+    }
+
+    if (pattern == dateOnlyPattern) {
+      if (time.day == _cachedDateDay &&
+          time.month == _cachedDateMonth &&
+          time.year == _cachedDateYear &&
+          _cachedDateString != null) {
+        return _cachedDateString;
+      }
+      _cachedDateYear = time.year;
+      _cachedDateMonth = time.month;
+      _cachedDateDay = time.day;
+      _cachedDateString = '${time.year.toString().padLeft(4, '0')}-'
+          '${time.month.toString().padLeft(2, '0')}-'
+          '${time.day.toString().padLeft(2, '0')}';
+      return _cachedDateString;
     }
 
     if (pattern == epochPattern) {
@@ -589,6 +613,16 @@ class Timestamp {
   ///
   /// The [timestamp] getter will return `null`.
   factory Timestamp.none() => Timestamp(formatter: '');
+
+  /// Creates a [Timestamp] using the ISO 8601 date-only format.
+  ///
+  /// Format: `yyyy-MM-dd`
+  ///
+  /// Example output: `2025-12-18`
+  factory Timestamp.dateOnly({final Timezone? timezone}) => Timestamp(
+        formatter: TimestampFormatter.dateOnlyPattern,
+        timezone: timezone,
+      );
 
   /// Creates a [Timestamp] using ISO 8601 format (identical to RFC 3339).
   ///

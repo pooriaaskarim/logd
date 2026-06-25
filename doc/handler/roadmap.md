@@ -2,6 +2,20 @@
 
 ## Completed
 
+### ✅ v0.8.4: Decoupling, Decorator Optimization & Context Filtering
+**Goal**: Resolve pure-Dart compatibility packaging issues, optimize decorator performance, introduce fallback warning diagnostics, and implement structured context filters.
+**Result**: Removed Flutter dependencies/stubs, cached visible length measurements in decorators, implemented compile-time safe diagnostics in NativeEngine, and added a ContextFilter.
+* **Pure Dart Decoupling**:
+  - [x] Move `flutter` SDK dependency from runtime dependencies to dev dependencies (closes #44)
+  - [x] Delete `flutter_stubs` files and transition logger to manual FlutterError hook setup
+* **Performance Optimizations**:
+  - [x] Benchmark and profile SuffixDecorator/PrefixDecorator latency
+  - [x] Cache visible length calculations in static decorators (`getCachedVisibleLength`)
+* **Fallback Warnings**:
+  - [x] Implement one-time warning in `NativeEngine` on StandardEngine fallbacks
+* **Context Filtering**:
+  - [x] Implement `ContextFilter` to filter log entries by structured context key/value
+
 ### ✅ v0.8.3: Performance, Structured Context & Parity
 **Goal**: Optimize performance bottlenecks, support structured logging context, and achieve full cross-platform compatibility on Windows.
 **Result**: Fully stabilized cache and formatting hot-paths, full structured context propagation across formatters, and resolved all timezone and layout constraints on Windows.
@@ -18,6 +32,21 @@
   - [x] Fix Windows path separator issues in rotation tests
   - [x] Fix golden test CRLF line-ending mismatches on Windows
   - [x] Resolve Windows timezone names to standard IANA timezone identifiers via Unicode CLDR mapping table
+
+---
+
+### ✅ v0.8.1: FFI Layout Parity & Stabilization
+**Goal**: Achieve 100% visual layout parity between the NativeEngine and StandardEngine rendering paths.
+**Result**: Verified across 2,048 differential test configurations. `BinaryAnsiEncoder` now produces character-for-character identical output to the standard ANSI path.
+- [x] Implement state-aware word-wrap simulator in `BinaryAnsiEncoder`
+- [x] Add `_DecoratedState` for nested decorator leading-width tracking
+- [x] Harden FFI pointer bounds checking for memory safety
+- [x] Introduce `three_engines_comparison.dart` benchmark on a level playing field
+- [x] Archive M15 milestone record in `packages/benchmarks/records/`
+- [x] Restore `StandardEngine` as the universal default engine
+- [x] Fix iOS `ProcessException` on timezone fetch (closes #21)
+- [x] Merge into `dev`
+- [x] PR to `master` and cut `v0.8.1` / `v0.8.3` release tags
 
 ---
 
@@ -115,18 +144,12 @@
 
 ## Active Development
 
-### 🟡 v0.8.1: FFI Layout Parity & Stabilization (Active)
-**Goal**: Achieve 100% visual layout parity between the NativeEngine and StandardEngine rendering paths.
-**Result**: Verified across 2,048 differential test configurations. `BinaryAnsiEncoder` now produces character-for-character identical output to the standard ANSI path.
-- [x] Implement state-aware word-wrap simulator in `BinaryAnsiEncoder`
-- [x] Add `_DecoratedState` for nested decorator leading-width tracking
-- [x] Harden FFI pointer bounds checking for memory safety
-- [x] Introduce `three_engines_comparison.dart` benchmark on a level playing field
-- [x] Archive M15 milestone record in `packages/benchmarks/records/`
-- [x] Restore `StandardEngine` as the universal default engine
-- [x] Fix iOS `ProcessException` on timezone fetch (closes #21)
-- [x] Merge into `dev`
-- [ ] PR to `master` and cut `v0.8.1` tag
+### 🟡 v0.8.5: Async Formatter & Sinks (Planned)
+**Goal**: Offload heavy formatting tasks to worker isolates and expand available log destinations (Sqlite, Sentry, Memory).
+- [ ] Add `AsyncFormatter` and an worker-isolate `AsyncHandler` wrapper.
+- [ ] Implement `SqliteSink` with customizable persistence schemas.
+- [ ] Implement `SentrySink` for production error tracking.
+- [ ] Implement `MemorySink` with ring-buffer capabilities for testing.
 
 ---
 

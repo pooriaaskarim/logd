@@ -32,11 +32,11 @@ This document tracks planned improvements, known issues, and TODO items for the 
 - Safari: `function@http://localhost/main.dart.js:1234:56`
 
 **TODO**:
-- [ ] Add platform detection (check `dart.library.html` vs `dart.library.io`)
-- [ ] Define regex patterns for each browser
+- [x] Add platform detection (check `dart.library.html` vs `dart.library.io`)
+- [x] Define regex patterns for each browser
 - [ ] Map JS bundle locations back to Dart source (requires source maps in dev mode)
-- [ ] Add browser-specific test suites
-- [ ] Update documentation with web platform support
+- [x] Add browser-specific test suites
+- [x] Update documentation with web platform support
 
 **Acceptance Criteria**:
 - Parser works on Chrome, Firefox, Safari
@@ -80,11 +80,11 @@ class StackTraceParser {
 **Current Behavior**: Parser may skip the suspension frame incorrectly.
 
 **TODO**:
-- [ ] Detect `<asynchronous suspension>` markers
-- [ ] Optionally include both synchronous caller and async origin
-- [ ] Add `includeAsyncOrigin` configuration flag
+- [x] Detect `<asynchronous suspension>` markers
+- [x] Optionally include both synchronous caller and async origin
+- [x] Add `includeAsyncOrigin` configuration flag
 - [ ] Document async frame semantics in architecture doc
-- [ ] Add tests for async stack traces
+- [x] Add tests for async stack traces
 
 **Acceptance Criteria**:
 - Async suspension frames handled correctly

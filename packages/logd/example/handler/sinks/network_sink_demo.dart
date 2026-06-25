@@ -28,15 +28,19 @@ void main() async {
         '\x1B[0m');
 
     // 2. Start Servers with Arguments
+    final pythonPath = Platform.isWindows
+        ? '.\\.venv\\Scripts\\python.exe'
+        : './.venv/bin/python';
+
     socketServer = await Process.start(
-      './.venv/bin/python',
+      pythonPath,
       ['main.py', '--port', socketPort.toString()],
       workingDirectory: socketDir,
       environment: {'PYTHONUNBUFFERED': '1'},
     );
 
     httpServer = await Process.start(
-      './.venv/bin/python',
+      pythonPath,
       ['main.py', '--port', httpPort.toString()],
       workingDirectory: httpDir,
       environment: {'PYTHONUNBUFFERED': '1'},

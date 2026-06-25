@@ -92,21 +92,15 @@ buffer?.sink();  // Atomically logs both lines
 ### The Challenge
 `logd` must work in both pure Dart and Flutter environments without requiring Flutter as a dependency for non-Flutter users.
 
-### The Solution: Conditional Imports
-```dart
-import 'flutter_stubs.dart' if (dart.library.ui) 'flutter_stubs_flutter.dart'
-    as flutter_stubs;
-```
+### The Solution: Complete Decoupling
+Rather than maintaining fragile conditional imports or runtime stub bindings that complicate package resolution, `logd` chooses complete decoupling. It does not package Flutter-specific dependencies at runtime. 
 
-**How it works**:
-- In pure Dart: `flutter_stubs.dart` is imported (throws `UnsupportedError` if called)
-- In Flutter: `flutter_stubs_flutter.dart` is imported (hooks into `FlutterError.onError`)
+Instead, Flutter users manually forward errors to `logd` by binding their error handlers (e.g. `FlutterError.onError`) to the logger in their main app.
 
 **Rationale**: This approach:
-- Avoids runtime dependencies on Flutter for pure Dart users
-- Provides seamless Flutter integration when available
-- Maintains a single API surface (`Logger.attachToFlutterErrors()`)
-- Fails fast with clear error messages in unsupported environments
+- Eliminates compile-time/analysis-time Flutter SDK dependencies for pure Dart VM, CLI, and server users.
+- Gives developers explicit control over how and where uncaught Flutter errors are routed.
+- Eliminates stubs and complex conditional target compilations, resulting in a cleaner and more stable codebase.
 
 ## 6. Default Configuration Philosophy
 
@@ -142,7 +136,7 @@ void main() {
 }
 ```
 
-## 7. Stability and Safety (The Fail-Safe Core)
+## 7. Stability, Safety, and Graceful Degradation
 
 Logging is a diagnostic tool and must not introduce instability into the application.
 
@@ -160,7 +154,10 @@ If a `FileSink` fails (e.g., Disk Full), and that error is logged via the standa
 - LogBuffer sink errors
 - Public logging method failures
 
-**Rationale**: A logging library that crashes the application on error is worse than no logging at all. The fail-safe system ensures that logging failures are visible but non-fatal.
+### Graceful Fallback
+The fail-safe philosophy extends to data preservation. If *all* configured handlers fail during a log dispatch, the log entry is silently lost. To prevent this, `logd` uses a **Graceful Fallback Handler**. This system catches total pipeline failures and forcefully redirects the original `LogEntry` to a fail-safe destination (by default, the console). This guarantees that in catastrophic scenarios, critical logs still survive.
+
+**Rationale**: A logging library that crashes the application on error is worse than no logging at all, and silently dropping logs when things go wrong defeats the purpose of logging. The fail-safe system and graceful degradation ensure that logging failures are visible, non-fatal, and data-preserving.
 
 ## 8. API Surface Protection
 
@@ -204,6 +201,22 @@ To prevent race conditions and ensure predictable behavior, resolved configurati
 ### Trade-off
 Immutability increases GC pressure (new objects on every config change), but configuration changes are rare compared to log calls, making this trade-off acceptable.
 
+## 10. Observability (Zero-Cost Telemetry)
+
+### Principle
+A logging framework is the bedrock of application observability, but the framework itself must be observable to diagnose dropped logs, handler failures, and memory leaks. However, emitting standard telemetry events for these internal operations would destroy performance.
+
+### Implementation
+`logd` uses **Isolate-Local Static Counters** (`LoggerMetrics`). By using simple integer increments on the hot-path (e.g., `_drops++` when a log is filtered out), the framework provides complete visibility into its internal health with effectively zero CPU cost and zero allocations.
+
+## 11. Cross-Isolate Determinism
+
+### Principle
+Dart's memory isolation prevents sharing configuration objects across threads. However, a multi-threaded application requires consistent logging rules across all workers.
+
+### Implementation
+Rather than relying on complex port-based messaging architectures or shared memory hacks, `logd` relies on **Deterministic Serialization**. The entire configuration registry can be exported to a simple JSON structure (`exportConfig`) and reconstructed perfectly on worker isolates (`importConfig`). This embraces Dart's shared-nothing philosophy while providing unified logging behavior.
+
 ## Summary of Design Principles
 
 1. **Hierarchical Inheritance**: Mirror software system structure with dot-separated logger names
@@ -212,8 +225,10 @@ Immutability increases GC pressure (new objects on every config change), but con
 4. **Version-Based Invalidation**: O(1) configuration updates with lazy cache invalidation
 5. **Deep Equality**: Avoid unnecessary cache clears for logically identical configurations
 6. **Atomic Multi-Line Logging**: `LogBuffer` for readable concurrent output
-7. **Platform Abstraction**: Conditional imports for Flutter integration without dependencies
+7. **Platform Abstraction**: Decoupled design allows easy integration with Flutter error handlers without runtime SDK dependencies
 8. **Development-First Defaults**: Sensible defaults for immediate usability
-9. **Fail-Safe Core**: `InternalLogger` prevents logging failures from crashing the app
+9. **Graceful Degradation**: `InternalLogger` and Fallback Handler prevent crashes and data loss
 10. **API Surface Protection**: `@internal` annotations preserve integrity and enable future optimizations
 11. **Immutability**: Prevent race conditions and ensure predictable behavior
+12. **Zero-Cost Telemetry**: Observable metrics without performance penalties
+13. **Cross-Isolate Determinism**: Seamless configuration transport across Dart isolates

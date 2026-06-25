@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.8.4: Core Logger Enhancements, Web Stack Trace, Time Caching, Testing Utilities & Flutter Decoupling
+
+This release introduces major updates to mature the core logger configuration, transports, observability, testing infrastructure, time performance caching, and cross-platform web/Windows runtime compatibility. It also decouples the logging pipeline from the Flutter SDK for pure Dart CLI/VM support, optimizes decorator layout width calculations, and adds a context filter.
+
+- ### Core Logger & Transport
+  - **LoggerConfig Immutability**: Audited and made `LoggerConfig` fully immutable using `@immutable` and final fields with a new `copyWith` method.
+  - **Configuration Serialization**: Implemented `toJson()` and `fromJson()` serialization support for `LoggerConfig`, introducing `LoggerSerializationRegistry` to register and look up custom sinks, formatters, and decorators to support cross-isolate transport via `Logger.exportConfig()` and `Logger.importConfig()`.
+  - **stackMethodCount Merge Semantics**: Refactored resolver logic to perform key-by-key map merges up the logger hierarchy instead of replacing the entire map.
+  - **Graceful Fallback Logging**: Fallback to safe console `print` output if all configured handlers in the pipeline throw exceptions.
+  - **Logger Metrics**: Added `LoggerMetrics` API to monitor cache hits, misses, drops, handler failures, and buffer allocations/releases/leaks.
+  - **LogBuffer Pooling**: Implemented a LIFO `LogBuffer` pool with `Finalizer`-based leak detection to eliminate heap allocations on hot logging paths while guaranteeing abandoned buffers are safely tracked and sinked.
+  - **Origin String StringBuffer**: Optimized origin builder string concatenation using a `StringBuffer` fast-path.
+- ### Testing Utilities (`package:logd/testing.dart`)
+  - **Test Library**: Created a dedicated testing library exposing:
+    - `CaptureSink` and `CapturedLog` for capturing log entries in memory.
+    - `TestLogger` wrapper to isolate logger configuration per test.
+    - `hasLog` custom matcher to easily assert against captured logs.
+- ### Stack Trace Module
+  - **Web Stack Trace Parsing**: Implemented platform-aware stack trace parsing supporting Chrome/V8, Firefox, and Safari formats.
+  - **Environment Detection**: Automatically detects standard VM vs web browser runtimes via `const bool.fromEnvironment`.
+  - **Asynchronous boundary handling**: Added `includeAsyncOrigin` configuration to `StackTraceParser` to optionally track and include `<asynchronous suspension>` boundaries.
+- ### Time Module
+  - **Minute-Granularity Offset Caching**: Added offset caching at 1-minute granularity in `Timezone.offset` to bypass transition rule recalculations.
+  - **Date-Only Optimization**: Added `Timestamp.dateOnly` factory representing ISO 8601 `yyyy-MM-dd` date formats, and implemented a static formatter cache to return formatted date strings instantly.
+- ### Flutter Decoupling (Pure Dart)
+  - **Complete SDK Decoupling**: Moved `flutter` from runtime dependencies to dev dependencies to eliminate compile-time and analysis-time requirements on Flutter for CLI, server, and VM environments.
+  - **Stub Removal**: Removed conditional stubs (`flutter_stubs.dart` and `flutter_stubs_flutter.dart`) and the `Logger.attachToFlutterErrors` API.
+  - **Manual Hook Setup**: Updated docs to guide manual integration with Flutter error handlers via `FlutterError.onError`.
+- ### Performance & Platform Compatibility
+  - **Windows Python Venv Support**: Fixed path resolution for starting Python servers in network examples on Windows systems by dynamically mapping `.venv/bin/python` to `.venv/Scripts/python.exe` based on the platform.
+  - **Cached Decorator Layouts**: Added static length cache (`getCachedVisibleLength`) for string terminal width estimations, bypassing regex-heavy measurements.
+  - **Overhead Reduction**: Reduced `PrefixDecorator` and `SuffixDecorator` rendering overhead by ~25-30% and improved `FullPipeline` throughput by ~24-32%.
+- ### Diagnostics & Warnings
+  - **NativeEngine Fallback Notifications**: Added a single-trigger warning via `InternalLogger` when `NativeEngine` falls back to `StandardEngine` due to formatter/sink incompatibilities.
+- ### Structured Context Filtering
+  - **ContextFilter Implementation**: Added `ContextFilter` to filter logs by structured context key presence or exact value matches, supporting exclusions.
+
 ## 0.8.3: Performance, Structured Context & Parity
 
 This release introduces critical hot-path optimizations (reducing GC overhead and improving execution latency), full structured context logging support, and key cross-platform Windows compatibility refinements.
@@ -240,7 +277,7 @@ This milestone represents a complete overhaul of the `logd` logging pipeline, tr
 ### Documentation Suite
 - **Technical Manuals**: Completely rebuilt the `doc/` module with high-precision architectural guides:
   - **[Architecture](doc/handler/architecture.md)**: Details the 4-stage pipeline and operational context (`LogContext`).
-  - **[Migration Guide](doc/handler/migration.md)**: Outlines the transition from monolithic "God Components" to decentralized behaviors.
+  - **[Migration Guide](doc/migration.md)**: Outlines the transition from monolithic "God Components" to decentralized behaviors.
   - **[Philosophy](doc/logger/philosophy.md)**: Documents foundational principles like Hierarchical Inheritance and Lazy Resolution.
   - **[Decorator Composition](doc/handler/decorator_compositions.md)**: Explains execution priority and data-model flow.
 - **Roadmap Pivot**: Updated future priorities to include **Structured Context Support** and a **Web-Based Logd Dashboard**.

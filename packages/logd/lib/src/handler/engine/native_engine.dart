@@ -9,6 +9,8 @@ class NativeEngine implements LogEngine {
   /// Creates a [NativeEngine].
   const NativeEngine();
 
+  static bool _warnedAboutFallback = false;
+
   @override
   LogPipelineFactory get factory => Arena.instance;
 
@@ -70,6 +72,16 @@ class NativeEngine implements LogEngine {
         await sink.delegate(data);
       } else {
         // Fallback to standard engine for any other sink types
+        if (!_warnedAboutFallback) {
+          _warnedAboutFallback = true;
+          InternalLogger.log(
+            LogLevel.warning,
+            'NativeEngine fallback: Bypassing native execution path and '
+            'falling back to StandardEngine because the formatter/sink '
+            'combination is not native-compatible (e.g. TOON formats or '
+            'custom sinks).',
+          );
+        }
         await const StandardEngine()
             .execute(entry, formatter, decorators, sink);
       }

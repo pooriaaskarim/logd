@@ -46,7 +46,7 @@ final class HierarchyDepthPrefixDecorator extends StructuralDecorator {
 
   @override
   int paddingWidth(final LogEntry entry) =>
-      indent.visibleLength * entry.hierarchyDepth;
+      getCachedVisibleLength(indent) * entry.hierarchyDepth;
 
   @override
   bool operator ==(final Object other) =>

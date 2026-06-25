@@ -1,5 +1,42 @@
 # Migration Guide
 
+## v0.8.3 to v0.8.4 (Flutter Decoupling & Pure Dart Transition)
+
+### 1. Flutter SDK Dependency Removed (Breaking Change)
+**Change**: To enable logging in pure Dart VM, CLI, server, and background isolates, the `logd` package has completely removed the Flutter SDK runtime dependency. 
+*   **Impact**:
+    *   Conditional import files (`flutter_stubs.dart`, `flutter_stubs_flutter.dart`) are deleted.
+    *   The API `Logger.attachToFlutterErrors` has been removed.
+*   **Migration**:
+    If your codebase relied on `Logger.attachToFlutterErrors` to capture Flutter framework exceptions, you must now explicitly hook the logger to the Flutter runtime inside your app's entry points (typically `main()`):
+
+    ```dart
+    void main() {
+      // 1. Capture framework-specific UI errors
+      FlutterError.onError = (final details) {
+        Logger.get('app.crash').error(
+          'Flutter error',
+          error: details.exception,
+          stackTrace: details.stack,
+        );
+      };
+
+      // 2. Capture asynchronous framework/zone exceptions
+      runZonedGuarded(
+        () => runApp(const MyApp()),
+        (final error, final stack) {
+          Logger.get('app.crash').error(
+            'Uncaught asynchronous error',
+            error: error,
+            stackTrace: stack,
+          );
+        },
+      );
+    }
+    ```
+
+---
+
 ## v0.7.1 to v0.8.0 (The High-Performance Engine Milestone)
 
 ### 1. `LogDocument` Abstraction (Breaking Change)
@@ -23,7 +60,7 @@
 ### 3. Custom `LogNode` Implementation
 **Change**: All `LogNode` subclasses must now implement a **`reset()`** method.
 - **Impact**: If you have implemented custom node types for specialized renderers, you must add a `reset()` method to support `Arena` object pooling.
-- **Reference**: See [content_nodes.dart](../../packages/logd/lib/src/handler/document/content_nodes.dart) for reference implementations.
+- **Reference**: See [content_nodes.dart](../packages/logd/lib/src/handler/document/content_nodes.dart) for reference implementations.
 
 ---
 
@@ -85,3 +122,5 @@
 | **v0.6.1** | Deprecation | `BoxFormatter` removed; `ColorDecorator` deprecated. |
 | **v0.7.0** | Engine API | `LogEngine` and `LogPipelineFactory` become public. `StandardEngine` default. |
 | **v0.7.0** | Structural Overhaul| Files moved to `document/`, `layout/`, `engine/`, and `decorator/`. |
+| **v0.8.4** | Flutter Decoupling | Flutter SDK dependency removed. `Logger.attachToFlutterErrors` API removed. |
+

@@ -42,7 +42,8 @@ The stack_trace module consists of 4 source files:
 - **`StackTraceParser`** - Core parsing engine for extracting structured data from stack traces
 - Configurable package filtering via `ignorePackages`
 - Optional custom filtering via `customFilter` callback
-- Regex-based frame parsing for Dart VM format
+- Multi-format regex engine supporting Dart VM, Chrome (V8), and Firefox/Safari traces
+- Configurable handling of Dart `<asynchronous suspension>` boundaries
 
 #### [stack_frame_set.dart](../../packages/logd/lib/src/stack_trace/stack_frame_set.dart)
 - **`StackFrameSet`** - Immutable result of a single-pass parse
@@ -97,6 +98,7 @@ final parser = StackTraceParser(
 const StackTraceParser({
   List<String> ignorePackages = const [],
   FrameFilter? customFilter,
+  bool includeAsyncOrigin = false,
 });
 ```
 

@@ -248,6 +248,18 @@ bool isWide(final String char) {
 @internal
 int getVisibleLength(final String text) => text.visibleLength;
 
+final Map<String, int> _visibleLengthCache = {};
+
+/// Estimates terminal width of a static string, caching the result to avoid
+/// re-parsing overhead.
+@internal
+int getCachedVisibleLength(final String text) {
+  if (_visibleLengthCache.length > 1000) {
+    _visibleLengthCache.clear();
+  }
+  return _visibleLengthCache[text] ??= text.visibleLength;
+}
+
 /// Truncates a string to a specific visible length.
 @internal
 String truncateVisible(final String text, final int maxLength) {
