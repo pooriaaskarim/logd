@@ -390,6 +390,118 @@ void main() {
       expect(logCollector.outputs.first.first, contains('[INFO]'));
     });
   });
+
+  group('stackMethodCount Key-by-Key Merge Semantics', () {
+    setUp(() {
+      Logger.reset();
+    });
+
+    test('merges partial stackMethodCount maps up the hierarchy and defaults',
+        () {
+      // Parent configures LogLevel.warning and LogLevel.info
+      Logger.configure(
+        'app',
+        stackMethodCount: {
+          LogLevel.warning: 4,
+          LogLevel.info: 1,
+        },
+      );
+
+      // Child configures only LogLevel.error and LogLevel.info
+      Logger.configure(
+        'app.child',
+        stackMethodCount: {
+          LogLevel.error: 12,
+          LogLevel.info: 2,
+        },
+      );
+
+      final child = Logger.get('app.child');
+      final childSMC = child.stackMethodCount;
+
+      // Child explicit/overridden values
+      expect(childSMC[LogLevel.error], equals(12));
+      expect(childSMC[LogLevel.info], equals(2));
+
+      // Parent inherited value
+      expect(childSMC[LogLevel.warning], equals(4));
+
+      // Default fallback values
+      expect(childSMC[LogLevel.debug], equals(0));
+      expect(childSMC[LogLevel.trace], equals(0));
+    });
+
+    test('should fallback to console print when all handlers fail', () async {
+      final printed = <String>[];
+      await runZoned(
+        () async {
+          Logger.configure(
+            'fallback_test',
+            handlers: [
+              Handler(
+                formatter: const PlainFormatter(),
+                sink: FailingSink(),
+              ),
+            ],
+          );
+          Logger.get('fallback_test').info('Test fallback message');
+          await Future.delayed(const Duration(milliseconds: 100));
+        },
+        zoneSpecification: ZoneSpecification(
+          print: (final self, final parent, final zone, final line) {
+            printed.add(line);
+          },
+        ),
+      );
+
+      expect(printed, isNotEmpty);
+      expect(
+        printed.any(
+          (final line) =>
+              line.contains('FALLBACK:') &&
+              line.contains('Test fallback message'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('should support custom fallback handler configuration', () async {
+      final customPrinted = <String>[];
+      final originalHandler = Logger.fallbackHandler;
+      addTearDown(() => Logger.fallbackHandler = originalHandler);
+
+      Logger.fallbackHandler = (
+        final entry,
+        final error,
+        final stackTrace,
+      ) {
+        customPrinted.add('CUSTOM_FALLBACK: ${entry.message}');
+      };
+
+      Logger.configure(
+        'custom_fallback_test',
+        handlers: [
+          Handler(
+            formatter: const PlainFormatter(),
+            sink: FailingSink(),
+          ),
+        ],
+      );
+
+      Logger.get('custom_fallback_test').info('Test custom fallback message');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(customPrinted, isNotEmpty);
+      expect(
+        customPrinted.any(
+          (final line) => line.contains(
+            'CUSTOM_FALLBACK: Test custom fallback message',
+          ),
+        ),
+        isTrue,
+      );
+    });
+  });
 }
 
 base class FailingSink extends LogSink<LogDocument> {

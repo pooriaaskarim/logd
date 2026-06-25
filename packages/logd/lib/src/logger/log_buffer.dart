@@ -6,10 +6,10 @@ class _LogBuffer extends StringBuffer {
   _LogBuffer(this._logger, this.logLevel);
 
   /// Internal: The logger to sync to.
-  final Logger _logger;
+  Logger _logger;
 
   /// The level for this buffer's log.
-  final LogLevel logLevel;
+  LogLevel logLevel;
 
   /// Optional error associated with this log.
   Object? error;
@@ -79,9 +79,23 @@ class LogBuffer implements StringSink {
   /// Internal: The inner buffer token/body.
   final _LogBuffer _buffer;
 
+  /// Whether this buffer has been released back to the pool.
+  bool _released = false;
+
+  /// Maximum number of [LogBuffer] instances held in the LIFO pool.
+  ///
+  /// Sized to cover typical burst scenarios (e.g., parallel request
+  /// handling) without retaining excessive memory. Instances above this
+  /// limit are discarded and collected by the GC.
+  static const int _maxPoolSize = 32;
+
+  /// Pool of recycled [LogBuffer] instances (LIFO).
+  static final List<LogBuffer> _pool = [];
+
   /// Finalizer for auto-sinking abandoned buffers.
   static final Finalizer<_LogBuffer> _finalizer =
       Finalizer<_LogBuffer>((final buffer) {
+    LoggerMetrics._bufferLeaks++;
     if (buffer.isNotEmpty ||
         buffer.error != null ||
         buffer.stackTrace != null ||
@@ -129,59 +143,163 @@ class LogBuffer implements StringSink {
     }
   });
 
+  /// Internal: Checks out a [LogBuffer] from the pool, or creates a new one.
+  static LogBuffer _checkout(final Logger logger, final LogLevel level) {
+    LoggerMetrics._bufferAllocations++;
+    if (_pool.isNotEmpty) {
+      final buffer = _pool.removeLast().._reset(logger, level);
+      return buffer;
+    }
+    return LogBuffer._(logger, level);
+  }
+
+  /// Resets this buffer's state for reuse.
+  void _reset(final Logger logger, final LogLevel level) {
+    _released = false;
+    _buffer._logger = logger;
+    _buffer.logLevel = level;
+    _buffer.clear();
+    _finalizer.attach(this, _buffer, detach: this);
+  }
+
+  /// Recycles this buffer back to the pool.
+  void _recycle() {
+    if (_released) {
+      return;
+    }
+    _released = true;
+    LoggerMetrics._bufferReleases++;
+    _finalizer.detach(this);
+    _buffer.clear();
+    if (_pool.length < _maxPoolSize) {
+      _pool.add(this);
+    }
+  }
+
+  /// Throws a [StateError] if this buffer has already been sunk/released.
+  void _checkReleased() {
+    if (_released) {
+      throw StateError('LogBuffer has already been sunk/released.');
+    }
+  }
+
   /// Sets the error object for this log message.
-  set error(final Object? value) => _buffer.error = value;
+  set error(final Object? value) {
+    _checkReleased();
+    _buffer.error = value;
+  }
 
   /// Gets the current error object.
-  Object? get error => _buffer.error;
+  Object? get error {
+    if (_released) {
+      return null;
+    }
+    return _buffer.error;
+  }
 
   /// Sets the stack trace for this log message.
-  set stackTrace(final StackTrace? value) => _buffer.stackTrace = value;
+  set stackTrace(final StackTrace? value) {
+    _checkReleased();
+    _buffer.stackTrace = value;
+  }
 
   /// Gets the current stack trace.
-  StackTrace? get stackTrace => _buffer.stackTrace;
+  StackTrace? get stackTrace {
+    if (_released) {
+      return null;
+    }
+    return _buffer.stackTrace;
+  }
 
   /// Sets the context map for this log message.
-  set context(final Map<String, dynamic>? value) => _buffer.context = value;
+  set context(final Map<String, dynamic>? value) {
+    _checkReleased();
+    _buffer.context = value;
+  }
 
   /// Gets the current context map.
-  Map<String, dynamic>? get context => _buffer.context;
+  Map<String, dynamic>? get context {
+    if (_released) {
+      return null;
+    }
+    return _buffer.context;
+  }
 
   /// Merges key-value pairs into the current context map.
-  void addContext(final Map<String, dynamic> other) =>
-      _buffer.addContext(other);
+  void addContext(final Map<String, dynamic> other) {
+    _checkReleased();
+    _buffer.addContext(other);
+  }
 
-  int get length => _buffer.length;
+  int get length {
+    if (_released) {
+      return 0;
+    }
+    return _buffer.length;
+  }
 
-  bool get isEmpty => _buffer.isEmpty;
+  bool get isEmpty {
+    if (_released) {
+      return true;
+    }
+    return _buffer.isEmpty;
+  }
 
-  bool get isNotEmpty => _buffer.isNotEmpty;
+  bool get isNotEmpty {
+    if (_released) {
+      return false;
+    }
+    return _buffer.isNotEmpty;
+  }
 
   @override
-  void write(final Object? object) => _buffer.write(object);
+  void write(final Object? object) {
+    _checkReleased();
+    _buffer.write(object);
+  }
 
   @override
-  void writeln([final Object? object = '']) => _buffer.writeln(object);
+  void writeln([final Object? object = '']) {
+    _checkReleased();
+    _buffer.writeln(object);
+  }
 
   @override
-  void writeAll(final Iterable objects, [final String separator = '']) =>
-      _buffer.writeAll(objects, separator);
+  void writeAll(final Iterable objects, [final String separator = '']) {
+    _checkReleased();
+    _buffer.writeAll(objects, separator);
+  }
 
   @override
-  void writeCharCode(final int charCode) => _buffer.writeCharCode(charCode);
+  void writeCharCode(final int charCode) {
+    _checkReleased();
+    _buffer.writeCharCode(charCode);
+  }
 
-  void clear() => _buffer.clear();
+  void clear() {
+    _checkReleased();
+    _buffer.clear();
+  }
 
   @override
-  String toString() => _buffer.toString();
+  String toString() {
+    if (_released) {
+      return '';
+    }
+    return _buffer.toString();
+  }
 
   /// Sinks the buffer and clears it.
   void sink() {
+    if (_released) {
+      return;
+    }
     if (isNotEmpty ||
         error != null ||
         stackTrace != null ||
         (context != null && context!.isNotEmpty)) {
       _buffer.sink();
     }
+    _recycle();
   }
 }

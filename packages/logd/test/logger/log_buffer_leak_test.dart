@@ -36,19 +36,26 @@ void main() {
       expect(buf.isEmpty, isTrue);
     });
 
-    test('should allow reusing buffer after sink', () {
+    test(
+        'should allow reusing buffer after sink by checking out a'
+        ' new one (pooling)', () {
       final buf = logger.infoBuffer!
-
-        // First use
         ..write('First message')
         ..sink();
       expect(buf.isEmpty, isTrue);
 
-      // Reuse
-      buf.write('Second message');
-      expect(buf.toString(), 'Second message');
-      buf.sink();
-      expect(buf.isEmpty, isTrue);
+      // Writing after sink should throw StateError
+      expect(() => buf.write('Stale write'), throwsStateError);
+
+      // Checking out again should return the pooled, identical instance
+      final buf2 = logger.infoBuffer!;
+      expect(identical(buf, buf2), isTrue);
+      expect(buf2.isEmpty, isTrue);
+
+      buf2.write('Second message');
+      expect(buf2.toString(), 'Second message');
+      buf2.sink();
+      expect(buf2.isEmpty, isTrue);
     });
 
     test('should respect autoSinkBuffer configuration', () {
