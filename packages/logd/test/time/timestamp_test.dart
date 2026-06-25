@@ -114,5 +114,25 @@ void main() {
         expect(f1, isNot(same(f2)));
       });
     });
+
+    test('timestamp for dateOnly', () {
+      final ts = Timestamp.dateOnly(timezone: fixedTimezone);
+      expect(ts.timestamp, equals('2025-12-18'));
+    });
+
+    test('dateOnly formatting caching optimization returns correct result', () {
+      final ts = Timestamp.dateOnly(timezone: fixedTimezone);
+      expect(ts.timestamp, equals('2025-12-18'));
+
+      // Change time but keep same day
+      final newTimeSameDay = DateTime.utc(2025, 12, 18, 14, 20, 30);
+      Context.setClock(MockClock(newTimeSameDay));
+      expect(ts.timestamp, equals('2025-12-18')); // Cached
+
+      // Change time to next day
+      final newTimeNextDay = DateTime.utc(2025, 12, 19, 14, 20, 30);
+      Context.setClock(MockClock(newTimeNextDay));
+      expect(ts.timestamp, equals('2025-12-19')); // Updated
+    });
   });
 }

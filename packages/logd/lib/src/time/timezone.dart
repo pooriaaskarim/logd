@@ -83,6 +83,9 @@ class Timezone {
   ///
   /// Throws [tz.LocationNotFoundException] if the location is not found.
   factory Timezone.named(final String name) {
+    if (name.toUpperCase() == 'UTC') {
+      return Timezone.utc();
+    }
     if (!_isInitialized) {
       tz_data.initializeTimeZones();
       _isInitialized = true;
@@ -152,11 +155,29 @@ class Timezone {
     return tzDateTime;
   }
 
+  static int _cachedMinute = 0;
+  static final Map<String, Duration> _cachedOffsets = {};
+
   /// Timezone offset at the current time.
   Duration get offset {
     final utcNow = Context.clock.now.toUtc();
+    final utcNowMs = utcNow.millisecondsSinceEpoch;
+    final minuteKey = utcNowMs ~/ 60000;
+
+    if (minuteKey == _cachedMinute) {
+      final cached = _cachedOffsets[name];
+      if (cached != null) {
+        return cached;
+      }
+    } else {
+      _cachedMinute = minuteKey;
+      _cachedOffsets.clear();
+    }
+
     final tzDateTime = tz.TZDateTime.from(utcNow, _location);
-    return tzDateTime.timeZoneOffset;
+    final duration = tzDateTime.timeZoneOffset;
+    _cachedOffsets[name] = duration;
+    return duration;
   }
 
   @override
