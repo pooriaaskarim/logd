@@ -277,7 +277,7 @@ This milestone represents a complete overhaul of the `logd` logging pipeline, tr
 ### Documentation Suite
 - **Technical Manuals**: Completely rebuilt the `doc/` module with high-precision architectural guides:
   - **[Architecture](doc/handler/architecture.md)**: Details the 4-stage pipeline and operational context (`LogContext`).
-  - **[Migration Guide](doc/handler/migration.md)**: Outlines the transition from monolithic "God Components" to decentralized behaviors.
+  - **[Migration Guide](doc/migration.md)**: Outlines the transition from monolithic "God Components" to decentralized behaviors.
   - **[Philosophy](doc/logger/philosophy.md)**: Documents foundational principles like Hierarchical Inheritance and Lazy Resolution.
   - **[Decorator Composition](doc/handler/decorator_compositions.md)**: Explains execution priority and data-model flow.
 - **Roadmap Pivot**: Updated future priorities to include **Structured Context Support** and a **Web-Based Logd Dashboard**.

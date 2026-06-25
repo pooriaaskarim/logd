@@ -457,7 +457,7 @@ void main() {
 - **[Handler Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/architecture.md)** - Pipeline and sink customization
 - **[Execution Engines Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/engines.md)** - Standard, Arena, and Native engines guide
 - **[Engine Stability Report](https://github.com/pooriaaskarim/logd/blob/master/doc/engine_stability_report.md)** - Engine profiling & memory lifecycle report
-- **[Migration Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/migration.md)** - Upgrading from legacy components
+- **[Migration Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/migration.md)** - Upgrading from legacy components
 - **[Decorator Composition](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/decorator_compositions.md)** - Execution priority and flow
 - **[Time Module](https://github.com/pooriaaskarim/logd/blob/master/doc/time/architecture.md)** - Timestamp and timezone handling
 - **[Roadmap](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/roadmap.md)** - Planned features and vision

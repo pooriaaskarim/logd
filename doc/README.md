@@ -2,6 +2,8 @@
 
 This directory contains detailed documentation regarding the design, architecture, and roadmap of the `logd` library.
 
+- [**Migration Guide**](migration.md): Upgrading from legacy versions and Flutter SDK decoupling details.
+
 ## Logger Core
 The core module handles logger instantiation, the inheritance hierarchy, and configuration resolution.
 
@@ -19,7 +21,6 @@ Responsible for the processing pipeline of log entries.
 - [Architecture](handler/architecture.md)
 - [Execution Engines Guide](handler/engines.md) - Standard, Arena, and Native engines guide
 - [Decorator Compositions](handler/decorator_compositions.md) - Execution priority and flow
-- [Migration Guide](handler/migration.md) - Upgrading from legacy components
 - [Roadmap](handler/roadmap.md)
 
 ### Reports & Benchmarks
