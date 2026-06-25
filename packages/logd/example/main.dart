@@ -296,15 +296,19 @@ Future<void> _showcaseNetwork() async {
     final httpPort = await NetworkTestUtils.findAvailablePort(8081);
 
     print('Starting local test servers...');
+    final pythonPath = Platform.isWindows
+        ? '.\\.venv\\Scripts\\python.exe'
+        : './.venv/bin/python';
+
     socketServer = await Process.start(
-      './.venv/bin/python',
+      pythonPath,
       ['main.py', '--port', socketPort.toString()],
       workingDirectory: socketDir,
       environment: {'PYTHONUNBUFFERED': '1'},
     );
 
     httpServer = await Process.start(
-      './.venv/bin/python',
+      pythonPath,
       ['main.py', '--port', httpPort.toString()],
       workingDirectory: httpDir,
       environment: {'PYTHONUNBUFFERED': '1'},
