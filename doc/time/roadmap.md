@@ -20,8 +20,8 @@
 **Current Cost**: Minimal, as `package:timezone` uses optimized lookups, but `Timezone.offset` still does a lookup.
 
 **Optimization**:
-- [ ] Cache computed offset with 1-minute granularity
-- [ ] Invalidate cache on minute boundary or explicit timezone change
+- [x] Cache computed offset with 1-minute granularity
+- [x] Invalidate cache on minute boundary or explicit timezone change
 - [ ] Benchmark improvement on high-frequency logging (target: 50% reduction)
 
 **Implementation**: Add `_offsetCache` map with `(DateTime.minute, Duration)` entries.
@@ -34,9 +34,9 @@
 **Context**: Some use cases need only date part without time.
 
 **Proposal**:
-- [ ] Add `Timestamp.dateOnly(pattern)` factory
-- [ ] Optimize by skipping time-related token parsing
-- [ ] Common patterns: `yyyy-MM-dd`, `dd/MM/yyyy`
+- [x] Add `Timestamp.dateOnly(pattern)` factory
+- [x] Optimize by skipping time-related token parsing
+- [x] Common patterns: `yyyy-MM-dd`, `dd/MM/yyyy`
 
 ---
 

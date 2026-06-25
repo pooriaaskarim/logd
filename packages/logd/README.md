@@ -14,6 +14,7 @@ A <b> modular</b> <b>hierarchical</b> logger for Dart and Flutter. Build structu
 - **Flexible output** – Choose between console, file, network, HTML, or any custom sink; format logs as text, structured JSON, HTML, Markdown or **LLM‑optimized TOON**.
 - **Layout Sovereignty** – A centralized engine guarantees structural integrity (e.g., perfect boxes) across all terminal widths.
 - **Platform‑agnostic styling** – Decouple visual intent from representation using the semantic `LogTheme` system.
+- **Web & Desktop Parity** – Built-in platform-aware stack trace parsers for Chrome (V8), Firefox, Safari, and the Dart VM.
 
 ## Getting Started
 
@@ -198,6 +199,12 @@ final timestamp = Timestamp(
 Logger.configure('app', timestamp: timestamp);
 ```
 
+For high-frequency or daily aggregate logs where sub-second precision is not needed, you can use date-only formatting to bypass sub-second calculations entirely:
+```dart
+final dateOnly = Timestamp.dateOnly('yyyy-MM-dd');
+Logger.configure('app.audit', timestamp: dateOnly);
+```
+
 ### File Rotation
 
 | Strategy | Example |
@@ -243,6 +250,65 @@ Logger.get('app').freezeInheritance();
   Logger.reset('app.ui'); // Resets only 'app.ui' and its descendants
   Logger.reset();        // Global reset, clears the entire registry
   ```
+
+### Isolate Configuration Transport (v0.8.4+)
+
+To share configurations across isolates, serialize the configuration registry to a plain JSON-compatible map and import it in a worker isolate:
+
+```dart
+// In primary isolate:
+final configMap = Logger.exportConfig();
+
+// In background isolate:
+Logger.importConfig(configMap);
+```
+
+Non-serializable fields (like custom sinks or formatters) are mapped via the `LoggerSerializationRegistry.register` API to allow seamless reconstructive routing.
+
+### Observability & Metrics (v0.8.4+)
+
+Monitor cache efficiency, pipeline handler failures, and memory buffer allocations or GC/leak warnings:
+
+```dart
+final metricsJson = LoggerMetrics.toJson();
+print('Cache hits: ${LoggerMetrics.cacheHits}');
+print('Buffer leaks: ${LoggerMetrics.bufferLeaks}');
+```
+
+### Graceful Fallback & Degradation (v0.8.4+)
+
+If all configured handlers throw exceptions, `logd` gracefully falls back to console output so that critical diagnostics are never lost. You can customize this behavior (or disable it) using `Logger.fallbackHandler`:
+
+```dart
+Logger.fallbackHandler = (final entry, final error, final stackTrace) {
+  stderr.writeln('ALERT: All log handlers failed for: ${entry.message}');
+};
+```
+
+### Testing Utilities (v0.8.4+)
+
+Import `package:logd/testing.dart` to assert against logs inside your test suites:
+
+```dart
+import 'package:logd/testing.dart';
+
+void main() {
+  test('verify logic logs warning', () async {
+    final logger = TestLogger.get('app');
+    final capture = CaptureSink();
+    logger.configure(handlers: [
+      Handler(formatter: const PlainFormatter(), sink: capture),
+    ]);
+
+    performAction(logger);
+
+    expect(capture, hasLog(
+      message: contains('action failed'),
+      level: LogLevel.warning,
+    ));
+  });
+}
+```
 
 For a detailed walkthrough of each execution engine, see the [Execution Engines Guide](../../doc/handler/engines.md).
 

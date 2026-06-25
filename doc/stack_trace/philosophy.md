@@ -58,26 +58,22 @@ final info = parser.parse(stackTrace: StackTrace.fromString('malformed'));
 
 ---
 
-## 3. Regex-Based Parsing vs. AST Parsing
+## 3. Multi-Format Regex Parsing
 
 ### Decision
-Use regex pattern matching instead of AST-based parsing.
+Use fallback regex pattern matching to support multiple JavaScript engine formats alongside the Dart VM.
 
 ### Rationale
 
-**Why Regex**:
-- **Simplicity** - Single pattern covers 95% of cases
-- **Performance** - Regex is fast for simple patterns
-- **No Dependencies** - No need for external parsing libraries
-- **Dart VM Format is Stable** - Format hasn't changed significantly in years
+**Why Regex over AST**:
+- **Simplicity** - A few patterns cover 99% of cases across VM, Chrome (V8), and Firefox/Safari
+- **Performance** - Regex is fast for simple line-by-line extraction
+- **No Dependencies** - No need for external AST parsing libraries
 
-**Why Not AST**:
-- **Overkill** - Stack traces are simple, structured strings
-- **Complexity** - AST parsing requires tokenization, grammar, etc.
-- **Performance** - AST parsing is slower for simple cases
-- **Maintenance** - More code to maintain and test
+**Handling Platform Divergence**:
+Dart-compiled-to-JS produces drastically different stack traces depending on the host browser (e.g., `at Method (url:line:col)` vs `method@url:line:col`). Rather than creating platform-specific parsers, the regex engine uses optional groups and fallbacks to extract the same semantic information (`methodName`, `fileName`, `lineNumber`) regardless of the engine's formatting.
 
-**Trade-off**: Regex is fragile to format changes, but the format is stable and the defensive parsing strategy mitigates risk.
+**Trade-off**: Regex is fragile to format changes, but the engine formats are stable and the defensive parsing strategy mitigates risk.
 
 ---
 
@@ -216,16 +212,33 @@ Parse but discard column numbers from stack frames.
 
 **Future**: Could be added if users request it (see roadmap).
 
+## 10. Asynchronous Boundaries
+
+### Decision
+Silently discard `<asynchronous suspension>` markers by default, but allow explicit inclusion.
+
+### Rationale
+
+**The Problem**:
+Dart's async/await state machine inserts synthetic `<asynchronous suspension>` lines into stack traces to represent gaps between event loop turns.
+
+**Why Discard by Default**:
+These markers are implementation details of the Dart runtime. They do not represent executable user code or meaningful context for standard logging. Including them by default clutters the log output and makes the stack trace harder to read.
+
+**Why Allow Inclusion (`includeAsyncOrigin: true`)**:
+For deep async debugging, developers sometimes need to know exactly where the async boundary occurred to reconstruct the execution flow. `logd` allows opting into this behavior, translating the markers into synthetic `CallbackInfo` frames.
+
 ---
 
 ## Summary of Design Principles
 
 1. **Caller Detection Priority** - Extract user code, not library internals
 2. **Defensive Parsing** - Never crash, degrade gracefully
-3. **Regex-Based Parsing** - Simple, fast, sufficient for stable format
+3. **Multi-Format Regex** - Simple, fast extraction across VM and Web engines
 4. **No Caching** - Unique traces make caching ineffective
 5. **Immutability** - Thread-safe, predictable, testable
 6. **Package Filtering** - Simple prefix matching with extensibility
 7. **Leading Underscore Removal** - Human-readable output
 8. **Early Exit** - Optimize for common case (shallow traces)
 9. **Column Information Ignored** - Simplicity over completeness
+10. **Async Boundary Hiding** - Hide runtime machinery by default, show on demand

@@ -11,7 +11,7 @@ The stack_trace module is organized into 4 files:
 | [`stack_trace.dart`](../../packages/logd/lib/src/stack_trace/stack_trace.dart) | 9 | Part file aggregator |
 | [`callback_info.dart`](../../packages/logd/lib/src/stack_trace/callback_info.dart) | 52 | Immutable data class for parsed frame information |
 | [`stack_frame_set.dart`](../../packages/logd/lib/src/stack_trace/stack_frame_set.dart) | 20 | Immutable result container for single-pass parsing |
-| [`stack_trace_parser.dart`](../../packages/logd/lib/src/stack_trace/stack_trace_parser.dart) | 116 | Core parsing engine with regex-based frame extraction |
+| [`stack_trace_parser.dart`](../../packages/logd/lib/src/stack_trace/stack_trace_parser.dart) | 160+ | Core parsing engine with multi-format regex extraction |
 
 ## System Components
 
@@ -27,10 +27,9 @@ The stack_trace module consists of three primary components:
 The parser is the core engine that converts raw stack trace strings into structured `CallbackInfo` objects.
 
 **Configuration**:
-- `ignorePackages` - List of package prefixes to skip (e.g., `['logd', 'flutter']`)
+- `ignorePackages` - List of package name prefixes to skip. Works for both VM format (`package:<pkg>/`) and web format (`/packages/<pkg>/`).
 - `customFilter` - Optional callback for custom filtering logic
-
-**Immutability**: The parser is marked `@immutable` and uses `const` constructor, making it safe to share across isolates.
+- `includeAsyncOrigin` - When `true`, `<asynchronous suspension>` markers are included in `frames` as synthetic `CallbackInfo` entries. Defaults to `false`.
 
 ### 2. StackFrameSet
 
@@ -192,6 +191,36 @@ className: className.replaceFirst(RegExp('^_'), ''),
 ```
 Private class names (e.g., `_MyClass`) have the leading underscore stripped for cleaner output.
 
+## Web Stack Trace Formats
+
+The parser supports all major JavaScript engine stack formats emitted by Dart-compiled-to-JS code:
+
+### Chrome / V8
+```
+Error
+    at MyClass.myMethod (http://localhost:8080/main.dart.js:123:45)
+    at http://localhost:8080/main.dart.js:678:90
+```
+- Anonymous frames (no `at Identifier`) produce `methodName: '<anonymous>'`
+
+**Regex**: `^\s*at\s+(?:(.+)\s+\((.+):(\d+):\d+\)|(.+):(\d+):\d+)$`
+
+### Firefox / Safari
+```
+myMethod@http://localhost:8080/main.dart.js:123:45
+http://localhost:8080/main.dart.js:678:90
+```
+- Frames with no `@method` prefix produce `methodName: '<anonymous>'`
+
+**Regex**: `^(?:(.+)@)?(.+):(\d+):\d+$`
+
+### Package Filtering for Web Frames
+The `ignorePackages` list works for web frames via the `/packages/<pkg>/` path segment:
+```
+Ignored: http://localhost/packages/logd/src/file.dart.js:10:5
+Allowed: http://localhost/packages/my_app/src/file.dart.js:20:5
+```
+
 ## Performance Characteristics
 
 ### Time Complexity
@@ -238,22 +267,35 @@ Parsed as:
 - `className`: empty string
 - `methodName`: `'<anonymous closure>'`
 
+## Async Boundary Handling
+
+Dart's `async`/`await` machinery inserts `<asynchronous suspension>` markers between frames. These are **not** real stack frames.
+
+**Default (`includeAsyncOrigin: false`)**: Suspension markers are silently skipped. The parser continues to the next real frame.
+
+**`includeAsyncOrigin: true`**: Suspension markers are included as synthetic `CallbackInfo` entries:
+- `methodName`: `'<asynchronous suspension>'`
+- `className`: `''` (empty)
+- `filePath`: `''` (empty)
+- `lineNumber`: `0`
+- `fullMethod`: `'<asynchronous suspension>'`
+
+**Edge case — suspension as first frame**: If the suspension marker appears before any real user frame (unusual but possible in deep async chains), `caller` will be set to the suspension entry. The `origin` string in the `LogEntry` will show `<asynchronous suspension>` as the caller, which may look misleading. This is a known trade-off; callers relying on `includeAsyncOrigin: true` should filter `caller` on `lineNumber == 0` if needed.
+
 ## Platform Differences
 
-### Dart VM (Current Support)
+### Dart VM
 Format: `#0 Class.method (package:app/file.dart:10:5)`
 - ✅ Fully supported
 
-### Dart Web (Not Yet Supported)
-Formats vary by browser:
-- Chrome: `at Function (http://localhost/main.dart.js:1234:56)`
-- Firefox: `function@http://localhost/main.dart.js:1234:56`
-- ❌ Not currently supported (see roadmap)
+### Dart Web (Chrome, Firefox, Safari)
+Formats: V8 `at Method (url:line:col)` and Firefox `method@url:line:col`
+- ✅ Fully supported as of v0.8.x
 
 ### Flutter AOT (Obfuscated)
 Format: `#0 a.b (file.dart:10:5)`
 - ⚠️ Parses successfully but names are mangled
-- Requires symbol map for deobfuscation (see roadmap)
+- Requires symbol map for deobfuscation (out of scope)
 
 ## Integration with Logger Module
 

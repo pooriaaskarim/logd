@@ -56,13 +56,19 @@ Main implementation file containing:
 - Bypasses handler pipeline, outputs directly to console
 - Used for logging library errors without triggering infinite loops
 
+#### [serialization_registry.dart](../../packages/logd/lib/src/logger/serialization_registry.dart)
+- **`LoggerSerializationRegistry`** - JSON serialization registry for isolate transport
+- Enables `exportConfig` and `importConfig` for syncing logger configurations across Dart isolates
+
 ## Responsibilities
 
 - **Hierarchy Management**: Factory pattern via `Logger.get(name)` with dot-separated inheritance
 - **Lazy Resolution**: Sparse configuration storage with version-based cache invalidation (O(1) access)
 - **Log Dispatch**: Implicit `LogEntry` generation and routing to the `Handler` pipeline
 - **Multi-Line Buffering**: Atomic multi-line log output via `LogBuffer`
-- **Fail-Safe Logging**: Internal error handling via `InternalLogger`
+- **Fail-Safe Logging**: Internal error handling and graceful fallbacks via `InternalLogger` and `fallbackHandler`
+- **Observability**: Zero-cost framework telemetry via `LoggerMetrics`
+- **Isolate Transport**: Cross-isolate configuration syncing via `LoggerSerializationRegistry`
 
 ## Core Concepts
 
@@ -126,6 +132,28 @@ try {
 - **`Logger.printHierarchy({void Function(String)? sink})`**: Pipes the tree hierarchy into a logging sink (defaults to `InternalLogger.debug`).
 - **`Logger.exportHierarchy()`**: Exports the hierarchy tree as a JSON-serializable map, including ghost-node (`implicit`) detection and effective resolved values.
 - **`Logger.reset([String? loggerName])`**: Resets the entire registry (if no name or `'global'` is provided) or a specific subtree to default unresolved configurations.
+
+### Observability & Metrics
+
+`logd` provides zero-cost internal telemetry to monitor the health of your logging pipeline:
+- **`LoggerMetrics.toJson()`**: Returns a snapshot of internal counters (`cacheHits`, `cacheMisses`, `drops`, `bufferLeaks`, `handlerFailures`, etc.).
+- **`LoggerMetrics.reset()`**: Resets all counters to zero.
+
+### Graceful Fallback
+
+If all configured handlers fail (e.g. disk is full, network is down), the log is redirected to a fallback handler to prevent data loss:
+- **`Logger.fallbackHandler`**: A global callback (defaults to console printing) that receives the `LogEntry` if the primary pipeline completely fails.
+
+### Isolate Transport
+
+Configurations are isolate-local. To synchronize logger configurations from a main isolate to worker isolates:
+```dart
+// Main isolate
+final snapshot = Logger.exportConfig();
+
+// Worker isolate
+Logger.importConfig(snapshot);
+```
 
 ### Performance Optimization
 
