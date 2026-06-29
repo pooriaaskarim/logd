@@ -364,6 +364,31 @@ class LoggerCache {
         resolvedAutoSinkBuffer ??= cSource.autoSinkBuffer;
       }
 
+      if (Logger._patternRules.isNotEmpty) {
+        for (var i = Logger._patternRules.length - 1; i >= 0; i--) {
+          final rule = Logger._patternRules[i];
+          if (rule.regExp.hasMatch(currentName)) {
+            final pSource = rule.config;
+            resolvedEnabled ??= pSource.enabled;
+            resolvedLogLevel ??= pSource.logLevel;
+            resolvedIncludeFileLineInHeader ??= pSource.includeFileLineInHeader;
+            if (pSource.stackMethodCount != null) {
+              resolvedStackMethodCount ??= {};
+              for (final entry in pSource.stackMethodCount!.entries) {
+                resolvedStackMethodCount.putIfAbsent(
+                  entry.key,
+                  () => entry.value,
+                );
+              }
+            }
+            resolvedTimestamp ??= pSource.timestamp;
+            resolvedStackTraceParser ??= pSource.stackTraceParser;
+            resolvedHandlers ??= pSource.handlers;
+            resolvedAutoSinkBuffer ??= pSource.autoSinkBuffer;
+          }
+        }
+      }
+
       final parentName = Logger._getParentName(currentName);
       if (parentName == null) {
         break;
@@ -490,6 +515,20 @@ class _ResolvedConfig {
   final bool autoSinkBuffer;
 }
 
+/// Internal container for a pattern configuration rule.
+@immutable
+class _PatternRule {
+  const _PatternRule({
+    required this.pattern,
+    required this.regExp,
+    required this.config,
+  });
+
+  final String pattern;
+  final RegExp regExp;
+  final LoggerConfig config;
+}
+
 /// Main logd interface.
 ///
 /// Use this class for logging operations. It provides methods to retrieve
@@ -510,6 +549,9 @@ class Logger {
 
   /// Internal: Registry of all available logger configs.
   static final Map<String, LoggerConfig> _registry = {};
+
+  /// Internal: Registered pattern configuration rules.
+  static final List<_PatternRule> _patternRules = [];
 
   /// Callback triggered when all configured handlers fail.
   ///
@@ -707,8 +749,7 @@ class Logger {
         }
       }
 
-      bool? newIncludeFileLineInHeader =
-          existingConfig.includeFileLineInHeader;
+      bool? newIncludeFileLineInHeader = existingConfig.includeFileLineInHeader;
       if (newConfig.includeFileLineInHeader != null) {
         final removed = frozenFields.remove('includeFileLineInHeader');
         if (removed) {
@@ -728,8 +769,7 @@ class Logger {
         }
       }
 
-      Map<LogLevel, int>? newStackMethodCount =
-          existingConfig.stackMethodCount;
+      Map<LogLevel, int>? newStackMethodCount = existingConfig.stackMethodCount;
       if (newConfig.stackMethodCount != null) {
         final removed = frozenFields.remove('stackMethodCount');
         if (removed) {
@@ -849,6 +889,111 @@ class Logger {
     }
   }
 
+  /// Configures loggers matching a wildcard or regular expression pattern.
+  ///
+  /// This allows setting behavior on loggers without having to configure each
+  /// logger individually or depending on a strict dot-separated hierarchy.
+  ///
+  /// The pattern supports glob-style wildcards:
+  /// - `*` matches zero or more characters.
+  /// - `?` matches any single character.
+  ///
+  /// Throws [ArgumentError] if:
+  /// - [pattern] is empty.
+  /// - Any [stackMethodCount] value is negative.
+  /// - [handlers] is an empty list.
+  ///
+  /// Example:
+  ///   Logger.configurePattern('*.database', logLevel: LogLevel.debug);
+  static void configurePattern(
+    final String pattern, {
+    final bool? enabled,
+    final LogLevel? logLevel,
+    final bool? includeFileLineInHeader,
+    final Map<LogLevel, int>? stackMethodCount,
+    final Timestamp? timestamp,
+    final StackTraceParser? stackTraceParser,
+    final List<Handler>? handlers,
+    final bool? autoSinkBuffer,
+  }) {
+    if (pattern.isEmpty) {
+      throw ArgumentError.value(pattern, 'pattern', 'Pattern cannot be empty');
+    }
+
+    final config = LoggerConfig(
+      enabled: enabled,
+      logLevel: logLevel,
+      includeFileLineInHeader: includeFileLineInHeader,
+      stackMethodCount: stackMethodCount,
+      timestamp: timestamp,
+      stackTraceParser: stackTraceParser,
+      handlers: handlers,
+      autoSinkBuffer: autoSinkBuffer,
+    );
+
+    if (config.stackMethodCount != null) {
+      for (final smcEntry in config.stackMethodCount!.entries) {
+        if (smcEntry.value < 0) {
+          throw ArgumentError.value(
+            smcEntry.value,
+            'stackMethodCount[${smcEntry.key}]',
+            'Stack method count cannot be negative',
+          );
+        }
+      }
+    }
+    if (config.handlers != null && config.handlers!.isEmpty) {
+      throw ArgumentError.value(
+        config.handlers,
+        'handlers',
+        'Handlers list cannot be empty',
+      );
+    }
+
+    final regExp = _patternToRegExp(pattern);
+
+    _patternRules.add(
+      _PatternRule(
+        pattern: pattern,
+        regExp: regExp,
+        config: config,
+      ),
+    );
+
+    LoggerCache.clear();
+  }
+
+  static RegExp _patternToRegExp(final String pattern) {
+    final buffer = StringBuffer()..write('^');
+    for (var i = 0; i < pattern.length; i++) {
+      final char = pattern[i];
+      if (char == '*') {
+        buffer.write('.*');
+      } else if (char == '?') {
+        buffer.write('.');
+      } else if (const [
+        '.',
+        '+',
+        '^',
+        '\$',
+        '(',
+        ')',
+        '[',
+        ']',
+        '{',
+        '}',
+        '|',
+        '\\',
+      ].contains(char)) {
+        buffer.write('\\$char');
+      } else {
+        buffer.write(char);
+      }
+    }
+    buffer.write('\$');
+    return RegExp(buffer.toString(), caseSensitive: false);
+  }
+
   /// Exports the current configurations of all loggers registered.
   ///
   /// The returned object is a JSON-compatible map containing all configurations
@@ -858,8 +1003,16 @@ class Logger {
     for (final entry in _registry.entries) {
       configsMap[entry.key] = entry.value.toJson();
     }
+    final patternRulesList = <Map<String, dynamic>>[];
+    for (final rule in _patternRules) {
+      patternRulesList.add({
+        'pattern': rule.pattern,
+        'config': rule.config.toJson(),
+      });
+    }
     return <String, dynamic>{
       'registry': configsMap,
+      'patternRules': patternRulesList,
     };
   }
 
@@ -869,17 +1022,37 @@ class Logger {
   /// and invalidating cache keys.
   static void importConfig(final Map<String, dynamic> configData) {
     final registryMap = configData['registry'] as Map<dynamic, dynamic>?;
-    if (registryMap == null) {
-      return;
+    if (registryMap != null) {
+      for (final entry in registryMap.entries) {
+        final name = entry.key as String;
+        final configJson = entry.value as Map<dynamic, dynamic>;
+        final config =
+            LoggerConfig.fromJson(Map<String, dynamic>.from(configJson));
+        _registry[name] = config;
+      }
     }
-    for (final entry in registryMap.entries) {
-      final name = entry.key as String;
-      final configJson = entry.value as Map<dynamic, dynamic>;
-      final config =
-          LoggerConfig.fromJson(Map<String, dynamic>.from(configJson));
-      _registry[name] = config;
-      LoggerCache.invalidate(name);
+
+    final patternRulesList = configData['patternRules'] as List<dynamic>?;
+    if (patternRulesList != null) {
+      _patternRules.clear();
+      for (final ruleObj in patternRulesList) {
+        final ruleMap = ruleObj as Map<dynamic, dynamic>;
+        final pattern = ruleMap['pattern'] as String;
+        final configJson = ruleMap['config'] as Map<dynamic, dynamic>;
+        final config =
+            LoggerConfig.fromJson(Map<String, dynamic>.from(configJson));
+        final regExp = _patternToRegExp(pattern);
+        _patternRules.add(
+          _PatternRule(
+            pattern: pattern,
+            regExp: regExp,
+            config: config,
+          ),
+        );
+      }
     }
+
+    LoggerCache.clear();
   }
 
   /// Internal: Checks if a name is a descendant of parent.
@@ -1652,6 +1825,7 @@ class Logger {
     final name = loggerName == null ? 'global' : _normalizeName(loggerName);
     if (name == 'global') {
       _registry.clear();
+      _patternRules.clear();
       LoggerCache.clear();
     } else {
       LoggerCache.invalidate(name);

@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.8.5: Bulk Configuration API & Optimized Cache Invalidation
+## 0.8.5: Bulk & Pattern-Based Configuration APIs
 
-This release introduces the bulk configuration API to enable efficient, batched logger updates and centralized cache invalidation.
+This release introduces the bulk configuration API to enable efficient, batched logger updates, as well as pattern-based configuration for wildcard matching across logger hierarchies.
 
 - ### Core Configuration API
   - **Logger.configureMultiple**: Added a new static method `Logger.configureMultiple(Map<String, LoggerConfig> configurations)` to allow configuring multiple loggers in a single operation.
@@ -10,6 +10,12 @@ This release introduces the bulk configuration API to enable efficient, batched 
   - **Atomic Input Validation**: Validation of all logger configurations happens atomically before any registry modifications are made, ensuring that the entire batch either succeeds or fails.
   - **LoggerConfig Export**: Exposed `LoggerConfig` in the public API (`packages/logd/lib/logd.dart`) to support programmatic configuration construction for bulk updates.
   - **Logger.configure Delegation**: Refactored `Logger.configure` to delegate to `Logger.configureMultiple` for architectural consistency.
+
+- ### Wildcard Pattern Matching Configuration
+  - **Logger.configurePattern**: Added a new static method `Logger.configurePattern(String pattern, ...)` to configure loggers matching a wildcard or regular expression pattern.
+  - **Glob Wildcard Syntax**: Supports suffix matching (e.g., `*.database`), prefix/infix matching (e.g., `app.services.*`), and global wildcards (e.g., `*`).
+  - **Dynamic Walker Resolution**: Evaluates pattern rules dynamically during the logger resolution path, maintaining strict hierarchical precedence while allowing newer pattern rules to override older ones.
+  - **Isolate Serialization Integration**: Supported exporting and importing pattern configuration rules seamlessly across isolates via `Logger.exportConfig()` and `Logger.importConfig()`.
 
 ## 0.8.4: Core Logger Enhancements, Web Stack Trace, Time Caching, Testing Utilities & Flutter Decoupling
 

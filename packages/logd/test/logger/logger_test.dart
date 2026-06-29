@@ -559,6 +559,117 @@ void main() {
         expect(child.logLevel, equals(LogLevel.error));
       });
     });
+
+    group('Logger.configurePattern', () {
+      setUp(() {
+        Logger.reset();
+      });
+
+      test('applies pattern configuration to matching loggers', () {
+        Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+
+        final auth = Logger.get('app.services.auth');
+        final db = Logger.get('app.services.db');
+        final ui = Logger.get('app.ui');
+
+        expect(auth.logLevel, equals(LogLevel.info));
+        expect(db.logLevel, equals(LogLevel.info));
+        expect(ui.logLevel, equals(LogLevel.debug)); // default
+      });
+
+      test('supports suffix matching via glob wildcard', () {
+        Logger.configurePattern('*.database', logLevel: LogLevel.warning);
+
+        final authDb = Logger.get('app.auth.database');
+        final billingDb = Logger.get('app.billing.database');
+        final dbHelper = Logger.get('app.db_helper');
+
+        expect(authDb.logLevel, equals(LogLevel.warning));
+        expect(billingDb.logLevel, equals(LogLevel.warning));
+        expect(dbHelper.logLevel, equals(LogLevel.debug));
+      });
+
+      test('validates input parameters correctly', () {
+        expect(
+          () => Logger.configurePattern('', logLevel: LogLevel.info),
+          throwsArgumentError,
+        );
+
+        expect(
+          () => Logger.configurePattern(
+            '*.db',
+            stackMethodCount: {LogLevel.error: -1},
+          ),
+          throwsArgumentError,
+        );
+
+        expect(
+          () => Logger.configurePattern('*.db', handlers: []),
+          throwsArgumentError,
+        );
+      });
+
+      test(
+        'newer pattern rules override older pattern rules when both match',
+        () {
+          Logger.configurePattern('app.*', logLevel: LogLevel.info);
+          Logger.configurePattern(
+            'app.services.*',
+            logLevel: LogLevel.warning,
+          );
+
+          final auth = Logger.get('app.services.auth');
+          final ui = Logger.get('app.ui');
+
+          expect(auth.logLevel, equals(LogLevel.warning));
+          expect(ui.logLevel, equals(LogLevel.info));
+        },
+      );
+
+      test('explicit configure overrides pattern rules', () {
+        Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+        Logger.configure('app.services.auth', logLevel: LogLevel.error);
+
+        final auth = Logger.get('app.services.auth');
+        final db = Logger.get('app.services.db');
+
+        expect(auth.logLevel, equals(LogLevel.error));
+        expect(db.logLevel, equals(LogLevel.info));
+      });
+
+      test('resets pattern rules when global reset is called', () {
+        Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+
+        final auth = Logger.get('app.services.auth');
+        expect(auth.logLevel, equals(LogLevel.info));
+
+        Logger.reset();
+
+        final authNew = Logger.get('app.services.auth');
+        expect(authNew.logLevel, equals(LogLevel.debug));
+      });
+
+      test(
+        'supports isolate export and import serialization of pattern rules',
+        () {
+          Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+
+          final auth = Logger.get('app.services.auth');
+          expect(auth.logLevel, equals(LogLevel.info));
+
+          final snapshot = Logger.exportConfig();
+          Logger.reset();
+
+          final authReset = Logger.get('app.services.auth');
+          expect(authReset.logLevel, equals(LogLevel.debug));
+
+          Logger.importConfig(snapshot);
+
+          final authImported = Logger.get('app.services.auth');
+          expect(authImported.logLevel, equals(LogLevel.info));
+        },
+      );
+    });
   });
 }
 

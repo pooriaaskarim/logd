@@ -230,7 +230,7 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **TODO**:
 - [x] Design bulk configuration API
 - [x] **Option A**: `Logger.configureMultiple(Map<String, LoggerConfig>)`
-- [ ] **Option B**: `Logger.configurePattern(pattern: 'app.*', ...)`
+- [x] **Option B**: `Logger.configurePattern(pattern: 'app.*', ...)`
 - [x] Ensure cache invalidation is batched (single pass, not N passes)
 - [x] Add tests and documentation
 
@@ -398,6 +398,7 @@ Resolved by switch to `parse()` — configured parser is always used.
 | Inheritance maturation | v0.8.2 | Added selective unfreeze, freeze force option, monitoring visualizer |
 | Descendant invalidation reverse-index | v0.8.3 | Replaced cache invalidation linear scanning with O(m) descendant index |
 | Pure-Dart & Flutter Decoupling | v0.8.4 | Removed Flutter SDK dependency, deleted conditional stubs, and switched to manual hook setup |
+| Bulk & Pattern-Based Configurations | v0.8.5 | Implemented `configureMultiple` and `configurePattern` with glob-style matching |
 
 ---
 

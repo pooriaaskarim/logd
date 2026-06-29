@@ -91,6 +91,22 @@ Logger.configureMultiple({
 * **Atomic Validation**: Input validation occurs across the entire configuration map *before* any updates are written. If a single configuration fails (e.g., negative stack trace count), the entire update is cleanly rejected.
 * **Single-Pass Cache Invalidation**: The cache is invalidated in a single optimized pass for all changed loggers and their descendants, eliminating redundant tree-walks and reducing GC pressure.
 
+### Pattern-Based Configuration
+
+When you want to apply configurations to loggers that don't share a strict parent-child relationship or to match loggers dynamically across your application using wildcards, you can use `configurePattern`. It supports standard glob wildcards (`*` matches zero or more characters, `?` matches a single character).
+
+```dart
+// Configure all database loggers to DEBUG
+Logger.configurePattern('*.database', logLevel: LogLevel.debug);
+
+// Disable all third-party package loggers under a prefix
+Logger.configurePattern('vendor.*', enabled: false);
+
+// Wildcard matches are evaluated dynamically on cache resolution,
+// with newer pattern rules overriding older ones if they both match.
+Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+```
+
 ### Log levels
 
 | Level | Description |
