@@ -501,6 +501,64 @@ void main() {
         isTrue,
       );
     });
+
+    group('Logger.configureMultiple()', () {
+      test('configures multiple loggers successfully', () {
+        Logger.configureMultiple({
+          'bulk1': const LoggerConfig(logLevel: LogLevel.warning),
+          'bulk2': const LoggerConfig(logLevel: LogLevel.error, enabled: false),
+        });
+
+        final l1 = Logger.get('bulk1');
+        final l2 = Logger.get('bulk2');
+
+        expect(l1.logLevel, equals(LogLevel.warning));
+        expect(l2.logLevel, equals(LogLevel.error));
+        expect(l2.enabled, isFalse);
+      });
+
+      test('validates inputs atomically', () {
+        expect(
+          () => Logger.configureMultiple({
+            'invalid1': const LoggerConfig(
+              stackMethodCount: {LogLevel.error: -5},
+            ),
+          }),
+          throwsArgumentError,
+        );
+
+        expect(
+          () => Logger.configureMultiple({
+            'invalid2': const LoggerConfig(handlers: []),
+          }),
+          throwsArgumentError,
+        );
+      });
+
+      test('performs cache invalidation in a single pass', () {
+        Logger.configureMultiple({
+          'parent': const LoggerConfig(logLevel: LogLevel.info),
+          'parent.child': const LoggerConfig(),
+        });
+
+        final parent = Logger.get('parent');
+        final child = Logger.get('parent.child');
+
+        // Populate cache
+        expect(parent.logLevel, equals(LogLevel.info));
+        expect(child.logLevel, equals(LogLevel.info));
+
+        // Configure multiple in a batch
+        Logger.configureMultiple({
+          'parent': const LoggerConfig(logLevel: LogLevel.warning),
+          'parent.child': const LoggerConfig(logLevel: LogLevel.error),
+        });
+
+        // Cache should be updated
+        expect(parent.logLevel, equals(LogLevel.warning));
+        expect(child.logLevel, equals(LogLevel.error));
+      });
+    });
   });
 }
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.5: Bulk Configuration API & Optimized Cache Invalidation
+
+This release introduces the bulk configuration API to enable efficient, batched logger updates and centralized cache invalidation.
+
+- ### Core Configuration API
+  - **Logger.configureMultiple**: Added a new static method `Logger.configureMultiple(Map<String, LoggerConfig> configurations)` to allow configuring multiple loggers in a single operation.
+  - **Single-Pass Cache Invalidation**: Implemented `LoggerCache.invalidateMultiple` to batch descendant cache invalidations, avoiding $O(N^2)$ traversal costs and minimizing tree-walk operations.
+  - **Atomic Input Validation**: Validation of all logger configurations happens atomically before any registry modifications are made, ensuring that the entire batch either succeeds or fails.
+  - **LoggerConfig Export**: Exposed `LoggerConfig` in the public API (`packages/logd/lib/logd.dart`) to support programmatic configuration construction for bulk updates.
+  - **Logger.configure Delegation**: Refactored `Logger.configure` to delegate to `Logger.configureMultiple` for architectural consistency.
+
 ## 0.8.4: Core Logger Enhancements, Web Stack Trace, Time Caching, Testing Utilities & Flutter Decoupling
 
 This release introduces major updates to mature the core logger configuration, transports, observability, testing infrastructure, time performance caching, and cross-platform web/Windows runtime compatibility. It also decouples the logging pipeline from the Flutter SDK for pure Dart CLI/VM support, optimizes decorator layout width calculations, and adds a context filter.

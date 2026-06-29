@@ -228,11 +228,11 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Issue**: Configuring multiple loggers requires multiple calls.
 
 **TODO**:
-- [ ] Design bulk configuration API
-- [ ] **Option A**: `Logger.configureMultiple(Map<String, LoggerConfig>)`
+- [x] Design bulk configuration API
+- [x] **Option A**: `Logger.configureMultiple(Map<String, LoggerConfig>)`
 - [ ] **Option B**: `Logger.configurePattern(pattern: 'app.*', ...)`
-- [ ] Ensure cache invalidation is batched (single pass, not N passes)
-- [ ] Add tests and documentation
+- [x] Ensure cache invalidation is batched (single pass, not N passes)
+- [x] Add tests and documentation
 
 ---
 

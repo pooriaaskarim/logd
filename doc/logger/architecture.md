@@ -73,9 +73,10 @@ The `LoggerCache` maintains the derived state of the system using a versioned-in
 - When a parent logger is reconfigured, its version increments
 - Descendant loggers track their parent's version; if a mismatch is detected during a log call, the cache is invalidated and re-resolved lazily
 - Cache check: `cached.version == config.version`
+- **Batched Invalidation**: During bulk configuration updates via `Logger.configureMultiple()`, `LoggerCache.invalidateMultiple()` sweeps and invalidates all changed loggers and their descendants in a single pass to eliminate redundant cache eviction passes.
 
-**Deep Equality Optimization** (see `Logger.configure()`):
-- `Logger.configure` uses `operator ==` on all configuration components
+**Deep Equality Optimization** (see `Logger.configure()` / `Logger.configureMultiple()`):
+- `Logger.configure` and `Logger.configureMultiple` use `operator ==` on all configuration components
 - Collections use `mapEquals` and `listEquals` for deep comparison
 - If the provided configuration is value-identical to the existing one, the version is **not** incremented
 - Descendant caches remain valid, avoiding expensive invalidation

@@ -90,7 +90,8 @@ The construction of `LogEntry` objects is an automated internal concern. The `Lo
 
 ### Configuration
 - `Logger.configure(name, ...)` - Set configuration for a logger and its descendants
-- Parameters: `enabled`, `logLevel`, `includeFileLineInHeader`, `stackMethodCount`, `timestamp`, `stackTraceParser`, `handlers`, `autoSinkBuffer`
+- `Logger.configureMultiple(configurations)` - Configure multiple loggers at once using a map of logger names to `LoggerConfig` configurations (supports single-pass cache invalidation and atomic input validation)
+- Parameters for `configure`: `enabled`, `logLevel`, `includeFileLineInHeader`, `stackMethodCount`, `timestamp`, `stackTraceParser`, `handlers`, `autoSinkBuffer`
 - Changes propagate dynamically to descendants unless explicitly overridden
 
 ### Logging Methods

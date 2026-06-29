@@ -180,7 +180,7 @@ Key APIs are marked `@internal` to restrict usage to the `logd` package:
 - Maintain a clean, predictable API surface
 
 **Public API**: Users interact only with:
-- `Logger.get()` / `Logger.configure()`
+- `Logger.get()` / `Logger.configure()` / `Logger.configureMultiple()`
 - `logger.trace()` / `logger.debug()` / `logger.info()` / `logger.warning()` / `logger.error()`
 - `logger.traceBuffer` / `logger.debugBuffer` / etc.
 
@@ -191,7 +191,7 @@ To prevent race conditions and ensure predictable behavior, resolved configurati
 ### Implementation
 - `_ResolvedConfig` fields are `final`
 - Collections are wrapped in `Map.unmodifiable()` and `List.unmodifiable()`
-- Modification requires calling `Logger.configure()`, which creates a new resolved config
+- Modification requires calling `Logger.configure()` or `Logger.configureMultiple()`, which creates a new resolved config
 
 **Rationale**: Immutability eliminates entire classes of bugs:
 - No accidental mutation of shared state

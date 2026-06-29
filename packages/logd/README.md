@@ -76,6 +76,21 @@ final uiLogger = Logger.get('app.ui.button');  // inherits WARNING
 final httpLogger = Logger.get('app.network.http'); // inherits DEBUG
 ```
 
+### Bulk Configuration
+
+For complex or large applications, configuring multiple loggers individually can lead to boilerplate and redundant cache invalidation traversals. You can use the bulk configuration API to apply multiple updates at once:
+
+```dart
+Logger.configureMultiple({
+  'global': const LoggerConfig(logLevel: LogLevel.warning),
+  'app.network': const LoggerConfig(logLevel: LogLevel.debug),
+  'app.ui': const LoggerConfig(enabled: false),
+});
+```
+
+* **Atomic Validation**: Input validation occurs across the entire configuration map *before* any updates are written. If a single configuration fails (e.g., negative stack trace count), the entire update is cleanly rejected.
+* **Single-Pass Cache Invalidation**: The cache is invalidated in a single optimized pass for all changed loggers and their descendants, eliminating redundant tree-walks and reducing GC pressure.
+
 ### Log levels
 
 | Level | Description |
