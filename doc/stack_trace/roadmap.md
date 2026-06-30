@@ -145,17 +145,17 @@ class StackTraceParser {
 
 ---
 
-### Column Information Preservation
+### ~~Column Information Preservation~~ ✅ v0.8.5
 **Current**: Column numbers are parsed but discarded.
 
 **Regex**: `#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)`
 - Group 4 (column) is optional and not captured
 
 **TODO**:
-- [ ] Add `columnNumber` field to `CallbackInfo`
-- [ ] Update regex to capture column
-- [ ] Handle platforms that don't provide column info
-- [ ] Update tests and documentation
+- [x] Add `columnNumber` field to `CallbackInfo`
+- [x] Update regex to capture column
+- [x] Handle platforms that don't provide column info
+- [x] Update tests and documentation
 
 **Acceptance Criteria**:
 - Column information available when provided

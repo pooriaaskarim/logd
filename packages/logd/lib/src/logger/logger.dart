@@ -17,9 +17,11 @@ part 'log_buffer.dart';
 part 'log_entry.dart';
 part 'serialization_registry.dart';
 
-/// Internal configuration for a [Logger], holding optional fields that
+const String _globalLoggerName = 'global';
+const int _logMethodSkipFrames = 1;
+
+/// Configuration overrides for a [Logger], holding optional fields that
 /// can inherit from parent.
-@internal
 @immutable
 class LoggerConfig {
   factory LoggerConfig.fromJson(final Map<String, dynamic> json) {
@@ -253,14 +255,14 @@ class LoggerCache {
   static final Map<String, Set<String>> _descendants = {};
 
   static List<String> _getAncestors(final String loggerName) {
-    if (loggerName == 'global') {
+    if (loggerName == _globalLoggerName) {
       return const [];
     }
-    final ancestors = <String>['global'];
+    final ancestors = <String>[_globalLoggerName];
     var current = loggerName;
     while (true) {
       final parent = Logger._getParentName(current);
-      if (parent == null || parent == 'global') {
+      if (parent == null || parent == _globalLoggerName) {
         break;
       }
       ancestors.add(parent);
@@ -365,6 +367,31 @@ class LoggerCache {
         resolvedAutoSinkBuffer ??= cSource.autoSinkBuffer;
       }
 
+      if (Logger._patternRules.isNotEmpty) {
+        for (var i = Logger._patternRules.length - 1; i >= 0; i--) {
+          final rule = Logger._patternRules[i];
+          if (rule.regExp.hasMatch(currentName)) {
+            final pSource = rule.config;
+            resolvedEnabled ??= pSource.enabled;
+            resolvedLogLevel ??= pSource.logLevel;
+            resolvedIncludeFileLineInHeader ??= pSource.includeFileLineInHeader;
+            if (pSource.stackMethodCount != null) {
+              resolvedStackMethodCount ??= {};
+              for (final entry in pSource.stackMethodCount!.entries) {
+                resolvedStackMethodCount.putIfAbsent(
+                  entry.key,
+                  () => entry.value,
+                );
+              }
+            }
+            resolvedTimestamp ??= pSource.timestamp;
+            resolvedStackTraceParser ??= pSource.stackTraceParser;
+            resolvedHandlers ??= pSource.handlers;
+            resolvedAutoSinkBuffer ??= pSource.autoSinkBuffer;
+          }
+        }
+      }
+
       final parentName = Logger._getParentName(currentName);
       if (parentName == null) {
         break;
@@ -438,6 +465,25 @@ class LoggerCache {
     }
   }
 
+  /// Invalidates the cache for multiple loggers and all their descendants in
+  /// a single pass.
+  static void invalidateMultiple(final Iterable<String> loggerNames) {
+    final keysToInvalidate = <String>{};
+    for (final name in loggerNames) {
+      final normalized = Logger._normalizeName(name);
+      keysToInvalidate.add(normalized);
+      final descendantsList = _descendants[normalized];
+      if (descendantsList != null) {
+        keysToInvalidate.addAll(descendantsList);
+      }
+    }
+    for (final key in keysToInvalidate) {
+      if (_cache.remove(key) != null) {
+        LoggerMetrics._cacheInvalidations++;
+      }
+    }
+  }
+
   /// Clears the entire logger cache.
   static void clear() {
     LoggerMetrics._cacheInvalidations += _cache.length;
@@ -472,6 +518,20 @@ class _ResolvedConfig {
   final bool autoSinkBuffer;
 }
 
+/// Internal container for a pattern configuration rule.
+@immutable
+class _PatternRule {
+  const _PatternRule({
+    required this.pattern,
+    required this.regExp,
+    required this.config,
+  });
+
+  final String pattern;
+  final RegExp regExp;
+  final LoggerConfig config;
+}
+
 /// Main logd interface.
 ///
 /// Use this class for logging operations. It provides methods to retrieve
@@ -492,6 +552,15 @@ class Logger {
 
   /// Internal: Registry of all available logger configs.
   static final Map<String, LoggerConfig> _registry = {};
+
+  /// Internal: Registered pattern configuration rules.
+  static final List<_PatternRule> _patternRules = [];
+
+  /// The maximum hierarchy depth allowed before a warning is printed.
+  /// Defaults to 10.
+  static int maxHierarchyDepth = 10;
+
+  static final Set<String> _warnedDeepLoggers = {};
 
   /// Callback triggered when all configured handlers fail.
   ///
@@ -528,6 +597,25 @@ class Logger {
     }
   }
 
+  static void _checkHierarchyDepth(final String normalized) {
+    if (maxHierarchyDepth <= 0) {
+      return;
+    }
+    final depth =
+        normalized == _globalLoggerName ? 0 : normalized.split('.').length;
+    if (depth > maxHierarchyDepth) {
+      if (_warnedDeepLoggers.add(normalized)) {
+        InternalLogger.log(
+          LogLevel.warning,
+          'Logger hierarchy depth for "$normalized" is $depth, which exceeds '
+          'the maximum recommended threshold of $maxHierarchyDepth. '
+          'Deep logger hierarchies can cause performance degradation or '
+          'stack overflows during configuration resolution.',
+        );
+      }
+    }
+  }
+
   /// - Basic: Logger.get('app').info('Message');
   /// - Global: Logger.get(), Logger.get(''), Logger.get('global')
   ///
@@ -537,6 +625,7 @@ class Logger {
   static Logger get([final String? name]) {
     final normalized = _normalizeName(name);
     _registerLogger(normalized);
+    _checkHierarchyDepth(normalized);
     return Logger._(normalized);
   }
 
@@ -581,191 +670,357 @@ class Logger {
     final List<Handler>? handlers,
     final bool? autoSinkBuffer,
   }) {
-    // Input validation
-    if (stackMethodCount != null) {
-      for (final entry in stackMethodCount.entries) {
-        if (entry.value < 0) {
+    configureMultiple({
+      name: LoggerConfig(
+        enabled: enabled,
+        logLevel: logLevel,
+        includeFileLineInHeader: includeFileLineInHeader,
+        stackMethodCount: stackMethodCount,
+        timestamp: timestamp,
+        stackTraceParser: stackTraceParser,
+        handlers: handlers,
+        autoSinkBuffer: autoSinkBuffer,
+      ),
+    });
+  }
+
+  /// Configures multiple loggers at once, applying their properties in-place.
+  ///
+  /// This method is more efficient than calling [configure] multiple times
+  /// as it performs cache invalidation in a single batched pass.
+  ///
+  /// Parameters:
+  /// - [configurations]: A map of logger names to their desired [LoggerConfig].
+  ///
+  /// Throws [ArgumentError] if:
+  /// - Any [stackMethodCount] value is negative.
+  /// - [handlers] is an empty list.
+  ///
+  /// Example:
+  ///   Logger.configureMultiple({
+  ///     'global': const LoggerConfig(logLevel: LogLevel.warning),
+  ///     'app.network': const LoggerConfig(logLevel: LogLevel.debug),
+  ///   });
+  static void configureMultiple(
+    final Map<String, LoggerConfig> configurations,
+  ) {
+    if (configurations.isEmpty) {
+      return;
+    }
+
+    // First validate all inputs to ensure correctness/atomicity
+    for (final entry in configurations.entries) {
+      final config = entry.value;
+      if (config.stackMethodCount != null) {
+        for (final smcEntry in config.stackMethodCount!.entries) {
+          if (smcEntry.value < 0) {
+            throw ArgumentError.value(
+              smcEntry.value,
+              'stackMethodCount[${smcEntry.key}]',
+              'Stack method count cannot be negative for logger '
+                  '"${entry.key}"',
+            );
+          }
+        }
+      }
+      if (config.handlers != null && config.handlers!.isEmpty) {
+        throw ArgumentError.value(
+          config.handlers,
+          'handlers',
+          'Handlers list cannot be empty for logger "${entry.key}"',
+        );
+      }
+    }
+
+    final changedLoggers = <String>{};
+
+    for (final entry in configurations.entries) {
+      final name = entry.key;
+      final newConfig = entry.value;
+      final normalized = _normalizeName(name);
+      _registerLogger(normalized);
+      final existingConfig = _registry[normalized]!;
+
+      bool changed = false;
+      final frozenFields = Set<String>.from(existingConfig.frozenFields);
+
+      bool? newEnabled = existingConfig.enabled;
+      if (newConfig.enabled != null) {
+        final removed = frozenFields.remove('enabled');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'enabled' was frozen; configure() has "
+            "promoted it to explicit. Call unfreezeInheritance() first to "
+            'restore dynamic resolution instead.',
+          );
+        }
+        if (newConfig.enabled != existingConfig.enabled || removed) {
+          newEnabled = newConfig.enabled;
+          changed = true;
+        }
+      }
+
+      LogLevel? newLogLevel = existingConfig.logLevel;
+      if (newConfig.logLevel != null) {
+        final removed = frozenFields.remove('logLevel');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'logLevel' was frozen; configure() has "
+            "promoted it to explicit. Call unfreezeInheritance() first to "
+            'restore dynamic resolution instead.',
+          );
+        }
+        if (newConfig.logLevel != existingConfig.logLevel || removed) {
+          newLogLevel = newConfig.logLevel;
+          changed = true;
+        }
+      }
+
+      bool? newIncludeFileLineInHeader = existingConfig.includeFileLineInHeader;
+      if (newConfig.includeFileLineInHeader != null) {
+        final removed = frozenFields.remove('includeFileLineInHeader');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'includeFileLineInHeader' was frozen; "
+            'configure() has promoted it to explicit. Call '
+            'unfreezeInheritance() first to restore dynamic '
+            'resolution instead.',
+          );
+        }
+        if (newConfig.includeFileLineInHeader !=
+                existingConfig.includeFileLineInHeader ||
+            removed) {
+          newIncludeFileLineInHeader = newConfig.includeFileLineInHeader;
+          changed = true;
+        }
+      }
+
+      Map<LogLevel, int>? newStackMethodCount = existingConfig.stackMethodCount;
+      if (newConfig.stackMethodCount != null) {
+        final removed = frozenFields.remove('stackMethodCount');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'stackMethodCount' was frozen; configure() "
+            "has promoted it to explicit. Call unfreezeInheritance() first "
+            'to restore dynamic resolution instead.',
+          );
+        }
+        if (!mapEquals(
+              newConfig.stackMethodCount,
+              existingConfig.stackMethodCount,
+            ) ||
+            removed) {
+          newStackMethodCount = newConfig.stackMethodCount;
+          changed = true;
+        }
+      }
+
+      Timestamp? newTimestamp = existingConfig.timestamp;
+      if (newConfig.timestamp != null) {
+        final removed = frozenFields.remove('timestamp');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'timestamp' was frozen; configure() has "
+            "promoted it to explicit. Call unfreezeInheritance() first to "
+            'restore dynamic resolution instead.',
+          );
+        }
+        if (newConfig.timestamp != existingConfig.timestamp || removed) {
+          newTimestamp = newConfig.timestamp;
+          changed = true;
+        }
+      }
+
+      StackTraceParser? newStackTraceParser = existingConfig.stackTraceParser;
+      if (newConfig.stackTraceParser != null) {
+        final removed = frozenFields.remove('stackTraceParser');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'stackTraceParser' was frozen; configure() "
+            "has promoted it to explicit. Call unfreezeInheritance() first "
+            'to restore dynamic resolution instead.',
+          );
+        }
+        if (newConfig.stackTraceParser != existingConfig.stackTraceParser ||
+            removed) {
+          newStackTraceParser = newConfig.stackTraceParser;
+          changed = true;
+        }
+      }
+
+      List<Handler>? newHandlers = existingConfig.handlers;
+      if (newConfig.handlers != null) {
+        final removed = frozenFields.remove('handlers');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'handlers' was frozen; configure() has "
+            "promoted it to explicit. Call unfreezeInheritance() first to "
+            'restore dynamic resolution instead.',
+          );
+        }
+        if (!listEquals(newConfig.handlers, existingConfig.handlers) ||
+            removed) {
+          newHandlers = newConfig.handlers;
+          changed = true;
+        }
+      }
+
+      bool? newAutoSinkBuffer = existingConfig.autoSinkBuffer;
+      if (newConfig.autoSinkBuffer != null) {
+        final removed = frozenFields.remove('autoSinkBuffer');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'autoSinkBuffer' was frozen; configure() "
+            "has promoted it to explicit. Call unfreezeInheritance() first "
+            'to restore dynamic resolution instead.',
+          );
+        }
+        if (newConfig.autoSinkBuffer != existingConfig.autoSinkBuffer ||
+            removed) {
+          newAutoSinkBuffer = newConfig.autoSinkBuffer;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        _registry[normalized] = existingConfig.copyWith(
+          enabled: newEnabled,
+          logLevel: newLogLevel,
+          includeFileLineInHeader: newIncludeFileLineInHeader,
+          stackMethodCount: newStackMethodCount,
+          timestamp: newTimestamp,
+          stackTraceParser: newStackTraceParser,
+          handlers: newHandlers,
+          autoSinkBuffer: newAutoSinkBuffer,
+          version: existingConfig.version + 1,
+          frozenFields: frozenFields,
+          implicit: false,
+        );
+        changedLoggers.add(normalized);
+      } else {
+        _registry[normalized] = existingConfig.copyWith(
+          frozenFields: frozenFields,
+          implicit: false,
+        );
+      }
+    }
+
+    if (changedLoggers.isNotEmpty) {
+      LoggerCache.invalidateMultiple(changedLoggers);
+    }
+  }
+
+  /// Configures loggers matching a wildcard or regular expression pattern.
+  ///
+  /// This allows setting behavior on loggers without having to configure each
+  /// logger individually or depending on a strict dot-separated hierarchy.
+  ///
+  /// The pattern supports glob-style wildcards:
+  /// - `*` matches zero or more characters.
+  /// - `?` matches any single character.
+  ///
+  /// Throws [ArgumentError] if:
+  /// - [pattern] is empty.
+  /// - Any [stackMethodCount] value is negative.
+  /// - [handlers] is an empty list.
+  ///
+  /// Example:
+  ///   Logger.configurePattern('*.database', logLevel: LogLevel.debug);
+  static void configurePattern(
+    final String pattern, {
+    final bool? enabled,
+    final LogLevel? logLevel,
+    final bool? includeFileLineInHeader,
+    final Map<LogLevel, int>? stackMethodCount,
+    final Timestamp? timestamp,
+    final StackTraceParser? stackTraceParser,
+    final List<Handler>? handlers,
+    final bool? autoSinkBuffer,
+  }) {
+    if (pattern.isEmpty) {
+      throw ArgumentError.value(pattern, 'pattern', 'Pattern cannot be empty');
+    }
+
+    final config = LoggerConfig(
+      enabled: enabled,
+      logLevel: logLevel,
+      includeFileLineInHeader: includeFileLineInHeader,
+      stackMethodCount: stackMethodCount,
+      timestamp: timestamp,
+      stackTraceParser: stackTraceParser,
+      handlers: handlers,
+      autoSinkBuffer: autoSinkBuffer,
+    );
+
+    if (config.stackMethodCount != null) {
+      for (final smcEntry in config.stackMethodCount!.entries) {
+        if (smcEntry.value < 0) {
           throw ArgumentError.value(
-            entry.value,
-            'stackMethodCount[${entry.key}]',
+            smcEntry.value,
+            'stackMethodCount[${smcEntry.key}]',
             'Stack method count cannot be negative',
           );
         }
       }
     }
-    if (handlers != null && handlers.isEmpty) {
+    if (config.handlers != null && config.handlers!.isEmpty) {
       throw ArgumentError.value(
-        handlers,
+        config.handlers,
         'handlers',
         'Handlers list cannot be empty',
       );
     }
 
-    final normalized = _normalizeName(name);
-    _registerLogger(normalized);
-    final config = _registry[normalized]!;
+    final regExp = _patternToRegExp(pattern);
 
-    bool changed = false;
-    final frozenFields = Set<String>.from(config.frozenFields);
+    _patternRules.add(
+      _PatternRule(
+        pattern: pattern,
+        regExp: regExp,
+        config: config,
+      ),
+    );
 
-    bool? newEnabled = config.enabled;
-    if (enabled != null) {
-      final removed = frozenFields.remove('enabled');
-      if (removed) {
-        InternalLogger.log(
-          LogLevel.warning,
-          "'$normalized' field 'enabled' was frozen; configure() has promoted "
-          "it to explicit. Call unfreezeInheritance() first to restore dynamic "
-          'resolution instead.',
-        );
-      }
-      if (enabled != config.enabled || removed) {
-        newEnabled = enabled;
-        changed = true;
+    LoggerCache.clear();
+  }
+
+  static RegExp _patternToRegExp(final String pattern) {
+    final buffer = StringBuffer()..write('^');
+    for (var i = 0; i < pattern.length; i++) {
+      final char = pattern[i];
+      if (char == '*') {
+        buffer.write('.*');
+      } else if (char == '?') {
+        buffer.write('.');
+      } else if (const [
+        '.',
+        '+',
+        '^',
+        '\$',
+        '(',
+        ')',
+        '[',
+        ']',
+        '{',
+        '}',
+        '|',
+        '\\',
+      ].contains(char)) {
+        buffer.write('\\$char');
+      } else {
+        buffer.write(char);
       }
     }
-
-    LogLevel? newLogLevel = config.logLevel;
-    if (logLevel != null) {
-      final removed = frozenFields.remove('logLevel');
-      if (removed) {
-        InternalLogger.log(
-          LogLevel.warning,
-          "'$normalized' field 'logLevel' was frozen; configure() has promoted "
-          "it to explicit. Call unfreezeInheritance() first to restore dynamic "
-          'resolution instead.',
-        );
-      }
-      if (logLevel != config.logLevel || removed) {
-        newLogLevel = logLevel;
-        changed = true;
-      }
-    }
-
-    bool? newIncludeFileLineInHeader = config.includeFileLineInHeader;
-    if (includeFileLineInHeader != null) {
-      final removed = frozenFields.remove('includeFileLineInHeader');
-      if (removed) {
-        InternalLogger.log(
-          LogLevel.warning,
-          "'$normalized' field 'includeFileLineInHeader' was frozen; "
-          'configure() has promoted it to explicit. Call '
-          'unfreezeInheritance() first to restore dynamic resolution instead.',
-        );
-      }
-      if (includeFileLineInHeader != config.includeFileLineInHeader ||
-          removed) {
-        newIncludeFileLineInHeader = includeFileLineInHeader;
-        changed = true;
-      }
-    }
-
-    Map<LogLevel, int>? newStackMethodCount = config.stackMethodCount;
-    if (stackMethodCount != null) {
-      final removed = frozenFields.remove('stackMethodCount');
-      if (removed) {
-        InternalLogger.log(
-          LogLevel.warning,
-          "'$normalized' field 'stackMethodCount' was frozen; configure() has "
-          "promoted it to explicit. Call unfreezeInheritance() first to "
-          'restore dynamic resolution instead.',
-        );
-      }
-      if (!mapEquals(stackMethodCount, config.stackMethodCount) || removed) {
-        newStackMethodCount = stackMethodCount;
-        changed = true;
-      }
-    }
-
-    Timestamp? newTimestamp = config.timestamp;
-    if (timestamp != null) {
-      final removed = frozenFields.remove('timestamp');
-      if (removed) {
-        InternalLogger.log(
-          LogLevel.warning,
-          "'$normalized' field 'timestamp' was frozen; configure() has "
-          "promoted it to explicit. Call unfreezeInheritance() first to "
-          'restore dynamic resolution instead.',
-        );
-      }
-      if (timestamp != config.timestamp || removed) {
-        newTimestamp = timestamp;
-        changed = true;
-      }
-    }
-
-    StackTraceParser? newStackTraceParser = config.stackTraceParser;
-    if (stackTraceParser != null) {
-      final removed = frozenFields.remove('stackTraceParser');
-      if (removed) {
-        InternalLogger.log(
-          LogLevel.warning,
-          "'$normalized' field 'stackTraceParser' was frozen; configure() has "
-          "promoted it to explicit. Call unfreezeInheritance() first to "
-          'restore dynamic resolution instead.',
-        );
-      }
-      if (stackTraceParser != config.stackTraceParser || removed) {
-        newStackTraceParser = stackTraceParser;
-        changed = true;
-      }
-    }
-
-    List<Handler>? newHandlers = config.handlers;
-    if (handlers != null) {
-      final removed = frozenFields.remove('handlers');
-      if (removed) {
-        InternalLogger.log(
-          LogLevel.warning,
-          "'$normalized' field 'handlers' was frozen; configure() has promoted "
-          "it to explicit. Call unfreezeInheritance() first to restore dynamic "
-          'resolution instead.',
-        );
-      }
-      if (!listEquals(handlers, config.handlers) || removed) {
-        newHandlers = handlers;
-        changed = true;
-      }
-    }
-
-    bool? newAutoSinkBuffer = config.autoSinkBuffer;
-    if (autoSinkBuffer != null) {
-      final removed = frozenFields.remove('autoSinkBuffer');
-      if (removed) {
-        InternalLogger.log(
-          LogLevel.warning,
-          "'$normalized' field 'autoSinkBuffer' was frozen; configure() has "
-          "promoted it to explicit. Call unfreezeInheritance() first to "
-          'restore dynamic resolution instead.',
-        );
-      }
-      if (autoSinkBuffer != config.autoSinkBuffer || removed) {
-        newAutoSinkBuffer = autoSinkBuffer;
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      _registry[normalized] = config.copyWith(
-        enabled: newEnabled,
-        logLevel: newLogLevel,
-        includeFileLineInHeader: newIncludeFileLineInHeader,
-        stackMethodCount: newStackMethodCount,
-        timestamp: newTimestamp,
-        stackTraceParser: newStackTraceParser,
-        handlers: newHandlers,
-        autoSinkBuffer: newAutoSinkBuffer,
-        version: config.version + 1,
-        frozenFields: frozenFields,
-        implicit: false,
-      );
-      LoggerCache.invalidate(normalized);
-    } else {
-      _registry[normalized] = config.copyWith(
-        frozenFields: frozenFields,
-        implicit: false,
-      );
-    }
+    buffer.write('\$');
+    return RegExp(buffer.toString(), caseSensitive: false);
   }
 
   /// Exports the current configurations of all loggers registered.
@@ -777,8 +1032,16 @@ class Logger {
     for (final entry in _registry.entries) {
       configsMap[entry.key] = entry.value.toJson();
     }
+    final patternRulesList = <Map<String, dynamic>>[];
+    for (final rule in _patternRules) {
+      patternRulesList.add({
+        'pattern': rule.pattern,
+        'config': rule.config.toJson(),
+      });
+    }
     return <String, dynamic>{
       'registry': configsMap,
+      'patternRules': patternRulesList,
     };
   }
 
@@ -788,23 +1051,43 @@ class Logger {
   /// and invalidating cache keys.
   static void importConfig(final Map<String, dynamic> configData) {
     final registryMap = configData['registry'] as Map<dynamic, dynamic>?;
-    if (registryMap == null) {
-      return;
+    if (registryMap != null) {
+      for (final entry in registryMap.entries) {
+        final name = entry.key as String;
+        final configJson = entry.value as Map<dynamic, dynamic>;
+        final config =
+            LoggerConfig.fromJson(Map<String, dynamic>.from(configJson));
+        _registry[name] = config;
+      }
     }
-    for (final entry in registryMap.entries) {
-      final name = entry.key as String;
-      final configJson = entry.value as Map<dynamic, dynamic>;
-      final config =
-          LoggerConfig.fromJson(Map<String, dynamic>.from(configJson));
-      _registry[name] = config;
-      LoggerCache.invalidate(name);
+
+    final patternRulesList = configData['patternRules'] as List<dynamic>?;
+    if (patternRulesList != null) {
+      _patternRules.clear();
+      for (final ruleObj in patternRulesList) {
+        final ruleMap = ruleObj as Map<dynamic, dynamic>;
+        final pattern = ruleMap['pattern'] as String;
+        final configJson = ruleMap['config'] as Map<dynamic, dynamic>;
+        final config =
+            LoggerConfig.fromJson(Map<String, dynamic>.from(configJson));
+        final regExp = _patternToRegExp(pattern);
+        _patternRules.add(
+          _PatternRule(
+            pattern: pattern,
+            regExp: regExp,
+            config: config,
+          ),
+        );
+      }
     }
+
+    LoggerCache.clear();
   }
 
   /// Internal: Checks if a name is a descendant of parent.
   static bool _isDescendant(final String child, final String parent) {
-    if (parent == 'global') {
-      return child != 'global';
+    if (parent == _globalLoggerName) {
+      return child != _globalLoggerName;
     }
     return child.startsWith('$parent.');
   }
@@ -1454,7 +1737,7 @@ class Logger {
     final frameCount = stackMethodCount[level] ?? 0;
     final parsed = stackTraceParser.parse(
       stackTrace: stackTrace ?? StackTrace.current,
-      skipFrames: 1,
+      skipFrames: _logMethodSkipFrames,
       maxFrames: frameCount,
     );
     if (parsed.caller == null) {
@@ -1528,12 +1811,12 @@ class Logger {
 
   /// Internal: Helper for retrieving parent name.
   static String? _getParentName(final String name) {
-    if (name == 'global') {
+    if (name == _globalLoggerName) {
       return null;
     }
     final lastDot = name.lastIndexOf('.');
     if (lastDot == -1) {
-      return 'global';
+      return _globalLoggerName;
     }
     return name.substring(0, lastDot);
   }
@@ -1542,8 +1825,8 @@ class Logger {
   ///
   /// Resolves null, empty strings and any form of 'global' to 'global'.
   static String _normalizeName([final String? name]) {
-    final lower = name?.toLowerCase() ?? 'global';
-    final normalized = lower.isEmpty ? 'global' : lower;
+    final lower = name?.toLowerCase() ?? _globalLoggerName;
+    final normalized = lower.isEmpty ? _globalLoggerName : lower;
 
     if (!_nameRegex.hasMatch(normalized)) {
       throw ArgumentError.value(
@@ -1568,10 +1851,13 @@ class Logger {
   /// WARNING: This will remove custom configurations and cached resolution
   /// states.
   static void reset([final String? loggerName]) {
-    final name = loggerName == null ? 'global' : _normalizeName(loggerName);
-    if (name == 'global') {
+    final name =
+        loggerName == null ? _globalLoggerName : _normalizeName(loggerName);
+    if (name == _globalLoggerName) {
       _registry.clear();
+      _patternRules.clear();
       LoggerCache.clear();
+      _warnedDeepLoggers.clear();
     } else {
       LoggerCache.invalidate(name);
       _registry.remove(name);

@@ -501,6 +501,287 @@ void main() {
         isTrue,
       );
     });
+
+    group('Logger.configureMultiple()', () {
+      test('configures multiple loggers successfully', () {
+        Logger.configureMultiple({
+          'bulk1': const LoggerConfig(logLevel: LogLevel.warning),
+          'bulk2': const LoggerConfig(logLevel: LogLevel.error, enabled: false),
+        });
+
+        final l1 = Logger.get('bulk1');
+        final l2 = Logger.get('bulk2');
+
+        expect(l1.logLevel, equals(LogLevel.warning));
+        expect(l2.logLevel, equals(LogLevel.error));
+        expect(l2.enabled, isFalse);
+      });
+
+      test('validates inputs atomically', () {
+        expect(
+          () => Logger.configureMultiple({
+            'invalid1': const LoggerConfig(
+              stackMethodCount: {LogLevel.error: -5},
+            ),
+          }),
+          throwsArgumentError,
+        );
+
+        expect(
+          () => Logger.configureMultiple({
+            'invalid2': const LoggerConfig(handlers: []),
+          }),
+          throwsArgumentError,
+        );
+      });
+
+      test('performs cache invalidation in a single pass', () {
+        Logger.configureMultiple({
+          'parent': const LoggerConfig(logLevel: LogLevel.info),
+          'parent.child': const LoggerConfig(),
+        });
+
+        final parent = Logger.get('parent');
+        final child = Logger.get('parent.child');
+
+        // Populate cache
+        expect(parent.logLevel, equals(LogLevel.info));
+        expect(child.logLevel, equals(LogLevel.info));
+
+        // Configure multiple in a batch
+        Logger.configureMultiple({
+          'parent': const LoggerConfig(logLevel: LogLevel.warning),
+          'parent.child': const LoggerConfig(logLevel: LogLevel.error),
+        });
+
+        // Cache should be updated
+        expect(parent.logLevel, equals(LogLevel.warning));
+        expect(child.logLevel, equals(LogLevel.error));
+      });
+    });
+
+    group('Logger.configurePattern', () {
+      setUp(() {
+        Logger.reset();
+      });
+
+      test('applies pattern configuration to matching loggers', () {
+        Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+
+        final auth = Logger.get('app.services.auth');
+        final db = Logger.get('app.services.db');
+        final ui = Logger.get('app.ui');
+
+        expect(auth.logLevel, equals(LogLevel.info));
+        expect(db.logLevel, equals(LogLevel.info));
+        expect(ui.logLevel, equals(LogLevel.debug)); // default
+      });
+
+      test('supports suffix matching via glob wildcard', () {
+        Logger.configurePattern('*.database', logLevel: LogLevel.warning);
+
+        final authDb = Logger.get('app.auth.database');
+        final billingDb = Logger.get('app.billing.database');
+        final dbHelper = Logger.get('app.db_helper');
+
+        expect(authDb.logLevel, equals(LogLevel.warning));
+        expect(billingDb.logLevel, equals(LogLevel.warning));
+        expect(dbHelper.logLevel, equals(LogLevel.debug));
+      });
+
+      test('validates input parameters correctly', () {
+        expect(
+          () => Logger.configurePattern('', logLevel: LogLevel.info),
+          throwsArgumentError,
+        );
+
+        expect(
+          () => Logger.configurePattern(
+            '*.db',
+            stackMethodCount: {LogLevel.error: -1},
+          ),
+          throwsArgumentError,
+        );
+
+        expect(
+          () => Logger.configurePattern('*.db', handlers: []),
+          throwsArgumentError,
+        );
+      });
+
+      test(
+        'newer pattern rules override older pattern rules when both match',
+        () {
+          Logger.configurePattern('app.*', logLevel: LogLevel.info);
+          Logger.configurePattern(
+            'app.services.*',
+            logLevel: LogLevel.warning,
+          );
+
+          final auth = Logger.get('app.services.auth');
+          final ui = Logger.get('app.ui');
+
+          expect(auth.logLevel, equals(LogLevel.warning));
+          expect(ui.logLevel, equals(LogLevel.info));
+        },
+      );
+
+      test('explicit configure overrides pattern rules', () {
+        Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+        Logger.configure('app.services.auth', logLevel: LogLevel.error);
+
+        final auth = Logger.get('app.services.auth');
+        final db = Logger.get('app.services.db');
+
+        expect(auth.logLevel, equals(LogLevel.error));
+        expect(db.logLevel, equals(LogLevel.info));
+      });
+
+      test('resets pattern rules when global reset is called', () {
+        Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+
+        final auth = Logger.get('app.services.auth');
+        expect(auth.logLevel, equals(LogLevel.info));
+
+        Logger.reset();
+
+        final authNew = Logger.get('app.services.auth');
+        expect(authNew.logLevel, equals(LogLevel.debug));
+      });
+
+      test(
+        'supports isolate export and import serialization of pattern rules',
+        () {
+          Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
+
+          final auth = Logger.get('app.services.auth');
+          expect(auth.logLevel, equals(LogLevel.info));
+
+          final snapshot = Logger.exportConfig();
+          Logger.reset();
+
+          final authReset = Logger.get('app.services.auth');
+          expect(authReset.logLevel, equals(LogLevel.debug));
+
+          Logger.importConfig(snapshot);
+
+          final authImported = Logger.get('app.services.auth');
+          expect(authImported.logLevel, equals(LogLevel.info));
+        },
+      );
+
+      test(
+        'emits warning when logger hierarchy depth exceeds maxHierarchyDepth',
+        () {
+          final logs = <String>[];
+          final previousMax = Logger.maxHierarchyDepth;
+          Logger.maxHierarchyDepth = 3;
+          try {
+            runZoned(
+              () {
+                // First access: should warn
+                Logger.get('a.b.c.d');
+                // Second access: should not warn again
+                Logger.get('a.b.c.d');
+                // Access different deep logger: should warn
+                Logger.get('x.y.z.w');
+              },
+              zoneSpecification: ZoneSpecification(
+                print: (final self, final parent, final zone, final line) {
+                  logs.add(line);
+                },
+              ),
+            );
+
+            expect(logs, hasLength(2));
+            expect(
+              logs[0],
+              contains(
+                'Logger hierarchy depth for "a.b.c.d" is 4, which exceeds '
+                'the maximum recommended threshold of 3',
+              ),
+            );
+            expect(
+              logs[1],
+              contains(
+                'Logger hierarchy depth for "x.y.z.w" is 4, which exceeds '
+                'the maximum recommended threshold of 3',
+              ),
+            );
+          } finally {
+            Logger.maxHierarchyDepth = previousMax;
+            Logger.reset();
+          }
+        },
+      );
+
+      test(
+        'resets warned deep loggers set when Logger.reset() is called',
+        () {
+          final logs = <String>[];
+          final previousMax = Logger.maxHierarchyDepth;
+          Logger.maxHierarchyDepth = 3;
+          try {
+            runZoned(
+              () {
+                Logger.get('a.b.c.d');
+              },
+              zoneSpecification: ZoneSpecification(
+                print: (final self, final parent, final zone, final line) {
+                  logs.add(line);
+                },
+              ),
+            );
+            expect(logs, hasLength(1));
+            logs.clear();
+
+            // Reset globally
+            Logger.reset();
+
+            runZoned(
+              () {
+                // Access again after reset: should warn again
+                Logger.get('a.b.c.d');
+              },
+              zoneSpecification: ZoneSpecification(
+                print: (final self, final parent, final zone, final line) {
+                  logs.add(line);
+                },
+              ),
+            );
+            expect(logs, hasLength(1));
+          } finally {
+            Logger.maxHierarchyDepth = previousMax;
+            Logger.reset();
+          }
+        },
+      );
+
+      test(
+        'disables hierarchy depth warning check when maxHierarchyDepth is <= 0',
+        () {
+          final logs = <String>[];
+          final previousMax = Logger.maxHierarchyDepth;
+          Logger.maxHierarchyDepth = 0;
+          try {
+            runZoned(
+              () {
+                Logger.get('a.b.c.d');
+              },
+              zoneSpecification: ZoneSpecification(
+                print: (final self, final parent, final zone, final line) {
+                  logs.add(line);
+                },
+              ),
+            );
+            expect(logs, isEmpty);
+          } finally {
+            Logger.maxHierarchyDepth = previousMax;
+            Logger.reset();
+          }
+        },
+      );
+    });
   });
 }
 

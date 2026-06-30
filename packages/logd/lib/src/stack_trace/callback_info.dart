@@ -9,6 +9,7 @@ class CallbackInfo {
     required this.filePath,
     required this.lineNumber,
     required this.fullMethod,
+    this.columnNumber,
   });
 
   /// The class name from the stack frame (empty if none).
@@ -23,11 +24,16 @@ class CallbackInfo {
   /// The line number in the file.
   final int lineNumber;
 
+  /// The column number in the file (nullable, not always present).
+  final int? columnNumber;
+
   /// The full method string from the stack (e.g., 'Class.method').
   final String fullMethod;
 
   @override
-  String toString() => '$className.$methodName ($filePath:$lineNumber)';
+  String toString() => columnNumber != null
+      ? '$className.$methodName ($filePath:$lineNumber:$columnNumber)'
+      : '$className.$methodName ($filePath:$lineNumber)';
 
   @override
   bool operator ==(final Object other) =>
@@ -38,6 +44,7 @@ class CallbackInfo {
           methodName == other.methodName &&
           filePath == other.filePath &&
           lineNumber == other.lineNumber &&
+          columnNumber == other.columnNumber &&
           fullMethod == other.fullMethod;
 
   @override
@@ -46,6 +53,7 @@ class CallbackInfo {
         methodName,
         filePath,
         lineNumber,
+        columnNumber,
         fullMethod,
       );
 }

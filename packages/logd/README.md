@@ -14,7 +14,7 @@ A <b> modular</b> <b>hierarchical</b> logger for Dart and Flutter. Build structu
 - **Flexible output** – Choose between console, file, network, HTML, or any custom sink; format logs as text, structured JSON, HTML, Markdown or **LLM‑optimized TOON**.
 - **Layout Sovereignty** – A centralized engine guarantees structural integrity (e.g., perfect boxes) across all terminal widths.
 - **Platform‑agnostic styling** – Decouple visual intent from representation using the semantic `LogTheme` system.
-- **Web & Desktop Parity** – Built-in platform-aware stack trace parsers for Chrome (V8), Firefox, Safari, and the Dart VM.
+- **Web & Desktop Parity** – Built-in platform-aware stack trace parsers for Chrome (V8), Firefox, Safari, and the Dart VM, preserving column numbers for high-fidelity source map resolution.
 
 ## Getting Started
 
@@ -74,6 +74,37 @@ Logger.configure('app.network', logLevel: LogLevel.debug);
 // Create a logger deep in the tree
 final uiLogger = Logger.get('app.ui.button');  // inherits WARNING
 final httpLogger = Logger.get('app.network.http'); // inherits DEBUG
+```
+
+### Bulk Configuration
+
+For complex or large applications, configuring multiple loggers individually can lead to boilerplate and redundant cache invalidation traversals. You can use the bulk configuration API to apply multiple updates at once:
+
+```dart
+Logger.configureMultiple({
+  'global': const LoggerConfig(logLevel: LogLevel.warning),
+  'app.network': const LoggerConfig(logLevel: LogLevel.debug),
+  'app.ui': const LoggerConfig(enabled: false),
+});
+```
+
+* **Atomic Validation**: Input validation occurs across the entire configuration map *before* any updates are written. If a single configuration fails (e.g., negative stack trace count), the entire update is cleanly rejected.
+* **Single-Pass Cache Invalidation**: The cache is invalidated in a single optimized pass for all changed loggers and their descendants, eliminating redundant tree-walks and reducing GC pressure.
+
+### Pattern-Based Configuration
+
+When you want to apply configurations to loggers that don't share a strict parent-child relationship or to match loggers dynamically across your application using wildcards, you can use `configurePattern`. It supports standard glob wildcards (`*` matches zero or more characters, `?` matches a single character).
+
+```dart
+// Configure all database loggers to DEBUG
+Logger.configurePattern('*.database', logLevel: LogLevel.debug);
+
+// Disable all third-party package loggers under a prefix
+Logger.configurePattern('vendor.*', enabled: false);
+
+// Wildcard matches are evaluated dynamically on cache resolution,
+// with newer pattern rules overriding older ones if they both match.
+Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
 ```
 
 ### Log levels
@@ -250,6 +281,11 @@ Logger.get('app').freezeInheritance();
   Logger.reset('app.ui'); // Resets only 'app.ui' and its descendants
   Logger.reset();        // Global reset, clears the entire registry
   ```
+- **Hierarchy Depth Warning (v0.8.5+)**: Accessing loggers with abnormally deep hierarchies (e.g. >10 levels) prints an `InternalLogger` warning on first access to protect against stack overflows and resolution performance issues. This threshold is customizable:
+  ```dart
+  Logger.maxHierarchyDepth = 12; // Customize safety limit
+  ```
+  This can be disabled by setting `Logger.maxHierarchyDepth <= 0`.
 
 ### Isolate Configuration Transport (v0.8.4+)
 

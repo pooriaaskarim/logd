@@ -51,7 +51,7 @@ The stack_trace module consists of 4 source files:
 
 #### [callback_info.dart](../../packages/logd/lib/src/stack_trace/callback_info.dart)
 - **`CallbackInfo`** - Immutable data class representing a parsed stack frame
-- Contains: class name, method name, file path, line number, full method string
+- Contains: class name, method name, file path, line number, column number (nullable), full method string
 - Provides equality and hash code implementations
 
 #### [stack_trace.dart](../../packages/logd/lib/src/stack_trace/stack_trace.dart)
@@ -118,6 +118,7 @@ const StackTraceParser({
 - `methodName` - Method or function name
 - `filePath` - File URI where call occurred
 - `lineNumber` - Line number in file
+- `columnNumber` - Column number in file (nullable, null if not provided)
 - `fullMethod` - Complete method string (e.g., 'Class.method')
 
 ## Integration with Logger

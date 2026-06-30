@@ -192,7 +192,7 @@ Depends on Phase 1 (particularly the freeze no-op fix).
   - Option A: Skip them
   - Option B: Allow registration of serializers
 - [x] Add tests
-- [ ] Document isolate coordination pattern
+- [x] Document isolate coordination pattern
 
 ---
 
@@ -228,11 +228,11 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Issue**: Configuring multiple loggers requires multiple calls.
 
 **TODO**:
-- [ ] Design bulk configuration API
-- [ ] **Option A**: `Logger.configureMultiple(Map<String, LoggerConfig>)`
-- [ ] **Option B**: `Logger.configurePattern(pattern: 'app.*', ...)`
-- [ ] Ensure cache invalidation is batched (single pass, not N passes)
-- [ ] Add tests and documentation
+- [x] Design bulk configuration API
+- [x] **Option A**: `Logger.configureMultiple(Map<String, LoggerConfig>)`
+- [x] **Option B**: `Logger.configurePattern(pattern: 'app.*', ...)`
+- [x] Ensure cache invalidation is batched (single pass, not N passes)
+- [x] Add tests and documentation
 
 ---
 
@@ -300,15 +300,15 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 ---
 
-### 🔵 P3: Add Hierarchy Depth Warning
+### ~~🔵 P3: Add Hierarchy Depth Warning~~ ✅ v0.8.5
 
 **Issue**: No protection against accidentally deep hierarchies.
 
 **TODO**:
-- [ ] Define threshold (e.g., 10 levels)
-- [ ] Log InternalLogger warning on first access of deep logger
-- [ ] Make threshold configurable
-- [ ] Document in philosophy.md
+- [x] Define threshold (e.g., 10 levels)
+- [x] Log InternalLogger warning on first access of deep logger
+- [x] Make threshold configurable
+- [x] Document in philosophy.md
 
 ---
 
@@ -398,6 +398,7 @@ Resolved by switch to `parse()` — configured parser is always used.
 | Inheritance maturation | v0.8.2 | Added selective unfreeze, freeze force option, monitoring visualizer |
 | Descendant invalidation reverse-index | v0.8.3 | Replaced cache invalidation linear scanning with O(m) descendant index |
 | Pure-Dart & Flutter Decoupling | v0.8.4 | Removed Flutter SDK dependency, deleted conditional stubs, and switched to manual hook setup |
+| Bulk & Pattern-Based Configurations | v0.8.5 | Implemented `configureMultiple` and `configurePattern` with glob-style matching |
 
 ---
 

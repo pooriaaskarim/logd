@@ -73,9 +73,10 @@ The `LoggerCache` maintains the derived state of the system using a versioned-in
 - When a parent logger is reconfigured, its version increments
 - Descendant loggers track their parent's version; if a mismatch is detected during a log call, the cache is invalidated and re-resolved lazily
 - Cache check: `cached.version == config.version`
+- **Batched Invalidation**: During bulk configuration updates via `Logger.configureMultiple()`, `LoggerCache.invalidateMultiple()` sweeps and invalidates all changed loggers and their descendants in a single pass to eliminate redundant cache eviction passes.
 
-**Deep Equality Optimization** (see `Logger.configure()`):
-- `Logger.configure` uses `operator ==` on all configuration components
+**Deep Equality Optimization** (see `Logger.configure()` / `Logger.configureMultiple()`):
+- `Logger.configure` and `Logger.configureMultiple` use `operator ==` on all configuration components
 - Collections use `mapEquals` and `listEquals` for deep comparison
 - If the provided configuration is value-identical to the existing one, the version is **not** incremented
 - Descendant caches remain valid, avoiding expensive invalidation
@@ -331,6 +332,26 @@ void main() {
 ```
 
 This keeps `logd` compatible with pure Dart environments (VM, CLI, server, web) without SDK compilation blocks.
+
+## Wildcard Pattern Matching
+
+**Location**: `Logger._patternRules` and `Logger.configurePattern` in [`logger.dart`](../../packages/logd/lib/src/logger/logger.dart)
+
+In addition to hierarchy-based configuration inheritance, `logd` allows configuring loggers dynamically via glob-style wildcard patterns.
+
+**Matching Mechanics**:
+- `*` is compiled to `.*` (matches zero or more characters)
+- `?` is compiled to `.` (matches a single character)
+- Special regex characters are automatically escaped to prevent regex injection.
+- Case-insensitivity is enforced by compiling with `caseSensitive: false`.
+
+**Precedence Rules**:
+1. **Explicit Configuration**: A logger explicitly configured via `Logger.configure()` or `Logger.configureMultiple()` always takes precedence.
+2. **Wildcard Patterns (LIFO Order)**: If no explicit configuration matches, the resolver evaluates `_patternRules` in LIFO order (the latest registered pattern has the highest precedence).
+3. **Hierarchy Inheritance**: If no pattern matches, the resolver falls back to traversing up the logger's namespace ancestors to find the nearest configured parent.
+
+**Cache Invalidation**:
+Registering a pattern rule via `configurePattern` invalidates the entire cache (`LoggerCache.clear()`), as pattern rules can potentially match any logger in the tree.
 
 ## Freezing Inheritance
 

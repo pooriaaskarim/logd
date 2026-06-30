@@ -12,7 +12,7 @@ export 'src/handler/handler.dart'
         PrintSink,
         RenderTokens,
         TerminalLayout;
-export 'src/logger/logger.dart' hide InternalLogger, LoggerCache, LoggerConfig;
+export 'src/logger/logger.dart' hide InternalLogger, LoggerCache;
 export 'src/stack_trace/stack_trace.dart' hide CallbackInfo, StackFrameSet;
 export 'src/time/timestamp.dart'
     hide TimestampFormatter, TimestampFormatterCache;

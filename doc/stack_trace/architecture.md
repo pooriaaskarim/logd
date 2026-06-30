@@ -52,6 +52,7 @@ An immutable data class representing a single parsed stack frame.
 - `methodName` - Method or function name
 - `filePath` - File URI from the stack frame
 - `lineNumber` - Line number as integer
+- `columnNumber` - Column number as integer (nullable, null if not provided or supported)
 - `fullMethod` - Complete method string (e.g., `'Class.method'`)
 
 **Immutability**: Marked `@immutable` with all fields `final`, implements proper `==` and `hashCode`.
@@ -162,14 +163,14 @@ bool _shouldIgnoreFrame(String frame) {
 
 **Regex Pattern**:
 ```dart
-static final _frameRegex = RegExp(r'#\d+\s+(.+)\s+\((.+):(\d+)(?::\d+)?\)');
+static final _vmRegex = RegExp(r'#\d+\s+(.+)\s+\((.+?):(\d+)(?::(\d+))?\)');
 ```
 
 **Capture Groups**:
 - Group 1: Function name (`MyClass.myMethod`)
 - Group 2: File URI (`package:myapp/service.dart`)
 - Group 3: Line number (`42`)
-- Group 4: Column number (optional, currently ignored)
+- Group 4: Column number (optional, `7`)
 
 **Class/Method Extraction**:
 ```dart
@@ -203,7 +204,16 @@ Error
 ```
 - Anonymous frames (no `at Identifier`) produce `methodName: '<anonymous>'`
 
-**Regex**: `^\s*at\s+(?:(.+)\s+\((.+):(\d+):\d+\)|(.+):(\d+):\d+)$`
+**Regex 1 (Named)**: `^\s*at\s+([^\s(]+)\s+\((.+?):(\d+):(\d+)\)`
+- Group 1: Function name
+- Group 2: File URI
+- Group 3: Line number
+- Group 4: Column number
+
+**Regex 2 (Anonymous)**: `^\s*at\s+(.+?):(\d+):(\d+)`
+- Group 1: File URI
+- Group 2: Line number
+- Group 3: Column number
 
 ### Firefox / Safari
 ```
@@ -212,7 +222,16 @@ http://localhost:8080/main.dart.js:678:90
 ```
 - Frames with no `@method` prefix produce `methodName: '<anonymous>'`
 
-**Regex**: `^(?:(.+)@)?(.+):(\d+):\d+$`
+**Regex 1 (Named)**: `^([^@\s]+)@(.+?):(\d+):(\d+)`
+- Group 1: Function name
+- Group 2: File URI
+- Group 3: Line number
+- Group 4: Column number
+
+**Regex 2 (Anonymous)**: `^(.+?):(\d+):(\d+)`
+- Group 1: File URI
+- Group 2: Line number
+- Group 3: Column number
 
 ### Package Filtering for Web Frames
 The `ignorePackages` list works for web frames via the `/packages/<pkg>/` path segment:
