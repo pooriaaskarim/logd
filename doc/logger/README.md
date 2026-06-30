@@ -157,6 +157,8 @@ final snapshot = Logger.exportConfig();
 Logger.importConfig(snapshot);
 ```
 
+For a comprehensive guide on custom serialization and dynamic configuration updates across background workers, see the [Isolate Coordination Guide](isolates.md).
+
 ### Performance Optimization
 
 - Use `logger.freezeInheritance()` for hot paths (e.g., tight loops) where configuration is guaranteed static. This reduces lookup latency to a simple O(1) cache access.
@@ -189,4 +191,5 @@ FlutterError.onError = (final details) {
 
 - [Design Philosophy](philosophy.md) - Core principles and rationale
 - [Architecture](architecture.md) - Internal implementation details
+- [Isolate Coordination](isolates.md) - Multi-isolate configuration syncing
 - [Roadmap](roadmap.md) - Planned improvements and known issues

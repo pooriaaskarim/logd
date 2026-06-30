@@ -553,6 +553,12 @@ class Logger {
   /// Internal: Registered pattern configuration rules.
   static final List<_PatternRule> _patternRules = [];
 
+  /// The maximum hierarchy depth allowed before a warning is printed.
+  /// Defaults to 10.
+  static int maxHierarchyDepth = 10;
+
+  static final Set<String> _warnedDeepLoggers = {};
+
   /// Callback triggered when all configured handlers fail.
   ///
   /// Defaults to printing a formatted message to standard output.
@@ -588,6 +594,21 @@ class Logger {
     }
   }
 
+  static void _checkHierarchyDepth(final String normalized) {
+    final depth = normalized == 'global' ? 0 : normalized.split('.').length;
+    if (depth > maxHierarchyDepth) {
+      if (_warnedDeepLoggers.add(normalized)) {
+        InternalLogger.log(
+          LogLevel.warning,
+          'Logger hierarchy depth for "$normalized" is $depth, which exceeds '
+          'the maximum recommended threshold of $maxHierarchyDepth. '
+          'Deep logger hierarchies can cause performance degradation or '
+          'stack overflows during configuration resolution.',
+        );
+      }
+    }
+  }
+
   /// - Basic: Logger.get('app').info('Message');
   /// - Global: Logger.get(), Logger.get(''), Logger.get('global')
   ///
@@ -597,6 +618,7 @@ class Logger {
   static Logger get([final String? name]) {
     final normalized = _normalizeName(name);
     _registerLogger(normalized);
+    _checkHierarchyDepth(normalized);
     return Logger._(normalized);
   }
 
@@ -1827,6 +1849,7 @@ class Logger {
       _registry.clear();
       _patternRules.clear();
       LoggerCache.clear();
+      _warnedDeepLoggers.clear();
     } else {
       LoggerCache.invalidate(name);
       _registry.remove(name);

@@ -17,6 +17,12 @@ This release introduces the bulk configuration API to enable efficient, batched 
   - **Dynamic Walker Resolution**: Evaluates pattern rules dynamically during the logger resolution path, maintaining strict hierarchical precedence while allowing newer pattern rules to override older ones.
   - **Isolate Serialization Integration**: Supported exporting and importing pattern configuration rules seamlessly across isolates via `Logger.exportConfig()` and `Logger.importConfig()`.
 
+- ### Stack Trace & Diagnostics Enhancements
+  - **Column Number Preservation**: Added `columnNumber` field to `CallbackInfo` and updated `StackTraceParser` regex/parsing logic to capture and preserve column numbers across VM, Chrome (V8), Firefox, and Safari environments for high-fidelity source map resolution and deobfuscation.
+  - **Hierarchy Depth Warning**: Added a safeguard that alerts developers via an `InternalLogger` warning on first access to abnormally deep logger hierarchies (defaulting to >10 levels) to prevent potential stack overflows and performance degradation.
+  - **Configurable Safety Threshold**: Introduced `Logger.maxHierarchyDepth` to customize or disable the hierarchy depth warning threshold.
+  - **Isolate Coordination Documentation**: Authored a comprehensive integration guide (`doc/logger/isolates.md`) detailing how to coordinate logger configurations dynamically across worker isolates and register custom pipeline components.
+
 ## 0.8.4: Core Logger Enhancements, Web Stack Trace, Time Caching, Testing Utilities & Flutter Decoupling
 
 This release introduces major updates to mature the core logger configuration, transports, observability, testing infrastructure, time performance caching, and cross-platform web/Windows runtime compatibility. It also decouples the logging pipeline from the Flutter SDK for pure Dart CLI/VM support, optimizes decorator layout width calculations, and adds a context filter.

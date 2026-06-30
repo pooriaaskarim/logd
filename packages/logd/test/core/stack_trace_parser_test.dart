@@ -16,11 +16,13 @@ void main() {
       expect(result.caller!.methodName, equals('myMethod'));
       expect(result.caller!.filePath, equals('package:my_app/src/file.dart'));
       expect(result.caller!.lineNumber, equals(12));
+      expect(result.caller!.columnNumber, equals(34));
 
       expect(result.frames, hasLength(2));
       expect(result.frames[1].className, isEmpty);
       expect(result.frames[1].methodName, equals('otherFunction'));
       expect(result.frames[1].lineNumber, equals(56));
+      expect(result.frames[1].columnNumber, isNull);
     });
 
     test('should parse Chrome/V8 stack frames correctly', () {
@@ -40,10 +42,12 @@ Error
         equals('http://localhost:8080/main.dart.js'),
       );
       expect(result.caller!.lineNumber, equals(123));
+      expect(result.caller!.columnNumber, equals(45));
 
       expect(result.frames, hasLength(2));
       expect(result.frames[1].methodName, equals('<anonymous>'));
       expect(result.frames[1].lineNumber, equals(678));
+      expect(result.frames[1].columnNumber, equals(90));
     });
 
     test('should parse Firefox/Safari stack frames correctly', () {
@@ -62,10 +66,12 @@ http://localhost:8080/main.dart.js:678:90
         equals('http://localhost:8080/main.dart.js'),
       );
       expect(result.caller!.lineNumber, equals(123));
+      expect(result.caller!.columnNumber, equals(45));
 
       expect(result.frames, hasLength(2));
       expect(result.frames[1].methodName, equals('<anonymous>'));
       expect(result.frames[1].lineNumber, equals(678));
+      expect(result.frames[1].columnNumber, equals(90));
     });
 
     test(

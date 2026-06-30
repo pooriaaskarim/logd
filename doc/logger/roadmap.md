@@ -192,7 +192,7 @@ Depends on Phase 1 (particularly the freeze no-op fix).
   - Option A: Skip them
   - Option B: Allow registration of serializers
 - [x] Add tests
-- [ ] Document isolate coordination pattern
+- [x] Document isolate coordination pattern
 
 ---
 
@@ -300,15 +300,15 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 ---
 
-### 🔵 P3: Add Hierarchy Depth Warning
+### ~~🔵 P3: Add Hierarchy Depth Warning~~ ✅ v0.8.5
 
 **Issue**: No protection against accidentally deep hierarchies.
 
 **TODO**:
-- [ ] Define threshold (e.g., 10 levels)
-- [ ] Log InternalLogger warning on first access of deep logger
-- [ ] Make threshold configurable
-- [ ] Document in philosophy.md
+- [x] Define threshold (e.g., 10 levels)
+- [x] Log InternalLogger warning on first access of deep logger
+- [x] Make threshold configurable
+- [x] Document in philosophy.md
 
 ---
 

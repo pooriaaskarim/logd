@@ -669,6 +669,93 @@ void main() {
           expect(authImported.logLevel, equals(LogLevel.info));
         },
       );
+
+      test(
+        'emits warning when logger hierarchy depth exceeds maxHierarchyDepth',
+        () {
+          final logs = <String>[];
+          final previousMax = Logger.maxHierarchyDepth;
+          Logger.maxHierarchyDepth = 3;
+          try {
+            runZoned(
+              () {
+                // First access: should warn
+                Logger.get('a.b.c.d');
+                // Second access: should not warn again
+                Logger.get('a.b.c.d');
+                // Access different deep logger: should warn
+                Logger.get('x.y.z.w');
+              },
+              zoneSpecification: ZoneSpecification(
+                print: (final self, final parent, final zone, final line) {
+                  logs.add(line);
+                },
+              ),
+            );
+
+            expect(logs, hasLength(2));
+            expect(
+              logs[0],
+              contains(
+                'Logger hierarchy depth for "a.b.c.d" is 4, which exceeds '
+                'the maximum recommended threshold of 3',
+              ),
+            );
+            expect(
+              logs[1],
+              contains(
+                'Logger hierarchy depth for "x.y.z.w" is 4, which exceeds '
+                'the maximum recommended threshold of 3',
+              ),
+            );
+          } finally {
+            Logger.maxHierarchyDepth = previousMax;
+            Logger.reset();
+          }
+        },
+      );
+
+      test(
+        'resets warned deep loggers set when Logger.reset() is called',
+        () {
+          final logs = <String>[];
+          final previousMax = Logger.maxHierarchyDepth;
+          Logger.maxHierarchyDepth = 3;
+          try {
+            runZoned(
+              () {
+                Logger.get('a.b.c.d');
+              },
+              zoneSpecification: ZoneSpecification(
+                print: (final self, final parent, final zone, final line) {
+                  logs.add(line);
+                },
+              ),
+            );
+            expect(logs, hasLength(1));
+            logs.clear();
+
+            // Reset globally
+            Logger.reset();
+
+            runZoned(
+              () {
+                // Access again after reset: should warn again
+                Logger.get('a.b.c.d');
+              },
+              zoneSpecification: ZoneSpecification(
+                print: (final self, final parent, final zone, final line) {
+                  logs.add(line);
+                },
+              ),
+            );
+            expect(logs, hasLength(1));
+          } finally {
+            Logger.maxHierarchyDepth = previousMax;
+            Logger.reset();
+          }
+        },
+      );
     });
   });
 }

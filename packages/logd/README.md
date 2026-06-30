@@ -14,7 +14,7 @@ A <b> modular</b> <b>hierarchical</b> logger for Dart and Flutter. Build structu
 - **Flexible output** – Choose between console, file, network, HTML, or any custom sink; format logs as text, structured JSON, HTML, Markdown or **LLM‑optimized TOON**.
 - **Layout Sovereignty** – A centralized engine guarantees structural integrity (e.g., perfect boxes) across all terminal widths.
 - **Platform‑agnostic styling** – Decouple visual intent from representation using the semantic `LogTheme` system.
-- **Web & Desktop Parity** – Built-in platform-aware stack trace parsers for Chrome (V8), Firefox, Safari, and the Dart VM.
+- **Web & Desktop Parity** – Built-in platform-aware stack trace parsers for Chrome (V8), Firefox, Safari, and the Dart VM, preserving column numbers for high-fidelity source map resolution.
 
 ## Getting Started
 
@@ -280,6 +280,10 @@ Logger.get('app').freezeInheritance();
   ```dart
   Logger.reset('app.ui'); // Resets only 'app.ui' and its descendants
   Logger.reset();        // Global reset, clears the entire registry
+  ```
+- **Hierarchy Depth Warning (v0.8.5+)**: Accessing loggers with abnormally deep hierarchies (e.g. >10 levels) prints an `InternalLogger` warning on first access to protect against stack overflows and resolution performance issues. This threshold is customizable:
+  ```dart
+  Logger.maxHierarchyDepth = 12; // Customize safety limit
   ```
 
 ### Isolate Configuration Transport (v0.8.4+)

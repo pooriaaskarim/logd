@@ -36,7 +36,7 @@ class StackTraceParser {
   // --- Regexes for various environments ---
 
   // VM Format: #0 Class.method (package:path/file.dart:25:7)
-  static final _vmRegex = RegExp(r'#\d+\s+(.+)\s+\((.+?):(\d+)(?::\d+)?\)');
+  static final _vmRegex = RegExp(r'#\d+\s+(.+)\s+\((.+?):(\d+)(?::(\d+))?\)');
 
   // Chrome Format 1: at Class.method (http://localhost:8080/main.dart.js:123:45)
   static final _chromeRegex1 =
@@ -125,6 +125,8 @@ class StackTraceParser {
       final fullMethod = match.group(1)!;
       final filePath = match.group(2)!;
       final lineNumber = int.parse(match.group(3)!);
+      final columnGroup = match.group(4);
+      final columnNumber = columnGroup != null ? int.parse(columnGroup) : null;
 
       final dotIndex = fullMethod.lastIndexOf('.');
       final className = dotIndex != -1 ? fullMethod.substring(0, dotIndex) : '';
@@ -136,6 +138,7 @@ class StackTraceParser {
         methodName: methodName,
         filePath: filePath,
         lineNumber: lineNumber,
+        columnNumber: columnNumber,
         fullMethod: fullMethod,
       );
     }
@@ -146,6 +149,7 @@ class StackTraceParser {
       final fullMethod = match.group(1)!;
       final filePath = match.group(2)!;
       final lineNumber = int.parse(match.group(3)!);
+      final columnNumber = int.parse(match.group(4)!);
 
       final dotIndex = fullMethod.lastIndexOf('.');
       final className = dotIndex != -1 ? fullMethod.substring(0, dotIndex) : '';
@@ -157,6 +161,7 @@ class StackTraceParser {
         methodName: methodName,
         filePath: filePath,
         lineNumber: lineNumber,
+        columnNumber: columnNumber,
         fullMethod: fullMethod,
       );
     }
@@ -167,6 +172,7 @@ class StackTraceParser {
       final fullMethod = match.group(1)!;
       final filePath = match.group(2)!;
       final lineNumber = int.parse(match.group(3)!);
+      final columnNumber = int.parse(match.group(4)!);
 
       final dotIndex = fullMethod.lastIndexOf('.');
       final className = dotIndex != -1 ? fullMethod.substring(0, dotIndex) : '';
@@ -178,6 +184,7 @@ class StackTraceParser {
         methodName: methodName,
         filePath: filePath,
         lineNumber: lineNumber,
+        columnNumber: columnNumber,
         fullMethod: fullMethod,
       );
     }
@@ -187,11 +194,13 @@ class StackTraceParser {
     if (match != null) {
       final filePath = match.group(1)!;
       final lineNumber = int.parse(match.group(2)!);
+      final columnNumber = int.parse(match.group(3)!);
       return CallbackInfo(
         className: '',
         methodName: '<anonymous>',
         filePath: filePath,
         lineNumber: lineNumber,
+        columnNumber: columnNumber,
         fullMethod: '<anonymous>',
       );
     }
@@ -201,11 +210,13 @@ class StackTraceParser {
     if (match != null) {
       final filePath = match.group(1)!;
       final lineNumber = int.parse(match.group(2)!);
+      final columnNumber = int.parse(match.group(3)!);
       return CallbackInfo(
         className: '',
         methodName: '<anonymous>',
         filePath: filePath,
         lineNumber: lineNumber,
+        columnNumber: columnNumber,
         fullMethod: '<anonymous>',
       );
     }

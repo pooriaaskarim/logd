@@ -54,6 +54,7 @@ For hot-paths where even the overhead of checking a version number is too high, 
 - **Safety Safeguards**:
   - **Implicit Node Warning**: If `freezeInheritance` is called on a "ghost node" (a logger created via `Logger.get()` that was never explicitly configured), a warning is logged via `InternalLogger` to alert the developer that they may be freezing unresolved default values.
   - **Promotion Warning**: If `Logger.configure()` is called on a logger for a property that is currently frozen, the property is promoted to explicit, and a warning is emitted to alert the developer that they are erasing the frozen status (suggesting `unfreezeInheritance()` first if they wanted dynamic propagation instead).
+  - **Hierarchy Depth Warning**: If a logger is retrieved with a hierarchy depth exceeding a safety threshold (defaulting to 10), a warning is logged on first access to prevent potential performance issues or stack overflows. This safety limit is configurable via `Logger.maxHierarchyDepth`.
 
 **Rationale**: In performance-critical paths (e.g., hot event loops, high-throughput message handlers), every microsecond matters. Freezing allows developers to opt into zero-overhead logging, while diagnostics warnings and unfreezing tools keep the configuration lifecycle clean and manageable.
 
