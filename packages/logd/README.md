@@ -285,7 +285,7 @@ Logger.get('app').freezeInheritance();
   ```dart
   Logger.maxHierarchyDepth = 12; // Customize safety limit
   ```
-  This can be disabled by setting `Logger.maxHierarchyDepth` to `0`.
+  This can be disabled by setting `Logger.maxHierarchyDepth <= 0`.
 
 ### Isolate Configuration Transport (v0.8.4+)
 
