@@ -595,6 +595,9 @@ class Logger {
   }
 
   static void _checkHierarchyDepth(final String normalized) {
+    if (maxHierarchyDepth <= 0) {
+      return;
+    }
     final depth = normalized == 'global' ? 0 : normalized.split('.').length;
     if (depth > maxHierarchyDepth) {
       if (_warnedDeepLoggers.add(normalized)) {

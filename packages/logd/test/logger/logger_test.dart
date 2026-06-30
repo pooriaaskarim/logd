@@ -756,6 +756,31 @@ void main() {
           }
         },
       );
+
+      test(
+        'disables hierarchy depth warning check when maxHierarchyDepth is <= 0',
+        () {
+          final logs = <String>[];
+          final previousMax = Logger.maxHierarchyDepth;
+          Logger.maxHierarchyDepth = 0;
+          try {
+            runZoned(
+              () {
+                Logger.get('a.b.c.d');
+              },
+              zoneSpecification: ZoneSpecification(
+                print: (final self, final parent, final zone, final line) {
+                  logs.add(line);
+                },
+              ),
+            );
+            expect(logs, isEmpty);
+          } finally {
+            Logger.maxHierarchyDepth = previousMax;
+            Logger.reset();
+          }
+        },
+      );
     });
   });
 }
