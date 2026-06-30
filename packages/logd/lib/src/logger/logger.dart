@@ -17,6 +17,9 @@ part 'log_buffer.dart';
 part 'log_entry.dart';
 part 'serialization_registry.dart';
 
+const String _globalLoggerName = 'global';
+const int _logMethodSkipFrames = 1;
+
 /// Configuration overrides for a [Logger], holding optional fields that
 /// can inherit from parent.
 @immutable
@@ -252,14 +255,14 @@ class LoggerCache {
   static final Map<String, Set<String>> _descendants = {};
 
   static List<String> _getAncestors(final String loggerName) {
-    if (loggerName == 'global') {
+    if (loggerName == _globalLoggerName) {
       return const [];
     }
-    final ancestors = <String>['global'];
+    final ancestors = <String>[_globalLoggerName];
     var current = loggerName;
     while (true) {
       final parent = Logger._getParentName(current);
-      if (parent == null || parent == 'global') {
+      if (parent == null || parent == _globalLoggerName) {
         break;
       }
       ancestors.add(parent);
@@ -598,7 +601,8 @@ class Logger {
     if (maxHierarchyDepth <= 0) {
       return;
     }
-    final depth = normalized == 'global' ? 0 : normalized.split('.').length;
+    final depth =
+        normalized == _globalLoggerName ? 0 : normalized.split('.').length;
     if (depth > maxHierarchyDepth) {
       if (_warnedDeepLoggers.add(normalized)) {
         InternalLogger.log(
@@ -1082,8 +1086,8 @@ class Logger {
 
   /// Internal: Checks if a name is a descendant of parent.
   static bool _isDescendant(final String child, final String parent) {
-    if (parent == 'global') {
-      return child != 'global';
+    if (parent == _globalLoggerName) {
+      return child != _globalLoggerName;
     }
     return child.startsWith('$parent.');
   }
@@ -1733,7 +1737,7 @@ class Logger {
     final frameCount = stackMethodCount[level] ?? 0;
     final parsed = stackTraceParser.parse(
       stackTrace: stackTrace ?? StackTrace.current,
-      skipFrames: 1,
+      skipFrames: _logMethodSkipFrames,
       maxFrames: frameCount,
     );
     if (parsed.caller == null) {
@@ -1807,12 +1811,12 @@ class Logger {
 
   /// Internal: Helper for retrieving parent name.
   static String? _getParentName(final String name) {
-    if (name == 'global') {
+    if (name == _globalLoggerName) {
       return null;
     }
     final lastDot = name.lastIndexOf('.');
     if (lastDot == -1) {
-      return 'global';
+      return _globalLoggerName;
     }
     return name.substring(0, lastDot);
   }
@@ -1821,8 +1825,8 @@ class Logger {
   ///
   /// Resolves null, empty strings and any form of 'global' to 'global'.
   static String _normalizeName([final String? name]) {
-    final lower = name?.toLowerCase() ?? 'global';
-    final normalized = lower.isEmpty ? 'global' : lower;
+    final lower = name?.toLowerCase() ?? _globalLoggerName;
+    final normalized = lower.isEmpty ? _globalLoggerName : lower;
 
     if (!_nameRegex.hasMatch(normalized)) {
       throw ArgumentError.value(
@@ -1847,8 +1851,9 @@ class Logger {
   /// WARNING: This will remove custom configurations and cached resolution
   /// states.
   static void reset([final String? loggerName]) {
-    final name = loggerName == null ? 'global' : _normalizeName(loggerName);
-    if (name == 'global') {
+    final name =
+        loggerName == null ? _globalLoggerName : _normalizeName(loggerName);
+    if (name == _globalLoggerName) {
       _registry.clear();
       _patternRules.clear();
       LoggerCache.clear();
