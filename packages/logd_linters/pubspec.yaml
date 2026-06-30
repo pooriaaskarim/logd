@@ -1,0 +1,30 @@
+name: logd_linters
+description: >
+  Custom lint rules for the logd logging library. Surfaces arena lifecycle
+  constraints, formatter/decorator purity invariants, and consumer usage
+  best-practices as static analysis warnings with IDE quick-fixes.
+version: 0.1.0
+repository: https://github.com/pooriaaskarim/logd
+homepage: https://github.com/pooriaaskarim/logd/tree/master/packages/logd_linters
+topics:
+  - logging
+  - linting
+  - static-analysis
+  - logd
+
+license: BSD-3-Clause
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+
+resolution: workspace
+
+dependencies:
+  analyzer: '>=7.0.0 <9.0.0'
+  custom_lint_builder: ^0.8.1
+  meta: ^1.17.0
+
+dev_dependencies:
+  custom_lint: ^0.8.1
+  logd:
+    path: ../logd
+  test: ^1.24.0

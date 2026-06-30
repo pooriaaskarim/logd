@@ -6,3 +6,4 @@ environment:
 workspace:
   - packages/logd
   - packages/benchmarks
+  - packages/logd_linters
