@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// An internal utility that standardizes a [LogDocument] into a [BinaryIR]
 /// buffer.

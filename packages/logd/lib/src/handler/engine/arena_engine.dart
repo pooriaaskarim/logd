@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// A [LogEngine] that utilizes LIFO object pooling via [Arena].
 ///

@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// Specification for the logd Binary Intermediate Representation (B-IR) v2.
 ///

@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// A high-performance [LogEncoder] that renders a [BinaryIR] stream into ANSI
 /// text.

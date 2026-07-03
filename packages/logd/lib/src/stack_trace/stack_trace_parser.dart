@@ -51,6 +51,9 @@ class StackTraceParser {
   // Firefox/Safari Format 2: http://localhost:8080/main.dart.js:123:45
   static final _firefoxRegex2 = RegExp(r'^(.+?):(\d+):(\d+)');
 
+  // DDC Format: packages/logd/src/logger/logger.dart 1741:35  _log
+  static final _ddcRegex = RegExp(r'^([^\s]+)\s+(\d+):(\d+)(?:\s+(.+))?$');
+
   /// Parses a stack trace in a single pass, extracting both the caller
   /// (first non-ignored frame) and up to [maxFrames] stack frames.
   ///
@@ -218,6 +221,30 @@ class StackTraceParser {
         lineNumber: lineNumber,
         columnNumber: columnNumber,
         fullMethod: '<anonymous>',
+      );
+    }
+
+    // 6. DDC format
+    match = _ddcRegex.firstMatch(frame);
+    if (match != null) {
+      final filePath = match.group(1)!;
+      final lineNumber = int.parse(match.group(2)!);
+      final columnNumber = int.parse(match.group(3)!);
+      final rawMethod = match.group(4);
+      final fullMethod = rawMethod != null ? rawMethod.trim() : '<anonymous>';
+
+      final dotIndex = fullMethod.lastIndexOf('.');
+      final className = dotIndex != -1 ? fullMethod.substring(0, dotIndex) : '';
+      final methodName =
+          dotIndex != -1 ? fullMethod.substring(dotIndex + 1) : fullMethod;
+
+      return CallbackInfo(
+        className: className.replaceFirst(RegExp('^_'), ''),
+        methodName: methodName,
+        filePath: filePath,
+        lineNumber: lineNumber,
+        columnNumber: columnNumber,
+        fullMethod: fullMethod,
       );
     }
 

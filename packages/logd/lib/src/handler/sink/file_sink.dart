@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// Base interface for file rotation policies.
 ///
@@ -418,7 +418,7 @@ base class FileSink extends EncodingSink {
         }
       }
 
-      final raf = targetFile.openSync(mode: io.FileMode.append);
+      final raf = targetFile.openSync(mode: LogFileMode.append);
       try {
         raf.writeFromSync(
           data,

@@ -6,6 +6,8 @@ import '../core/log_level.dart';
 import '../core/theme/log_theme.dart';
 import '../core/utils/utils.dart';
 import '../handler/handler.dart';
+import '../handler/native_handler_stub.dart'
+    if (dart.library.io) '../handler/native_handler.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
 import '../time/timezone.dart';
