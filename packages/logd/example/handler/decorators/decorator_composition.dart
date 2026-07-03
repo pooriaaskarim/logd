@@ -88,9 +88,16 @@ void main() async {
     sink: ConsoleSink(),
   );
 
-  Logger.configure('worker', handlers: [debugHandler]);
+  Logger.configure(
+    'worker',
+    logLevel: LogLevel.debug,
+    handlers: [debugHandler],
+  );
   print('--- Worker Debug Stream (TOON) ---');
   Logger.get('worker').debug('Processing batch #402');
+
+  // Allow async pipeline execution to complete before the script exits.
+  await Future<void>.delayed(const Duration(milliseconds: 100));
 
   print('\n=== Advanced Composition Complete ===');
 }

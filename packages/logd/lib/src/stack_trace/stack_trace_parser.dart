@@ -28,8 +28,14 @@ class StackTraceParser {
       return true;
     }
     return ignorePackages.any(
-      (final pkg) =>
-          frame.contains('package:$pkg/') || frame.contains('packages/$pkg/'),
+      (final pkg) {
+        if (frame.contains('packages/$pkg/example/') ||
+            frame.contains('packages/$pkg/test/')) {
+          return false;
+        }
+        return frame.contains('package:$pkg/') ||
+            frame.contains('packages/$pkg/');
+      },
     );
   }
 
