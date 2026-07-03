@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'encoder.dart';
 
 /// ANSI escape codes for basic 16-color terminal support.
 ///

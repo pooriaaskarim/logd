@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'filter.dart';
 
 /// Filters entries below a minimum level.
 class LevelFilter implements LogFilter {

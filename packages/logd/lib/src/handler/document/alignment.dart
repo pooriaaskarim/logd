@@ -1,4 +1,4 @@
-part of '../../handler/handler.dart';
+part of 'document.dart';
 
 /// Horizontal text alignment options.
 enum LogAlignment {

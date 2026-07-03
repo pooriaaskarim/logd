@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'engine.dart';
 
 /// A [LogEngine] that utilizes Dart language's standard heap allocation.
 ///

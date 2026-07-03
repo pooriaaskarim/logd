@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'document.dart';
 
 /// Contextual metadata available from a [LogEntry] for formatters.
 ///

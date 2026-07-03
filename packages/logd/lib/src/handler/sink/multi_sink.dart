@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'sink.dart';
 
 /// A [LogSink] that broadcasts logs to multiple child [LogSink]s.
 ///

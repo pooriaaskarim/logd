@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'encoder.dart';
 
 /// A simple encoder that joins lines with newlines, ignoring styles.
 ///
