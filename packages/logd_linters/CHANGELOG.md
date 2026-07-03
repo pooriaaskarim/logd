@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Populated package `LICENSE` file.
+
 ## 0.1.0
 
 - Initial release of `logd_linters`.
