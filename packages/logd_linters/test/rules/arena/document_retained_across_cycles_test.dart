@@ -13,7 +13,7 @@ class BadFormatter implements LogFormatter {
   @override
   final Set<LogMetadata> metadata;
 
-  // Formatter instances are shared; retaining document in a field is a violation
+  // Formatter instances are shared; retaining document in a field is an error
   // ignore: unused_field
   static LogDocument? _lastDoc;
 

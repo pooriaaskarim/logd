@@ -1,0 +1,2 @@
+String getCurrentDirectory() => '';
+String getPathSeparator() => '/';

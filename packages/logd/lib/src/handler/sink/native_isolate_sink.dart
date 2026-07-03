@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// A specialized [LogSink] that offloads Native B-IR rendering and I/O
 /// to a background isolate.

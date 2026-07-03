@@ -74,6 +74,32 @@ http://localhost:8080/main.dart.js:678:90
       expect(result.frames[1].columnNumber, equals(90));
     });
 
+    test('should parse DDC stack frames correctly', () {
+      const parser = StackTraceParser();
+      final trace = StackTrace.fromString('''
+packages/logd/src/logger/logger.dart 1741:35                                   _log
+packages/flutter_notification_queue/src/core/facade.dart 93:13                 configure
+packages/logd/src/logger/logger.dart 1664:12
+''');
+
+      final result = parser.parse(stackTrace: trace, maxFrames: 3);
+      expect(result.caller, isNotNull);
+      expect(result.caller!.className, isEmpty);
+      expect(result.caller!.methodName, equals('_log'));
+      expect(
+        result.caller!.filePath,
+        equals('packages/logd/src/logger/logger.dart'),
+      );
+      expect(result.caller!.lineNumber, equals(1741));
+      expect(result.caller!.columnNumber, equals(35));
+
+      expect(result.frames, hasLength(3));
+      expect(result.frames[1].methodName, equals('configure'));
+      expect(result.frames[1].lineNumber, equals(93));
+      expect(result.frames[2].methodName, equals('<anonymous>'));
+      expect(result.frames[2].lineNumber, equals(1664));
+    });
+
     test(
       'should skip/include asynchronous suspensions based on includeAsyncOrigin',
       () {

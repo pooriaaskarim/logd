@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io' as io;
 import 'dart:typed_data';
 
 import 'package:logd/logd.dart';
@@ -59,12 +58,12 @@ class MockFile implements File {
   @override
   Future<void> writeAsString(
     final String contents, {
-    final io.FileMode mode = io.FileMode.write,
+    final LogFileMode mode = LogFileMode.write,
     final Encoding encoding = utf8,
     final bool flush = false,
   }) async {
     _exists = true;
-    if (mode == io.FileMode.append) {
+    if (mode == LogFileMode.append) {
       content.addAll(encoding.encode(contents));
     } else {
       content = encoding.encode(contents);
@@ -107,13 +106,13 @@ class MockFile implements File {
   Future<Uint8List> readAsBytes() async => Uint8List.fromList(content);
 
   @override
-  RandomAccessFile openSync({final io.FileMode mode = io.FileMode.read}) =>
+  RandomAccessFile openSync({final LogFileMode mode = LogFileMode.read}) =>
       MockRandomAccessFile(this, mode);
 
   @override
   Future<void> writeAsBytes(
     final List<int> bytes, {
-    final io.FileMode mode = io.FileMode.write,
+    final LogFileMode mode = LogFileMode.write,
     final bool flush = false,
   }) async {
     _exists = true;
@@ -125,7 +124,7 @@ class MockFile implements File {
 class MockRandomAccessFile implements RandomAccessFile {
   MockRandomAccessFile(this.file, this.mode);
   final MockFile file;
-  final io.FileMode mode;
+  final LogFileMode mode;
 
   @override
   void writeFromSync(
@@ -135,7 +134,7 @@ class MockRandomAccessFile implements RandomAccessFile {
   ]) {
     file._exists = true;
     final data = buffer.sublist(start, end);
-    if (mode == io.FileMode.append) {
+    if (mode == LogFileMode.append) {
       file.content.addAll(data);
     } else {
       file.content = data;

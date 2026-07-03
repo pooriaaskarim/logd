@@ -9,21 +9,21 @@ import 'package:logd/src/handler/handler.dart';
 
 void configureLogger() {
   // expect_lint: logd_avoid_print_sink_in_production
-  final handler = Handler(
-    formatter: const PlainFormatter(metadata: {}),
+  const handler = Handler(
+    formatter: PlainFormatter(metadata: {}),
     sink: PrintSink(),
   );
 
   // OK: uses ConsoleSink
-  final handlerOk = Handler(
-    formatter: const PlainFormatter(metadata: {}),
+  const handlerOk = Handler(
+    formatter: PlainFormatter(metadata: {}),
     sink: ConsoleSink(),
   );
 
   // ignore: unused_local_variable
-  final h1 = handler;
+  const h1 = handler;
   // ignore: unused_local_variable
-  final h2 = handlerOk;
+  const h2 = handlerOk;
 }
 
 void main() {}

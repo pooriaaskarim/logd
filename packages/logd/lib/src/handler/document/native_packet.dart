@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// A lightweight reference to a native memory buffer containing Binary IR.
 ///

@@ -9,9 +9,8 @@ import 'package:logd/logd.dart';
 
 void configureFormatter() {
   // expect_lint: logd_metadata_set_duplicate
-  final formatter = PlainFormatter(
+  const formatter = PlainFormatter(
     metadata: {
-      LogMetadata.timestamp,
       LogMetadata.timestamp,
     },
   );
@@ -25,9 +24,9 @@ void configureFormatter() {
   );
 
   // ignore: unused_local_variable
-  final f1 = formatter;
+  const f1 = formatter;
   // ignore: unused_local_variable
-  final f2 = formatterOk;
+  const f2 = formatterOk;
 }
 
 void main() {}

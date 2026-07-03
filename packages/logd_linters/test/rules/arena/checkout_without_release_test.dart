@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-3-Clause license that can be
 // found in the LICENSE file.
 
+// ignore_for_file: cascade_invocations
+
 /// Tests for A3 — `logd_checkout_without_release`.
 library;
 

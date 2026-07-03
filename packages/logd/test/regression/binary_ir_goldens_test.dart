@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:logd/logd.dart';
-import 'package:logd/src/handler/handler.dart';
+import 'package:logd/logd.dart' hide Arena;
+import 'package:logd/src/handler/native_handler.dart';
 import 'package:test/test.dart';
 
 void main() {

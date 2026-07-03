@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// A [LogSink] wrapper that offloads I/O operations to a background isolate.
 ///

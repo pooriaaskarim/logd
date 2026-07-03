@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-3-Clause license that can be
 // found in the LICENSE file.
 
+// ignore_for_file: cascade_invocations
+
 /// Tests for C3 — `logd_log_buffer_not_sunk`.
 library;
 

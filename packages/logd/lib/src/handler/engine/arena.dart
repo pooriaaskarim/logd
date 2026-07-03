@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of '../native_handler.dart';
 
 /// An isolate-local resource pool for deterministic object reuse.
 ///
@@ -307,114 +307,114 @@ class Arena implements LogPipelineFactory {
   /// Checks out a [HeaderNode] from the pool, or allocates a fresh one.
   @override
   HeaderNode checkoutHeader() =>
-      _headers.isNotEmpty ? _headers.removeLast() : HeaderNode._pooled();
+      _headers.isNotEmpty ? _headers.removeLast() : HeaderNode.pooled();
 
   /// Checks out a [MessageNode] from the pool, or allocates a fresh one.
   @override
   MessageNode checkoutMessage() =>
-      _messages.isNotEmpty ? _messages.removeLast() : MessageNode._pooled();
+      _messages.isNotEmpty ? _messages.removeLast() : MessageNode.pooled();
 
   /// Checks out an [ErrorNode] from the pool, or allocates a fresh one.
   @override
   ErrorNode checkoutError() =>
-      _errors.isNotEmpty ? _errors.removeLast() : ErrorNode._pooled();
+      _errors.isNotEmpty ? _errors.removeLast() : ErrorNode.pooled();
 
   /// Checks out a [FooterNode] from the pool, or allocates a fresh one.
   @override
   FooterNode checkoutFooter() =>
-      _footers.isNotEmpty ? _footers.removeLast() : FooterNode._pooled();
+      _footers.isNotEmpty ? _footers.removeLast() : FooterNode.pooled();
 
   /// Checks out a [MetadataNode] from the pool, or allocates a fresh one.
   @override
   MetadataNode checkoutMetadata() => _metadataNodes.isNotEmpty
       ? _metadataNodes.removeLast()
-      : MetadataNode._pooled();
+      : MetadataNode.pooled();
 
   /// Checks out a [BoxNode] from the pool, or allocates a fresh one.
   @override
   BoxNode checkoutBox() =>
-      _boxes.isNotEmpty ? _boxes.removeLast() : BoxNode._pooled();
+      _boxes.isNotEmpty ? _boxes.removeLast() : BoxNode.pooled();
 
   /// Checks out an [IndentationNode] from the pool, or allocates a fresh one.
   @override
   IndentationNode checkoutIndentation() =>
-      _indents.isNotEmpty ? _indents.removeLast() : IndentationNode._pooled();
+      _indents.isNotEmpty ? _indents.removeLast() : IndentationNode.pooled();
 
   /// Checks out a [GroupNode] from the pool, or allocates a fresh one.
   @override
   GroupNode checkoutGroup() =>
-      _groups.isNotEmpty ? _groups.removeLast() : GroupNode._pooled();
+      _groups.isNotEmpty ? _groups.removeLast() : GroupNode.pooled();
 
   /// Checks out a [DecoratedNode] from the pool, or allocates a fresh one.
   @override
   DecoratedNode checkoutDecorated() =>
-      _decorated.isNotEmpty ? _decorated.removeLast() : DecoratedNode._pooled();
+      _decorated.isNotEmpty ? _decorated.removeLast() : DecoratedNode.pooled();
 
   /// Checks out a [ParagraphNode] from the pool, or allocates a fresh one.
   @override
   ParagraphNode checkoutParagraph() => _paragraphs.isNotEmpty
       ? _paragraphs.removeLast()
-      : ParagraphNode._pooled();
+      : ParagraphNode.pooled();
 
   /// Checks out a [RowNode] from the pool, or allocates a fresh one.
   @override
   RowNode checkoutRow() =>
-      _rows.isNotEmpty ? _rows.removeLast() : RowNode._pooled();
+      _rows.isNotEmpty ? _rows.removeLast() : RowNode.pooled();
 
   /// Checks out a [SectionNode] from the pool, or allocates a fresh one.
   @override
   SectionNode checkoutSection() =>
-      _sections.isNotEmpty ? _sections.removeLast() : SectionNode._pooled();
+      _sections.isNotEmpty ? _sections.removeLast() : SectionNode.pooled();
 
   /// Checks out a [FillerNode] from the pool, or allocates a fresh one.
   @override
   FillerNode checkoutFiller() =>
-      _fillers.isNotEmpty ? _fillers.removeLast() : FillerNode._pooled();
+      _fillers.isNotEmpty ? _fillers.removeLast() : FillerNode.pooled();
 
   /// Checks out a [MapNode] from the pool, or allocates a fresh one.
   @override
   MapNode checkoutMap() =>
-      _maps.isNotEmpty ? _maps.removeLast() : MapNode._pooled();
+      _maps.isNotEmpty ? _maps.removeLast() : MapNode.pooled();
 
   /// Checks out a [ListNode] from the pool, or allocates a fresh one.
   @override
   ListNode checkoutList() =>
-      _lists.isNotEmpty ? _lists.removeLast() : ListNode._pooled();
+      _lists.isNotEmpty ? _lists.removeLast() : ListNode.pooled();
 
   @override
   AlignmentNode checkoutAlignment() => _alignments.isNotEmpty
       ? _alignments.removeLast()
-      : AlignmentNode._pooled();
+      : AlignmentNode.pooled();
 
   @override
   TableNode checkoutTable() =>
-      _tables.isNotEmpty ? _tables.removeLast() : TableNode._pooled();
+      _tables.isNotEmpty ? _tables.removeLast() : TableNode.pooled();
 
   @override
   TableRowNode checkoutTableRow() =>
-      _tableRows.isNotEmpty ? _tableRows.removeLast() : TableRowNode._pooled();
+      _tableRows.isNotEmpty ? _tableRows.removeLast() : TableRowNode.pooled();
 
   @override
   TableCellNode checkoutTableCell() => _tableCells.isNotEmpty
       ? _tableCells.removeLast()
-      : TableCellNode._pooled();
+      : TableCellNode.pooled();
 
   /// Checks out a [HandlerContext] from the pool, or allocates a fresh one.
   @override
   HandlerContext checkoutContext() =>
-      _contexts.isNotEmpty ? _contexts.removeLast() : HandlerContext._pooled();
+      _contexts.isNotEmpty ? _contexts.removeLast() : HandlerContext.pooled();
 
   /// Checks out a [PhysicalLine] from the pool, or allocates a fresh one.
   @override
   PhysicalLine checkoutPhysicalLine() => _physicalLines.isNotEmpty
       ? _physicalLines.removeLast()
-      : PhysicalLine._pooled();
+      : PhysicalLine.pooled();
 
   /// Checks out a [PhysicalDocument] from the pool, or allocates a fresh one.
   @override
   PhysicalDocument checkoutPhysicalDocument() => _physicalDocuments.isNotEmpty
       ? _physicalDocuments.removeLast()
-      : PhysicalDocument._pooled();
+      : PhysicalDocument.pooled();
 
   @override
   Map<K, V> checkoutDataMap<K, V>() {
@@ -655,7 +655,7 @@ class _NativeBuffer {
 /// 2. **Object Mode**: Behaves like a [StandardDocument], creating poolable
 ///    nodes. This mode is used when decorators are present.
 class ArenaDocument extends StandardDocument {
-  ArenaDocument(this.arena) : super._pooled();
+  ArenaDocument(this.arena) : super.pooled();
 
   /// The arena that owns this document.
   final Arena arena;
