@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'sink.dart';
 
 /// Defines how a [LogSink] should wrap its encoded log entries.
 enum WrappingStrategy {
@@ -103,7 +103,7 @@ base class EncodingSink extends LogSink<LogDocument> {
   @mustCallSuper
   Future<void> dispose() async {
     if (strategy == WrappingStrategy.document && _preambleWritten) {
-      final factory = Arena.instance;
+      const factory = StandardPipelineFactory();
       final context = factory.checkoutContext();
       try {
         encoder.postamble(

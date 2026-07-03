@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
 
-part of '../handler.dart';
+part of 'document.dart';
 
 /// A container node that defines the visual structure or layout.
 ///
@@ -10,7 +10,7 @@ part of '../handler.dart';
 /// - **Decoration**: [DecoratedNode] adds prefixes or suffixes.
 ///
 /// On the `arena_refinement` branch, [LayoutNode] and all subclasses are
-/// poolable mutable objects. Use [Arena] to check out and release them.
+/// poolable mutable objects. Use `Arena` to check out and release them.
 sealed class LayoutNode extends LogNode {
   /// Creates a [LayoutNode].
   LayoutNode({
@@ -77,7 +77,8 @@ final class BoxNode extends LayoutNode {
   });
 
   /// Named constructor for arena pool allocation.
-  BoxNode._pooled()
+  @internal
+  BoxNode.pooled()
       : border = BoxBorderStyle.rounded,
         style = null,
         super(children: []);
@@ -233,7 +234,8 @@ final class IndentationNode extends LayoutNode {
   });
 
   /// Named constructor for arena pool allocation.
-  IndentationNode._pooled()
+  @internal
+  IndentationNode.pooled()
       : indentString = '│ ',
         style = null,
         super(children: []);
@@ -285,7 +287,8 @@ final class GroupNode extends LayoutNode {
   GroupNode({required super.children, super.title, super.tags});
 
   /// Named constructor for arena pool allocation.
-  GroupNode._pooled() : super(children: []);
+  @internal
+  GroupNode.pooled() : super(children: []);
 
   @override
   GroupNode copyWith({
@@ -320,7 +323,8 @@ final class DecoratedNode extends LayoutNode {
   });
 
   /// Named constructor for arena pool allocation.
-  DecoratedNode._pooled()
+  @internal
+  DecoratedNode.pooled()
       : leadingWidth = 0,
         trailingWidth = 0,
         leadingHint = null,
@@ -459,7 +463,8 @@ final class ParagraphNode extends LayoutNode {
   ParagraphNode({required super.children, super.tags});
 
   /// Named constructor for arena pool allocation.
-  ParagraphNode._pooled() : super(children: []);
+  @internal
+  ParagraphNode.pooled() : super(children: []);
 
   @override
   ParagraphNode copyWith({
@@ -479,7 +484,8 @@ final class RowNode extends LayoutNode {
   RowNode({required super.children, super.tags});
 
   /// Named constructor for arena pool allocation.
-  RowNode._pooled() : super(children: []);
+  @internal
+  RowNode.pooled() : super(children: []);
 
   @override
   RowNode copyWith({
@@ -503,7 +509,8 @@ final class SectionNode extends LayoutNode {
   });
 
   /// Named constructor for arena pool allocation.
-  SectionNode._pooled()
+  @internal
+  SectionNode.pooled()
       : summary = ParagraphNode(children: []),
         super(children: []);
 
@@ -547,7 +554,8 @@ final class AlignmentNode extends LayoutNode {
   });
 
   /// Named constructor for arena pool allocation.
-  AlignmentNode._pooled()
+  @internal
+  AlignmentNode.pooled()
       : alignment = LogAlignment.left,
         super(children: []);
 
@@ -586,7 +594,8 @@ final class TableNode extends LayoutNode {
   });
 
   /// Named constructor for arena pool allocation.
-  TableNode._pooled()
+  @internal
+  TableNode.pooled()
       : columnWidths = [],
         super(children: []);
 
@@ -621,7 +630,8 @@ final class TableRowNode extends LayoutNode {
   TableRowNode({required super.children, super.tags});
 
   /// Named constructor for arena pool allocation.
-  TableRowNode._pooled() : super(children: []);
+  @internal
+  TableRowNode.pooled() : super(children: []);
 
   @override
   TableRowNode copyWith({
@@ -646,7 +656,8 @@ final class TableCellNode extends LayoutNode {
   });
 
   /// Named constructor for arena pool allocation.
-  TableCellNode._pooled()
+  @internal
+  TableCellNode.pooled()
       : colSpan = 1,
         rowSpan = 1,
         super(children: []);

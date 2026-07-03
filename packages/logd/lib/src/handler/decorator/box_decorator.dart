@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'decorator.dart';
 
 /// A [LogDecorator] that wraps logs in a box.
 ///

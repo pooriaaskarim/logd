@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'encoder.dart';
 
 /// A utility for converting static strings (like ANSI escape codes) into
 /// pre-calculated UTF-8 bytes to avoid encoding them multiple times.

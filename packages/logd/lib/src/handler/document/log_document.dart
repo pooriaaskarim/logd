@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
 
-part of '../handler.dart';
+part of 'document.dart';
 
 /// An intermediate representation (IR) of a structured log entry.
 ///
@@ -15,7 +15,7 @@ part of '../handler.dart';
 ///   to ANSI text, JSON, or HTML without re-parsing.
 ///
 /// On the `arena_refinement` branch, [LogDocument] is a poolable object.
-/// It is NOT `@immutable`: instances are checked out from [Arena],
+/// It is NOT `@immutable`: instances are checked out from `Arena`,
 /// populated by formatters, and returned via [releaseRecursive] after
 /// the pipeline completes. Arena-owned documents **must not** be retained
 /// across log cycles.
@@ -145,7 +145,8 @@ class StandardDocument extends LogDocument {
   })  : nodes = nodes ?? [],
         metadata = metadata ?? {};
 
-  StandardDocument._pooled()
+  @internal
+  StandardDocument.pooled()
       : nodes = [],
         metadata = {};
 

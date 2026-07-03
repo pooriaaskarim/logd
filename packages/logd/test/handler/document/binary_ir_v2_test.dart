@@ -1,5 +1,7 @@
 import 'dart:ffi' as ffi;
 
+import 'package:logd/src/handler/document/binary_ir_native.dart';
+import 'package:logd/src/handler/engine/arena_native.dart';
 import 'package:logd/src/handler/handler.dart';
 import 'package:test/test.dart';
 

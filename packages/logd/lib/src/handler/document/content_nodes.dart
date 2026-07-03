@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
 
-part of '../handler.dart';
+part of 'document.dart';
 
 /// A leaf node containing actual text content.
 ///
@@ -9,7 +9,7 @@ part of '../handler.dart';
 /// itself.
 ///
 /// On the `arena_refinement` branch, [ContentNode] and all subclasses are
-/// poolable mutable objects. Use [Arena] to check out and release them.
+/// poolable mutable objects. Use `Arena` to check out and release them.
 sealed class ContentNode extends LogNode {
   /// Creates a [ContentNode].
   ContentNode({
@@ -62,7 +62,8 @@ final class HeaderNode extends ContentNode {
   });
 
   /// Named constructor for arena pool allocation.
-  HeaderNode._pooled() : super(segments: [], tags: LogTag.header);
+  @internal
+  HeaderNode.pooled() : super(segments: [], tags: LogTag.header);
 
   @override
   void reset() {
@@ -90,7 +91,8 @@ final class MessageNode extends ContentNode {
   });
 
   /// Named constructor for arena pool allocation.
-  MessageNode._pooled() : super(segments: [], tags: LogTag.message);
+  @internal
+  MessageNode.pooled() : super(segments: [], tags: LogTag.message);
 
   @override
   void reset() {
@@ -118,7 +120,8 @@ final class ErrorNode extends ContentNode {
   });
 
   /// Named constructor for arena pool allocation.
-  ErrorNode._pooled() : super(segments: [], tags: LogTag.error);
+  @internal
+  ErrorNode.pooled() : super(segments: [], tags: LogTag.error);
 
   @override
   void reset() {
@@ -146,7 +149,8 @@ final class FooterNode extends ContentNode {
   });
 
   /// Named constructor for arena pool allocation.
-  FooterNode._pooled() : super(segments: []);
+  @internal
+  FooterNode.pooled() : super(segments: []);
 
   @override
   FooterNode copyWith({
@@ -168,7 +172,8 @@ final class MetadataNode extends ContentNode {
   });
 
   /// Named constructor for arena pool allocation.
-  MetadataNode._pooled() : super(segments: []);
+  @internal
+  MetadataNode.pooled() : super(segments: []);
 
   @override
   MetadataNode copyWith({
@@ -187,7 +192,8 @@ final class FillerNode extends LogNode {
   FillerNode(this.char, {this.count = 0, super.tags, this.style});
 
   /// Named constructor for arena pool allocation.
-  FillerNode._pooled()
+  @internal
+  FillerNode.pooled()
       : char = '',
         style = null,
         count = 0;
@@ -254,7 +260,8 @@ final class MapNode extends LogNode {
   MapNode(this.map, {super.tags});
 
   /// Named constructor for arena pool allocation.
-  MapNode._pooled() : map = {};
+  @internal
+  MapNode.pooled() : map = {};
 
   /// The raw mapping data.
   Map<String, Object?> map;
@@ -298,7 +305,8 @@ final class ListNode extends LogNode {
   ListNode(this.list, {super.tags});
 
   /// Named constructor for arena pool allocation.
-  ListNode._pooled() : list = [];
+  @internal
+  ListNode.pooled() : list = [];
 
   /// The raw list data.
   List<Object?> list;

@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
 
-part of '../handler.dart';
+part of 'layout.dart';
 
 /// An intermediate, "camera-ready" representation of a log document.
 ///
@@ -17,8 +17,8 @@ class PhysicalDocument {
     required this.lines,
   });
 
-  /// Internal constructor for the [Arena] to create pooled instances.
-  PhysicalDocument._pooled() : lines = [];
+  @internal
+  PhysicalDocument.pooled() : lines = [];
 
   /// The sequence of physical lines in the document.
   final List<PhysicalLine> lines;
@@ -52,8 +52,8 @@ class PhysicalLine {
     required this.segments,
   });
 
-  /// Internal constructor for the [Arena] to create pooled instances.
-  PhysicalLine._pooled() : segments = [];
+  @internal
+  PhysicalLine.pooled() : segments = [];
 
   /// The styled segments that make up this line.
   final List<StyledText> segments;

@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'decorator.dart';
 
 /// A [LogDecorator] that appends a fixed string to each log line.
 @immutable

@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'engine.dart';
 
 /// A reusable encoding buffer for log serialization.
 ///
@@ -10,8 +10,8 @@ class HandlerContext {
   HandlerContext({final int capacity = 64 * 1024})
       : _buffer = Uint8List(capacity);
 
-  /// Internal constructor for the [Arena] to create pooled instances.
-  HandlerContext._pooled({final int capacity = 64 * 1024})
+  @internal
+  HandlerContext.pooled({final int capacity = 64 * 1024})
       : _buffer = Uint8List(capacity);
 
   final Uint8List _buffer;
@@ -123,7 +123,7 @@ class HandlerContext {
     return bytes;
   }
 
-  /// Resets the context for reuse in the [Arena].
+  /// Resets the context for reuse in the `Arena`.
   void reset() {
     _length = 0;
     _overflowBuilder = null;

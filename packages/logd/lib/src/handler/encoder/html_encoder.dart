@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'encoder.dart';
 
 /// An encoder that transforms [LogDocument] into HTML markup.
 ///

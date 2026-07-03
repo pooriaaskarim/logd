@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'formatter.dart';
 
 /// A [LogFormatter] that facilitates Token-Oriented Object Notation (TOON).
 ///

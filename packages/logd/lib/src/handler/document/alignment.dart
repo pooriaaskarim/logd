@@ -1,4 +1,4 @@
-part of '../../handler/handler.dart';
+part of 'document.dart';
 
 /// Horizontal text alignment options.
 enum LogAlignment {
@@ -16,9 +16,9 @@ enum LogAlignment {
 
   /// Returns the B-IR alignment type code.
   int get binaryType => switch (this) {
-        left => BinaryIR.alignLeft,
-        center => BinaryIR.alignCenter,
-        right => BinaryIR.alignRight,
-        justify => BinaryIR.alignJustify,
+        left => 0,
+        center => 1,
+        right => 2,
+        justify => 3,
       };
 }

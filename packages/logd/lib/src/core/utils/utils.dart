@@ -1,6 +1,8 @@
-import 'dart:io' as io;
 import 'package:characters/characters.dart';
 import 'package:meta/meta.dart';
+
+import 'path_helper_stub.dart' if (dart.library.io) 'path_helper_io.dart'
+    as path_helper;
 
 /// Internal utility for list equality.
 @internal
@@ -397,10 +399,10 @@ String resolveFileUris(final String input) {
     try {
       final uri = Uri.parse(absoluteUriStr);
       final filePath = uri.toFilePath();
-      final currentDir = io.Directory.current.path;
+      final currentDir = path_helper.getCurrentDirectory();
       if (filePath.startsWith(currentDir)) {
         var rel = filePath.substring(currentDir.length);
-        if (rel.startsWith(io.Platform.pathSeparator)) {
+        if (rel.startsWith(path_helper.getPathSeparator())) {
           rel = rel.substring(1);
         }
         return rel;

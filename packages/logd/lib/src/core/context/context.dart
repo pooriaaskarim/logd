@@ -1,4 +1,3 @@
-import 'dart:io' as io;
 import 'package:meta/meta.dart';
 
 import 'clock/clock.dart';
@@ -22,7 +21,7 @@ abstract class Context {
 
   /// The current [FileSystem] instance.
   /// Consumers should use [Context.fileSystem] instead of
-  /// [io.File] or [io.Directory].
+  /// `io.File` or `io.Directory`.
   static FileSystem get fileSystem => _fileSystem;
 
   /// Injects a custom [Clock] for testing.

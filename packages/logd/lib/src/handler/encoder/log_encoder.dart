@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'encoder.dart';
 
 /// Encodes [LogDocument]s into a serialized format \<T\>.
 ///

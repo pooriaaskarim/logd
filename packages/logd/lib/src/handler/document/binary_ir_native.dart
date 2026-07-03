@@ -1,4 +1,676 @@
-part of '../handler.dart';
+library;
+
+import 'dart:convert' as convert;
+import 'dart:ffi' as ffi;
+import 'dart:isolate';
+import 'dart:math' show max;
+
+import 'package:characters/characters.dart';
+import 'package:meta/meta.dart';
+
+import '../../core/log_level.dart';
+import '../../core/theme/log_theme.dart';
+import '../../core/utils/utils.dart';
+import '../../logger/logger.dart';
+import '../decorator/decorator.dart';
+import '../document/document.dart';
+import '../encoder/encoder.dart';
+import '../engine/arena_native.dart';
+
+/// Specification for the logd Binary Intermediate Representation (B-IR) v2.
+///
+/// B-IR is a linearized, instruction-based memory format designed for
+/// zero-copy transfer between the Dart VM and Native engines (C, Rust, Zig).
+///
+/// ## Memory Layout
+/// A B-IR buffer consists of a fixed-size header followed by a stream of
+/// variable-length OpCode blocks. Each block is 8-byte aligned.
+///
+/// Standard 16-byte OpCode Header:
+/// [0]: opcode (uint8)
+/// [1-3]: opcode-specific small payload
+/// [4-7]: tags (uint32 bitmask)
+/// [8-11]: primary payload (e.g. style bitmask)
+/// [12-15]: secondary payload (e.g. length, count)
+@internal
+abstract final class BinaryIR {
+  const BinaryIR._();
+
+  /// Magic bytes identifying the format ('LOGD' in ASCII).
+  static const int magic = 0x4C4F4744;
+
+  /// Current specification version.
+  static const int version = 2;
+
+  /// Header size in bytes.
+  static const int headerSize = 16;
+
+  // --- OpCodes (1 byte) ---
+
+  /// A block of styled text.
+  /// Payload: [uint32 tags][uint32 style][uint32 length][char[] utf8_data]
+  static const int opText = 0x01;
+
+  /// A structural newline.
+  static const int opNewline = 0x02;
+
+  /// Start of a visual box or border.
+  /// Payload: [uint8 type][uint32 tags][uint32 style]
+  static const int opBoxStart = 0x03;
+
+  /// End of a visual box.
+  static const int opBoxEnd = 0x04;
+
+  /// Start of an indented block.
+  /// Payload: [uint32 tags][uint32 length][char[] indent_text]
+  static const int opIndentStart = 0x05;
+
+  /// End of an indented block.
+  static const int opIndentEnd = 0x06;
+
+  /// A repeated filler character.
+  /// Payload: [uint8 char][uint32 tags][uint32 style][uint32 count]
+  static const int opFiller = 0x07;
+
+  /// Metadata key-value pair block.
+  /// Payload: [uint32 tags][uint32 count][entries...]
+  static const int opMetadata = 0x08;
+
+  /// A potential point where the line can be wrapped.
+  /// Payload: [uint8 priority]
+  static const int opWrapPoint = 0x09;
+
+  /// Resets all styling and structural state.
+  static const int opReset = 0x0A;
+
+  /// Start of a decorated block (leading/trailing).
+  /// Payload: [uint8 leadingWidth][uint8 trailingWidth][uint8 flags]
+  /// [uint32 tags][uint32 hintIdx][uint32 leadingCount][uint32 trailingCount]
+  static const int opDecoratedStart = 0x0B;
+
+  /// End of a decorated block.
+  static const int opDecoratedEnd = 0x0C;
+
+  /// Global document metadata.
+  static const int opGlobalMetadata = 0x0D;
+
+  /// Explicit content alignment.
+  /// Payload: [uint8 alignment_type][uint32 tags]
+  static const int opAlignmentStart = 0x0E;
+  static const int opAlignmentEnd = 0x13;
+
+  /// Start of a grid layout (table).
+  /// Payload: [uint8 columns][uint32 tags][uint16 columnWidths[]]
+  static const int opTableStart = 0x0F;
+
+  /// End of a grid layout.
+  static const int opTableEnd = 0x10;
+
+  /// Start of a table cell.
+  /// Payload: [uint8 colSpan][uint8 rowSpan][uint32 tags]
+  static const int opTableCellStart = 0x11;
+
+  /// End of a table cell.
+  static const int opTableCellEnd = 0x12;
+
+  /// Start of a table row.
+  /// Payload: [uint32 tags]
+  static const int opTableRowStart = 0x15;
+
+  /// End of a table row.
+  static const int opTableRowEnd = 0x16;
+
+  /// Start of a layout row.
+  /// Payload: [uint8 char][uint32 tags][uint32 styleBitmask]
+  static const int opRowStart = 0x17;
+
+  /// End of a layout row.
+  static const int opRowEnd = 0x18;
+
+  // --- Metadata Types ---
+  static const int metaString = 0x01;
+  static const int metaInt = 0x02;
+  static const int metaBool = 0x03;
+  static const int metaJson = 0x04;
+
+  // --- Alignment Types ---
+  static const int alignLeft = 0x00;
+  static const int alignCenter = 0x01;
+  static const int alignRight = 0x02;
+  static const int alignJustify = 0x03;
+}
+
+/// An internal utility that standardizes a [LogDocument] into a [BinaryIR]
+/// buffer.
+///
+/// This writer performs a single-pass traversal of the semantic tree and
+/// linearizes it into a contiguous block of native memory, suitable for
+/// zero-copy consumption by FFI-based engines.
+@internal
+final class BinaryIRWriter {
+  BinaryIRWriter(this._document);
+
+  final ArenaDocument _document;
+  Arena get _arena => _document.arena;
+  int _nodeCount = 0;
+  ffi.Pointer<ffi.Uint8>? _header;
+
+  /// Starts a new Binary IR session.
+  void start() {
+    _arena.resetNative(_document);
+    _nodeCount = 0;
+
+    // Write Header (16 bytes)
+    _header = _arena.allocateNative(BinaryIR.headerSize, _document);
+    _header!.cast<ffi.Uint32>()[0] = BinaryIR.magic;
+    _header!.cast<ffi.Uint16>()[2] = BinaryIR.version;
+    _header!.cast<ffi.Uint16>()[3] = 0; // Reserved
+  }
+
+  /// Finalizes the session and returns the head pointer.
+  ffi.Pointer<ffi.Uint8> finalize() {
+    if (_header == null) {
+      throw StateError('BinaryIRWriter not started');
+    }
+    _header!.cast<ffi.Uint32>()[2] = _nodeCount;
+    final result = _header!;
+    _header = null;
+    return result;
+  }
+
+  /// Linearizes [document] into a native buffer and returns the head pointer.
+  ffi.Pointer<ffi.Uint8> write(final LogDocument document) {
+    start();
+    writeDocumentMetadata(document.metadata);
+    for (final node in document.nodes) {
+      _writeNode(node);
+    }
+    return finalize();
+  }
+
+  /// Linearizes a single [node] into the current buffer.
+  void writeNode(final LogNode node) {
+    _writeNode(node);
+  }
+
+  void _writeNode(final LogNode node) {
+    switch (node) {
+      case final ContentNode n:
+        _writeContentNode(n);
+      case final BoxNode n:
+        writeBoxStart(border: n.border, style: n.style, tags: n.tags);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeBoxEnd();
+      case final IndentationNode n:
+        writeIndentStart(n.indentString, style: n.style, tags: n.tags);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeIndentEnd();
+      case final FillerNode n:
+        writeFiller(char: n.char, count: n.count, style: n.style, tags: n.tags);
+      case final MapNode n:
+        writeMap(n.map, tags: n.tags);
+      case final ListNode n:
+        final map = <String, Object?>{};
+        for (int i = 0; i < n.list.length; i++) {
+          map[i.toString()] = n.list[i];
+        }
+        writeMap(map, tags: n.tags);
+      case final GroupNode n:
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+      case final ParagraphNode n:
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeNewline();
+      case final SectionNode n:
+        _writeNode(n.summary);
+        writeNewline();
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeNewline();
+      case final DecoratedNode n:
+        writeDecoratedStart(
+          leading: n.leading ?? [],
+          leadingWidth: n.leadingWidth,
+          leadingHint: n.leadingHint,
+          tags: n.tags,
+          repeatLeading: n.repeatLeading,
+          repeatTrailing: n.repeatTrailing,
+          alignTrailing: n.alignTrailing,
+          trailing: n.trailing ?? [],
+          trailingWidth: n.trailingWidth,
+        );
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeDecoratedEnd();
+      case final RowNode n:
+        FillerNode? filler;
+        for (final child in n.children) {
+          if (child is FillerNode) {
+            filler = child;
+            break;
+          }
+        }
+        if (filler != null) {
+          writeLayoutRowStart(
+            char: filler.char,
+            style: filler.style,
+            tags: filler.tags,
+          );
+        }
+        for (final child in n.children) {
+          if (child != filler) {
+            _writeNode(child);
+          }
+        }
+        if (filler != null) {
+          writeLayoutRowEnd();
+        } else {
+          writeNewline();
+        }
+      case final AlignmentNode n:
+        writeAlignmentStart(n.alignment, tags: n.tags);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeAlignmentEnd();
+      case final TableNode n:
+        writeTableStart(columnWidths: n.columnWidths, tags: n.tags);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeTableEnd();
+      case final TableRowNode n:
+        writeRowStart(tags: n.tags);
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeRowEnd();
+      case final TableCellNode n:
+        writeCellStart(
+          columnSpan: n.colSpan,
+          rowSpan: n.rowSpan,
+          tags: n.tags,
+        );
+        for (final child in n.children) {
+          _writeNode(child);
+        }
+        writeCellEnd();
+    }
+  }
+
+  void _writeContentNode(final ContentNode node) {
+    for (final segment in node.segments) {
+      writeText(
+        segment.text,
+        style: segment.style,
+        tags: segment.tags,
+      );
+    }
+  }
+
+  // --- Public Emitters (Streaming API) ---
+
+  void writeDocumentMetadata(final Map<String, Object?> metadata) {
+    if (metadata.isEmpty) {
+      return;
+    }
+    // Standardize GlobalMetadata to 16-byte header
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opGlobalMetadata;
+    ptr.cast<ffi.Uint32>()[2] = metadata.length;
+    _nodeCount++;
+
+    for (final entry in metadata.entries) {
+      final keyBytes = convert.utf8.encode(entry.key);
+      final valStr = entry.value.toString();
+      final valBytes = convert.utf8.encode(valStr);
+
+      final entryPtr = _arena.allocateNative(
+        8 + keyBytes.length + valBytes.length,
+        _document,
+      );
+      entryPtr.cast<ffi.Uint16>()[0] = 0;
+      entryPtr.cast<ffi.Uint16>()[1] = keyBytes.length;
+      entryPtr.cast<ffi.Uint32>()[1] = valBytes.length;
+
+      final keyPtr = entryPtr + 8;
+      for (int i = 0; i < keyBytes.length; i++) {
+        keyPtr[i] = keyBytes[i];
+      }
+      final valPtr = keyPtr + keyBytes.length;
+      for (int i = 0; i < valBytes.length; i++) {
+        valPtr[i] = valBytes[i];
+      }
+    }
+  }
+
+  void writeText(
+    final String text, {
+    final Object? style,
+    final int tags = LogTag.none,
+  }) {
+    final mask = style is LogStyle ? style.bitmask : (style is int ? style : 0);
+    final bytes = convert.utf8.encode(text);
+    final ptr = _arena.allocateNative(16 + bytes.length, _document);
+    ptr[0] = BinaryIR.opText;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[2] = mask;
+    ptr.cast<ffi.Uint32>()[3] = bytes.length;
+
+    final dataPtr = ptr + 16;
+    for (int i = 0; i < bytes.length; i++) {
+      dataPtr[i] = bytes[i];
+    }
+    _nodeCount++;
+  }
+
+  void writeNewline() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opNewline;
+    _nodeCount++;
+  }
+
+  void writeBoxStart({
+    final BoxBorderStyle border = BoxBorderStyle.rounded,
+    final Object? style,
+    final int tags = LogTag.none,
+  }) {
+    final mask = style is LogStyle ? style.bitmask : (style is int ? style : 0);
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opBoxStart;
+    ptr[1] = border.index;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[2] = mask;
+    _nodeCount++;
+  }
+
+  void writeBoxEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opBoxEnd;
+    _nodeCount++;
+  }
+
+  void writeIndentStart(
+    final String indent, {
+    final Object? style,
+    final int tags = LogTag.none,
+  }) {
+    final bytes = convert.utf8.encode(indent);
+    final ptr = _arena.allocateNative(16 + bytes.length, _document);
+    ptr[0] = BinaryIR.opIndentStart;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[3] = bytes.length;
+
+    final dataPtr = ptr + 16;
+    for (int i = 0; i < bytes.length; i++) {
+      dataPtr[i] = bytes[i];
+    }
+    _nodeCount++;
+  }
+
+  void writeIndentEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opIndentEnd;
+    _nodeCount++;
+  }
+
+  void writeMap(
+    final Map<String, Object?> data, {
+    final int tags = LogTag.none,
+  }) {
+    final metaPtr = _arena.allocateNative(16, _document);
+    metaPtr[0] = BinaryIR.opMetadata;
+    metaPtr.cast<ffi.Uint32>()[1] = tags;
+    metaPtr.cast<ffi.Uint32>()[2] = data.length;
+    _nodeCount++;
+
+    for (final entry in data.entries) {
+      final keyBytes = convert.utf8.encode(entry.key);
+      final valStr = entry.value.toString();
+      final valBytes = convert.utf8.encode(valStr);
+
+      final entryPtr = _arena.allocateNative(
+        8 + keyBytes.length + valBytes.length,
+        _document,
+      );
+      entryPtr.cast<ffi.Uint16>()[0] = 0;
+      entryPtr.cast<ffi.Uint16>()[1] = keyBytes.length;
+      entryPtr.cast<ffi.Uint32>()[1] = valBytes.length;
+
+      final keyPtr = entryPtr + 8;
+      for (int i = 0; i < keyBytes.length; i++) {
+        keyPtr[i] = keyBytes[i];
+      }
+      final valPtr = keyPtr + keyBytes.length;
+      for (int i = 0; i < valBytes.length; i++) {
+        valPtr[i] = valBytes[i];
+      }
+    }
+  }
+
+  void writeTableStart({
+    final List<int>? columnWidths,
+    final int tags = LogTag.none,
+  }) {
+    final widths = columnWidths ?? const [];
+    final ptr = _arena.allocateNative(16 + (widths.length * 2), _document);
+    ptr[0] = BinaryIR.opTableStart;
+    ptr[1] = widths.length;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+
+    final widthsPtr = ptr.cast<ffi.Uint16>() + 8;
+    for (int i = 0; i < widths.length; i++) {
+      widthsPtr[i] = widths[i];
+    }
+    _nodeCount++;
+  }
+
+  void writeTableEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opTableEnd;
+    _nodeCount++;
+  }
+
+  void writeCellStart({
+    final int columnSpan = 1,
+    final int rowSpan = 1,
+    final int tags = LogTag.none,
+  }) {
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opTableCellStart;
+    ptr[1] = columnSpan;
+    ptr[2] = rowSpan;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    _nodeCount++;
+  }
+
+  void writeCellEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opTableCellEnd;
+    _nodeCount++;
+  }
+
+  void writeRowStart({final int tags = LogTag.none}) {
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opTableRowStart;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    _nodeCount++;
+  }
+
+  void writeRowEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opTableRowEnd;
+    _nodeCount++;
+  }
+
+  void writeDecoratedStart({
+    required final List<StyledText> leading,
+    final int leadingWidth = 0,
+    final String? leadingHint,
+    final int tags = LogTag.none,
+    final bool repeatLeading = false,
+    final bool repeatTrailing = false,
+    final bool alignTrailing = false,
+    final List<StyledText> trailing = const [],
+    final int trailingWidth = 0,
+  }) {
+    final ptr = _arena.allocateNative(24, _document);
+    ptr[0] = BinaryIR.opDecoratedStart;
+    ptr[1] = leadingWidth;
+    ptr[2] = trailingWidth;
+
+    int flags = 0;
+    if (repeatLeading) {
+      flags |= 1;
+    }
+    if (repeatTrailing) {
+      flags |= 2;
+    }
+    if (alignTrailing) {
+      flags |= 4;
+    }
+    ptr[3] = flags;
+
+    ptr.cast<ffi.Uint32>()[1] = tags;
+
+    int hintIdx = 0;
+    switch (leadingHint) {
+      case DecorationHint.structuredHeader:
+        hintIdx = 1;
+      case DecorationHint.structuredSeparator:
+        hintIdx = 2;
+      case DecorationHint.structuredMessage:
+        hintIdx = 3;
+      case DecorationHint.hierarchyTrace:
+        hintIdx = 4;
+      case _:
+        break;
+    }
+
+    ptr.cast<ffi.Uint32>()[2] = hintIdx;
+    ptr.cast<ffi.Uint32>()[3] = leading.length;
+    ptr.cast<ffi.Uint32>()[4] = trailing.length;
+
+    _nodeCount++;
+
+    for (final segment in leading) {
+      writeText(segment.text, style: segment.style, tags: segment.tags);
+    }
+    for (final segment in trailing) {
+      writeText(segment.text, style: segment.style, tags: segment.tags);
+    }
+  }
+
+  void writeDecoratedEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opDecoratedEnd;
+    _nodeCount++;
+  }
+
+  void writeFiller({
+    required final String char,
+    final int count = 0,
+    final Object? style,
+    final int tags = LogTag.none,
+  }) {
+    final mask = style is LogStyle ? style.bitmask : (style is int ? style : 0);
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opFiller;
+    ptr[1] = char.codeUnitAt(0);
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[2] = mask;
+    ptr.cast<ffi.Uint32>()[3] = count;
+    _nodeCount++;
+  }
+
+  void writeAlignmentStart(
+    final LogAlignment alignment, {
+    final int tags = LogTag.none,
+  }) {
+    int alignIdx = 0;
+    switch (alignment) {
+      case LogAlignment.center:
+        alignIdx = 1;
+      case LogAlignment.right:
+        alignIdx = 2;
+      case _:
+        break;
+    }
+
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opAlignmentStart;
+    ptr[1] = alignIdx;
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    _nodeCount++;
+  }
+
+  void writeAlignmentEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opAlignmentEnd;
+    _nodeCount++;
+  }
+
+  void writeLayoutRowStart({
+    required final String char,
+    final Object? style,
+    final int tags = LogTag.none,
+  }) {
+    final mask = style is LogStyle ? style.bitmask : (style is int ? style : 0);
+    final ptr = _arena.allocateNative(16, _document);
+    ptr[0] = BinaryIR.opRowStart;
+    ptr[1] = char.codeUnitAt(0);
+    ptr.cast<ffi.Uint32>()[1] = tags;
+    ptr.cast<ffi.Uint32>()[2] = mask;
+    _nodeCount++;
+  }
+
+  void writeLayoutRowEnd() {
+    final ptr = _arena.allocateNative(8, _document);
+    ptr[0] = BinaryIR.opRowEnd;
+    _nodeCount++;
+  }
+}
+
+/// A lightweight reference to a native memory buffer containing Binary IR.
+///
+/// [NativePacket] is designed to be sent across isolates with zero-copy
+/// efficiency. It contains the raw pointer, the length of the data, and
+/// a completion port used to signal the main isolate when the buffer is
+/// ready for reuse.
+final class NativePacket {
+  /// Creates a [NativePacket].
+  const NativePacket({
+    required this.address,
+    required this.length,
+    required this.terminalWidth,
+    required this.completionPort,
+  });
+
+  /// The memory address of the native buffer.
+  final int address;
+
+  /// The length of the Binary IR data in bytes.
+  final int length;
+
+  /// The terminal width used for rendering.
+  final int terminalWidth;
+
+  /// The [SendPort] used to signal the [Arena] that this packet's memory
+  /// can be recycled.
+  final SendPort completionPort;
+
+  /// Returns the native pointer.
+  ffi.Pointer<ffi.Uint8> get pointer => ffi.Pointer.fromAddress(address);
+}
 
 /// A high-performance [LogEncoder] that renders a [BinaryIR] stream into ANSI
 /// text.
@@ -1224,4 +1896,165 @@ class _WrappedSegment {
   const _WrappedSegment(this.completedLines, this.activeLine);
   final List<String> completedLines;
   final String activeLine;
+}
+
+/// A high-performance [LogEncoder] that renders a [BinaryIR] stream into
+/// Token-Oriented Object Notation (TOON).
+///
+/// This encoder is used by the Native Engine's background isolate to
+/// support structured logging with zero-latency.
+@internal
+final class BinaryToonEncoder {
+  const BinaryToonEncoder();
+
+  /// Renders the [BinaryIR] buffer into TOON format.
+  String encode(
+    final ffi.Pointer<ffi.Uint8> irPtr,
+  ) {
+    final buffer = StringBuffer();
+
+    // 1. Read Header
+    final magic = irPtr.cast<ffi.Uint32>()[0];
+    if (magic != BinaryIR.magic) {
+      return 'Error: Invalid Binary IR';
+    }
+
+    final nodeCount = irPtr.cast<ffi.Uint32>()[2];
+    int currentOffset = BinaryIR.headerSize;
+
+    // 2. State
+    final globalMetadata = <String, Object?>{};
+    final List<Map<String, Object?>> rows = [];
+
+    // 3. Process Instructions
+    for (int i = 0; i < nodeCount; i++) {
+      final opPtr = irPtr + currentOffset;
+      final op = opPtr[0];
+
+      switch (op) {
+        case BinaryIR.opGlobalMetadata:
+          final count = opPtr.cast<ffi.Uint32>()[1];
+          currentOffset += 8;
+          for (int j = 0; j < count; j++) {
+            final entry = _readMetadataEntry(irPtr + currentOffset);
+            globalMetadata[entry.key] = entry.value;
+            currentOffset += entry.totalSize;
+          }
+
+        case BinaryIR.opMetadata:
+          final count = opPtr.cast<ffi.Uint32>()[1];
+          currentOffset += 8;
+          final map = <String, Object?>{};
+          for (int j = 0; j < count; j++) {
+            final entry = _readMetadataEntry(irPtr + currentOffset);
+            map[entry.key] = entry.value;
+            currentOffset += entry.totalSize;
+          }
+          rows.add(map);
+
+        case BinaryIR.opText:
+          final len = opPtr.cast<ffi.Uint32>()[3];
+          currentOffset += 16 + len;
+        case BinaryIR.opNewline:
+          currentOffset += 8;
+        case BinaryIR.opBoxStart:
+        case BinaryIR.opBoxEnd:
+          currentOffset += 8;
+        case BinaryIR.opIndentStart:
+          final len = opPtr.cast<ffi.Uint32>()[3];
+          currentOffset += 16 + len;
+        case BinaryIR.opIndentEnd:
+          currentOffset += 8;
+        case BinaryIR.opFiller:
+          currentOffset += 20;
+        case BinaryIR.opDecoratedStart:
+          final leadingCount = opPtr.cast<ffi.Uint32>()[3];
+          final trailingCount = opPtr.cast<ffi.Uint32>()[4];
+          currentOffset += 24;
+          for (int j = 0; j < leadingCount; j++) {
+            final segPtr = irPtr + currentOffset;
+            final segLen = segPtr.cast<ffi.Uint32>()[3];
+            currentOffset += (16 + segLen + 7) & ~7;
+          }
+          for (int j = 0; j < trailingCount; j++) {
+            final segPtr = irPtr + currentOffset;
+            final segLen = segPtr.cast<ffi.Uint32>()[3];
+            currentOffset += (16 + segLen + 7) & ~7;
+          }
+          i += leadingCount + trailingCount;
+        case BinaryIR.opDecoratedEnd:
+          currentOffset += 8;
+        default:
+          currentOffset += 8;
+      }
+    }
+
+    // 4. Render TOON
+    final arrayName = globalMetadata['toon_array'] as String? ?? 'logs';
+    final delimiter = globalMetadata['toon_delimiter'] as String? ?? '\t';
+    final columns = globalMetadata['toon_columns'] as List<dynamic>?;
+
+    if (columns == null || rows.isEmpty) {
+      return '';
+    }
+
+    // Header (Simplified for offload)
+    buffer.write('$arrayName[]${columns.join(',')}:');
+
+    // Rows
+    for (int i = 0; i < rows.length; i++) {
+      final rowMap = rows[i];
+      final row = columns.map((final col) {
+        final val = rowMap[col.toString()];
+        return _escape(val?.toString() ?? '', delimiter);
+      }).join(delimiter);
+
+      buffer.write(row);
+      if (i < rows.length - 1) {
+        buffer.write('\n');
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  _MetadataEntry _readMetadataEntry(final ffi.Pointer<ffi.Uint8> ptr) {
+    final type = ptr[0];
+    final keyLen = (ptr + 2).cast<ffi.Uint16>()[0];
+    final key = convert.utf8.decode((ptr + 4).asTypedList(keyLen));
+
+    final valLenPtr = (ptr + 4 + keyLen).cast<ffi.Uint32>();
+    final valLen = valLenPtr[0];
+    final valStr = convert.utf8.decode((ptr + 8 + keyLen).asTypedList(valLen));
+
+    Object? value = valStr;
+    if (type == BinaryIR.metaInt) {
+      value = int.tryParse(valStr);
+    } else if (type == BinaryIR.metaBool) {
+      value = valStr == 'true';
+    } else if (type == BinaryIR.metaJson) {
+      try {
+        value = convert.jsonDecode(valStr);
+      } catch (_) {}
+    }
+
+    return _MetadataEntry(key, value, 8 + keyLen + valLen);
+  }
+
+  String _escape(final String value, final String delimiter) {
+    if (value.isEmpty) {
+      return '';
+    }
+    if (!value.contains(delimiter) && !value.contains('\n')) {
+      return value;
+    }
+    return '"${value.replaceAll('"', r'\"').replaceAll('\n', r'\n')}"';
+  }
+}
+
+class _MetadataEntry {
+  _MetadataEntry(this.key, this.value, this.totalSize);
+  final String key;
+  final Object? value;
+  final int totalSize;
 }

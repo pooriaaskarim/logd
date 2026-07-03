@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.6: Sub-Library Restructuring & Critical Web Compilation Fix
+
+This patch release fixes a critical, long-standing issue that broke compilation under Web (JS/WASM) environments due to platform-incompatible imports of `dart:ffi` and `dart:io` in the native logging handlers.
+
+- ### Platform Compatibility & Web Logging Fix
+  - **Web Compilation Restored**: Resolved build-time crashes on Web, Dart2js, and DDC environments. Web projects can now import and use the `logd` package out-of-the-box.
+  - **Co-located Platform Stubs**: Dissolved the monolithic `native_handler_stub.dart` and `native_handler.dart` files, extracting individual platform stubs to sit directly next to their native FFI implementations (e.g. `file_sink_native.dart` & `file_sink_stub.dart`).
+  - **Leaf-level Conditional Exports**: Pushed platform-aware conditional exports down to the individual features (e.g. `Arena`, `FileSink`, `IsolateSink`, `NativeEngine`). The package entry point (`package:logd/logd.dart`) is now entirely platform-agnostic and contains zero conditional imports.
+  - **Actionable Fallback Error Messages**: Updated all fallback stubs under browser environments to throw descriptive `UnsupportedError` messages explaining why the FFI/filesystem feature is unavailable and recommending cross-platform alternatives (e.g. `StandardEngine`, `ConsoleSink`, `HttpSink`).
+  - **Robust Stack Trace Parser Package Ignoring**: Refined the stack trace parser package-filtering logic to parse the frame first and check the resolved `filePath` prefix rather than applying raw string substring matching. This prevents local scripts and test files inside monorepos (whose absolute paths contain the package name in their directories, e.g. `packages/logd/example/`) from being incorrectly ignored as framework internals, while retaining full correctness for Web/DDC package imports and browser-based HTTP/HTTPS runs.
+
+- ### Pipeline Codebase Restructuring (DX & Maintainability)
+  - **Sub-Library Refactoring**: Split the monolithic 46-part `handler.dart` part tree into 8 clean, modular sub-libraries (`document.dart`, `decorator.dart`, `filter.dart`, `formatter.dart`, `encoder.dart`, `sink.dart`, `layout.dart`, `engine.dart`).
+  - **Safe Compilation Boundaries**: Enforced strict encapsulation across compiler boundaries, ensuring FFI-specific VM/Native parts do not pollute Web/JS modules.
+  - **Clean Cross-Library References**: Promoted `PrintSink._staticWrite` to `@internal` public `PrintSink.staticWrite` to allow `ConsoleSink` to safely reference it across independent library boundaries.
+  - **Relocated Alignment Utility**: Moved `alignment.dart` from the global `core/utils/` directory to the semantic `src/handler/document/` directory where it belongs.
+
+- ### Stability & Testing
+  - **Zero Public API Changes**: The restructuring is fully backwards-compatible for all public APIs.
+  - **Refactored VM Tests**: Updated VM-only FFI tests to import the FFI implementations (`*_native.dart`) directly, resolving class name ambiguity during static analysis.
+
 ## 0.8.5: Bulk & Pattern-Based Configuration APIs
 
 This release introduces the bulk configuration API to enable efficient, batched logger updates, as well as pattern-based configuration for wildcard matching across logger hierarchies.
