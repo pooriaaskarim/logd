@@ -1,4 +1,7 @@
-part of 'logger.dart';
+library;
+
+import 'package:meta/meta.dart';
+import 'logger.dart';
 
 /// Internal: The actual buffer implementation holding state.
 /// This acts as the "Body" which survives the "Handle" (LogBuffer).
@@ -51,7 +54,9 @@ class _LogBuffer extends StringBuffer {
         error != null ||
         stackTrace != null ||
         (context != null && context!.isNotEmpty)) {
-      _logger._log(logLevel, toString(), error, stackTrace, context).catchError(
+      _logger
+          .logInternal(logLevel, toString(), error, stackTrace, context)
+          .catchError(
             (final e) => InternalLogger.log(
               LogLevel.error,
               'Error while logging from buffer.',
@@ -95,7 +100,7 @@ class LogBuffer implements StringSink {
   /// Finalizer for auto-sinking abandoned buffers.
   static final Finalizer<_LogBuffer> _finalizer =
       Finalizer<_LogBuffer>((final buffer) {
-    LoggerMetrics._bufferLeaks++;
+    LoggerMetrics.incrementBufferLeaks();
     if (buffer.isNotEmpty ||
         buffer.error != null ||
         buffer.stackTrace != null ||
@@ -104,7 +109,7 @@ class LogBuffer implements StringSink {
       if (buffer._logger.autoSinkBuffer) {
         // Auto-sink the content
         buffer._logger
-            ._log(
+            .logInternal(
               buffer.logLevel,
               buffer.toString(),
               buffer.error,
@@ -144,8 +149,9 @@ class LogBuffer implements StringSink {
   });
 
   /// Internal: Checks out a [LogBuffer] from the pool, or creates a new one.
-  static LogBuffer _checkout(final Logger logger, final LogLevel level) {
-    LoggerMetrics._bufferAllocations++;
+  @internal
+  static LogBuffer checkout(final Logger logger, final LogLevel level) {
+    LoggerMetrics.incrementBufferAllocations();
     if (_pool.isNotEmpty) {
       final buffer = _pool.removeLast().._reset(logger, level);
       return buffer;
@@ -168,7 +174,7 @@ class LogBuffer implements StringSink {
       return;
     }
     _released = true;
-    LoggerMetrics._bufferReleases++;
+    LoggerMetrics.incrementBufferReleases();
     _finalizer.detach(this);
     _buffer.clear();
     if (_pool.length < _maxPoolSize) {

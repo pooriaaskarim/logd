@@ -62,7 +62,7 @@ class SizeRotation extends FileRotation {
       );
 }
 
-/// Rotates log files based on time intervals. Stub fallback on unsupported 
+/// Rotates log files based on time intervals. Stub fallback on unsupported
 /// platforms.
 class TimeRotation extends FileRotation {
   /// Creates a time-based rotation rule.
