@@ -39,6 +39,10 @@
       "value": "analysis_options.yaml"
     },
     {
+      "type": "file",
+      "value": ".agents/knowledge/logd_linters/artifacts/release_roadmap.md"
+    },
+    {
       "type": "conversation_id",
       "value": "d71e8e83-435a-41a3-ae3b-e6f3f38eec52"
     }
