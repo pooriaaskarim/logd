@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'sink.dart';
 
 /// Defines how a [LogSink] should wrap its encoded log entries.
 enum WrappingStrategy {

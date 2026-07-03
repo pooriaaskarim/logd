@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'sink.dart';
 
 /// Defines the behavior when the network buffer reaches its maximum capacity.
 enum DropPolicy {

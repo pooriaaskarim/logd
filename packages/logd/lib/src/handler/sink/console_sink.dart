@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'sink.dart';
 
 /// A [LogSink] that encodes and outputs logs to the system console.
 @immutable
@@ -19,7 +19,7 @@ base class ConsoleSink extends EncodingSink {
     this.usePrint,
   }) : super(
           delegate: usePrint == true
-              ? PrintSink._staticWrite
+              ? PrintSink.staticWrite
               : (usePrint == false ? _stdoutWrite : _staticWrite),
           preferredWidth: lineLength,
         );
@@ -36,7 +36,7 @@ base class ConsoleSink extends EncodingSink {
     final bool shouldPrint = io.isStub || !io.stdout.hasTerminal;
 
     if (shouldPrint) {
-      PrintSink._staticWrite(data);
+      PrintSink.staticWrite(data);
     } else {
       _stdoutWrite(data);
     }

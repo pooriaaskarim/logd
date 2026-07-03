@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'formatter.dart';
 
 /// A [LogFormatter] that transforms a [LogEntry] into
 /// a single-line JSON string.

@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'sink.dart';
 
 /// A [LogSink] that outputs logs using the standard [print] function.
 ///
@@ -18,14 +18,15 @@ base class PrintSink extends EncodingSink {
     super.encoder = const AutoConsoleEncoder(),
     super.enabled,
   }) : super(
-          delegate: _staticWrite,
+          delegate: staticWrite,
           preferredWidth: lineLength,
         );
 
   /// The maximum line length for the output.
   final int? lineLength;
 
-  static void _staticWrite(final Uint8List data) {
+  @internal
+  static void staticWrite(final Uint8List data) {
     final message = convert.utf8.decode(data);
     // Standard print() adds a newline, so we strip one trailing \n if present
     // because EncodingSink adds a trailing newline to the data.

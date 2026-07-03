@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_equals_and_hash_code_on_mutable_classes
 
-part of '../handler.dart';
+part of 'document.dart';
 
 /// A container node that defines the visual structure or layout.
 ///

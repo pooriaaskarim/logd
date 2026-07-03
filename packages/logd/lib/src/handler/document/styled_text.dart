@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'document.dart';
 
 /// A semantic segment of a log line.
 ///

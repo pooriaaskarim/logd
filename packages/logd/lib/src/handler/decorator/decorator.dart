@@ -1,4 +1,20 @@
-part of '../handler.dart';
+library;
+
+import 'package:meta/meta.dart';
+import '../../core/theme/log_theme.dart';
+import '../../core/utils/utils.dart';
+import '../../logger/logger.dart';
+import '../document/document.dart';
+import '../engine/engine.dart';
+import '../handler.dart' show LogFormatter, TerminalLayout;
+
+part 'box_decorator.dart';
+part 'decoration_hint.dart';
+part 'decorator_pipeline.dart';
+part 'hierarchy_depth_prefix_decorator.dart';
+part 'prefix_decorator.dart';
+part 'style_decorator.dart';
+part 'suffix_decorator.dart';
 
 /// Base class for log document decorators, formally classified by their effect.
 ///

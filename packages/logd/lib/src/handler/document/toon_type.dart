@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'document.dart';
 
 /// Semantic data types supported by the TOON protocol.
 ///

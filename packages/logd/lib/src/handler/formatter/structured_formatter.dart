@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'formatter.dart';
 
 /// A [LogFormatter] that formats log entries in a structured layout.
 ///

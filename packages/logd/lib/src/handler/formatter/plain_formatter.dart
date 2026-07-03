@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'formatter.dart';
 
 /// A lightweight formatter that outputs log entries as simple, readable text.
 ///

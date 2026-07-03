@@ -6,66 +6,26 @@
 library;
 
 import 'dart:async';
-import 'dart:convert' as convert;
-import 'dart:math';
-import 'dart:typed_data';
 
-import 'package:characters/characters.dart';
-import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../core/theme/log_theme.dart';
 import '../core/utils/utils.dart';
 import '../logger/logger.dart';
-import 'io_stub.dart' if (dart.library.io) 'io_native.dart' as io;
+import 'decorator/decorator.dart';
+import 'document/document.dart';
+import 'engine/engine.dart';
+import 'filter/filter.dart';
+import 'formatter/formatter.dart';
+import 'sink/sink.dart';
 
-part '../core/utils/alignment.dart';
-part 'decorator/box_decorator.dart';
-part 'decorator/decoration_hint.dart';
-part 'decorator/decorator.dart';
-part 'decorator/decorator_pipeline.dart';
-part 'decorator/hierarchy_depth_prefix_decorator.dart';
-part 'decorator/prefix_decorator.dart';
-part 'decorator/style_decorator.dart';
-part 'decorator/suffix_decorator.dart';
-part 'document/content_nodes.dart';
-part 'document/layout_nodes.dart';
-part 'document/log_document.dart';
-part 'document/log_metadata.dart';
-part 'document/styled_text.dart';
-part 'document/toon_type.dart';
-part 'encoder/ansi_encoder.dart';
-part 'encoder/ansi_encoder_adapter.dart';
-part 'encoder/auto_console_encoder.dart';
-part 'encoder/fast_string_writer.dart';
-part 'encoder/html_encoder.dart';
-part 'encoder/json_encoder.dart';
-part 'encoder/log_encoder.dart';
-part 'encoder/markdown_encoder.dart';
-part 'encoder/plain_text_encoder.dart';
-part 'encoder/toon_encoder.dart';
-part 'engine/engine.dart';
-part 'engine/handler_context.dart';
-part 'engine/standard_engine.dart';
-part 'filter/context_filter.dart';
-part 'filter/filter.dart';
-part 'filter/level_filter.dart';
-part 'filter/regex_filter.dart';
-part 'formatter/formatter.dart';
-part 'formatter/json_formatter.dart';
-part 'formatter/plain_formatter.dart';
-part 'formatter/structured_formatter.dart';
-part 'formatter/toon_formatter.dart';
-part 'layout/physical_document.dart';
-part 'layout/render_tokens.dart';
-part 'layout/terminal_layout.dart';
-part 'sink/console_sink.dart';
-part 'sink/encoding_sink.dart';
-part 'sink/multi_sink.dart';
-part 'sink/network_sink.dart';
-part 'sink/print_sink.dart';
-part 'sink/sink.dart';
+export 'decorator/decorator.dart';
+export 'document/document.dart';
+export 'encoder/encoder.dart';
+export 'engine/engine.dart';
+export 'filter/filter.dart';
+export 'formatter/formatter.dart';
+export 'layout/layout.dart';
+export 'sink/sink.dart';
 
 /// Composes a [LogFormatter], a [LogSink], and optional filters and decorators.
 ///

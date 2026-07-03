@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'decorator.dart';
 
 /// A [LogDecorator] that applies semantic styles to a [LogDocument] based on a
 /// [LogTheme].

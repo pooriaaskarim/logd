@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'filter.dart';
 
 /// Filter log entry on message regex match.
 @immutable
