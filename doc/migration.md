@@ -1,5 +1,27 @@
 # Migration Guide
 
+## v0.8.5 to v0.8.6 (Sub-Library Restructure & Web Logging Fix)
+
+### 1. Web Compilation Restored (Bug Fix)
+**Change**: Fixes compilation failures under Web/JS/WASM platforms caused by transitive imports of `dart:ffi` and `dart:io`.
+* **Impact**: You can now safely run and compile projects using `logd` under Web environments. 
+* **Migration**: 
+  - No code changes are required for standard cross-platform usage.
+  - Sinks and engines that rely on native FFI (like `ArenaEngine`, `NativeEngine`, `FileSink`, and `IsolateSink`) will throw descriptive, enabling `UnsupportedError` exceptions if executed in a Web browser, guiding you to use cross-platform alternatives (e.g., `StandardEngine`, `ConsoleSink`, or `HttpSink`).
+
+### 2. Dissolution of `native_handler.dart` and `native_handler_stub.dart`
+**Change**: Decoupled the monolithic platform stub files. Stub classes (such as `ArenaDocument` or `FileRotation` stubs) are now co-located with their actual native implementations under the leaf directories.
+* **Impact**:
+  - Direct internal imports of `package:logd/src/handler/native_handler.dart` or `package:logd/src/handler/native_handler_stub.dart` will fail because these files have been deleted.
+* **Migration**:
+  - If your project used direct internal imports (discouraged), update them to reference the specific sub-library selectors:
+    * `Arena` -> `import 'package:logd/src/handler/engine/arena.dart';`
+    * `FileSink` -> `import 'package:logd/src/handler/sink/file_sink.dart';`
+    * `IsolateSink` -> `import 'package:logd/src/handler/sink/isolate_sink.dart';`
+    * `NativeEngine` / `ArenaEngine` -> `import 'package:logd/src/handler/engine/native_engine.dart';`
+    * `BinaryIR` -> `import 'package:logd/src/handler/document/binary_ir.dart';`
+  - VM-only FFI tests and native integrations should import the native implementations directly (e.g. `import 'package:logd/src/handler/engine/arena_native.dart';`).
+
 ## v0.8.3 to v0.8.4 (Flutter Decoupling & Pure Dart Transition)
 
 ### 1. Flutter SDK Dependency Removed (Breaking Change)
