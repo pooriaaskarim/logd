@@ -1,4 +1,20 @@
-part of '../handler.dart';
+library;
+
+import 'dart:convert' as convert;
+import 'package:characters/characters.dart';
+import 'package:meta/meta.dart';
+import '../../core/theme/log_theme.dart';
+import '../../core/utils/utils.dart';
+import '../../logger/logger.dart';
+import '../decorator/decorator.dart';
+import '../document/document.dart';
+import '../engine/engine.dart';
+import '../layout/layout.dart';
+
+part 'plain_formatter.dart';
+part 'json_formatter.dart';
+part 'structured_formatter.dart';
+part 'toon_formatter.dart';
 
 /// Abstract interface for transforming a [LogEntry] into a semantic
 /// [LogDocument].

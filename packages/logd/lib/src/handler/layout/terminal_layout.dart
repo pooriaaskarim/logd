@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'layout.dart';
 
 /// An internal engine for calculating physical terminal geometry.
 ///

@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'engine.dart';
 
 /// A reusable encoding buffer for log serialization.
 ///

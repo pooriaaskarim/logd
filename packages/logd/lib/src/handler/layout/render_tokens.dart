@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'layout.dart';
 
 /// Pre-calculated UTF-8 tokens for common log structural elements.
 ///

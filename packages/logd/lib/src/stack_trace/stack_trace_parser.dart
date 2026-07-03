@@ -23,13 +23,15 @@ class StackTraceParser {
   /// Whether to include asynchronous suspension lines as frames.
   final bool includeAsyncOrigin;
 
-  bool _shouldIgnoreFrame(final String frame) {
+  bool _shouldIgnoreFrame(final String frame, final CallbackInfo info) {
     if (customFilter != null && !customFilter!(frame)) {
       return true;
     }
     return ignorePackages.any(
       (final pkg) =>
-          frame.contains('package:$pkg/') || frame.contains('packages/$pkg/'),
+          info.filePath.startsWith('package:$pkg/') ||
+          (info.filePath.contains('packages/$pkg/') &&
+              !info.filePath.startsWith('file:')),
     );
   }
 
@@ -100,12 +102,12 @@ class StackTraceParser {
         continue;
       }
 
-      if (_shouldIgnoreFrame(frame)) {
+      final info = _parseFrame(frame);
+      if (info == null) {
         continue;
       }
 
-      final info = _parseFrame(frame);
-      if (info == null) {
+      if (_shouldIgnoreFrame(frame, info)) {
         continue;
       }
 

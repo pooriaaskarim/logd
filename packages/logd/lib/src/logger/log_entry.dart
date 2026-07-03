@@ -1,4 +1,8 @@
-part of 'logger.dart';
+library;
+
+import 'package:meta/meta.dart';
+import '../core/log_level.dart';
+import '../stack_trace/stack_trace.dart';
 
 /// Structured representation of a log event passed to handlers.
 ///

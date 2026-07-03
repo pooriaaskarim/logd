@@ -1,23 +1,22 @@
-import 'dart:typed_data';
-
 import 'package:meta/meta.dart';
 
 import '../core/log_level.dart';
-import '../core/theme/log_theme.dart';
 import '../core/utils/utils.dart';
+import '../handler/engine/arena.dart';
 import '../handler/handler.dart';
-import '../handler/native_handler_stub.dart'
-    if (dart.library.io) '../handler/native_handler.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
 import '../time/timezone.dart';
+import 'internal_logger.dart';
+import 'log_buffer.dart';
+import 'log_entry.dart';
+import 'serialization_registry.dart';
 
 export '../core/log_level.dart';
-
-part 'internal_logger.dart';
-part 'log_buffer.dart';
-part 'log_entry.dart';
-part 'serialization_registry.dart';
+export 'internal_logger.dart';
+export 'log_buffer.dart';
+export 'log_entry.dart';
+export 'serialization_registry.dart';
 
 const String _globalLoggerName = 'global';
 const int _logMethodSkipFrames = 1;
@@ -1583,7 +1582,7 @@ class Logger {
   ///
   /// Example: logger.traceBuffer?..writeln('Trace start')..sink();
   LogBuffer? get traceBuffer =>
-      enabled ? LogBuffer._checkout(this, LogLevel.trace) : null;
+      enabled ? LogBuffer.checkout(this, LogLevel.trace) : null;
 
   /// Returns a buffer for building multi-line debug-level logs.
   ///
@@ -1592,7 +1591,7 @@ class Logger {
   ///
   /// Example: logger.debugBuffer?..writeln('Debug start')..sink();
   LogBuffer? get debugBuffer =>
-      enabled ? LogBuffer._checkout(this, LogLevel.debug) : null;
+      enabled ? LogBuffer.checkout(this, LogLevel.debug) : null;
 
   /// Returns a buffer for building multi-line info-level logs.
   ///
@@ -1600,7 +1599,7 @@ class Logger {
   ///
   /// Example: logger.infoBuffer?..writeln('Info start')..sink();
   LogBuffer? get infoBuffer =>
-      enabled ? LogBuffer._checkout(this, LogLevel.info) : null;
+      enabled ? LogBuffer.checkout(this, LogLevel.info) : null;
 
   /// Returns a buffer for building multi-line warning-level logs.
   ///
@@ -1608,7 +1607,7 @@ class Logger {
   ///
   /// Example: logger.warningBuffer?..writeln('Warning start')..sink();
   LogBuffer? get warningBuffer =>
-      enabled ? LogBuffer._checkout(this, LogLevel.warning) : null;
+      enabled ? LogBuffer.checkout(this, LogLevel.warning) : null;
 
   /// Returns a buffer for building multi-line error-level logs.
   ///
@@ -1616,7 +1615,7 @@ class Logger {
   ///
   /// Example: logger.errorBuffer?..writeln('Error start')..sink();
   LogBuffer? get errorBuffer =>
-      enabled ? LogBuffer._checkout(this, LogLevel.error) : null;
+      enabled ? LogBuffer.checkout(this, LogLevel.error) : null;
 
   /// Logs a trace-level message.
   ///
@@ -1635,7 +1634,7 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.trace, message, error, stackTrace, context)
+      logInternal(LogLevel.trace, message, error, stackTrace, context)
           .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
@@ -1653,7 +1652,7 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.debug, message, error, stackTrace, context)
+      logInternal(LogLevel.debug, message, error, stackTrace, context)
           .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
@@ -1671,7 +1670,7 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.info, message, error, stackTrace, context)
+      logInternal(LogLevel.info, message, error, stackTrace, context)
           .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
@@ -1689,7 +1688,7 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.warning, message, error, stackTrace, context)
+      logInternal(LogLevel.warning, message, error, stackTrace, context)
           .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
@@ -1707,7 +1706,7 @@ class Logger {
     final Object? error,
     final StackTrace? stackTrace,
   }) =>
-      _log(LogLevel.error, message, error, stackTrace, context)
+      logInternal(LogLevel.error, message, error, stackTrace, context)
           .catchError((final e) {
         InternalLogger.log(LogLevel.error, 'Logging failure', error: e);
       });
@@ -1725,7 +1724,8 @@ class Logger {
   /// - [message]: The message object (null produces an empty string).
   /// - [error]: Optional error.
   /// - [stackTrace]: Optional or current stack trace.
-  Future<void> _log(
+  @internal
+  Future<void> logInternal(
     final LogLevel level,
     final Object? message,
     final Object? error,
@@ -1918,6 +1918,12 @@ class Logger {
 /// ```
 class LoggerMetrics {
   LoggerMetrics._();
+  @internal
+  static void incrementBufferAllocations() => _bufferAllocations++;
+  @internal
+  static void incrementBufferReleases() => _bufferReleases++;
+  @internal
+  static void incrementBufferLeaks() => _bufferLeaks++;
 
   static int _cacheHits = 0;
   static int _cacheMisses = 0;

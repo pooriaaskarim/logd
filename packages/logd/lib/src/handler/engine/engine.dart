@@ -1,4 +1,18 @@
-part of '../handler.dart';
+library;
+
+import 'dart:async';
+import 'dart:convert' as convert;
+import 'dart:typed_data';
+import 'package:meta/meta.dart';
+import '../../logger/logger.dart';
+import '../decorator/decorator.dart';
+import '../document/document.dart';
+import '../formatter/formatter.dart';
+import '../layout/layout.dart';
+import '../sink/sink.dart';
+
+part 'handler_context.dart';
+part 'standard_engine.dart';
 
 /// The orchestration layer for the logging pipeline.
 ///

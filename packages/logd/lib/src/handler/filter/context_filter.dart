@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'filter.dart';
 
 /// A [LogFilter] that filters log entries based on their structured context.
 class ContextFilter implements LogFilter {

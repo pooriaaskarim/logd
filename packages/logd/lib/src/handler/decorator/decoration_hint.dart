@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'decorator.dart';
 
 /// Semantic hint strings for [DecoratedNode.leadingHint] and
 /// [DecoratedNode.trailingHint].

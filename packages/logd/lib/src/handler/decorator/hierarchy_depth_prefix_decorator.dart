@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'decorator.dart';
 
 /// A [LogDecorator] that adds a tree-like hierarchy visualization based on the
 /// [LogEntry.hierarchyDepth].

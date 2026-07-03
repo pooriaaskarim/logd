@@ -1,4 +1,4 @@
-part of '../handler.dart';
+part of 'decorator.dart';
 
 /// Manages the composition and application of [LogDecorator]s.
 ///
