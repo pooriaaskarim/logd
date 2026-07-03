@@ -1,0 +1,50 @@
+{
+  "title": "Logd Linters Package Architecture & Integration",
+  "summary": "Surfaces logd API contracts, arena lifecycle constraints, and formatting purity constraints directly inside the analyzer via custom_lint. Documents the integration testing harness (example/), the RecursiveAstVisitor scope stack logic for leakage detection (CheckoutWithoutRelease), type resolution matching patterns, and the roadmap for custom quick-fixes (DartFix).",
+  "references": [
+    {
+      "type": "file",
+      "value": "packages/logd_linters/lib/src/rules/arena/checkout_without_release.dart"
+    },
+    {
+      "type": "file",
+      "value": "packages/logd_linters/lib/src/rules/arena/document_retained_across_cycles.dart"
+    },
+    {
+      "type": "file",
+      "value": "packages/logd_linters/lib/src/rules/arena/missing_release_in_engine.dart"
+    },
+    {
+      "type": "file",
+      "value": "packages/logd_linters/lib/src/rules/config/freeze_on_unconfigured_logger.dart"
+    },
+    {
+      "type": "file",
+      "value": "packages/logd_linters/lib/src/rules/purity/formatter_not_immutable.dart"
+    },
+    {
+      "type": "file",
+      "value": "packages/logd_linters/lib/src/rules/purity/formatter_performs_string_rendering.dart"
+    },
+    {
+      "type": "file",
+      "value": "packages/logd_linters/example/pubspec.yaml"
+    },
+    {
+      "type": "file",
+      "value": "packages/logd/pubspec.yaml"
+    },
+    {
+      "type": "file",
+      "value": "analysis_options.yaml"
+    },
+    {
+      "type": "file",
+      "value": ".agents/knowledge/logd_linters/artifacts/release_roadmap.md"
+    },
+    {
+      "type": "conversation_id",
+      "value": "d71e8e83-435a-41a3-ae3b-e6f3f38eec52"
+    }
+  ]
+}
