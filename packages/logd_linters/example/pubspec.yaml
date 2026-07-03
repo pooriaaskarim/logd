@@ -1,0 +1,18 @@
+name: logd_linters_example
+description: >
+  Integration test project for logd_linters. Contains code with
+  // expect_lint: annotations verified by `dart run custom_lint`.
+publish_to: none
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+
+dependencies:
+  logd:
+    path: ../../logd
+  meta: ^1.17.0
+
+dev_dependencies:
+  custom_lint: ^0.8.1
+  logd_linters:
+    path: ../

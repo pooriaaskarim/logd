@@ -73,11 +73,15 @@ class DocumentRetainedAcrossCycles extends DartLintRule {
         return;
       }
 
-      // Check if assigned to an instance field (enclosing class member).
+      // Check if assigned to a field (instance or static — both retain
+      // the arena-owned object beyond its log cycle).
       final left = node.leftHandSide;
       if (left is SimpleIdentifier) {
-        final element = left.element;
-        if (element is FieldElement && !element.isStatic) {
+        var element = node.writeElement ?? left.element;
+        if (element is PropertyAccessorElement) {
+          element = element.variable;
+        }
+        if (element is FieldElement || element is TopLevelVariableElement) {
           reporter.atNode(node, _code);
           return;
         }

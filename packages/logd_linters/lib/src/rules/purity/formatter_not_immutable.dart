@@ -76,7 +76,7 @@ class FormatterNotImmutable extends DartLintRule {
         return;
       }
 
-      if (!logFormatterChecker.isSuperOf(element)) {
+      if (!logFormatterChecker.isAssignableFrom(element)) {
         return;
       }
       if (_arenaExemptions.contains(element.name)) {

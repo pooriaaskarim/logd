@@ -119,6 +119,6 @@ class FormatterPerformsStringRendering extends DartLintRule {
   }
 
   bool _isFormatterOrDecorator(final classElement) =>
-      logFormatterChecker.isSuperOf(classElement) ||
+      logFormatterChecker.isAssignableFrom(classElement) ||
       logDecoratorChecker.isSuperOf(classElement);
 }

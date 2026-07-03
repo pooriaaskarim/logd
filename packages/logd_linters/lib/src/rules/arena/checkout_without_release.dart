@@ -8,6 +8,7 @@
 library;
 
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart' hide LintCode;
 import 'package:analyzer/error/listener.dart';
 import 'package:custom_lint_builder/custom_lint_builder.dart';
@@ -88,49 +89,93 @@ class CheckoutWithoutRelease extends DartLintRule {
     final ErrorReporter reporter,
     final CustomLintContext context,
   ) {
-    // Track: local variable name → checkout MethodInvocation node.
-    final checkouts = <String, MethodInvocation>{};
-
-    context.registry.addVariableDeclaration((final node) {
-      final init = node.initializer;
-      if (init is! MethodInvocation) {
-        return;
-      }
-      if (!_checkoutMethods.contains(init.methodName.name)) {
-        return;
-      }
-
-      // Only track calls on a LogPipelineFactory receiver.
-      final targetType = init.target?.staticType;
-      if (targetType != null &&
-          !logPipelineFactoryChecker.isAssignableFromType(targetType)) {
-        return;
-      }
-
-      final name = node.name.lexeme;
-      checkouts[name] = init;
+    context.registry.addCompilationUnit((final node) {
+      node.accept(_Visitor(reporter, _code, logPipelineFactoryChecker));
     });
+  }
+}
 
-    context.registry.addMethodInvocation((final node) {
-      final name = node.methodName.name;
-      if (name != 'releaseRecursive' && name != 'release') {
-        return;
-      }
+class _Visitor extends RecursiveAstVisitor<void> {
+  _Visitor(this.reporter, this.code, this.logPipelineFactoryChecker);
 
-      // Mark the variable as released.
-      final target = node.target;
-      if (target is SimpleIdentifier) {
-        checkouts.remove(target.name);
-      }
-    });
+  final ErrorReporter reporter;
+  final LintCode code;
+  final TypeChecker logPipelineFactoryChecker;
 
-    // After visiting the function body, anything remaining in checkouts
-    // was never released.
-    context.registry.addFunctionBody((final _) {
+  // Track checkouts for each active function body scope using a stack.
+  final List<Map<String, MethodInvocation>> _scopes = [];
+
+  void _enterScope() {
+    _scopes.add({});
+  }
+
+  void _exitScope() {
+    if (_scopes.isNotEmpty) {
+      final checkouts = _scopes.removeLast();
       for (final entry in checkouts.entries) {
-        reporter.atNode(entry.value, _code);
+        reporter.atNode(entry.value, code);
       }
-      checkouts.clear();
-    });
+    }
+  }
+
+  @override
+  void visitBlockFunctionBody(final BlockFunctionBody node) {
+    _enterScope();
+    super.visitBlockFunctionBody(node);
+    _exitScope();
+  }
+
+  @override
+  void visitExpressionFunctionBody(final ExpressionFunctionBody node) {
+    _enterScope();
+    super.visitExpressionFunctionBody(node);
+    _exitScope();
+  }
+
+  @override
+  void visitVariableDeclaration(final VariableDeclaration node) {
+    super.visitVariableDeclaration(node);
+
+    final init = node.initializer;
+    if (init is! MethodInvocation) {
+      return;
+    }
+    if (!CheckoutWithoutRelease._checkoutMethods
+        .contains(init.methodName.name)) {
+      return;
+    }
+
+    final targetType = init.target?.staticType;
+    if (targetType != null &&
+        !logPipelineFactoryChecker.isAssignableFromType(targetType)) {
+      return;
+    }
+
+    if (_scopes.isNotEmpty) {
+      final name = node.name.lexeme;
+      _scopes.last[name] = init;
+    }
+  }
+
+  @override
+  void visitMethodInvocation(final MethodInvocation node) {
+    super.visitMethodInvocation(node);
+
+    final name = node.methodName.name;
+    if (name != 'releaseRecursive' && name != 'release') {
+      return;
+    }
+
+    final target = node.target;
+    if (target is SimpleIdentifier) {
+      final varName = target.name;
+      // Search from the innermost scope outwards.
+      for (var i = _scopes.length - 1; i >= 0; i--) {
+        if (_scopes[i].containsKey(varName)) {
+          _scopes[i].remove(varName);
+          break;
+        }
+      }
+    }
   }
 }

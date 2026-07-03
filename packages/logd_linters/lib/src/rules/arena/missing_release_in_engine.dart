@@ -73,7 +73,7 @@ class MissingReleaseInEngine extends DartLintRule {
       if (element == null) {
         return;
       }
-      if (!logEngineChecker.isSuperOf(element)) {
+      if (!logEngineChecker.isAssignableFrom(element)) {
         return;
       }
 

@@ -73,7 +73,54 @@ class FreezeOnUnconfiguredLogger extends DartLintRule {
         return;
       }
 
+      // Check if there is an intervening Logger.configure() in the same block.
+      final block = node.thisOrAncestorOfType<Block>();
+      final statement = node.thisOrAncestorOfType<Statement>();
+      if (block != null && statement != null) {
+        final index = block.statements.indexOf(statement);
+        if (index > 0) {
+          final loggerNameExpr = target.argumentList.arguments.isNotEmpty
+              ? target.argumentList.arguments.first
+              : null;
+          if (loggerNameExpr != null) {
+            bool hasConfigure = false;
+            for (var i = 0; i < index; i++) {
+              if (_isConfigureForLogger(block.statements[i], loggerNameExpr)) {
+                hasConfigure = true;
+                break;
+              }
+            }
+            if (hasConfigure) {
+              return; // Configured first, so this is valid.
+            }
+          }
+        }
+      }
+
       reporter.atNode(node, _code);
     });
+  }
+
+  bool _isConfigureForLogger(
+      final Statement stmt, final Expression loggerNameExpr) {
+    if (stmt is! ExpressionStatement) {
+      return false;
+    }
+    final expr = stmt.expression;
+    if (expr is! MethodInvocation) {
+      return false;
+    }
+    if (!isStaticCall(expr, 'Logger', 'configure')) {
+      return false;
+    }
+    if (expr.argumentList.arguments.isEmpty) {
+      return false;
+    }
+    final configLoggerName = expr.argumentList.arguments.first;
+    if (loggerNameExpr is SimpleStringLiteral &&
+        configLoggerName is SimpleStringLiteral) {
+      return loggerNameExpr.value == configLoggerName.value;
+    }
+    return loggerNameExpr.toSource() == configLoggerName.toSource();
   }
 }
