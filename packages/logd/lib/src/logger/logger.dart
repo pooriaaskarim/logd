@@ -5,9 +5,11 @@ import 'package:meta/meta.dart';
 import '../core/log_level.dart';
 import '../core/theme/log_theme.dart';
 import '../core/utils/utils.dart';
+import '../handler/engine/arena.dart';
+import '../handler/engine/native_engine.dart';
 import '../handler/handler.dart';
-import '../handler/native_handler_stub.dart'
-    if (dart.library.io) '../handler/native_handler.dart';
+import '../handler/sink/file_sink.dart';
+import '../handler/sink/isolate_sink.dart';
 import '../stack_trace/stack_trace.dart';
 import '../time/timestamp.dart';
 import '../time/timezone.dart';
