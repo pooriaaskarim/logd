@@ -22,6 +22,11 @@
     * `BinaryIR` -> `import 'package:logd/src/handler/document/binary_ir.dart';`
   - VM-only FFI tests and native integrations should import the native implementations directly (e.g. `import 'package:logd/src/handler/engine/arena_native.dart';`).
 
+### 3. Stack Trace Parser Package-Ignoring Refinement
+* **Change**: Refined package-filtering logic in `StackTraceParser` to evaluate the parsed `filePath` rather than using raw string substring matching on the frame.
+* **Impact**: Resolves an issue where logging calls made directly from examples or tests inside the package repository (where paths contain `/packages/logd/`) were silently ignored as framework internals.
+* **Migration**: Fully backwards-compatible. No action required.
+
 ## v0.8.3 to v0.8.4 (Flutter Decoupling & Pure Dart Transition)
 
 ### 1. Flutter SDK Dependency Removed (Breaking Change)
