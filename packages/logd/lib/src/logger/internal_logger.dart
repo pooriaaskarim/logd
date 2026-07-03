@@ -1,4 +1,7 @@
-part of 'logger.dart';
+library;
+
+import 'package:meta/meta.dart';
+import '../core/log_level.dart';
 
 /// Internal logger for logd to avoid circularity.
 ///

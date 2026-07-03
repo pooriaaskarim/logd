@@ -1,4 +1,14 @@
-part of 'logger.dart';
+library;
+
+import 'dart:typed_data';
+
+import '../core/log_level.dart';
+import '../core/theme/log_theme.dart';
+import '../handler/engine/native_engine.dart';
+import '../handler/handler.dart';
+import '../handler/sink/file_sink.dart';
+import '../handler/sink/isolate_sink.dart';
+import 'logger.dart';
 
 class _SerializerSpec<T> {
   const _SerializerSpec({required this.fromJson, required this.toJson});
