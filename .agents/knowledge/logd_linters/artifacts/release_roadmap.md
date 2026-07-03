@@ -78,5 +78,18 @@ dart pub get
 dart run custom_lint
 ```
 
-### Step 4: Merge & Publish Core
-Once verified, merge `feat/logd-linters` to `master`, tag the release, and optionally publish the next version of `logd` (incorporating the built-in linter configuration).
+### Step 4: Pull Request, CI, and Merge
+Once verified:
+1. **Push the branch:**
+   ```bash
+   git push origin feat/logd-linters
+   ```
+2. **Create a Pull Request (PR):** Open a PR on GitHub from `feat/logd-linters` targeting `master`.
+3. **Verify CI:** Wait for the GitHub Actions workspace analysis and tests to complete successfully.
+4. **Merge:** Merge the PR via the GitHub interface (squash/merge).
+5. **Sync local master:**
+   ```bash
+   git checkout master
+   git pull origin master
+   ```
+6. **Tag & Release:** Tag the release branch and optionally publish the next version of `logd` (incorporating the built-in linter configuration).
