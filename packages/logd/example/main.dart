@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:logd/logd.dart';
+import 'package:meta/meta.dart';
 
 import '../../../scripts/servers/network_test_utils.dart';
 
@@ -206,6 +207,7 @@ void _showcaseGridLayouts() {
   Logger.get('app.grid').info('Rendering a professional report...');
 }
 
+@immutable
 class TableExampleFormatter implements LogFormatter {
   const TableExampleFormatter();
 
