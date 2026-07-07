@@ -42,6 +42,7 @@ class Handler {
     this.filters = const [],
     this.decorators = const [],
     this.engine = const StandardEngine(),
+    this.timeout,
   });
 
   /// The formatter used to transform a [LogEntry] into a [LogDocument].
@@ -61,6 +62,9 @@ class Handler {
   /// A list of decorators applied to the [LogDocument] in order.
   final List<LogDecorator> decorators;
 
+  /// The maximum duration allowed for processing a log entry.
+  final Duration? timeout;
+
   /// Process the entry: filter, format, decorate, output.
   @internal
   Future<void> log(final LogEntry entry) async {
@@ -68,7 +72,13 @@ class Handler {
       return;
     }
 
-    await engine.execute(entry, formatter, decorators, sink);
+    if (timeout != null) {
+      await engine
+          .execute(entry, formatter, decorators, sink)
+          .timeout(timeout!);
+    } else {
+      await engine.execute(entry, formatter, decorators, sink);
+    }
   }
 
   @override
@@ -79,6 +89,7 @@ class Handler {
           formatter == other.formatter &&
           sink == other.sink &&
           engine == other.engine &&
+          timeout == other.timeout &&
           listEquals(filters, other.filters) &&
           listEquals(decorators, other.decorators);
 
@@ -87,6 +98,7 @@ class Handler {
       formatter.hashCode ^
       sink.hashCode ^
       engine.hashCode ^
+      timeout.hashCode ^
       Object.hashAll(filters) ^
       Object.hashAll(decorators);
 }

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.8.7: Core Stabilization, Concurrency Hardening & Pipeline Safety
+
+This release focuses on codebase hardening, lifecycle guarantees, memory boundary enforcement, and multi-isolate reliability for the `logd` logging framework.
+
+- ### Concurrency & Resource Pooling (Arena)
+  - **Thread Waiter Queue**: Replaced the single waiter slot in `Arena` with a robust, concurrent FIFO waiter queue. This prevents race conditions and permanently blocked logging pipelines under high async saturation.
+  - **Memory Pool Capping**: Enforced a strict maximum capacity limit (`512` objects or `1000` buffers) on all internal pools within the `Arena` to prevent memory growth spikes under heavy continuous workloads.
+  - **Lazy receivePort Lifecycle**: Made the `Arena` completion ReceivePort lazy. The port is now safely closed and re-constructed on `clear()` or `disposeNative()`, eliminating leak risks and keeping VM tests clean.
+
+- ### Pipeline Safety & Error Handling
+  - **Isolate Worker Recovery**: Implemented automated crash detection and 2-second delayed re-spawning recovery in `NativeIsolateSink`, ensuring that a background worker crash does not permanently halt the pipeline.
+  - **Isolate Pre-ready Capping**: Capped the startup pre-ready buffer at 200 packets, preventing out-of-memory errors on slow worker startups.
+  - **Handler Execution Timeout**: Introduced optional `timeout` configurations to all `Handler` instances, enabling safe pipeline cancellation and failure tracing instead of indefinite hangs.
+  - **Registry Mutation Atomicity**: Improved `configureMultiple` to validate configurations (e.g. negative stack trace counts) and stage updates atomically, preventing partial registry corruption.
+  - **Rate-Limited Warnings**: Implemented a per-type failed handler warning rate limiter to prevent console logging spam when a handler fails repeatedly.
+  - **Exponential Backoff Reconnect**: Added exponential backoff reconnect logic in `SocketSink` capped at 5 minutes to gracefully handle network drops.
+
+- ### Performance Optimizations
+  - **Queue-based Memory Buffering**: Swapped List-based buffers in `NetworkSink` with `Queue` to support O(1) removals.
+  - **Lazy StackTrace Parsing**: Avoided capturing/evaluating `StackTrace.current` inside `logInternal` if an explicit trace is already supplied, saving CPU cycles on standard paths.
+  - **Scoped Cache Invalidation**: Optimized pattern matching updates to invalidate only cached loggers affected by the pattern, avoiding full cache wipes.
+
+- ### Testing & Diagnostics
+  - **Multi-Isolate Stress Testing**: Added a concurrency stress test verifying 10,000 concurrent logs across 5 isolates with zero deadlocks or memory leaks.
+  - **Descriptive Configuration Warnings**: Hardened JSON configuration parsers to raise descriptive `FormatException` on mismatched parameter types.
+
 ## 0.8.6: Sub-Library Restructuring & Critical Web Compilation Fix
 
 This patch release fixes a critical, long-standing issue that broke compilation under Web (JS/WASM) environments due to platform-incompatible imports of `dart:ffi` and `dart:io` in the native logging handlers.

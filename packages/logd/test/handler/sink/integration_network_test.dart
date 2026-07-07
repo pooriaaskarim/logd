@@ -65,8 +65,8 @@ void main() {
       if (File(socketPythonExe).existsSync() &&
           File(httpPythonExe).existsSync()) {
         hasPython = true;
-        socketPython = socketPythonExe;
-        httpPython = httpPythonExe;
+        socketPython = File(socketPythonExe).absolute.path;
+        httpPython = File(httpPythonExe).absolute.path;
       } else {
         // Fallback: check system python.
         try {

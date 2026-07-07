@@ -341,5 +341,31 @@ void main() {
         ),
       ).called(1);
     });
+
+    test('DropPolicy.block throws UnsupportedError', () async {
+      final sink = HttpSink(
+        url: 'https://example.com/logs',
+        maxBufferSize: 1,
+        dropPolicy: DropPolicy.block,
+        client: mockClient,
+      );
+
+      await sink.output(
+        createTestDocument(['pending']),
+        testEntry,
+        LogLevel.info,
+        const StandardPipelineFactory(),
+      );
+
+      expect(
+        () => sink.output(
+          createTestDocument(['overflow']),
+          testEntry,
+          LogLevel.info,
+          const StandardPipelineFactory(),
+        ),
+        throwsUnsupportedError,
+      );
+    });
   });
 }

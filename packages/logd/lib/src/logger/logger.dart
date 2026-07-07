@@ -26,9 +26,61 @@ const int _logMethodSkipFrames = 1;
 @immutable
 class LoggerConfig {
   factory LoggerConfig.fromJson(final Map<String, dynamic> json) {
+    void checkType(
+      final String key,
+      final bool Function(dynamic) check,
+      final String expectedType,
+    ) {
+      if (json.containsKey(key)) {
+        final val = json[key];
+        if (val != null && !check(val)) {
+          throw FormatException(
+            "Invalid configuration value for '$key': expected $expectedType, "
+            'got ${val.runtimeType} ($val)',
+          );
+        }
+      }
+    }
+
+    checkType('handlers', (final v) => v is List, 'List');
+    checkType('stackMethodCount', (final v) => v is Map, 'Map');
+    checkType('timestamp', (final v) => v is Map, 'Map');
+    checkType('stackTraceParser', (final v) => v is Map, 'Map');
+    checkType('enabled', (final v) => v is bool, 'bool');
+    checkType('logLevel', (final v) => v is String, 'String');
+    checkType('includeFileLineInHeader', (final v) => v is bool, 'bool');
+    checkType('autoSinkBuffer', (final v) => v is bool, 'bool');
+    checkType('version', (final v) => v is int, 'int');
+    checkType('frozenFields', (final v) => v is List, 'List');
+    checkType('implicit', (final v) => v is bool, 'bool');
+
     final handlersJson = json['handlers'] as List?;
     final handlers = handlersJson?.map((final hMap) {
-      final h = Map<String, dynamic>.from(hMap as Map);
+      if (hMap is! Map) {
+        throw const FormatException('Invalid handler entry: expected Map');
+      }
+      final h = Map<String, dynamic>.from(hMap);
+      if (h['formatter'] is! Map) {
+        throw const FormatException('Invalid handler formatter: expected Map');
+      }
+      if (h['sink'] is! Map) {
+        throw const FormatException('Invalid handler sink: expected Map');
+      }
+      if (h['filters'] is! List) {
+        throw const FormatException('Invalid handler filters: expected List');
+      }
+      if (h['decorators'] is! List) {
+        throw const FormatException(
+          'Invalid handler decorators: expected List',
+        );
+      }
+      if (h['engine'] is! Map) {
+        throw const FormatException('Invalid handler engine: expected Map');
+      }
+      if (h['timeout'] != null && h['timeout'] is! int) {
+        throw const FormatException('Invalid handler timeout: expected int');
+      }
+
       return Handler(
         formatter: LoggerSerializationRegistry.deserializeFormatter(
           Map<String, dynamic>.from(h['formatter'] as Map),
@@ -53,6 +105,9 @@ class LoggerConfig {
         engine: LoggerSerializationRegistry.deserializeEngine(
           Map<String, dynamic>.from(h['engine'] as Map),
         ),
+        timeout: h['timeout'] != null
+            ? Duration(milliseconds: h['timeout'] as int)
+            : null,
       );
     }).toList();
 
@@ -234,6 +289,7 @@ class LoggerConfig {
                       .toList(),
                   'engine':
                       LoggerSerializationRegistry.serializeEngine(h.engine),
+                  if (h.timeout != null) 'timeout': h.timeout!.inMilliseconds,
                 },
               )
               .toList(),
@@ -485,6 +541,27 @@ class LoggerCache {
     }
   }
 
+  /// Invalidates the cache for all loggers affected by the given pattern.
+  static void invalidatePattern(final String pattern) {
+    final regExp = Logger._patternToRegExp(pattern);
+    final affectedKeys = <String>[];
+    for (final key in _cache.keys) {
+      if (regExp.hasMatch(key)) {
+        affectedKeys.add(key);
+      } else {
+        final ancestors = _getAncestors(key);
+        if (ancestors.any((final ancestor) => regExp.hasMatch(ancestor))) {
+          affectedKeys.add(key);
+        }
+      }
+    }
+    for (final key in affectedKeys) {
+      if (_cache.remove(key) != null) {
+        LoggerMetrics._cacheInvalidations++;
+      }
+    }
+  }
+
   /// Clears the entire logger cache.
   static void clear() {
     LoggerMetrics._cacheInvalidations += _cache.length;
@@ -562,6 +639,7 @@ class Logger {
   static int maxHierarchyDepth = 10;
 
   static final Set<String> _warnedDeepLoggers = {};
+  static final Set<String> _warnedHandlerTypes = {};
 
   /// Callback triggered when all configured handlers fail.
   ///
@@ -709,9 +787,11 @@ class Logger {
       return;
     }
 
-    // First validate all inputs to ensure correctness/atomicity
+    // First validate all inputs and stage names to ensure correctness/atomicity
     for (final entry in configurations.entries) {
+      final name = entry.key;
       final config = entry.value;
+
       if (config.stackMethodCount != null) {
         for (final smcEntry in config.stackMethodCount!.entries) {
           if (smcEntry.value < 0) {
@@ -719,7 +799,7 @@ class Logger {
               smcEntry.value,
               'stackMethodCount[${smcEntry.key}]',
               'Stack method count cannot be negative for logger '
-                  '"${entry.key}"',
+                  '"$name"',
             );
           }
         }
@@ -728,19 +808,25 @@ class Logger {
         throw ArgumentError.value(
           config.handlers,
           'handlers',
-          'Handlers list cannot be empty for logger "${entry.key}"',
+          'Handlers list cannot be empty for logger "$name"',
         );
       }
     }
 
+    final stagedUpdates = <String, LoggerConfig>{};
     final changedLoggers = <String>{};
+    final loggersToRegister = <String>{};
 
     for (final entry in configurations.entries) {
       final name = entry.key;
       final newConfig = entry.value;
       final normalized = _normalizeName(name);
-      _registerLogger(normalized);
-      final existingConfig = _registry[normalized]!;
+
+      if (!_registry.containsKey(normalized)) {
+        loggersToRegister.add(normalized);
+      }
+
+      final existingConfig = _registry[normalized] ?? const LoggerConfig();
 
       bool changed = false;
       final frozenFields = Set<String>.from(existingConfig.frozenFields);
@@ -892,7 +978,7 @@ class Logger {
       }
 
       if (changed) {
-        _registry[normalized] = existingConfig.copyWith(
+        stagedUpdates[normalized] = existingConfig.copyWith(
           enabled: newEnabled,
           logLevel: newLogLevel,
           includeFileLineInHeader: newIncludeFileLineInHeader,
@@ -907,12 +993,18 @@ class Logger {
         );
         changedLoggers.add(normalized);
       } else {
-        _registry[normalized] = existingConfig.copyWith(
+        stagedUpdates[normalized] = existingConfig.copyWith(
           frozenFields: frozenFields,
           implicit: false,
         );
       }
     }
+
+    // Apply staging changes
+    for (final name in loggersToRegister) {
+      _registerLogger(name);
+    }
+    _registry.addAll(stagedUpdates);
 
     if (changedLoggers.isNotEmpty) {
       LoggerCache.invalidateMultiple(changedLoggers);
@@ -982,15 +1074,32 @@ class Logger {
 
     final regExp = _patternToRegExp(pattern);
 
-    _patternRules.add(
-      _PatternRule(
-        pattern: pattern,
-        regExp: regExp,
-        config: config,
-      ),
+    final existingIdx =
+        _patternRules.indexWhere((final r) => r.pattern == pattern);
+    final rule = _PatternRule(
+      pattern: pattern,
+      regExp: regExp,
+      config: config,
     );
+    if (existingIdx != -1) {
+      _patternRules[existingIdx] = rule;
+    } else {
+      _patternRules.add(rule);
+    }
 
-    LoggerCache.clear();
+    LoggerCache.invalidatePattern(pattern);
+  }
+
+  /// Removes a pattern rule from the pattern configuration rules list.
+  ///
+  /// Restores dynamic resolution for loggers that were affected by the pattern.
+  /// Evicts all cached configurations.
+  static void removePattern(final String pattern) {
+    final initialLength = _patternRules.length;
+    _patternRules.removeWhere((final r) => r.pattern == pattern);
+    if (_patternRules.length < initialLength) {
+      LoggerCache.invalidatePattern(pattern);
+    }
   }
 
   static RegExp _patternToRegExp(final String pattern) {
@@ -1161,7 +1270,7 @@ class Logger {
     }
 
     int writtenCount = 0;
-    for (final key in _registry.keys.toList()) {
+    for (final key in _registry.keys) {
       if (key == name || _isDescendant(key, name)) {
         final childConfig = _registry[key]!;
         bool changed = false;
@@ -1737,8 +1846,14 @@ class Logger {
       return;
     }
     final frameCount = stackMethodCount[level] ?? 0;
+    final StackTrace trace;
+    if (stackTrace != null) {
+      trace = stackTrace;
+    } else {
+      trace = StackTrace.current;
+    }
     final parsed = stackTraceParser.parse(
-      stackTrace: stackTrace ?? StackTrace.current,
+      stackTrace: trace,
       skipFrames: _logMethodSkipFrames,
       maxFrames: frameCount,
     );
@@ -1764,13 +1879,19 @@ class Logger {
           await handler.log(entry);
           anySuccess = true;
         } catch (e, s) {
-          LoggerMetrics._handlerFailures++;
-          InternalLogger.log(
-            LogLevel.error,
-            'Handler failure: ${handler.runtimeType}',
-            error: e,
-            stackTrace: s,
-          );
+          LoggerMetrics.incrementHandlerFailures();
+          final typeString =
+              '${handler.runtimeType}:${handler.sink.runtimeType}';
+          if (_warnedHandlerTypes.add(typeString)) {
+            InternalLogger.log(
+              LogLevel.error,
+              'Handler failure: ${handler.runtimeType} with sink '
+              '${handler.sink.runtimeType} (further failures of this type '
+              'will be silenced)',
+              error: e,
+              stackTrace: s,
+            );
+          }
         }
       }
       if (!anySuccess && handlers.isNotEmpty) {
@@ -1860,6 +1981,7 @@ class Logger {
       _patternRules.clear();
       LoggerCache.clear();
       _warnedDeepLoggers.clear();
+      _warnedHandlerTypes.clear();
     } else {
       LoggerCache.invalidate(name);
       _registry.remove(name);
@@ -1924,6 +2046,10 @@ class LoggerMetrics {
   static void incrementBufferReleases() => _bufferReleases++;
   @internal
   static void incrementBufferLeaks() => _bufferLeaks++;
+  @internal
+  static void incrementHandlerFailures() => _handlerFailures++;
+  @internal
+  static void incrementDroppedBatches() => _droppedBatches++;
 
   static int _cacheHits = 0;
   static int _cacheMisses = 0;
@@ -1933,6 +2059,7 @@ class LoggerMetrics {
   static int _bufferReleases = 0;
   static int _bufferLeaks = 0;
   static int _drops = 0;
+  static int _droppedBatches = 0;
 
   /// The number of cache hits in the configuration resolution cache.
   ///
@@ -1981,6 +2108,9 @@ class LoggerMetrics {
   /// trace/debug calls are filtered at the fast-path.
   static int get drops => _drops;
 
+  /// The number of HTTP batches dropped due to persistent failures.
+  static int get droppedBatches => _droppedBatches;
+
   /// Returns a JSON-compatible snapshot of all counters.
   ///
   /// The map is suitable for serialization, structured logging, or export
@@ -1999,6 +2129,7 @@ class LoggerMetrics {
         'bufferReleases': _bufferReleases,
         'bufferLeaks': _bufferLeaks,
         'drops': _drops,
+        'droppedBatches': _droppedBatches,
       };
 
   /// Resets all metric counters to zero.
@@ -2014,5 +2145,6 @@ class LoggerMetrics {
     _bufferReleases = 0;
     _bufferLeaks = 0;
     _drops = 0;
+    _droppedBatches = 0;
   }
 }
