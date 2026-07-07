@@ -90,10 +90,9 @@ The construction of `LogEntry` objects is an automated internal concern. The `Lo
 
 ### Configuration
 - `Logger.configure(name, ...)` - Set configuration for a logger and its descendants
-- `Logger.configureMultiple(configurations)` - Configure multiple loggers at once using a map of logger names to `LoggerConfig` configurations (supports single-pass cache invalidation and atomic input validation)
-- `Logger.configurePattern(pattern, ...)` - Set configuration for loggers matching a wildcard pattern (e.g., `app.services.*` or `*.database`). Evaluation occurs dynamically during hierarchy resolution, and newer pattern rules take precedence over older ones.
-- Parameters for `configure`, `configureMultiple`, and `configurePattern`: `enabled`, `logLevel`, `includeFileLineInHeader`, `stackMethodCount`, `timestamp`, `stackTraceParser`, `handlers`, `autoSinkBuffer`
-- Changes propagate dynamically to descendants unless explicitly overridden
+- `Logger.configureMultiple(configurations)` - Configure multiple loggers at once using a map of logger names to `LoggerConfig` configurations. Input validation is atomic (all configurations are checked before registry modification), and descendants are invalidated in a single pass.
+- `Logger.configurePattern(pattern, ...)` - Set configuration for loggers matching a wildcard pattern (e.g., `app.services.*` or `*.database`). Evaluation occurs dynamically during hierarchy resolution, and newer pattern rules take precedence. Deduplicates identically named patterns in place.
+- `Logger.removePattern(pattern)` - Remove a wildcard pattern rule from the registry. This automatically invalidates any cached loggers affected by the rule (pattern-scoped invalidation).
 
 ### Logging Methods
 - `logger.trace(message, {error, stackTrace})` - Fine-grained diagnostics
@@ -138,7 +137,7 @@ try {
 ### Observability & Metrics
 
 `logd` provides zero-cost internal telemetry to monitor the health of your logging pipeline:
-- **`LoggerMetrics.toJson()`**: Returns a snapshot of internal counters (`cacheHits`, `cacheMisses`, `drops`, `bufferLeaks`, `handlerFailures`, etc.).
+- **`LoggerMetrics.toJson()`**: Returns a snapshot of internal counters (`cacheHits`, `cacheMisses`, `drops`, `bufferLeaks`, `handlerFailures`, `droppedBatches`, etc.).
 - **`LoggerMetrics.reset()`**: Resets all counters to zero.
 
 ### Graceful Fallback
