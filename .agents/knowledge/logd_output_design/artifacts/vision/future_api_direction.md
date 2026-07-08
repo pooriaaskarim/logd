@@ -198,3 +198,23 @@ All changes to the public API should follow this discipline:
 4. **Never collapse the pipeline.** The Formatter → Decorator → Encoder
    separation must remain accessible at all times. The facade is a layer
    above it, not a replacement for it.
+
+---
+
+## Philosophical Design Principles
+
+### Principle 1: Surface-Medium Orthogonality
+A common design flaw in logging themes is conflating the *colors of the log levels* (e.g. "what color is an info log?") with the *canvas background on which they are printed* (e.g. "is the background black or white?").
+- **Terminals** are self-governing surfaces. The terminal emulator maps ANSI codes (`\e[34m` for blue) onto its user-configured palette. Therefore, `AnsiEncoder` remains surface-agnostic.
+- **Files** (HTML, Markdown, PDF) are controlled surfaces. The encoder decides the background.
+We decouple these via the `LogSurface` configuration. A theme describes the semantic palette, and specifies its target `LogSurface` (dark/light). The rendering encoder uses the surface context to determine CSS backgrounds, border colors, and badge texts, keeping the core formatting logic pure and medium-agnostic.
+
+### Principle 2: Self-Declaring Modularity (Encapsulation of Wrapping)
+Modularity should not require explicit coordination by the developer. Under the current API, developers must manually align the encoder's structure (e.g. `HtmlEncoder` requiring `preamble`/`postamble`) with the sink's wrapping strategy (`WrappingStrategy.document`). This leaks implementation details.
+In our future vision, encoders declare their own structural wrapper constraints (`requiredStrategy`). Sinks inspect this field and configure the file pipeline automatically. The user registers the encoder, and the system resolves the necessary wrapping implicitly, integrating simplicity into the underlying complexity.
+
+### Principle 3: Lifecycle Safety & Clean Teardown
+Sinks that write complex file types (such as HTML or XML) require deterministic finalization to inject closing structures (e.g. `postamble()` for scripts and closing tags).
+If loggers are global singletons, their lifecycle is indefinite. Deleting or disposing the sink manually creates a race condition where subsequent logging calls write to a disposed handle.
+We must transition to a **Session/Handle** pattern where the logger config returns a closeable session handle that manages teardown atomically, ensuring all files are correctly flushed, finalized, and locked.
+

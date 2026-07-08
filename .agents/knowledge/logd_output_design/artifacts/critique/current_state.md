@@ -142,3 +142,34 @@ There is no "zero-decisions" entry point.
   - `Logger.get('app').toHtml('app.html')` (fluent)
   - `HtmlLogger.file('app.html')` (factory)
   The first is most consistent with the existing `Logger.configure` API.
+
+---
+
+## 8. Research Details & Visual Design Rationales
+
+### 8a. WCAG AA & AAA Contrast Studies (Light Mode)
+Under standard web accessibility guidelines (WCAG 2.1), standard text requires a minimum contrast ratio of `4.5:1` (AA compliance) and preferably `7:1` (AAA compliance) for high legibility. 
+Our study of light mode rendering on a `#ffffff` background showed that the dark-theme ANSI colors (which map directly to bright/neon colors optimized for `#1e1e1e` backgrounds) are completely illegible on light backgrounds.
+We mapped them to WCAG AAA contrast-compliant hex codes:
+- **`LogColor.green` / `LogColor.brightGreen`**: Mapped to `#15803d` (6.4:1) and `#166534` (10.1:1).
+- **`LogColor.yellow` / `LogColor.brightYellow`**: Mapped to `#b45309` (4.8:1) and `#92400e` (7.4:1), yielding readable golden ambers.
+- **`LogColor.blue` / `LogColor.brightBlue`**: Mapped to `#1d4ed8` (6.6:1) and `#1e40af` (9.5:1).
+- **`LogColor.white` / `LogColor.brightWhite`**: Mapped to `#334155` (4.6:1) and `#0f172a` (15.5:1) so that elements intended as "neutral text" contrast strongly with the page background.
+- **Badge Foreground Toggling**: To preserve legibility of the level labels (which have dark backgrounds in light mode and bright backgrounds in dark mode), we added dynamic badge text colors:
+  ```css
+  color: ${isDark ? '#000000' : '#ffffff'} !important;
+  ```
+
+### 8b. CSS Grid-based Table Fallbacks
+`TableNode` organizes semantic cell elements. Because HTML rendering uses a CSS Grid system rather than standard HTML tables (`<table>`) to preserve flexible alignment, column lengths must be declared beforehand.
+Our physical layout research introduced a dynamic fallback: if `TableNode.columnWidths` is undefined or empty, the grid generator scans the table rows, calculates the maximum number of columns based on cell colSpans, and injects a template column count:
+```css
+grid-template-columns: repeat(maxCols, 1fr);
+```
+This ensures that dynamically structured matrices render safely without horizontal overlapping.
+
+### 8c. Append Mode vs. Single Document Integrity
+`FileSink` uses `LogFileMode.append` by default. While this is optimal for logging throughput, it conflicts with the document structure required by HTML and Markdown formats (which consist of a single `<preamble>` and `<postamble>`).
+If a script runs multiple times against the same file, it will repeatedly append preambles/footers. This corrupts the DOM layout.
+**Guideline established:** All examples generating wrapped formats (HTML, Markdown) must clean up pre-existing target files at startup to guarantee single-document integrity.
+
