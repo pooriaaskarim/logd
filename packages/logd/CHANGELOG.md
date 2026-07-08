@@ -26,6 +26,14 @@ This release focuses on codebase hardening, lifecycle guarantees, memory boundar
   - **Multi-Isolate Stress Testing**: Added a concurrency stress test verifying 10,000 concurrent logs across 5 isolates with zero deadlocks or memory leaks.
   - **Descriptive Configuration Warnings**: Hardened JSON configuration parsers to raise descriptive `FormatException` on mismatched parameter types.
 
+- ### HTML Encoder Enhancements
+  - **Interactive Control Panel**: Injected real-time search filtering and interactive log level filters with matching live counter displays inside the preamble of generated HTML documents.
+  - **Copy-to-Clipboard Utility**: Added an inline copy action to every log entry, supporting modern Clipboard API and fallback methods with micro-animations.
+  - **Premium Typography & Aesthetics**: Leveraged Google Fonts (Outfit, Inter) alongside CSS Grid layouts to produce a high-fidelity visual layout.
+  - **Contrast & Accessibility Optimization**: Implemented high-contrast color mappings (`_lightColorMap`) for light mode to meet WCAG readability standards on white backgrounds.
+  - **Explicit Theme Controls**: Added the `darkMode` option to `HtmlEncoder` constructors to override background and text modes regardless of theme colors.
+  - **Showcase Stability**: Overhauled example targets to purge existing files on startup, avoiding repeated preambles and corrupt append states.
+
 ## 0.8.6: Sub-Library Restructuring & Critical Web Compilation Fix
 
 This patch release fixes a critical, long-standing issue that broke compilation under Web (JS/WASM) environments due to platform-incompatible imports of `dart:ffi` and `dart:io` in the native logging handlers.
