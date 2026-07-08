@@ -1,6 +1,7 @@
 library;
 
 import 'dart:async';
+import 'dart:collection';
 import 'dart:ffi' as ffi;
 import 'dart:isolate';
 import 'dart:math' show max;
@@ -81,8 +82,21 @@ class Arena implements LogPipelineFactory {
   // --- Native Memory Pool (B-IR Dispatch) ---
   final List<_NativeBuffer> _freeNativeBuffers = [];
   final Map<int, _NativeBuffer> _inFlightNativeBuffers = {};
-  late final ReceivePort _completionPort = ReceivePort()
-    ..listen(_handlePacketCompletion);
+
+  /// The number of native packets currently in-flight.
+  @internal
+  int get inFlightCount => _inFlightNativeBuffers.length;
+
+  ReceivePort? _completionPort;
+
+  @internal
+  ReceivePort get completionPort {
+    final port = _completionPort;
+    if (port != null) {
+      return port;
+    }
+    return _completionPort = ReceivePort()..listen(_handlePacketCompletion);
+  }
 
   static const _defaultPacketSize = 64 * 1024; // 64KB
 
@@ -92,12 +106,15 @@ class Arena implements LogPipelineFactory {
   /// the main thread blocks (backpressure).
   static const int maxInFlightPackets = 200;
 
+  /// The maximum capacity for any single type pool in the Arena.
+  static const int _maxPoolSize = 1000;
+
   bool _saturationWarningFired = false;
 
   /// The maximum total native memory (in bytes) the arena can allocate.
   static const int maxNativeMemory = 128 * 1024 * 1024; // 128MB
 
-  Completer<void>? _poolCapacityWaiter;
+  final List<Completer<void>> _poolWaiters = [];
 
   void _handlePacketCompletion(final dynamic address) {
     if (address is int) {
@@ -112,9 +129,13 @@ class Arena implements LogPipelineFactory {
           _saturationWarningFired = false;
         }
 
-        if (_poolCapacityWaiter != null && !_poolCapacityWaiter!.isCompleted) {
-          _poolCapacityWaiter!.complete();
-          _poolCapacityWaiter = null;
+        if (_poolWaiters.isNotEmpty) {
+          for (final waiter in _poolWaiters) {
+            if (!waiter.isCompleted) {
+              waiter.complete();
+            }
+          }
+          _poolWaiters.clear();
         }
       }
     }
@@ -128,8 +149,9 @@ class Arena implements LogPipelineFactory {
 
     final sw = Stopwatch()..start();
     while (_inFlightNativeBuffers.length >= maxInFlightPackets) {
-      _poolCapacityWaiter ??= Completer<void>();
-      await _poolCapacityWaiter!.future;
+      final waiter = Completer<void>();
+      _poolWaiters.add(waiter);
+      await waiter.future;
     }
     sw.stop();
     if (sw.elapsedMilliseconds > 10) {
@@ -180,7 +202,7 @@ class Arena implements LogPipelineFactory {
       address: buffer.pointer.address,
       length: buffer.offset,
       terminalWidth: terminalWidth,
-      completionPort: _completionPort.sendPort,
+      completionPort: completionPort.sendPort,
     );
   }
 
@@ -196,9 +218,13 @@ class Arena implements LogPipelineFactory {
     _inFlightNativeBuffers.clear();
 
     // Release any blocked threads
-    if (_poolCapacityWaiter != null && !_poolCapacityWaiter!.isCompleted) {
-      _poolCapacityWaiter!.complete();
-      _poolCapacityWaiter = null;
+    if (_poolWaiters.isNotEmpty) {
+      for (final waiter in _poolWaiters) {
+        if (!waiter.isCompleted) {
+          waiter.complete();
+        }
+      }
+      _poolWaiters.clear();
     }
   }
 
@@ -274,8 +300,10 @@ class Arena implements LogPipelineFactory {
   /// Releases a [LogEntry] back to the pool.
   @internal
   void releaseLogEntry(final LogEntry entry) {
-    entry.reset();
-    _logEntries.add(entry);
+    if (_logEntries.length < _maxPoolSize) {
+      entry.reset();
+      _logEntries.add(entry);
+    }
   }
 
   /// Completely clears all object pools and reclaims all native memory.
@@ -314,6 +342,11 @@ class Arena implements LogPipelineFactory {
     _segmentLists.clear();
     _dynamicLists.clear();
     _metadataSets.clear();
+
+    if (_completionPort != null) {
+      _completionPort!.close();
+      _completionPort = null;
+    }
 
     reclaimInFlightBuffers();
     for (final buffer in _freeNativeBuffers) {
@@ -477,135 +510,185 @@ class Arena implements LogPipelineFactory {
   void release(final Object obj) {
     switch (obj) {
       case final LogDocument d:
-        d.reset();
-        _documents.add(d);
+        if (_documents.length < _maxPoolSize) {
+          d.reset();
+          _documents.add(d);
+        }
         return;
       case final HeaderNode n:
-        n.reset();
-        _headers.add(n);
+        if (_headers.length < _maxPoolSize) {
+          n.reset();
+          _headers.add(n);
+        }
         return;
       case final MessageNode n:
-        n.reset();
-        _messages.add(n);
+        if (_messages.length < _maxPoolSize) {
+          n.reset();
+          _messages.add(n);
+        }
         return;
       case final ErrorNode n:
-        n.reset();
-        _errors.add(n);
+        if (_errors.length < _maxPoolSize) {
+          n.reset();
+          _errors.add(n);
+        }
         return;
       case final FooterNode n:
-        n.reset();
-        _footers.add(n);
+        if (_footers.length < _maxPoolSize) {
+          n.reset();
+          _footers.add(n);
+        }
         return;
       case final MetadataNode n:
-        n.reset();
-        _metadataNodes.add(n);
+        if (_metadataNodes.length < _maxPoolSize) {
+          n.reset();
+          _metadataNodes.add(n);
+        }
         return;
       case final BoxNode n:
-        n.reset();
-        _boxes.add(n);
+        if (_boxes.length < _maxPoolSize) {
+          n.reset();
+          _boxes.add(n);
+        }
         return;
       case final IndentationNode n:
-        n.reset();
-        _indents.add(n);
+        if (_indents.length < _maxPoolSize) {
+          n.reset();
+          _indents.add(n);
+        }
         return;
       case final GroupNode n:
-        n.reset();
-        _groups.add(n);
+        if (_groups.length < _maxPoolSize) {
+          n.reset();
+          _groups.add(n);
+        }
         return;
       case final DecoratedNode n:
-        n.reset();
-        _decorated.add(n);
+        if (_decorated.length < _maxPoolSize) {
+          n.reset();
+          _decorated.add(n);
+        }
         return;
       case final ParagraphNode n:
-        n.reset();
-        _paragraphs.add(n);
+        if (_paragraphs.length < _maxPoolSize) {
+          n.reset();
+          _paragraphs.add(n);
+        }
         return;
       case final RowNode n:
-        n.reset();
-        _rows.add(n);
+        if (_rows.length < _maxPoolSize) {
+          n.reset();
+          _rows.add(n);
+        }
         return;
       case final SectionNode n:
-        n.reset();
-        _sections.add(n);
+        if (_sections.length < _maxPoolSize) {
+          n.reset();
+          _sections.add(n);
+        }
         return;
       case final FillerNode n:
-        n.reset();
-        _fillers.add(n);
+        if (_fillers.length < _maxPoolSize) {
+          n.reset();
+          _fillers.add(n);
+        }
         return;
       case final MapNode n:
-        n.reset();
-        _maps.add(n);
+        if (_maps.length < _maxPoolSize) {
+          n.reset();
+          _maps.add(n);
+        }
         return;
       case final ListNode n:
-        n.reset();
-        _lists.add(n);
+        if (_lists.length < _maxPoolSize) {
+          n.reset();
+          _lists.add(n);
+        }
         return;
       case final AlignmentNode n:
-        n.reset();
-        _alignments.add(n);
+        if (_alignments.length < _maxPoolSize) {
+          n.reset();
+          _alignments.add(n);
+        }
         return;
       case final TableNode n:
-        n.reset();
-        _tables.add(n);
+        if (_tables.length < _maxPoolSize) {
+          n.reset();
+          _tables.add(n);
+        }
         return;
       case final TableRowNode n:
-        n.reset();
-        _tableRows.add(n);
+        if (_tableRows.length < _maxPoolSize) {
+          n.reset();
+          _tableRows.add(n);
+        }
         return;
       case final TableCellNode n:
-        n.reset();
-        _tableCells.add(n);
+        if (_tableCells.length < _maxPoolSize) {
+          n.reset();
+          _tableCells.add(n);
+        }
         return;
       case final HandlerContext c:
-        c.reset();
-        _contexts.add(c);
+        if (_contexts.length < _maxPoolSize) {
+          c.reset();
+          _contexts.add(c);
+        }
         return;
       case final PhysicalLine l:
-        l.reset();
-        _physicalLines.add(l);
+        if (_physicalLines.length < _maxPoolSize) {
+          l.reset();
+          _physicalLines.add(l);
+        }
         return;
       case final PhysicalDocument d:
-        d.reset();
-        _physicalDocuments.add(d);
+        if (_physicalDocuments.length < _maxPoolSize) {
+          d.reset();
+          _physicalDocuments.add(d);
+        }
         return;
       case final Map<String, Object?> m:
         if (m.runtimeType == _typeOf<Map<String, Object?>>()) {
-          try {
+          if (m is! UnmodifiableMapView && _dataMaps.length < _maxPoolSize) {
             m.clear();
             _dataMaps.add(m);
-          } catch (_) {}
+          }
         }
         return;
       case final List<StyledText> l:
         if (l.runtimeType == _typeOf<List<StyledText>>()) {
-          try {
+          if (l is! UnmodifiableListView &&
+              _segmentLists.length < _maxPoolSize) {
             l.clear();
             _segmentLists.add(l);
-          } catch (_) {}
+          }
         }
         return;
       case final List<LogNode> l:
         if (l.runtimeType == _typeOf<List<LogNode>>()) {
-          try {
+          if (l is! UnmodifiableListView && _nodeLists.length < _maxPoolSize) {
             l.clear();
             _nodeLists.add(l);
-          } catch (_) {}
+          }
         }
         return;
       case final List l:
         if (l.runtimeType == _typeOf<List<dynamic>>()) {
-          try {
+          if (l is! UnmodifiableListView &&
+              _dynamicLists.length < _maxPoolSize) {
             l.clear();
             _dynamicLists.add(l);
-          } catch (_) {}
+          }
         }
         return;
       case final Set<LogMetadata> s:
         if (s.runtimeType == _typeOf<Set<LogMetadata>>()) {
-          try {
-            s.clear();
-            _metadataSets.add(s);
-          } catch (_) {}
+          if (_metadataSets.length < _maxPoolSize) {
+            try {
+              s.clear();
+              _metadataSets.add(s);
+            } catch (_) {}
+          }
         }
         return;
     }
@@ -643,7 +726,10 @@ class Arena implements LogPipelineFactory {
 
   /// Frees all native memory. Should only be called on isolate shutdown.
   void disposeNative() {
-    _completionPort.close();
+    if (_completionPort != null) {
+      _completionPort!.close();
+      _completionPort = null;
+    }
 
     for (final buffer in _freeNativeBuffers) {
       pkg_ffi.malloc.free(buffer.pointer);

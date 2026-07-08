@@ -15,7 +15,7 @@ void main() {
       const theme = LogTheme(
         colorScheme: LogColorScheme(
           trace: LogColor.green,
-          debug: LogColor.white,
+          debug: LogColor.brightWhite,
           info: LogColor.blue,
           warning: LogColor.yellow,
           error: LogColor.red,
@@ -186,7 +186,7 @@ void main() {
       const theme = LogTheme(
         colorScheme: LogColorScheme(
           trace: LogColor.green,
-          debug: LogColor.white,
+          debug: LogColor.brightWhite,
           info: LogColor.blue,
           warning: LogColor.yellow,
           error: LogColor.red,
@@ -263,6 +263,124 @@ void main() {
 
       // Check responsive wrapping class
       expect(output, contains('class="log-line log-map"'));
+    });
+
+    test('preamble contains control panel markup and font imports', () {
+      const HtmlEncoder().preamble(context, LogLevel.info, factory);
+      final output = String.fromCharCodes(context.takeBytes());
+
+      expect(
+        output,
+        contains('family=Outfit:wght@300;400;500;600;700;800;900'),
+      );
+      expect(output, contains('family=Inter:wght@300;400;500;600;700;800'));
+      expect(output, contains('<div class="log-control-panel">'));
+      expect(output, contains('<input type="text" id="log-search-input"'));
+      expect(output, contains('id="filter-trace"'));
+      expect(output, contains('id="btn-expand-all"'));
+    });
+
+    test('postamble contains javascript block', () {
+      const HtmlEncoder().postamble(context, LogLevel.info, factory);
+      final output = String.fromCharCodes(context.takeBytes());
+
+      expect(output, contains('<script>'));
+      expect(output, contains('function applyFilters()'));
+      expect(output, contains('function copyLogEntry('));
+      expect(output, contains('</script>'));
+    });
+
+    test('encode includes copy button for each log entry', () {
+      final document = factory.checkoutDocument();
+      document.nodes.add(
+        factory.checkoutMessage()
+          ..segments.add(const StyledText('Plain message')),
+      );
+
+      const HtmlEncoder().encode(
+        LogEntry(
+          level: LogLevel.info,
+          message: 'Plain message',
+          loggerName: 'test',
+          timestamp: '2026-03-22',
+          origin: 'test.dart:1',
+        ),
+        document,
+        LogLevel.info,
+        context,
+        factory,
+      );
+
+      final output = String.fromCharCodes(context.takeBytes());
+      expect(output, contains('<button class="log-copy-btn"'));
+      expect(output, contains('svg'));
+    });
+
+    test('TableNode with empty columnWidths falls back to repeat(maxCols, 1fr)',
+        () {
+      final document = factory.checkoutDocument();
+      final table = factory.checkoutTable();
+      final row = TableRowNode(
+        children: [
+          TableCellNode(
+            children: [
+              factory.checkoutMessage()..segments.add(const StyledText('C1')),
+            ],
+          ),
+          TableCellNode(
+            children: [
+              factory.checkoutMessage()..segments.add(const StyledText('C2')),
+            ],
+          ),
+        ],
+      );
+      table.children.add(row);
+      document.nodes.add(table);
+
+      const HtmlEncoder().encode(
+        LogEntry(
+          level: LogLevel.info,
+          message: 'msg',
+          loggerName: 'test',
+          timestamp: '2026-03-22',
+          origin: 'test.dart:1',
+        ),
+        document,
+        LogLevel.info,
+        context,
+        factory,
+      );
+
+      final output = String.fromCharCodes(context.takeBytes());
+      expect(output, contains('grid-template-columns: repeat(2, 1fr)'));
+    });
+
+    test('MapNode keys are properly HTML escaped (XSS safety)', () {
+      final document = factory.checkoutDocument();
+      document.nodes.add(
+        factory.checkoutMap()
+          ..map = {
+            '<script>alert(1)</script>': 'value',
+          },
+      );
+
+      const HtmlEncoder().encode(
+        LogEntry(
+          level: LogLevel.info,
+          message: 'msg',
+          loggerName: 'test',
+          timestamp: '2026-03-22',
+          origin: 'test.dart:1',
+        ),
+        document,
+        LogLevel.info,
+        context,
+        factory,
+      );
+
+      final output = String.fromCharCodes(context.takeBytes());
+      expect(output, contains('&lt;script&gt;alert(1)&lt;/script&gt;'));
+      expect(output, isNot(contains('<script>alert(1)</script>')));
     });
   });
 }

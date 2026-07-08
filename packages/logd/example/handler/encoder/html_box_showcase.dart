@@ -8,13 +8,23 @@ void main() async {
   final darkFile = File('logs/html_boxed_dark.html');
   final lightFile = File('logs/html_boxed_light.html');
 
+  if (darkFile.existsSync()) darkFile.deleteSync();
+  if (lightFile.existsSync()) lightFile.deleteSync();
+
   // Scenarios
-  final darkSink = FileSink(darkFile.path, encoder: const HtmlEncoder());
-  final lightSink = FileSink(lightFile.path,
-      encoder: const HtmlEncoder(
-        darkMode: false,
-        title: 'Light Boxed Logs',
-      ));
+  final darkSink = FileSink(
+    darkFile.path,
+    encoder: const HtmlEncoder(),
+    strategy: WrappingStrategy.document,
+  );
+  final lightSink = FileSink(
+    lightFile.path,
+    encoder: const HtmlEncoder(
+      darkMode: false,
+      title: 'Light Boxed Logs',
+    ),
+    strategy: WrappingStrategy.document,
+  );
 
   final darkHandler = Handler(
     formatter: const StructuredFormatter(),

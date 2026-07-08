@@ -87,6 +87,16 @@ void _showcaseHierarchy() {
   Logger.configure('app.services.database', logLevel: LogLevel.error);
   database.info('This will NOT be printed.');
   database.error('Critical database failure!');
+
+  // --- Dynamic Wildcard Pattern Matching (v0.8.7+) ---
+  // You can also match loggers dynamically by pattern.
+  // Overwrite any *.database loggers with a warning level threshold.
+  Logger.configurePattern('*.database', logLevel: LogLevel.warning);
+  database.info('Pattern Override: Database info log (will not print).');
+  database.warning('Pattern Override: Database warning log (WILL print!).');
+
+  // Clean up pattern rule to restore default inheritance
+  Logger.removePattern('*.database');
 }
 
 /// 3. Pipeline Architecture: Handlers, Formatters, & Decorators
@@ -338,6 +348,7 @@ Future<void> _showcaseNetwork() async {
         batchSize: 2, // Flush every 2 logs
         flushInterval: const Duration(seconds: 1),
       ),
+      timeout: const Duration(seconds: 5), // v0.8.7+ Handler timeout safeguard
     );
 
     Logger.configure('app.network', handlers: [networkHandler]);

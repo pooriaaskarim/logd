@@ -7,9 +7,15 @@ void main() async {
   // Ensure logs directory exists
   Directory('logs').createSync(recursive: true);
 
+  final darkFile = File('logs/html_enhanced_dark.html');
+  final lightFile = File('logs/html_enhanced_light.html');
+
+  if (darkFile.existsSync()) darkFile.deleteSync();
+  if (lightFile.existsSync()) lightFile.deleteSync();
+
   // 1. Dark Theme (High-end terminal feel)
   final darkSink = FileSink(
-    'logs/html_enhanced_dark.html',
+    darkFile.path,
     encoder: const HtmlEncoder(
       darkMode: true,
       title: 'Dark Performance Dashboard',
@@ -19,11 +25,11 @@ void main() async {
 
   // 2. Custom Pastel Theme
   final pastelTheme = const LogTheme(
-    colorScheme: LogColorScheme.pastelScheme,
+    colorScheme: LogColorScheme.darkScheme,
     messageStyle: LogStyle(italic: true),
   );
   final lightSink = FileSink(
-    'logs/html_enhanced_light.html',
+    lightFile.path,
     encoder: HtmlEncoder(
       theme: pastelTheme,
       title: 'Light Pastel Report',

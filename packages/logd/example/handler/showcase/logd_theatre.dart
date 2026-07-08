@@ -141,9 +141,10 @@ void main() async {
 
 void _prepareDirectories(final String path) {
   final dir = io.Directory(path);
-  if (!dir.existsSync()) {
-    dir.createSync(recursive: true);
+  if (dir.existsSync()) {
+    dir.deleteSync(recursive: true);
   }
+  dir.createSync(recursive: true);
 }
 
 void _performInvalidDatabaseOperation() {

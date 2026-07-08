@@ -11,15 +11,24 @@
 // 3. Mobile Container (Squeezed 1200-char width for responsiveness)
 
 import 'package:logd/logd.dart';
+import 'dart:io';
 
 void main() async {
   print('=== Logd / HTML Reporting Matrix ===\n');
+
+  final darkFile = File('logs/dashboard_dark.html');
+  final lightFile = File('logs/report_light.html');
+  final mobileFile = File('logs/mobile_view.html');
+
+  if (darkFile.existsSync()) darkFile.deleteSync();
+  if (lightFile.existsSync()) lightFile.deleteSync();
+  if (mobileFile.existsSync()) mobileFile.deleteSync();
 
   // ---------------------------------------------------------------------------
   // SCENARIO 1: The "Technical Dashboard" (Dark Mode)
   // ---------------------------------------------------------------------------
   final darkSink = FileSink(
-    'logs/dashboard_dark.html',
+    darkFile.path,
     encoder: const HtmlEncoder(darkMode: true),
     strategy: WrappingStrategy.document,
   );
@@ -32,7 +41,7 @@ void main() async {
   // SCENARIO 2: The "Printable Report" (Light Mode)
   // ---------------------------------------------------------------------------
   final lightSink = FileSink(
-    'logs/report_light.html',
+    lightFile.path,
     encoder: const HtmlEncoder(darkMode: false),
     strategy: WrappingStrategy.document,
   );
@@ -46,7 +55,7 @@ void main() async {
   // Goal: Test that HTML blocks wrap correctly when width is restricted.
   // ---------------------------------------------------------------------------
   final mobileSink = FileSink(
-    'logs/mobile_view.html',
+    mobileFile.path,
     encoder: const HtmlEncoder(darkMode: true),
     strategy: WrappingStrategy.document,
     lineLength: 40,
