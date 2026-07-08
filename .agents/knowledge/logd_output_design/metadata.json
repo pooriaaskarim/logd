@@ -1,0 +1,17 @@
+{
+  "title": "Logd Output & API Design: Living Critique",
+  "summary": "A living knowledge base capturing the design critique, theming architecture analysis, and futuristic API vision for logd's output pipeline. Documents the current state of HtmlEncoder, AnsiEncoder, MarkdownEncoder, the Handler/Sink/Encoder/Formatter composition model, WrappingStrategy, and theme ownership. Captures both what is correct and what is immature, with a forward-looking, non-breaking roadmap philosophy. Intended to grow as logd matures through real user interactions. Current design tensions: Formatter/Encoder naming ambiguity, WrappingStrategy as invisible user tax, theme split across pipeline stages, missing Beginner Path (LogOutput facade), absent LogSurface concept in LogTheme, and sink lifecycle ownership confusion.",
+  "references": [
+    { "type": "conversation_id", "value": "d882b493-214f-4397-b45e-83cb989a25de" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/encoder/html_encoder.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/encoder/ansi_encoder.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/encoder/markdown_encoder.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/encoder/log_encoder.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/encoder/auto_console_encoder.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/sink/encoding_sink.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/sink/console_sink.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/sink/file_sink_native.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/handler/handler.dart" },
+    { "type": "file", "value": "/home/ono/Projects/logd/packages/logd/lib/src/core/theme/log_theme.dart" }
+  ]
+}
