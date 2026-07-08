@@ -160,7 +160,14 @@ class StandardDocument extends LogDocument {
   void reset() {
     nodes.clear();
     metadata.clear();
-    _nodeStack.clear();
+    while (_nodeStack.isNotEmpty) {
+      InternalLogger.log(
+        LogLevel.warning,
+        'reset() called on document with non-empty node stack '
+        '— leaked container node.',
+      );
+      _nodeStack.removeLast();
+    }
   }
 
   @override
@@ -236,6 +243,10 @@ class StandardDocument extends LogDocument {
 
   @override
   void endBox() {
+    assert(
+      _nodeStack.isNotEmpty,
+      'Mismatched endBox() — node stack is empty. Check formatter for unbalanced start/end calls.',
+    );
     if (_nodeStack.isNotEmpty) {
       _nodeStack.removeLast();
     }
@@ -259,6 +270,10 @@ class StandardDocument extends LogDocument {
 
   @override
   void endIndent() {
+    assert(
+      _nodeStack.isNotEmpty,
+      'Mismatched endIndent() — node stack is empty. Check formatter for unbalanced start/end calls.',
+    );
     if (_nodeStack.isNotEmpty) {
       _nodeStack.removeLast();
     }
@@ -290,6 +305,10 @@ class StandardDocument extends LogDocument {
 
   @override
   void endAlignment() {
+    assert(
+      _nodeStack.isNotEmpty,
+      'Mismatched endAlignment() — node stack is empty. Check formatter for unbalanced start/end calls.',
+    );
     if (_nodeStack.isNotEmpty) {
       _nodeStack.removeLast();
     }
@@ -308,6 +327,10 @@ class StandardDocument extends LogDocument {
 
   @override
   void endTable() {
+    assert(
+      _nodeStack.isNotEmpty,
+      'Mismatched endTable() — node stack is empty. Check formatter for unbalanced start/end calls.',
+    );
     if (_nodeStack.isNotEmpty) {
       _nodeStack.removeLast();
     }
@@ -323,6 +346,10 @@ class StandardDocument extends LogDocument {
 
   @override
   void endRow() {
+    assert(
+      _nodeStack.isNotEmpty,
+      'Mismatched endRow() — node stack is empty. Check formatter for unbalanced start/end calls.',
+    );
     if (_nodeStack.isNotEmpty) {
       _nodeStack.removeLast();
     }
@@ -344,6 +371,10 @@ class StandardDocument extends LogDocument {
 
   @override
   void endCell() {
+    assert(
+      _nodeStack.isNotEmpty,
+      'Mismatched endCell() — node stack is empty. Check formatter for unbalanced start/end calls.',
+    );
     if (_nodeStack.isNotEmpty) {
       _nodeStack.removeLast();
     }
@@ -367,6 +398,10 @@ class StandardDocument extends LogDocument {
 
   @override
   void endDecorated() {
+    assert(
+      _nodeStack.isNotEmpty,
+      'Mismatched endDecorated() — node stack is empty. Check formatter for unbalanced start/end calls.',
+    );
     if (_nodeStack.isNotEmpty) {
       _nodeStack.removeLast();
     }

@@ -155,11 +155,13 @@ The Handler module handles edge cases robustly, ensuring reliable operation unde
 - Sequential ANSI codes handled accurately.
 - Colors integrate correctly with box decorators.
 
-### Error Handling
-- Formatter exceptions propagate as expected
-- Decorator exceptions managed appropriately
-- Sink failures logged via InternalLogger
-- Filter exceptions prevent pipeline crashes
+### Error Handling & Pipeline Resilience
+- **Formatter & Decorator safety**: Exceptions in formatters/decorators are caught and managed appropriately.
+- **Handler Timeouts (v0.8.7+)**: Handlers support an optional `timeout` parameter. If sink execution blocks beyond the timeout, a `TimeoutException` is raised, incrementing `LoggerMetrics.handlerFailures`.
+- **Sink Failures & Rate-Limiting**: Sink failures are logged to `InternalLogger`. Warnings are rate-limited per-type to avoid spamming the console when a sink repeatedly fails.
+- **Exponential Backoff**: `SocketSink` reconnection attempts employ exponential backoff capped at 5 minutes to avoid spamming host servers.
+- **Network Drop Callback**: `HttpSink` provides an `onDropped` callback to let developers intercept and handle batches dropped due to persistent network errors.
+- **Filter safety**: Exceptions in filters are caught to prevent pipeline crashes.
 
 ### Decorator Composition
 - Duplicate decorators automatically deduplicated

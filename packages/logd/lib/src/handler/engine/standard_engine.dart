@@ -26,20 +26,22 @@ class StandardEngine implements LogEngine {
   ) async {
     final document = factory.checkoutDocument();
 
-    // 1. Format
-    formatter.format(entry, document, factory);
+    try {
+      // 1. Format
+      formatter.format(entry, document, factory);
 
-    // 2. Decorate
-    if (decorators.isNotEmpty) {
-      DecoratorPipeline(decorators).apply(document, entry, factory);
+      // 2. Decorate
+      if (decorators.isNotEmpty) {
+        DecoratorPipeline(decorators).apply(document, entry, factory);
+      }
+
+      // 3. Output
+      if (document.nodes.isNotEmpty) {
+        await sink.output(document, entry, entry.level, factory);
+      }
+    } finally {
+      factory.release(document);
     }
-
-    // 3. Output
-    if (document.nodes.isNotEmpty) {
-      await sink.output(document, entry, entry.level, factory);
-    }
-
-    // Note: No explicit release needed as we rely on GC.
   }
 }
 

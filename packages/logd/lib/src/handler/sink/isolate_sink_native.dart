@@ -170,10 +170,25 @@ base class NativeIsolateSink extends LogSink<dynamic> {
   SendPort? _commandPort;
   ReceivePort? _errorPort;
   Isolate? _isolate;
+
+  /// Exposes the background worker Isolate for testing.
+  @visibleForTesting
+  Isolate? get isolate => _isolate;
+
   final Completer<void> _ready = Completer<void>();
   final List<Object> _buffer = [];
+  bool _workerDead = false;
+
+  /// Exposes whether the worker has crashed/died.
+  @visibleForTesting
+  bool get workerDead => _workerDead;
+
+  bool _isDisposed = false;
+  bool _bufferOverflowWarningFired = false;
+  static const int _maxPreReadyBuffer = 200;
 
   Future<void> _start() async {
+    _workerDead = false;
     final receivePort = ReceivePort();
     _errorPort = ReceivePort();
 
@@ -191,6 +206,19 @@ base class NativeIsolateSink extends LogSink<dynamic> {
       );
       // Reclaim buffers to prevent leaks if the worker died
       Arena.instance.reclaimInFlightBuffers();
+      _workerDead = true;
+      _commandPort = null;
+      _errorPort?.close();
+      _errorPort = null;
+
+      // Attempt to restart if not disposed
+      if (!_isDisposed) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!_isDisposed) {
+            _start();
+          }
+        });
+      }
     });
 
     _commandPort = await receivePort.first as SendPort;
@@ -201,7 +229,9 @@ base class NativeIsolateSink extends LogSink<dynamic> {
     }
     _buffer.clear();
 
-    _ready.complete();
+    if (!_ready.isCompleted) {
+      _ready.complete();
+    }
   }
 
   /// Dispatches a [NativePacket] directly to the worker isolate.
@@ -210,12 +240,27 @@ base class NativeIsolateSink extends LogSink<dynamic> {
   /// by the [NativeEngine].
   @internal
   void dispatchPacket(final NativePacket packet) {
-    if (!enabled) {
+    if (_workerDead || !enabled) {
+      packet.completionPort.send(packet.address);
       return;
     }
     if (_commandPort != null) {
       _commandPort!.send(packet);
     } else {
+      if (_buffer.length >= _maxPreReadyBuffer) {
+        final dropped = _buffer.removeAt(0);
+        if (dropped is NativePacket) {
+          dropped.completionPort.send(dropped.address);
+        }
+        if (!_bufferOverflowWarningFired) {
+          _bufferOverflowWarningFired = true;
+          InternalLogger.log(
+            LogLevel.warning,
+            'NativeIsolateSink buffer overflowed. '
+            'Dropping oldest native packets.',
+          );
+        }
+      }
       _buffer.add(packet);
     }
   }
@@ -227,7 +272,7 @@ base class NativeIsolateSink extends LogSink<dynamic> {
     final LogLevel level,
     final LogPipelineFactory factory,
   ) async {
-    if (!enabled) {
+    if (!enabled || _workerDead) {
       return;
     }
 
@@ -257,6 +302,9 @@ base class NativeIsolateSink extends LogSink<dynamic> {
     final LogEntry entry,
     final LogLevel level,
   ) {
+    if (_workerDead) {
+      return;
+    }
     final copy = Uint8List.fromList(data);
     final transferable = TransferableTypedData.fromList([copy]);
     final msg = IsolateLog(
@@ -268,12 +316,23 @@ base class NativeIsolateSink extends LogSink<dynamic> {
     if (_commandPort != null) {
       _commandPort!.send(msg);
     } else {
+      if (_buffer.length >= _maxPreReadyBuffer) {
+        _buffer.removeAt(0);
+        if (!_bufferOverflowWarningFired) {
+          _bufferOverflowWarningFired = true;
+          InternalLogger.log(
+            LogLevel.warning,
+            'NativeIsolateSink buffer overflowed. Dropping oldest log entries.',
+          );
+        }
+      }
       _buffer.add(msg);
     }
   }
 
   @override
   Future<void> dispose() async {
+    _isDisposed = true;
     if (_commandPort != null) {
       final callback = ReceivePort();
       _commandPort!.send(IsolateCommand.stop(callback.sendPort));
@@ -283,6 +342,12 @@ base class NativeIsolateSink extends LogSink<dynamic> {
 
     _isolate?.kill();
     _errorPort?.close();
+    for (final msg in _buffer) {
+      if (msg is NativePacket) {
+        msg.completionPort.send(msg.address);
+      }
+    }
+    _buffer.clear();
     Arena.instance.reclaimInFlightBuffers();
     await super.dispose();
   }

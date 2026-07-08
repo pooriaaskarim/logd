@@ -59,17 +59,16 @@ abstract base class NetworkSink extends EncodingSink {
     if (buffer.length >= maxBufferSize) {
       if (dropPolicy == DropPolicy.discardOldest) {
         if (buffer.isNotEmpty) {
-          buffer.removeAt(0);
+          buffer.removeFirst();
         }
         buffer.add(line);
       } else if (dropPolicy == DropPolicy.discardNewest) {
         return;
-      } else {
-        // block/fallback
-        if (buffer.isNotEmpty) {
-          buffer.removeAt(0);
-        }
-        buffer.add(line);
+      } else if (dropPolicy == DropPolicy.block) {
+        throw UnsupportedError(
+          'DropPolicy.block is not supported in logd v0.8.7. '
+          'Use discardOldest or discardNewest.',
+        );
       }
     } else {
       buffer.add(line);
@@ -136,7 +135,7 @@ abstract base class NetworkSink extends EncodingSink {
   @protected
   List<Uint8List> flush() {
     final buffer = _state.buffer;
-    final lines = List<Uint8List>.from(buffer);
+    final lines = buffer.toList();
     buffer.clear();
     return lines;
   }
@@ -148,7 +147,7 @@ abstract base class NetworkSink extends EncodingSink {
 
 /// Internal state for a [NetworkSink].
 class _NetworkState {
-  final List<Uint8List> buffer = [];
+  final Queue<Uint8List> buffer = Queue<Uint8List>();
   bool isDisposed = false;
 }
 
@@ -178,7 +177,12 @@ base class HttpSink extends NetworkSink {
     super.maxBufferSize = 1000,
     super.dropPolicy = DropPolicy.discardOldest,
     super.enabled,
+    this.onDropped,
   });
+
+  /// Optional callback invoked when a batch of logs is dropped due to
+  /// persistent network errors.
+  final void Function(List<Uint8List> batch, Object error)? onDropped;
 
   /// The destination endpoint URL.
   final String url;
@@ -273,7 +277,7 @@ base class HttpSink extends NetworkSink {
       } catch (e) {
         attempts++;
         if (attempts >= maxRetries) {
-          _handleFailure(e);
+          _handleFailure(batch, e);
           return;
         }
         final delay = Duration(milliseconds: pow(2, attempts).toInt() * 100);
@@ -282,10 +286,24 @@ base class HttpSink extends NetworkSink {
     }
   }
 
-  void _handleFailure(final Object error) {
+  void _handleFailure(final List<Uint8List> batch, final Object error) {
+    LoggerMetrics.incrementDroppedBatches();
+    if (onDropped != null) {
+      try {
+        onDropped!(batch, error);
+      } catch (e, s) {
+        InternalLogger.log(
+          LogLevel.error,
+          'HttpSink onDropped callback threw an error',
+          error: e,
+          stackTrace: s,
+        );
+      }
+    }
     InternalLogger.log(
       LogLevel.error,
-      'HttpSink failed to send batch after $maxRetries attempts',
+      'HttpSink failed to send batch of ${batch.length} logs after '
+      '$maxRetries attempts',
       error: error,
     );
   }
@@ -403,13 +421,24 @@ base class SocketSink extends NetworkSink {
       await _socketState.channel?.ready;
       _socketState.isConnected = true;
       _socketState.isConnecting = false;
+      _socketState.retryAttempts = 0;
 
       _drainBuffer();
     } catch (e) {
       _socketState.isConnecting = false;
       _socketState.isConnected = false;
       if (!isDisposed) {
-        Future.delayed(reconnectInterval, _connect);
+        _socketState.retryAttempts++;
+        final factor = pow(2, min(_socketState.retryAttempts, 8)).toInt();
+        final backoffMs =
+            min(reconnectInterval.inMilliseconds * factor, 300000);
+        final delay = Duration(milliseconds: backoffMs);
+        InternalLogger.log(
+          LogLevel.warning,
+          'SocketSink reconnection failed. Retrying in '
+          '${delay.inSeconds}s (attempt ${_socketState.retryAttempts})',
+        );
+        Future.delayed(delay, _connect);
       }
     }
   }
@@ -425,6 +454,9 @@ base class SocketSink extends NetworkSink {
   @override
   @mustCallSuper
   Future<void> dispose() async {
+    if (_socketState.isConnected) {
+      _drainBuffer();
+    }
     _state.isDisposed = true;
     _socketState.isConnected = false;
     await _socketState.channel?.sink.close();
@@ -437,4 +469,5 @@ class _SocketState extends _NetworkState {
   Uri? uri;
   bool isConnected = false;
   bool isConnecting = false;
+  int retryAttempts = 0;
 }

@@ -23,6 +23,10 @@ The arena engine uses an isolate-local LIFO (Last In, First Out) object pool to 
 *   **Stability**: 🟡 **High** (Runs on safe Dart code, but expects formatters and decorators to not leak object references past the log cycle).
 *   **Layout Parity**: 🟢 **100%** (Shares the exact same `TerminalLayout` physical rendering path).
 *   **Target Use Cases**: High-throughput terminal logging where GC pauses must be avoided on the main thread.
+*   **Safety Constraints & Bounds (v0.8.7+)**:
+    *   **Unified Pool Cap**: To prevent unbounded memory expansion during heavy logging bursts, all internal object pools (AST nodes, collections, and maps) are strictly capped at `1000` items.
+    *   **FIFO Waiter Queue**: High-throughput asynchronous calls waiting for pool capacity are resolved using a FIFO list queue, preventing race conditions or deadlocks under saturation.
+    *   **Lazy Completion Port Lifecycle**: The background completion ReceivePort is lazily opened and cleanly closed on `clear()` or `disposeNative()` to prevent resource leaks.
 
 ---
 
