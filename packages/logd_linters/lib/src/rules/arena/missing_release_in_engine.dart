@@ -91,4 +91,128 @@ class MissingReleaseInEngine extends DartLintRule {
       }
     });
   }
+
+  @override
+  List<Fix> getFixes() => [_WrapInTryFinallyFix()];
+}
+
+class _WrapInTryFinallyFix extends DartFix {
+  _WrapInTryFinallyFix();
+
+  @override
+  void run(
+    final CustomLintResolver resolver,
+    final ChangeReporter reporter,
+    final CustomLintContext context,
+    final AnalysisError analysisError,
+    final List<AnalysisError> others,
+  ) {
+    context.registry.addMethodDeclaration((final member) {
+      if (member.name.lexeme != 'execute') {
+        return;
+      }
+      if (!analysisError.sourceRange.intersects(member.name.sourceRange)) {
+        return;
+      }
+
+      final body = member.body;
+      if (body is! BlockFunctionBody) {
+        return;
+      }
+
+      final block = body.block;
+
+      // 1. Identify checkout statement and doc variable name
+      VariableDeclaration? checkoutVar;
+      Statement? checkoutStmt;
+      for (final stmt in block.statements) {
+        if (stmt is VariableDeclarationStatement) {
+          for (final variable in stmt.variables.variables) {
+            final init = variable.initializer;
+            if (init is MethodInvocation &&
+                init.methodName.name == 'checkoutDocument') {
+              checkoutVar = variable;
+              checkoutStmt = stmt;
+              break;
+            }
+          }
+        }
+        if (checkoutVar != null) {
+          break;
+        }
+      }
+
+      final docName = checkoutVar?.name.lexeme ?? 'doc';
+
+      // 2. Identify and separate statements
+      final beforeOrIncludingCheckout = <Statement>[];
+      final targetStatements = <Statement>[];
+      bool seenCheckout = false;
+
+      for (final stmt in block.statements) {
+        if (checkoutStmt != null) {
+          if (!seenCheckout) {
+            beforeOrIncludingCheckout.add(stmt);
+            if (stmt == checkoutStmt) {
+              seenCheckout = true;
+            }
+          } else {
+            if (_isReleaseCall(stmt, docName)) {
+              continue;
+            }
+            targetStatements.add(stmt);
+          }
+        } else {
+          if (_isReleaseCall(stmt, docName)) {
+            continue;
+          }
+          targetStatements.add(stmt);
+        }
+      }
+
+      reporter
+          .createChangeBuilder(
+        message: 'Wrap execute body in try-finally',
+        priority: 80,
+      )
+          .addDartFileEdit((final builder) {
+        final buffer = StringBuffer();
+        buffer.writeln('{');
+
+        // Write statements before/including checkout
+        for (final stmt in beforeOrIncludingCheckout) {
+          buffer.writeln('  ${stmt.toSource()}');
+        }
+
+        // Write try block
+        buffer.writeln('  try {');
+        for (final stmt in targetStatements) {
+          buffer.writeln('    ${stmt.toSource()}');
+        }
+        buffer.writeln('  } finally {');
+        buffer.writeln('    $docName.releaseRecursive(factory);');
+        buffer.writeln('  }');
+        buffer.write('}');
+
+        builder.addSimpleReplacement(body.sourceRange, buffer.toString());
+      });
+    });
+  }
+
+  bool _isReleaseCall(final Statement stmt, final String docName) {
+    if (stmt is ExpressionStatement) {
+      var expr = stmt.expression;
+      if (expr is AwaitExpression) {
+        expr = expr.expression;
+      }
+      if (expr is MethodInvocation &&
+          expr.methodName.name == 'releaseRecursive') {
+        final target = expr.target;
+        if (target is SimpleIdentifier && target.name == docName) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }

@@ -10,6 +10,7 @@ library;
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/error/error.dart' hide LintCode;
 import 'package:analyzer/error/listener.dart';
+import 'package:analyzer/source/source_range.dart';
 import 'package:custom_lint_builder/custom_lint_builder.dart';
 
 import '../../utils/type_checkers.dart';
@@ -84,9 +85,12 @@ class MetadataSetDuplicate extends DartLintRule {
     });
   }
 
+  @override
+  List<Fix> getFixes() => [_RemoveDuplicateMetadataFix()];
+
   /// Returns the LogMetadata enum constant name for [expr], or null if [expr]
   /// is not a LogMetadata reference.
-  String? _logMetadataName(final Expression expr) {
+  static String? _logMetadataName(final Expression expr) {
     if (expr is PrefixedIdentifier) {
       if (expr.prefix.name == 'LogMetadata') {
         return expr.identifier.name;
@@ -106,5 +110,65 @@ class MetadataSetDuplicate extends DartLintRule {
       }
     }
     return null;
+  }
+}
+
+class _RemoveDuplicateMetadataFix extends DartFix {
+  _RemoveDuplicateMetadataFix();
+
+  @override
+  void run(
+    final CustomLintResolver resolver,
+    final ChangeReporter reporter,
+    final CustomLintContext context,
+    final AnalysisError analysisError,
+    final List<AnalysisError> others,
+  ) {
+    context.registry.addSetOrMapLiteral((final node) {
+      if (!analysisError.sourceRange.intersects(node.sourceRange)) {
+        return;
+      }
+
+      final seen = <String>{};
+      Expression? duplicateElement;
+      Expression? previousElement;
+
+      for (final element in node.elements) {
+        if (element is! Expression) {
+          continue;
+        }
+        final name = MetadataSetDuplicate._logMetadataName(element);
+        if (name == null) {
+          continue;
+        }
+        if (!seen.add(name)) {
+          if (analysisError.sourceRange.intersects(element.sourceRange)) {
+            duplicateElement = element;
+            break;
+          }
+        }
+        if (duplicateElement == null) {
+          previousElement = element;
+        }
+      }
+
+      final dup = duplicateElement;
+      final prev = previousElement;
+      if (dup != null && prev != null) {
+        reporter
+            .createChangeBuilder(
+          message: 'Remove duplicate LogMetadata entry',
+          priority: 80,
+        )
+            .addDartFileEdit((final builder) {
+          builder.addDeletion(
+            SourceRange(
+              prev.end,
+              dup.end - prev.end,
+            ),
+          );
+        });
+      }
+    });
   }
 }
