@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-07-09 | v0.1.2 | Implemented 4 Quick-Fixes and Version Bump
+
+### What We Did
+- Implemented and verified the 4 remaining quick-fixes on the `v0.1.2` roadmap:
+  - `logd_metadata_set_duplicate` quick-fix (removes duplicate entries from metadata sets).
+  - `logd_missing_release_in_engine` quick-fix (wraps execute blocks in `try-finally` and releases document).
+  - `logd_decorator_not_immutable` & `logd_formatter_not_immutable` quick-fixes (adds `@immutable` and makes fields `final`).
+- Bumped package version in `pubspec.yaml` to `0.1.2`.
+- Documented changes in `CHANGELOG.md` and updated `STATUS.md`.
+- Ran full workspace-wide tests and verified custom_lint runs clean under the example project.
+
+---
+
+## 2026-07-09 | v0.1.1 | Validation and Live Release
+
+### What We Did
+- Verified package version `0.1.1` is live.
+- Successfully ran and verified package workspace tests (`dart test` in `packages/logd_linters` completed clean).
+- Validated AST rule behaviors on the integration test suite in `packages/logd_linters/example` using `dart run custom_lint` (zero unexpected issues/violations found).
+- Updated knowledge base `STATUS.md` to mark publishing as completed and pivot targets to the `v0.2.0` roadmap.
+
+---
+
 ## 2026-07-03 | v0.1.0-RC | Initial Rules Implementation & Integration Test Harness
 
 ### What We Did

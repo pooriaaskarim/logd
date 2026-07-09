@@ -7,8 +7,10 @@
 /// Rule B3 — `logd_formatter_not_immutable`.
 library;
 
+import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/error/error.dart' hide LintCode;
 import 'package:analyzer/error/listener.dart';
+import 'package:analyzer/source/source_range.dart';
 import 'package:custom_lint_builder/custom_lint_builder.dart';
 
 import '../../utils/ast_helpers.dart';
@@ -89,6 +91,76 @@ class FormatterNotImmutable extends DartLintRule {
       if (missingAnnotation || hasMutable) {
         reporter.atToken(classDecl.name, _code);
       }
+    });
+  }
+
+  @override
+  List<Fix> getFixes() => [_MakeFormatterImmutableFix()];
+}
+
+class _MakeFormatterImmutableFix extends DartFix {
+  _MakeFormatterImmutableFix();
+
+  @override
+  void run(
+    final CustomLintResolver resolver,
+    final ChangeReporter reporter,
+    final CustomLintContext context,
+    final AnalysisError analysisError,
+    final List<AnalysisError> others,
+  ) {
+    context.registry.addClassDeclaration((final classDecl) {
+      if (analysisError.sourceRange.offset < classDecl.offset ||
+          analysisError.sourceRange.offset > classDecl.end) {
+        return;
+      }
+
+      reporter
+          .createChangeBuilder(
+        message: 'Make formatter class immutable',
+        priority: 80,
+      )
+          .addDartFileEdit((final builder) {
+        // 1. Add @immutable annotation
+        if (!hasImmutableAnnotation(classDecl)) {
+          final unit = classDecl.parent as CompilationUnit;
+          final hasMeta = unit.directives.whereType<ImportDirective>().any(
+              (final dir) => dir.uri.stringValue == 'package:meta/meta.dart');
+
+          if (!hasMeta) {
+            final firstDirective =
+                unit.directives.isEmpty ? null : unit.directives.first;
+            final insertOffset = firstDirective?.offset ?? 0;
+            builder.addSimpleInsertion(
+                insertOffset, "import 'package:meta/meta.dart';\n");
+          }
+
+          final insertOffset = classDecl.metadata.isNotEmpty
+              ? classDecl.metadata.first.offset
+              : classDecl.classKeyword.offset;
+          builder.addSimpleInsertion(insertOffset, '@immutable\n');
+        }
+
+        // 2. Make non-static mutable fields final
+        for (final member in classDecl.members) {
+          if (member is FieldDeclaration && !member.isStatic) {
+            final fields = member.fields;
+            if (!fields.isFinal && !fields.isConst) {
+              final keyword = fields.keyword;
+              if (keyword != null && keyword.lexeme == 'var') {
+                builder.addSimpleReplacement(
+                  SourceRange(keyword.offset, keyword.length),
+                  'final',
+                );
+              } else if (keyword == null) {
+                final insertOffset =
+                    fields.type?.offset ?? fields.variables.first.offset;
+                builder.addSimpleInsertion(insertOffset, 'final ');
+              }
+            }
+          }
+        }
+      });
     });
   }
 }
