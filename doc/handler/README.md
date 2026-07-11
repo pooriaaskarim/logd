@@ -103,6 +103,7 @@ Complex formats like JSON and TOON use semantic tags (`LogTag.timestamp`, `LogTa
 - `HttpSink`: Ships logs to remote HTTP endpoints with batching, exponential backoff retries, and memory-safe buffering via `DropPolicy`.
 - `SocketSink`: Streams logs in real-time over WebSocket connections with automatic reconnection and buffer draining on recovery.
 - `MultiSink`: Distributes output to multiple sinks concurrently, ensuring resilient logging.
+- `HttpServerSink`: A native loopback web server hosting a real-time developer log dashboard. Automatically encodes logs using the dynamic `HtmlEncoder` and streams them to browser clients using WebSockets.
 
 > **Network Sink Design**: `HttpSink` and `SocketSink` are now protocol-agnostic. While `JsonFormatter` + `JsonEncoder` is recommended for standard aggregation, you can pair `ToonFormatter` + `ToonEncoder` for efficient real-time streaming to custom monitors.
 
@@ -286,6 +287,29 @@ logger.configure(
     ),
   ],
 );
+```
+
+### 6. Embedded Development Web Dashboard
+Runs a local loopback server and serves a real-time developer log dashboard with interactive search and counter metrics.
+
+```dart
+final logger = Logger.get('app.server');
+
+final sink = HttpServerSink(
+  address: 'localhost',
+  port: 8080,
+);
+
+final handler = Handler(
+  formatter: const ToonPrettyFormatter(),
+  decorators: const [
+    BoxDecorator(borderStyle: BorderStyle.rounded),
+    StyleDecorator(),
+  ],
+  sink: sink,
+);
+
+logger.configure(handlers: [handler]);
 ```
 
 ---
