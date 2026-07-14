@@ -121,6 +121,18 @@ final asyncHandler = AsyncHandler(
 Logger.configure('global', handlers: [asyncHandler]);
 ```
 
+### E. Lifecycle and Teardown
+Both `AsyncHandler` and isolate-backed sinks (e.g. `NativeIsolateSink`) spawn background workers. To manage these resources cleanly:
+
+1. **Awaiting Initialization**: You can await startup using the `.ready` future (e.g. before executing test logs):
+   ```dart
+   await asyncHandler.ready;
+   ```
+2. **Graceful Teardown**: Call `.dispose()` on the handler to release background isolates, terminate message channels, and close communication ports:
+   ```dart
+   await asyncHandler.dispose();
+   ```
+
 ---
 
 ## Performance Benchmark Data

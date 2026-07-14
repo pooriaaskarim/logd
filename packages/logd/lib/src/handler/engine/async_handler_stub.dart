@@ -18,6 +18,11 @@ base class AsyncHandler extends Handler {
   /// Creates an [AsyncHandler] that defaults to main-thread processing
   /// under web platforms.
   ///
+  /// ### Platform behavior: Web
+  /// Under web/browser runtimes where Dart isolates are unsupported,
+  /// [AsyncHandler] acts as a transparent, synchronous fall-through to the base
+  /// [Handler] pipeline execution, running directly on the main event loop.
+  ///
   /// - [formatter]: The formatter used to translate logs into semantic
   ///   documents.
   /// - [sink]: The final output sink.
@@ -34,8 +39,14 @@ base class AsyncHandler extends Handler {
     super.timeout,
   });
 
-  /// Disposes of the handler resources.
+  /// A future that completes immediately on Web as no background isolate
+  /// is started.
+  Future<void> get ready => Future<void>.value();
+
+  /// Disposes of the handler resources by disposing the underlying sink.
+  @override
   Future<void> dispose() async {
     await sink.dispose();
+    await super.dispose();
   }
 }

@@ -23,7 +23,7 @@ void main() {
       BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
     sink: const ConsoleSink(lineLength: 40),
-    engine: const NativeEngine(),
+    engine: NativeEngine(),
   );
 
   Logger.configure('tab_nat', handlers: [nativeHandler]);

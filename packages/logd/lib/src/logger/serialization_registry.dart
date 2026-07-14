@@ -281,7 +281,7 @@ class LoggerSerializationRegistry {
     );
     registerEngine<NativeEngine>(
       type: 'NativeEngine',
-      fromJson: (final json) => const NativeEngine(),
+      fromJson: (final json) => NativeEngine(),
       toJson: (final val) => <String, dynamic>{},
     );
   }

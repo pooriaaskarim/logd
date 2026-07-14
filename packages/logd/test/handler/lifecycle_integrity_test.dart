@@ -244,5 +244,14 @@ void main() {
       expect(LoggerMetrics.cacheMisses, equals(1)); // only db.mysql resolved
       expect(LoggerMetrics.cacheHits, equals(1)); // ui.button was hit
     });
+
+    test('Handler reference can dispose AsyncHandler', () async {
+      final Handler h = AsyncHandler(
+        formatter: const PlainFormatter(),
+        sink: TestSink(),
+      );
+      // Must compile and not throw
+      await h.dispose();
+    });
   });
 }

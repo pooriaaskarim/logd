@@ -76,7 +76,7 @@ Future<void> main() async {
 
     // Native Engine (B-IR)
     results.add(await profile(
-        vmService, isolateId, 'Native', scenario, const NativeEngine()));
+        vmService, isolateId, 'Native', scenario, NativeEngine()));
 
     report[scenario.name] = results;
   }

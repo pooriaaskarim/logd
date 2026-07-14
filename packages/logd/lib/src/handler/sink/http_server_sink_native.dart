@@ -46,11 +46,11 @@ base class HttpServerSink extends EncodingSink {
   Future<void> get ready => _ready.future;
 
   /// The actual bound port of the running HTTP server.
-  int get boundPort => _serverState.server?.port ?? port;
+  int get boundPort => _server?.port ?? port;
 
-  static final Expando<_ServerState> _states = Expando();
-
-  _ServerState get _serverState => _states[this] ??= _ServerState();
+  io.HttpServer? _server;
+  final List<io.WebSocket> _sockets = [];
+  bool _isDisposed = false;
 
   static void _staticWrite(final Uint8List data) {
     // Overridden by custom output logic
@@ -59,8 +59,7 @@ base class HttpServerSink extends EncodingSink {
   Future<void> _startServer() async {
     try {
       final server = await io.HttpServer.bind(address, port);
-      _serverState.server = server;
-      _serverState.isListening = true;
+      _server = server;
       _ready.complete();
 
       server.listen((final request) async {
@@ -80,14 +79,14 @@ base class HttpServerSink extends EncodingSink {
         } else if (request.uri.path == '/ws') {
           try {
             final socket = await io.WebSocketTransformer.upgrade(request);
-            _serverState.sockets.add(socket);
+            _sockets.add(socket);
             socket.listen(
               (final _) {},
               onError: (final _) {
-                _serverState.sockets.remove(socket);
+                _sockets.remove(socket);
               },
               onDone: () {
-                _serverState.sockets.remove(socket);
+                _sockets.remove(socket);
               },
             );
           } catch (e) {
@@ -120,7 +119,7 @@ base class HttpServerSink extends EncodingSink {
     final LogLevel level,
     final LogPipelineFactory factory,
   ) async {
-    if (!enabled || _serverState.isDisposed) {
+    if (!enabled || _isDisposed) {
       return;
     }
 
@@ -154,7 +153,7 @@ base class HttpServerSink extends EncodingSink {
 
       final payloadJson = convert.jsonEncode(payload);
 
-      final sockets = List<io.WebSocket>.from(_serverState.sockets);
+      final sockets = List<io.WebSocket>.from(_sockets);
       for (final socket in sockets) {
         if (socket.readyState == io.WebSocket.open) {
           socket.add(payloadJson);
@@ -175,23 +174,15 @@ base class HttpServerSink extends EncodingSink {
   @override
   @mustCallSuper
   Future<void> dispose() async {
-    _serverState.isDisposed = true;
-    _serverState.isListening = false;
+    _isDisposed = true;
 
-    final sockets = List<io.WebSocket>.from(_serverState.sockets);
+    final sockets = List<io.WebSocket>.from(_sockets);
     for (final socket in sockets) {
       await socket.close();
     }
-    _serverState.sockets.clear();
+    _sockets.clear();
 
-    await _serverState.server?.close(force: true);
+    await _server?.close(force: true);
     await super.dispose();
   }
-}
-
-class _ServerState {
-  io.HttpServer? server;
-  final List<io.WebSocket> sockets = [];
-  bool isListening = false;
-  bool isDisposed = false;
 }

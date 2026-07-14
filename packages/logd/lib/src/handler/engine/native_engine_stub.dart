@@ -12,7 +12,7 @@ import '../sink/sink.dart';
 /// [UnsupportedError] pointing the user to cross-platform alternatives.
 class NativeEngine implements LogEngine {
   /// Creates a [NativeEngine] stub.
-  const NativeEngine();
+  NativeEngine();
 
   @override
   LogPipelineFactory get factory => throw UnsupportedError(

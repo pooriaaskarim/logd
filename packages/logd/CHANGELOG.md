@@ -5,8 +5,9 @@
 This release introduces native isolate-offloaded logging pipelines, an embedded HTTP log dashboard viewer, dynamic HTML encoding integrations, and concurrency safety hardening.
 
 - ### Concurrency & Pipeline Engines
-  - **Isolate-Backed Logging (`AsyncHandler`)**: Implemented background isolate offloading for the entire formatting $\rightarrow$ decorating $\rightarrow$ sinking pipeline, keeping caller threads fully unblocked (~15–20µs logging execution).
-  - **Immutability Compliance**: Refactored `AsyncHandler` state management using static `Expando` collections to store isolate ports and instances without mutating the `@immutable` base class state.
+  - **Isolate-Backed Logging (`AsyncHandler`)**: Overhauled background isolate offloading for the formatting $\rightarrow$ decorating $\rightarrow$ sinking pipeline. Extracted isolate spawning, ready verification, and graceful teardown logic into a unified, reusable `IsolateWorker` manager.
+  - **Unified Lifecycle Management**: Added a public `Future<void> dispose()` contract directly to the `Handler` base class. Hardened `AsyncHandler` and isolate sinks with a public `ready` future to await startup, complete idempotency on teardown, and prevent start/dispose race conditions.
+  - **State Overhaul & Immutability**: Removed state-tracking `Expando` maps on `AsyncHandler` and `HttpServerSink` in favor of clean private instance fields, resolving memory leak risks while keeping the `@immutable` annotation constraint cleanly satisfied.
   - **Comprehensive Developer Documentation**: Documented isolate boundaries, performance tradeoffs, copy-transfer restrictions, lifecycle guides, and web-stub fallback architectures.
 
 - ### Real-Time Server Logging

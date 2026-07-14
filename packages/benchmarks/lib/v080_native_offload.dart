@@ -9,7 +9,7 @@ Future<void> runNativeOffloadBenchmarks() async {
   final handler = Handler(
     formatter: const PlainFormatter(),
     sink: sink,
-    engine: const NativeEngine(),
+    engine: NativeEngine(),
   );
 
   // Warmup
