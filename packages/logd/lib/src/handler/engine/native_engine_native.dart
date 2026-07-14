@@ -17,6 +17,7 @@ import '../formatter/formatter.dart';
 import '../sink/isolate_sink_native.dart';
 import '../sink/sink.dart';
 import 'arena_native.dart';
+import 'isolate_protocol.dart';
 
 /// A [LogEngine] that targets native platforms via FFI.
 ///
@@ -25,9 +26,9 @@ import 'arena_native.dart';
 /// rendering.
 class NativeEngine implements LogEngine {
   /// Creates a [NativeEngine].
-  const NativeEngine();
+  NativeEngine();
 
-  static bool _warnedAboutFallback = false;
+  bool _warnedAboutFallback = false;
 
   @override
   LogPipelineFactory get factory => Arena.instance;
@@ -197,7 +198,7 @@ void spawnNativeWorker(final List<dynamic> args) {
         message.completionPort.send(message.address);
       }
     } else if (message is IsolateCommand) {
-      if (message.type == CommandType.stop) {
+      if (message.type == IsolateCommandType.stop) {
         await target.dispose();
         message.replyPort?.send(null);
         receivePort.close();

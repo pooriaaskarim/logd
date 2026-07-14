@@ -40,6 +40,16 @@ The native engine serializes the formatted log snapshots directly into a languag
 
 ---
 
+### 4. Isolate-Backed Pipeline Offloading (`AsyncHandler`)
+While `NativeEngine` offloads B-IR snapshots using native FFI, `AsyncHandler` is a pure-Dart, VM-safe solution that offloads the entire standard logging pipeline (formatting, decorating, and writing to the sink) to a background isolate worker.
+
+*   **Platform Support**: 🟢 **VM-Only** (Falls back to synchronous main-thread execution on Web).
+*   **Stability**: 🟢 **Excellent** (Built on safe Dart standard libraries, fully isolated).
+*   **Layout Parity**: 🟢 **100%** (Runs the exact same formatter/decorator pipeline inside the worker isolate).
+*   **Target Use Cases**: Mobile/server environments where logging execution latency must be zero on the main application isolate, without relying on native FFI libraries.
+
+---
+
 ## How-To Configuration Examples
 
 ### A. Configuring the default `StandardEngine` (Explicitly)
@@ -94,6 +104,34 @@ final nativeHandler = Handler(
 
 Logger.configure('global', handlers: [nativeHandler]);
 ```
+
+### D. Configuring Pure-Dart Isolate Offloading (`AsyncHandler`)
+To offload formatting and write operations for a standard logging pipeline to a background isolate worker without FFI dependencies:
+
+```dart
+final asyncHandler = AsyncHandler(
+  formatter: const StructuredFormatter(),
+  decorators: const [
+    BoxDecorator(),
+    StyleDecorator(),
+  ],
+  sink: const ConsoleSink(),
+);
+
+Logger.configure('global', handlers: [asyncHandler]);
+```
+
+### E. Lifecycle and Teardown
+Both `AsyncHandler` and isolate-backed sinks (e.g. `NativeIsolateSink`) spawn background workers. To manage these resources cleanly:
+
+1. **Awaiting Initialization**: You can await startup using the `.ready` future (e.g. before executing test logs):
+   ```dart
+   await asyncHandler.ready;
+   ```
+2. **Graceful Teardown**: Call `.dispose()` on the handler to release background isolates, terminate message channels, and close communication ports:
+   ```dart
+   await asyncHandler.dispose();
+   ```
 
 ---
 

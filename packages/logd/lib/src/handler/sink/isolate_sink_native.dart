@@ -11,6 +11,8 @@ import '../document/binary_ir_native.dart';
 import '../document/document.dart';
 import '../engine/arena_native.dart';
 import '../engine/engine.dart';
+import '../engine/isolate_protocol.dart';
+import '../engine/isolate_worker.dart';
 import '../engine/native_engine_native.dart';
 import '../sink/sink.dart';
 
@@ -27,38 +29,23 @@ base class IsolateSink extends LogSink<Uint8List> {
   /// WARNING: The [target] sink and all its dependencies must be sendable
   /// across isolates. This means they cannot contain non-static closures or
   /// native resources (unless they are handled via [SendPort] themselves).
-  IsolateSink(this.target) : super(enabled: target.enabled) {
+  IsolateSink(this.target)
+      : _worker = IsolateWorker(
+          entryPoint: _spawnWorker,
+          initArg: target,
+          debugName: 'IsolateSink',
+        ),
+        super(enabled: target.enabled) {
     _start();
   }
 
   /// The underlying sink that will perform the actual I/O in the isolate.
   final LogSink<Uint8List> target;
 
-  SendPort? _commandPort;
-  ReceivePort? _errorPort;
-  Isolate? _isolate;
-  final Completer<void> _ready = Completer<void>();
+  final IsolateWorker _worker;
 
   Future<void> _start() async {
-    final receivePort = ReceivePort();
-    _errorPort = ReceivePort();
-
-    _isolate = await Isolate.spawn(
-      _spawnWorker,
-      [receivePort.sendPort, target],
-      onError: _errorPort!.sendPort,
-    );
-
-    _errorPort!.listen((final message) {
-      InternalLogger.log(
-        LogLevel.error,
-        'IsolateSink worker error',
-        error: message,
-      );
-    });
-
-    _commandPort = await receivePort.first as SendPort;
-    _ready.complete();
+    await _worker.start();
   }
 
   @override
@@ -68,12 +55,12 @@ base class IsolateSink extends LogSink<Uint8List> {
     final LogLevel level,
     final LogPipelineFactory factory,
   ) async {
-    if (!enabled) {
+    if (!enabled || _worker.isDisposed) {
       return;
     }
 
-    if (!_ready.isCompleted) {
-      await _ready.future;
+    if (!_worker.isReady) {
+      await _worker.ready;
     }
 
     // To ensure the main thread can immediately reuse the pooled buffer
@@ -83,7 +70,7 @@ base class IsolateSink extends LogSink<Uint8List> {
     final copy = Uint8List.fromList(data);
     final transferable = TransferableTypedData.fromList([copy]);
 
-    _commandPort?.send(
+    _worker.send(
       IsolateLog(
         data: transferable,
         entry: entry,
@@ -94,17 +81,7 @@ base class IsolateSink extends LogSink<Uint8List> {
 
   @override
   Future<void> dispose() async {
-    if (_commandPort != null) {
-      final callback = ReceivePort();
-
-      _commandPort!.send(IsolateCommand.stop(callback.sendPort));
-      await callback.first;
-
-      callback.close();
-    }
-
-    _isolate?.kill();
-    _errorPort?.close();
+    await _worker.dispose();
     await super.dispose();
   }
 
@@ -121,7 +98,7 @@ base class IsolateSink extends LogSink<Uint8List> {
         const factory = StandardPipelineFactory();
         await target.output(data, message.entry, message.level, factory);
       } else if (message is IsolateCommand) {
-        if (message.type == CommandType.stop) {
+        if (message.type == IsolateCommandType.stop) {
           await target.dispose();
           message.replyPort?.send(null);
           receivePort.close();
@@ -143,16 +120,6 @@ class IsolateLog {
   final LogLevel level;
 }
 
-@internal
-enum CommandType { stop }
-
-@internal
-class IsolateCommand {
-  IsolateCommand.stop(this.replyPort) : type = CommandType.stop;
-  final CommandType type;
-  final SendPort? replyPort;
-}
-
 /// A specialized [LogSink] that offloads Native B-IR rendering and I/O
 /// to a background isolate.
 ///
@@ -167,15 +134,12 @@ base class NativeIsolateSink extends LogSink<dynamic> {
   /// The underlying sink that performs the final byte I/O.
   final EncodingSink target;
 
-  SendPort? _commandPort;
-  ReceivePort? _errorPort;
-  Isolate? _isolate;
+  late IsolateWorker _worker;
 
   /// Exposes the background worker Isolate for testing.
   @visibleForTesting
-  Isolate? get isolate => _isolate;
+  Isolate? get isolate => _worker.isolate;
 
-  final Completer<void> _ready = Completer<void>();
   final List<Object> _buffer = [];
   bool _workerDead = false;
 
@@ -189,49 +153,32 @@ base class NativeIsolateSink extends LogSink<dynamic> {
 
   Future<void> _start() async {
     _workerDead = false;
-    final receivePort = ReceivePort();
-    _errorPort = ReceivePort();
+    _worker = IsolateWorker(
+      entryPoint: spawnNativeWorker,
+      initArg: target,
+      debugName: 'NativeIsolateSink',
+      onWorkerError: (final _) {
+        Arena.instance.reclaimInFlightBuffers();
+        _workerDead = true;
 
-    _isolate = await Isolate.spawn(
-      spawnNativeWorker,
-      [receivePort.sendPort, target],
-      onError: _errorPort!.sendPort,
+        // Attempt to restart if not disposed
+        if (!_isDisposed) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (!_isDisposed) {
+              _start();
+            }
+          });
+        }
+      },
     );
 
-    _errorPort!.listen((final message) {
-      InternalLogger.log(
-        LogLevel.error,
-        'NativeIsolateSink worker error',
-        error: message,
-      );
-      // Reclaim buffers to prevent leaks if the worker died
-      Arena.instance.reclaimInFlightBuffers();
-      _workerDead = true;
-      _commandPort = null;
-      _errorPort?.close();
-      _errorPort = null;
-
-      // Attempt to restart if not disposed
-      if (!_isDisposed) {
-        Future.delayed(const Duration(seconds: 2), () {
-          if (!_isDisposed) {
-            _start();
-          }
-        });
-      }
-    });
-
-    _commandPort = await receivePort.first as SendPort;
+    await _worker.start();
 
     // Flush buffer
     for (final msg in _buffer) {
-      _commandPort!.send(msg);
+      _worker.send(msg);
     }
     _buffer.clear();
-
-    if (!_ready.isCompleted) {
-      _ready.complete();
-    }
   }
 
   /// Dispatches a [NativePacket] directly to the worker isolate.
@@ -244,8 +191,8 @@ base class NativeIsolateSink extends LogSink<dynamic> {
       packet.completionPort.send(packet.address);
       return;
     }
-    if (_commandPort != null) {
-      _commandPort!.send(packet);
+    if (_worker.isReady) {
+      _worker.send(packet);
     } else {
       if (_buffer.length >= _maxPreReadyBuffer) {
         final dropped = _buffer.removeAt(0);
@@ -313,8 +260,8 @@ base class NativeIsolateSink extends LogSink<dynamic> {
       level: level,
     );
 
-    if (_commandPort != null) {
-      _commandPort!.send(msg);
+    if (_worker.isReady) {
+      _worker.send(msg);
     } else {
       if (_buffer.length >= _maxPreReadyBuffer) {
         _buffer.removeAt(0);
@@ -333,15 +280,7 @@ base class NativeIsolateSink extends LogSink<dynamic> {
   @override
   Future<void> dispose() async {
     _isDisposed = true;
-    if (_commandPort != null) {
-      final callback = ReceivePort();
-      _commandPort!.send(IsolateCommand.stop(callback.sendPort));
-      await callback.first;
-      callback.close();
-    }
-
-    _isolate?.kill();
-    _errorPort?.close();
+    await _worker.dispose();
     for (final msg in _buffer) {
       if (msg is NativePacket) {
         msg.completionPort.send(msg.address);

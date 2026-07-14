@@ -165,7 +165,7 @@ void main() {
                   formatter: formatter,
                   decorators: decorators,
                   sink: nativeSink,
-                  engine: const NativeEngine(),
+                  engine: NativeEngine(),
                 );
 
                 // Run Standard

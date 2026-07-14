@@ -30,6 +30,9 @@ class HtmlEncoder implements LogEncoder {
   /// The title of the generated HTML document.
   final String title;
 
+  /// The CSS stylesheet used by the HTML encoder.
+  String get stylesheet => _css();
+
   final bool? _darkMode;
 
   @override

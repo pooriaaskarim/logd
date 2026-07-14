@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.8: Async Isolate Offloading, HttpServer Viewer & HTML Concurrency
+
+This release introduces native isolate-offloaded logging pipelines, an embedded HTTP log dashboard viewer, dynamic HTML encoding integrations, and concurrency safety hardening.
+
+- ### Concurrency & Pipeline Engines
+  - **Isolate-Backed Logging (`AsyncHandler`)**: Overhauled background isolate offloading for the formatting $\rightarrow$ decorating $\rightarrow$ sinking pipeline. Extracted isolate spawning, ready verification, and graceful teardown logic into a unified, reusable `IsolateWorker` manager.
+  - **Unified Lifecycle Management**: Added a public `Future<void> dispose()` contract directly to the `Handler` base class. Hardened `AsyncHandler` and isolate sinks with a public `ready` future to await startup, complete idempotency on teardown, and prevent start/dispose race conditions.
+  - **State Overhaul & Immutability**: Removed state-tracking `Expando` maps on `AsyncHandler` and `HttpServerSink` in favor of clean private instance fields, resolving memory leak risks while keeping the `@immutable` annotation constraint cleanly satisfied.
+  - **Comprehensive Developer Documentation**: Documented isolate boundaries, performance tradeoffs, copy-transfer restrictions, lifecycle guides, and web-stub fallback architectures.
+
+- ### Real-Time Server Logging
+  - **Embedded Dashboard (`HttpServerSink`)**: Added a loopback-bound HTTP dashboard server hosting a real-time developer log dashboard. Supports automated WebSocket upgrade for live telemetry streaming.
+  - **HtmlEncoder Integration**: Defaulted `HttpServerSink` to output raw semantic HTML5 segments directly to client browsers instead of parsing plain text ANSI codes, guaranteeing perfect layout rendering of decorators (e.g. `BoxDecorator`).
+  - **Dynamic Stylesheet Injection**: Automated runtime stylesheet injection by loading the `HtmlEncoder` CSS rules directly into the served dashboard HTML wrapper page.
+  - **Ready Completer**: Hardened `HttpServerSink` with a `ready` state completer to prevent race conditions during port allocation and connection binding in test environments.
+
+- ### Showcase & Examples
+  - **Isolate Offloading Comparison Showcase**: Added `example/handler/showcase/async_isolate_showcase.dart` performing a side-by-side performance check of synchronous vs asynchronous isolate-offloaded pipelines using non-blocking Future loops.
+  - **Dashboard Telemetry Demo**: Added `example/handler/sinks/http_server_sink_demo.dart` streaming dynamic warning/info telemetry events using `ToonPrettyFormatter` and `BoxDecorator` to the dashboard viewer.
+
 ## 0.8.7: Core Stabilization, Concurrency Hardening & Pipeline Safety
 
 This release focuses on codebase hardening, lifecycle guarantees, memory boundary enforcement, and multi-isolate reliability for the `logd` logging framework.

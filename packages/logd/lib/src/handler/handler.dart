@@ -81,6 +81,13 @@ class Handler {
     }
   }
 
+  /// Disposes of any resources held by this handler.
+  ///
+  /// Subclasses that manage stateful resources (such as background isolates
+  /// or file handles) should override this method to clean up resources.
+  @mustCallSuper
+  Future<void> dispose() async {}
+
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
