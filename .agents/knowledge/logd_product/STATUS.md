@@ -1,10 +1,13 @@
 # logd Product — Status
-> Current as of: v0.8.7 | Updated: 2026-07-08
+> Current as of: v0.8.9 | Updated: 2026-07-18
 
 ---
 
 ## Active Product Focus
-Completing pre-release tasks for `logd_linters` (v0.1.0-RC verification and publishing checklist), planning Phase A concurrency stress testing, and documenting Core architecture decisions (ADRs).
+
+v0.8.9 is released (PR #52 open → master). Both `logd` v0.8.9 and `logd_linters` v0.1.2 are published to pub.dev.
+
+The roadmap has been strategically revised. The next active phase is **Phase 1 (API Stabilization)** targeting the v0.9.x release series.
 
 ---
 
@@ -13,23 +16,37 @@ Completing pre-release tasks for `logd_linters` (v0.1.0-RC verification and publ
 | Milestone | Target Scope | Status |
 |---|---|---|
 | **v0.8.7 (Core Stable)** | Concurrency, FIFO waiter queue, isolate crash recovery, HTML control panel | ✅ Released |
-| **v0.1.0 (logd_linters)** | Publish custom lint rules to pub.dev, align core dependencies | ⏳ Ready to Publish |
-| **Phase A (Hardening)** | Concurrency stress tests, ADRs, immutability audits, timezone offset benchmark | 🟡 Active |
-| **Phase B (Async & DB)** | `AsyncFormatter`, `SqliteSink`, `SentrySink`, JS source-mapped web traces | 🔲 Planned |
-| **Phase C (Dashboard)** | `HttpServerSink` WebSocket React dashboard, HTML log consolidation | 🔲 Planned |
-| **Phase D (Output Overhaul)** | `LogSurface`, WCAG `lightScheme`, self-declaring wrappers, session handle lifecycle | 🔲 Planned (v0.9.0/v1.0.0) |
+| **v0.8.8 (Async / HTTP)** | AsyncHandler isolate offloading, HttpServerSink dashboard, HTML concurrency | ✅ Released |
+| **v0.8.9 (Hardening)** | Web Source Mapping, polymorphic serialization fix, timezone hardening, ADRs | ✅ Released |
+| **v0.1.2 (logd_linters)** | Automated quick-fixes for arena lifecycle, purity, and formatting rules | ✅ Published |
+| **Phase 1 (API Stabilization)** | Symbol annotation audit, semver contract, DX pass, extension point freeze | 🔲 Next |
+| **Phase 2 (v1.0 + Ecosystem)** | logd_sqlite, logd_memory, logd_sentry, LogOutput facade, deprecation notices | 🔲 Planned |
+| **Phase 3 (Lean Core)** | logd_http, logd_socket, logd_native split out, core dependency reduction | 🔲 Planned |
+
+---
+
+## Current Core Package State
+
+- **Version**: `0.8.9`
+- **Dart SDK**: `>=3.6.0 <4.0.0`
+- **Direct Dependencies**: `characters`, `ffi`, `http`, `matcher`, `meta`, `timezone`, `source_maps`, `source_span`, `web_socket_channel`
+- **Dependencies to Extract in Phase 3**: `ffi`, `http`, `web_socket_channel`
+- **Tests**: All 2,439 unit and integration tests passing.
+- **Lints**: Zero analyzer warnings across all packages.
 
 ---
 
 ## Out-of-Scope (Explicitly Deferred)
-- **Automatic log rotation UI**: Not planning to support configuration or log parsing dashboards. Keep `logd` as a pure, lightweight engine.
-- **Direct database sinks**: No immediate plans to build official SQL/NoSQL sinks. Let community plugins handle storage.
-- **Fluent logger builders**: Let configuration remain structured (`Logger.configure`) rather than builder-based, keeping the API footprint small.
+- **Automatic log rotation UI**: Not supporting configuration or log-parsing dashboards. `logd` is a pure engine.
+- **Fluent logger builders**: API stays structured (`Logger.configure`), not builder-based.
+- **Direct database sinks in core**: Satellite package concern only.
 
 ---
 
 ## Active Product Decisions
 
-- **Why linters are a separate package**: Kept separate from `logd` to avoid inflating the core package's dependency footprint with custom lint dependencies.
-- **Why we decoupled Flutter**: In v0.8.4, we fully decoupled the Flutter SDK so `logd` can be utilized in CLI utilities, server applications, and pure VM scripts, preventing package dependency conflicts with Flutter versions.
-- **No premature facades**: The `LogOutput` facade is explicitly deferred until the underlying pipeline changes (surface, wrapping, lifecycle) settle.
+- **Why linters are a separate package**: Avoids inflating core package dependency footprint with custom lint tooling.
+- **Why Flutter is decoupled**: Pure Dart for CLI, server, and VM use cases without Flutter SDK friction.
+- **Why heavy transitive deps stay for now**: `http` and `ffi` remain in core through v1.0 with explicit deprecation notices. Extraction requires a major version bump and is a Phase 3 concern.
+- **Why sinks come after API stabilization**: Building `logd_sqlite` or `logd_sentry` on an unstable `LogSink` extension point forces synchronized breaking version bumps. Extension points must be `@stable` before satellites target them.
+- **No premature facades**: `LogOutput` convenience constructors deferred until the underlying pipeline surface, wrapping, and lifecycle changes settle.
