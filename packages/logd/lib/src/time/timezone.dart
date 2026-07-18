@@ -82,7 +82,15 @@ class Timezone {
   /// Named (DST-aware) [Timezone] from IANA database.
   ///
   /// Throws [tz.LocationNotFoundException] if the location is not found.
+  /// Throws [ArgumentError] if the name is empty or only whitespace.
   factory Timezone.named(final String name) {
+    if (name.trim().isEmpty) {
+      throw ArgumentError.value(
+        name,
+        'name',
+        'Timezone name cannot be empty or blank.',
+      );
+    }
     if (name.toUpperCase() == 'UTC') {
       return Timezone.utc();
     }
@@ -100,6 +108,10 @@ class Timezone {
     final Duration offset, {
     final String name = 'Fixed',
   }) {
+    assert(
+      name.trim().isNotEmpty,
+      'Fixed timezone name cannot be empty or blank.',
+    );
     final fixedLocation = tz.Location(name, [
       tz.minTime,
     ], [
