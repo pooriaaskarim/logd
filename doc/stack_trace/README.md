@@ -136,6 +136,22 @@ final logger = Logger.get('app');
 logger.info('Message');  // Automatically extracts caller using parser
 ```
 
+## Web Source Mapping
+
+When compiling to JavaScript for web environments, browser stack traces reference compiled JS locations and mangled method names. `logd` allows programmatically registering `.js.map` source maps to translate these coordinates back to the original Dart source code:
+
+```dart
+import 'package:logd/logd.dart';
+
+// Register the source map JSON generated during the build
+StackTraceParser.registerSourceMap('main.dart.js', sourceMapJson);
+
+// Logs on web browser runtimes resolve automatically back to:
+// - Original Dart file (e.g. package:my_app/src/auth.dart)
+// - Original deobfuscated method name (e.g. loginUser)
+// - Original Dart line and column numbers
+```
+
 ## Documentation
 
 - [Architecture](architecture.md) - Technical implementation details

@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.9: Web Source Mapping, Polymorphic Serialization Registry & Architecture Hardening
+
+This release adds support for Web Source Mapping, fixes a critical polymorphic serialization registry bug under multi-isolate configurations, hardens timezone input parsing, adds multi-isolate stress testing, and introduces formal Architecture Decision Records.
+
+- ### Web Source Mapping (Phase B)
+  - **Deobfuscated Browser Stack Traces**: Enabled translation of Chrome, Firefox, and Safari stack traces back to their original Dart source files, line/column coordinates, and deobfuscated method names using standard `.js.map` source maps.
+  - **Flexible Suffix Matching**: Added file path normalization to automatically resolve source maps even if the JS file's hostname, protocol, or directory structure varies.
+  - **Sync Parser Integration**: Updated the synchronous stack trace parsing pipeline to dynamically query registered source maps under browser environments.
+  - **Showcase Example**: Added a relocated example showcasing raw browser frame mapping back to a resolved Dart call frame.
+
+- ### Polymorphic Serialization Fix
+  - **Polymorphic Spec Typing**: Resolved a bug where custom log sinks or filters registered in multi-isolate environments failed to serialize, incorrectly matching base classes due to generic type erasure. Subtypes are now dynamically checked at runtime.
+
+- ### Input Hardening & Timezone Benchmarks
+  - **Timezone Parameter Hardening**: Hardened constructors to validate named timezone inputs, raising assertions/errors on blank, empty, or whitespace-only values.
+  - **Timezone Cache Benchmarks**: Added baseline benchmarks measuring caching performance for named offsets, local offsets, and timestamp formatting.
+
+- ### Architecture Decisions (ADR)
+  - **ADR Documentation**: Created a dedicated architecture documentation index detailing core decisions ADR-001 through ADR-005 on hierarchical inheritance, cache invalidation, sparse metadata storage, unmodifiable collections, and internal logger contracts.
+
 ## 0.8.8: Async Isolate Offloading, HttpServer Viewer & HTML Concurrency
 
 This release introduces native isolate-offloaded logging pipelines, an embedded HTTP log dashboard viewer, dynamic HTML encoding integrations, and concurrency safety hardening.
