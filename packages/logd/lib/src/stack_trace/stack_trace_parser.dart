@@ -13,6 +13,21 @@ class StackTraceParser {
     this.includeAsyncOrigin = false,
   });
 
+  static final Map<String, source_maps.Mapping> _sourceMaps = {};
+
+  /// Registers a parsed source map for a given JavaScript file URL or path.
+  static void registerSourceMap(
+    final String jsFilePathOrUrl,
+    final String sourceMapJson,
+  ) {
+    _sourceMaps[jsFilePathOrUrl] = source_maps.parse(sourceMapJson);
+  }
+
+  /// Clears the registered source maps registry.
+  static void clearSourceMaps() {
+    _sourceMaps.clear();
+  }
+
   /// List of package prefixes to ignore during parsing
   /// (e.g., 'logd' to skip internals).
   final List<String> ignorePackages;
@@ -124,6 +139,14 @@ class StackTraceParser {
   }
 
   CallbackInfo? _parseFrame(final String frame) {
+    final info = _parseFrameRaw(frame);
+    if (info == null) {
+      return null;
+    }
+    return _resolveSourceMap(info);
+  }
+
+  CallbackInfo? _parseFrameRaw(final String frame) {
     // 1. VM parser
     var match = _vmRegex.firstMatch(frame);
     if (match != null) {
@@ -251,6 +274,71 @@ class StackTraceParser {
     }
 
     return null;
+  }
+
+  CallbackInfo _resolveSourceMap(final CallbackInfo info) {
+    if (info.columnNumber == null || _sourceMaps.isEmpty) {
+      return info;
+    }
+
+    final filePath = info.filePath;
+    var mapping = _sourceMaps[filePath];
+    if (mapping == null) {
+      final normalized = _normalizeFilePath(filePath);
+      mapping = _sourceMaps[normalized];
+    }
+
+    if (mapping == null) {
+      return info;
+    }
+
+    try {
+      final span = mapping.spanFor(info.lineNumber - 1, info.columnNumber! - 1);
+      if (span == null) {
+        return info;
+      }
+
+      final origFilePath = span.sourceUrl?.toString() ?? info.filePath;
+      final origLineNumber = span.start.line + 1;
+      final origColumnNumber = span.start.column + 1;
+
+      final className = info.className;
+      final isIdent = span.isIdentifier;
+      final origMethodName = isIdent ? span.text : info.methodName;
+      final origFullMethod = isIdent
+          ? (className.isNotEmpty ? '$className.${span.text}' : span.text)
+          : info.fullMethod;
+
+      return CallbackInfo(
+        className: className,
+        methodName: origMethodName,
+        filePath: origFilePath,
+        lineNumber: origLineNumber,
+        columnNumber: origColumnNumber,
+        fullMethod: origFullMethod,
+      );
+    } catch (_) {
+      return info;
+    }
+  }
+
+  static String _normalizeFilePath(final String path) {
+    final uri = Uri.tryParse(path);
+    if (uri != null) {
+      final segments = uri.pathSegments;
+      if (segments.isNotEmpty) {
+        return segments.last;
+      }
+    }
+    final lastSlash = path.lastIndexOf('/');
+    if (lastSlash != -1) {
+      return path.substring(lastSlash + 1);
+    }
+    final lastBackslash = path.lastIndexOf('\\');
+    if (lastBackslash != -1) {
+      return path.substring(lastBackslash + 1);
+    }
+    return path;
   }
 
   @override

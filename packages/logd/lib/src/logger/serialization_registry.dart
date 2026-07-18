@@ -18,6 +18,17 @@ class _SerializerSpec<T> {
   bool _typeMatches(final dynamic value) => value is T;
 }
 
+class _SubtypeSerializerSpec<T extends Base, Base>
+    extends _SerializerSpec<Base> {
+  const _SubtypeSerializerSpec({
+    required super.fromJson,
+    required super.toJson,
+  });
+
+  @override
+  bool _typeMatches(final dynamic value) => value is T;
+}
+
 /// Registry for serializing and deserializing logging pipeline components.
 ///
 /// Used to pass configurations between isolates or serialize them to JSON.
@@ -293,7 +304,7 @@ class LoggerSerializationRegistry {
     required final T Function(Map<String, dynamic> json) fromJson,
     required final Map<String, dynamic> Function(T value) toJson,
   }) {
-    final spec = _SerializerSpec<LogFormatter>(
+    final spec = _SubtypeSerializerSpec<T, LogFormatter>(
       fromJson: (final json) => fromJson(json),
       toJson: (final val) => toJson(val as T),
     );
@@ -306,7 +317,7 @@ class LoggerSerializationRegistry {
     required final T Function(Map<String, dynamic> json) fromJson,
     required final Map<String, dynamic> Function(T value) toJson,
   }) {
-    final spec = _SerializerSpec<LogSink>(
+    final spec = _SubtypeSerializerSpec<T, LogSink>(
       fromJson: (final json) => fromJson(json),
       toJson: (final val) => toJson(val as T),
     );
@@ -319,7 +330,7 @@ class LoggerSerializationRegistry {
     required final T Function(Map<String, dynamic> json) fromJson,
     required final Map<String, dynamic> Function(T value) toJson,
   }) {
-    final spec = _SerializerSpec<LogFilter>(
+    final spec = _SubtypeSerializerSpec<T, LogFilter>(
       fromJson: (final json) => fromJson(json),
       toJson: (final val) => toJson(val as T),
     );
@@ -332,7 +343,7 @@ class LoggerSerializationRegistry {
     required final T Function(Map<String, dynamic> json) fromJson,
     required final Map<String, dynamic> Function(T value) toJson,
   }) {
-    final spec = _SerializerSpec<LogDecorator>(
+    final spec = _SubtypeSerializerSpec<T, LogDecorator>(
       fromJson: (final json) => fromJson(json),
       toJson: (final val) => toJson(val as T),
     );
@@ -345,7 +356,7 @@ class LoggerSerializationRegistry {
     required final T Function(Map<String, dynamic> json) fromJson,
     required final Map<String, dynamic> Function(T value) toJson,
   }) {
-    final spec = _SerializerSpec<LogEngine>(
+    final spec = _SubtypeSerializerSpec<T, LogEngine>(
       fromJson: (final json) => fromJson(json),
       toJson: (final val) => toJson(val as T),
     );

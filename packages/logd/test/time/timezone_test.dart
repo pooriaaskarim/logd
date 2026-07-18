@@ -58,6 +58,17 @@ void main() {
       );
     });
 
+    test('named() throws on empty or only-whitespace name', () {
+      expect(
+        () => Timezone.named(''),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => Timezone.named('   '),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
     test('local() resolves to named timezone if system name matches IANA', () {
       // Mock known name
       Context.setClock(MockClock(fixedUtcTime, 'America/New_York'));
