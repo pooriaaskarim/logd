@@ -25,11 +25,7 @@ class Timezone {
     }
 
     // Ensure initialized if not already, to make sure we can find locations.
-    if (!_isInitialized) {
-      // We implicitly initialize here for convenience if the user forgot.
-      tz_data.initializeTimeZones();
-      _isInitialized = true;
-    }
+    _ensureInitializedImplicitly();
 
     final systemTime = Context.clock.now;
     String? systemTimezoneName;
@@ -94,10 +90,7 @@ class Timezone {
     if (name.toUpperCase() == 'UTC') {
       return Timezone.utc();
     }
-    if (!_isInitialized) {
-      tz_data.initializeTimeZones();
-      _isInitialized = true;
-    }
+    _ensureInitializedImplicitly();
     return Timezone._(tz.getLocation(name));
   }
 
@@ -140,7 +133,34 @@ class Timezone {
       if (database != null) {
         tz.initializeDatabase(database);
       } else {
+        try {
+          tz_data.initializeTimeZones();
+        } catch (e, s) {
+          InternalLogger.log(
+            LogLevel.warning,
+            'Explicit timezone database initialization failed. Falling back to'
+            ' fixed offsets.',
+            error: e,
+            stackTrace: s,
+          );
+        }
+      }
+      _isInitialized = true;
+    }
+  }
+
+  static void _ensureInitializedImplicitly() {
+    if (!_isInitialized) {
+      try {
         tz_data.initializeTimeZones();
+      } catch (e, s) {
+        InternalLogger.log(
+          LogLevel.warning,
+          'Implicit timezone database initialization failed. Falling back to'
+          ' fixed offsets.',
+          error: e,
+          stackTrace: s,
+        );
       }
       _isInitialized = true;
     }

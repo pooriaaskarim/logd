@@ -1,4 +1,4 @@
-library;
+import 'package:meta/meta.dart';
 
 import '../../logger/logger.dart';
 import '../decorator/decorator.dart';
@@ -10,6 +10,7 @@ import '../sink/sink.dart';
 ///
 /// Attempting to use this engine on non-native platforms will result in an
 /// [UnsupportedError] pointing the user to cross-platform alternatives.
+@experimental
 class NativeEngine implements LogEngine {
   /// Creates a [NativeEngine] stub.
   NativeEngine();
@@ -39,6 +40,7 @@ class NativeEngine implements LogEngine {
 ///
 /// Attempting to use this engine on non-native platforms will result in an
 /// [UnsupportedError] pointing the user to cross-platform alternatives.
+@experimental
 class ArenaEngine implements LogEngine {
   /// Creates an [ArenaEngine] stub.
   const ArenaEngine();

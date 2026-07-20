@@ -1,6 +1,7 @@
-library;
-
 import 'dart:typed_data';
+
+import 'package:meta/meta.dart';
+
 import '../../logger/logger.dart';
 import '../engine/engine.dart';
 import '../sink/sink.dart';
@@ -10,6 +11,7 @@ import '../sink/sink.dart';
 /// Offloads log encoding/output processes to a background worker isolate.
 /// Attempting to use this sink under Web results in an [UnsupportedError]
 /// pointing the user to standard synchronous sinks.
+@experimental
 base class IsolateSink extends LogSink<Uint8List> {
   /// Creates an [IsolateSink] stub.
   IsolateSink(this.target) : super(enabled: target.enabled) {
@@ -42,6 +44,7 @@ base class IsolateSink extends LogSink<Uint8List> {
 /// Offloads log encoding/output processes to a background worker isolate.
 /// Attempting to use this sink under Web results in an [UnsupportedError]
 /// pointing the user to standard synchronous sinks.
+@experimental
 base class NativeIsolateSink extends LogSink<dynamic> {
   /// Creates a [NativeIsolateSink] stub.
   NativeIsolateSink(final LogSink target) : super(enabled: target.enabled) {

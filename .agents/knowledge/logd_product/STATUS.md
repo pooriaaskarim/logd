@@ -19,8 +19,8 @@ The roadmap has been strategically revised. The next active phase is **Phase 1 (
 | **v0.8.8 (Async / HTTP)** | AsyncHandler isolate offloading, HttpServerSink dashboard, HTML concurrency | ✅ Released |
 | **v0.8.9 (Hardening)** | Web Source Mapping, polymorphic serialization fix, timezone hardening, ADRs | ✅ Released |
 | **v0.1.2 (logd_linters)** | Automated quick-fixes for arena lifecycle, purity, and formatting rules | ✅ Published |
-| **Phase 1 (API Stabilization)** | Symbol annotation audit, semver contract, DX pass, extension point freeze | 🔲 Next |
-| **Phase 2 (v1.0 + Ecosystem)** | logd_sqlite, logd_memory, logd_sentry, LogOutput facade, deprecation notices | 🔲 Planned |
+| **Phase 1 (API Stabilization / v0.9.0)** | Symbol annotation audit, semver contract, DX pass, extension point freeze | ✅ Released |
+| **Phase 2 (v1.0 + Ecosystem)** | logd_sqlite, logd_memory, logd_sentry, LogOutput facade, deprecation notices | 🔲 Next |
 | **Phase 3 (Lean Core)** | logd_http, logd_socket, logd_native split out, core dependency reduction | 🔲 Planned |
 
 ---

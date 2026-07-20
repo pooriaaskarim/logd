@@ -378,6 +378,7 @@ class LoggerSerializationRegistry {
 
   static LogFormatter deserializeFormatter(final Map<String, dynamic> json) {
     ensureInitialized();
+    _validateJsonConfig(json, 'formatter');
     final type = json['type'] as String;
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _formattersByName[type];
@@ -399,6 +400,7 @@ class LoggerSerializationRegistry {
 
   static LogSink deserializeSink(final Map<String, dynamic> json) {
     ensureInitialized();
+    _validateJsonConfig(json, 'sink');
     final type = json['type'] as String;
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _sinksByName[type];
@@ -420,6 +422,7 @@ class LoggerSerializationRegistry {
 
   static LogFilter deserializeFilter(final Map<String, dynamic> json) {
     ensureInitialized();
+    _validateJsonConfig(json, 'filter');
     final type = json['type'] as String;
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _filtersByName[type];
@@ -441,6 +444,7 @@ class LoggerSerializationRegistry {
 
   static LogDecorator deserializeDecorator(final Map<String, dynamic> json) {
     ensureInitialized();
+    _validateJsonConfig(json, 'decorator');
     final type = json['type'] as String;
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _decoratorsByName[type];
@@ -462,6 +466,7 @@ class LoggerSerializationRegistry {
 
   static LogEngine deserializeEngine(final Map<String, dynamic> json) {
     ensureInitialized();
+    _validateJsonConfig(json, 'engine');
     final type = json['type'] as String;
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _enginesByName[type];
@@ -469,6 +474,40 @@ class LoggerSerializationRegistry {
       throw ArgumentError('Engine type "$type" not registered.');
     }
     return spec.fromJson(config);
+  }
+
+  static void _validateJsonConfig(
+    final Map<String, dynamic> json,
+    final String componentName,
+  ) {
+    final typeVal = json['type'];
+    if (typeVal == null) {
+      throw FormatException(
+        'Missing required field "type" in $componentName configuration. '
+        'Ensure the configuration specifies a valid registered '
+        '$componentName name.',
+      );
+    }
+    if (typeVal is! String) {
+      throw FormatException(
+        'The field "type" in $componentName configuration must be a String. '
+        'Got: ${typeVal.runtimeType} ($typeVal)',
+      );
+    }
+    final configVal = json['config'];
+    if (configVal == null) {
+      throw FormatException(
+        'Missing required field "config" in $componentName configuration. '
+        'Ensure the configuration specifies parameters for '
+        '$componentName "$typeVal".',
+      );
+    }
+    if (configVal is! Map) {
+      throw FormatException(
+        'The field "config" in $componentName configuration must be a Map. '
+        'Got: ${configVal.runtimeType} ($configVal)',
+      );
+    }
   }
 
   // --- Internal helpers ---

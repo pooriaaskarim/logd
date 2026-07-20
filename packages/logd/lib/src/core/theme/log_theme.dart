@@ -292,6 +292,14 @@ class LogColorScheme {
     error: LogColor.brightRed,
   );
 
+  static const lightScheme = LogColorScheme(
+    trace: LogColor.green,
+    debug: LogColor.black,
+    info: LogColor.blue,
+    warning: LogColor.brightYellow,
+    error: LogColor.red,
+  );
+
   @override
   bool operator ==(final Object other) =>
       identical(this, other) ||
@@ -342,6 +350,50 @@ class LogTheme {
     this.errorStyle,
     this.hierarchyStyle,
   });
+
+  /// Creates a standard dark terminal theme.
+  const LogTheme.dark({
+    final LogStyle? timestampStyle,
+    final LogStyle? loggerNameStyle,
+    final LogStyle? levelStyle,
+    final LogStyle? messageStyle,
+    final LogStyle? borderStyle,
+    final LogStyle? stackFrameStyle,
+    final LogStyle? errorStyle,
+    final LogStyle? hierarchyStyle,
+  }) : this(
+          colorScheme: LogColorScheme.darkScheme,
+          timestampStyle: timestampStyle,
+          loggerNameStyle: loggerNameStyle,
+          levelStyle: levelStyle,
+          messageStyle: messageStyle,
+          borderStyle: borderStyle,
+          stackFrameStyle: stackFrameStyle,
+          errorStyle: errorStyle,
+          hierarchyStyle: hierarchyStyle,
+        );
+
+  /// Creates a standard light terminal theme.
+  const LogTheme.light({
+    final LogStyle? timestampStyle,
+    final LogStyle? loggerNameStyle,
+    final LogStyle? levelStyle,
+    final LogStyle? messageStyle,
+    final LogStyle? borderStyle,
+    final LogStyle? stackFrameStyle,
+    final LogStyle? errorStyle,
+    final LogStyle? hierarchyStyle,
+  }) : this(
+          colorScheme: LogColorScheme.lightScheme,
+          timestampStyle: timestampStyle,
+          loggerNameStyle: loggerNameStyle,
+          levelStyle: levelStyle,
+          messageStyle: messageStyle,
+          borderStyle: borderStyle,
+          stackFrameStyle: stackFrameStyle,
+          errorStyle: errorStyle,
+          hierarchyStyle: hierarchyStyle,
+        );
 
   /// The base color scheme for log levels.
   final LogColorScheme colorScheme;
