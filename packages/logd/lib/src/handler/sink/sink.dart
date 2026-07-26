@@ -10,12 +10,13 @@ import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../../core/context/io/io_stub.dart'
+    if (dart.library.io) '../../core/context/io/io_native.dart' as io;
 import '../../core/utils/utils.dart';
 import '../../logger/logger.dart';
 import '../document/document.dart';
 import '../encoder/encoder.dart';
 import '../engine/engine.dart';
-import '../io_stub.dart' if (dart.library.io) '../io_native.dart' as io;
 
 part 'console_sink.dart';
 part 'encoding_sink.dart';

@@ -41,7 +41,7 @@ base class HttpServerSink extends EncodingSink {
   /// on web stub).
   Future<void> get ready => Future<void>.value();
 
-  static void _unsupported(final _) {}
+  static void _unsupported(final dynamic _) {}
 
   @override
   Future<void> output(
