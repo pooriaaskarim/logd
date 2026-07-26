@@ -35,9 +35,7 @@ void main() {
             ],
             decorators: [
               BoxDecorator(),
-              StyleDecorator(
-                theme: LogTheme(colorScheme: LogColorScheme.darkScheme),
-              ),
+              StyleDecorator(DarkTheme()),
               PrefixDecorator('>>> '),
               SuffixDecorator(' <<<', aligned: false),
             ],

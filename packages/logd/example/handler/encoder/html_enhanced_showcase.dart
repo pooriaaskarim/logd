@@ -17,33 +17,29 @@ void main() async {
   final darkSink = FileSink(
     darkFile.path,
     encoder: const HtmlEncoder(
-      darkMode: true,
       title: 'Dark Performance Dashboard',
     ),
     strategy: WrappingStrategy.document,
   );
 
   // 2. Custom Pastel Theme
-  final pastelTheme = const LogTheme(
-    colorScheme: LogColorScheme.darkScheme,
-    messageStyle: LogStyle(italic: true),
-  );
   final lightSink = FileSink(
     lightFile.path,
-    encoder: HtmlEncoder(
-      theme: pastelTheme,
+    encoder: const HtmlEncoder(
       title: 'Light Pastel Report',
     ),
     strategy: WrappingStrategy.document,
   );
 
   final darkHandler = Handler(
-    formatter: StructuredFormatter(),
+    formatter: const StructuredFormatter(),
+    decorators: const [StyleDecorator(DarkTheme())],
     sink: darkSink,
   );
 
   final lightHandler = Handler(
-    formatter: StructuredFormatter(),
+    formatter: const StructuredFormatter(),
+    decorators: const [StyleDecorator(PastelTheme())],
     sink: lightSink,
   );
 

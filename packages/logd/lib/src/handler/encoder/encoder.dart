@@ -21,6 +21,7 @@ part 'ansi_encoder_adapter.dart';
 part 'auto_console_encoder.dart';
 part 'fast_string_writer.dart';
 part 'html_encoder.dart';
+part 'html_stylesheet.dart';
 part 'json_encoder.dart';
 part 'log_encoder.dart';
 part 'markdown_encoder.dart';

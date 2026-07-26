@@ -116,7 +116,7 @@ void main() {
       timestamp: '2025-01-01 12:00:05',
     );
 
-    const encoder = HtmlEncoder(darkMode: true);
+    const encoder = HtmlEncoder();
 
     final htmlFormatters = {
       'plain': const PlainFormatter(),

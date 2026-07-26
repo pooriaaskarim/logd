@@ -19,7 +19,7 @@ void main() async {
       metadata: {LogMetadata.timestamp, LogMetadata.origin, LogMetadata.logger},
     ),
     decorators: [
-      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
+      StyleDecorator(DarkTheme()),
       SuffixDecorator(
         ' [v1.0.2] ',
         aligned: true,
@@ -78,7 +78,7 @@ void main() async {
       metadata: {},
     ),
     decorators: [
-      StyleDecorator(theme: _InspectorTheme()),
+      StyleDecorator(_InspectorTheme()),
       HierarchyDepthPrefixDecorator(
         indent: '│ ',
         style: LogStyle(color: LogColor.blue),

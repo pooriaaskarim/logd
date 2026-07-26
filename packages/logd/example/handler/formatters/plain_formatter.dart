@@ -24,7 +24,7 @@ void main() async {
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
     decorators: [
-      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      StyleDecorator(PastelTheme()),
       HierarchyDepthPrefixDecorator(indent: '│ '), // Wide indent
       PrefixDecorator(' [SYSTEM] '),
     ],

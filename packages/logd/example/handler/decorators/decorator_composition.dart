@@ -35,11 +35,7 @@ void main() async {
       HierarchyDepthPrefixDecorator(indent: '  '),
 
       // Visual Decoration
-      StyleDecorator(
-        theme: LogTheme(
-          colorScheme: LogColorScheme.pastelScheme,
-        ),
-      ),
+      StyleDecorator(PastelTheme()),
     ],
     sink: ConsoleSink(lineLength: 70),
   );

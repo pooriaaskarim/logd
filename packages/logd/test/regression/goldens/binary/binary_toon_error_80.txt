@@ -1,4 +1,4 @@
-[31m{"timestamp":"2025-01-01[0m
-[31m12:00:05","logger":"BinaryError","origin":"error.dart:1","level":"ERROR","messag[0m
-[31me":"Critical system failure detected in the binary[0m
-[31mpipeline!","error":"","stackTrace":""}[0m
+{"timestamp":"2025-01-01
+12:00:05","logger":"BinaryError","origin":"error.dart:1","level":"ERROR","messag
+e":"Critical system failure detected in the binary
+pipeline!","error":"","stackTrace":""}

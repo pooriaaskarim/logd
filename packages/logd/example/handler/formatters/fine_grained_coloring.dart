@@ -23,7 +23,7 @@ void main() async {
     ),
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
-      StyleDecorator(theme: _ProfoundConsoleTheme()),
+      StyleDecorator(_ProfoundConsoleTheme()),
     ],
     sink: const ConsoleSink(lineLength: 75),
   );
@@ -46,7 +46,7 @@ void main() async {
     formatter: StructuredFormatter(),
     decorators: [
       BoxDecorator(borderStyle: BorderStyle.rounded),
-      StyleDecorator(theme: _ProfoundConsoleTheme()),
+      StyleDecorator(_ProfoundConsoleTheme()),
     ],
     sink: ConsoleSink(
       lineLength: 75,

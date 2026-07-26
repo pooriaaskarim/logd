@@ -20,7 +20,6 @@ void main() async {
   final lightSink = FileSink(
     lightFile.path,
     encoder: const HtmlEncoder(
-      darkMode: false,
       title: 'Light Boxed Logs',
     ),
     strategy: WrappingStrategy.document,
@@ -29,13 +28,16 @@ void main() async {
   final darkHandler = Handler(
     formatter: const StructuredFormatter(),
     sink: darkSink,
-    decorators: [const BoxDecorator()],
+    decorators: const [StyleDecorator(DarkTheme()), BoxDecorator()],
   );
 
   final lightHandler = Handler(
     formatter: const StructuredFormatter(),
     sink: lightSink,
-    decorators: [const BoxDecorator(borderStyle: BoxBorderStyle.double)],
+    decorators: const [
+      StyleDecorator(LightTheme()),
+      BoxDecorator(borderStyle: BoxBorderStyle.double),
+    ],
   );
 
   print('=== Logd Boxed HTML Showcase ===');

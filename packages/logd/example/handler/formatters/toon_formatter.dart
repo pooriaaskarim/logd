@@ -33,7 +33,7 @@ void main() async {
       metadata: {LogMetadata.logger},
     ),
     decorators: [
-      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      StyleDecorator(PastelTheme()),
       HierarchyDepthPrefixDecorator(indent: '┃ '),
       SuffixDecorator(' [v8]', aligned: true),
     ],
@@ -52,7 +52,7 @@ void main() async {
       metadata: {},
     ),
     decorators: [
-      StyleDecorator(theme: JsonInspectorTheme()),
+      StyleDecorator(JsonInspectorTheme()),
       BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
     sink: ConsoleSink(lineLength: 60),
@@ -103,7 +103,7 @@ void main() async {
   final narrowHandler = Handler(
     formatter: const ToonPrettyFormatter(metadata: {}),
     decorators: [
-      StyleDecorator(theme: JsonInspectorTheme()),
+      StyleDecorator(JsonInspectorTheme()),
       const BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
     sink: const ConsoleSink(lineLength: 30),

@@ -16,8 +16,12 @@ This release marks Phase 1 of logd's roadmap, focusing on core API surface stabi
   - **JSON Schema Validation**: Added explicit JSON schema validation with descriptive `FormatException` error messages for pipeline component deserialization in `LoggerSerializationRegistry`.
   - **Runtime Assertions**: Added runtime assertions for pipeline options, including non-negative `timeout` validation in `Handler`.
 
-- ### Theming API Overhaul
-  - **Standard Light & Dark Presets**: Added `LogColorScheme.lightScheme` and introduced `LogTheme.light()` and `LogTheme.dark()` const constructors to simplify theme configuration for light and dark terminals.
+- ### Theming API Overhaul & Architectural Modernization
+  - **Single Source of Truth Architecture**: Standardized `StyleDecorator([this.theme = const DarkTheme()])` as the sole authority for semantic tag-to-style resolution on `LogDocument`, making `theme` a positional optional parameter for cleaner DX (`StyleDecorator(LightTheme())`). `StyleDecorator` automatically attaches `document.metadata['logd.theme']` as an immutable context bus for encoders. Removed redundant `theme:` parameters from `AnsiEncoder` and `HtmlEncoder`.
+  - **Unified `LogColorScheme` & `LogStyle` System Design**: Simplified `LogColorScheme` to represent a pure 5-level semantic color palette (`trace`, `debug`, `info`, `warning`, `error`). Consolidated all visual properties and tag-specific overrides into `LogStyle` (`timestampStyle`, `levelStyle`, `borderStyle`, `exceptionStyle`, etc.), eliminating redundant `*Color` tag fields following Flutter `TextTheme` design patterns. Renamed tag-based `errorStyle` to `exceptionStyle` to eliminate naming collisions with severity levels.
+  - **Extracted `HtmlStylesheet`**: Decoupled CSS/JS generation from `HtmlEncoder` into an interchangeable `HtmlStylesheet` interface and default `DefaultHtmlStylesheet`.
+  - **Interactive HTML UI Refinements**: Redesigned the HTML copy-to-clipboard button with glassmorphic floating pill styling, exact top/right margin alignment matching `.log-entry` content padding, and SVG checkmark feedback animations.
+  - **Standard Theme Presets**: Added top-level `@immutable` theme presets (`DarkTheme`, `LightTheme`, `PastelTheme`, `HighContrastTheme`) along with `LogColorScheme` preset palettes (`darkScheme`, `lightScheme`, `pastelScheme`, `highContrastScheme`).
 
 ## 0.8.9: Web Source Mapping, Polymorphic Serialization Registry & Architecture Hardening
 

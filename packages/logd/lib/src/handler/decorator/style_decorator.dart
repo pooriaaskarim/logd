@@ -8,8 +8,7 @@ part of 'decorator.dart';
 ///
 /// Example:
 /// ```dart
-/// StyleDecorator(theme: LogTheme(
-///   colorScheme: LogColorScheme.darkScheme,
+/// StyleDecorator(DarkTheme(
 ///   levelStyle: LogStyle(bold: true), // Make levels bold
 /// ))
 /// ```
@@ -17,11 +16,10 @@ part of 'decorator.dart';
 final class StyleDecorator extends VisualDecorator {
   /// Creates a [StyleDecorator].
   ///
-  /// [theme] defines the styling rules. Defaults to using
-  /// [LogColorScheme.defaultScheme].
-  const StyleDecorator({
-    this.theme = const LogTheme(colorScheme: LogColorScheme.defaultScheme),
-  });
+  /// [theme] defines the styling rules. Defaults to [DarkTheme].
+  const StyleDecorator([
+    this.theme = const DarkTheme(),
+  ]);
 
   /// The theme used to resolve styles.
   final LogTheme theme;
@@ -32,6 +30,7 @@ final class StyleDecorator extends VisualDecorator {
     final LogEntry entry,
     final LogPipelineFactory factory,
   ) {
+    document.metadata['logd.theme'] = theme;
     for (final node in document.nodes) {
       _applyStyle(node, entry.level, factory);
     }

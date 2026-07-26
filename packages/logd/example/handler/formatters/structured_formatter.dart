@@ -22,7 +22,7 @@ void main() async {
   const dashboardHandler = Handler(
     formatter: StructuredFormatter(),
     decorators: [
-      StyleDecorator(theme: _EliteDashboardTheme()),
+      StyleDecorator(_EliteDashboardTheme()),
       BoxDecorator(borderStyle: BorderStyle.rounded),
     ],
     sink: ConsoleSink(
@@ -40,7 +40,7 @@ void main() async {
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
     decorators: [
-      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      StyleDecorator(PastelTheme()),
       BoxDecorator(borderStyle: BorderStyle.rounded),
       HierarchyDepthPrefixDecorator(indent: '┃ '),
     ],

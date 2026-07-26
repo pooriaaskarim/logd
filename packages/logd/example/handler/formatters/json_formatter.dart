@@ -33,7 +33,7 @@ void main() async {
         indent: '  ',
         keyWrapThreshold: 51),
     decorators: [
-      StyleDecorator(theme: JsonInspectorTheme()),
+      StyleDecorator(JsonInspectorTheme()),
       const HierarchyDepthPrefixDecorator(indent: '│ '),
       const SuffixDecorator(' [AUDIT]', aligned: true),
       const BoxDecorator(borderStyle: BorderStyle.sharp),
@@ -78,7 +78,7 @@ void main() async {
       maxDepth: 2, // Cut off deep nesting
     ),
     decorators: [
-      StyleDecorator(theme: JsonInspectorTheme()),
+      StyleDecorator(JsonInspectorTheme()),
       const BoxDecorator(borderStyle: BorderStyle.sharp),
     ],
     sink: const ConsoleSink(lineLength: 80),
@@ -106,7 +106,7 @@ void main() async {
         metadata: {},
       ),
       decorators: [
-        StyleDecorator(theme: JsonInspectorTheme()),
+        StyleDecorator(JsonInspectorTheme()),
         const BoxDecorator(borderStyle: BorderStyle.sharp),
       ],
       sink: ConsoleSink(lineLength: width),

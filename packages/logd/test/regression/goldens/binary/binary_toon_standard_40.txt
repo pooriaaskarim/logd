@@ -1,6 +1,6 @@
-[34m{"timestamp":"2025-01-01[0m
-[34m12:00:00","logger":"BinarySnap","origin"[0m
-[34m:"binary.dart:42","level":"INFO","messag[0m
-[34me":"Verified Binary IR rendering with[0m
-[34msemantic coloring and[0m
-[34malignment.","error":"","stackTrace":""}[0m
+{"timestamp":"2025-01-01
+12:00:00","logger":"BinarySnap","origin"
+:"binary.dart:42","level":"INFO","messag
+e":"Verified Binary IR rendering with
+semantic coloring and
+alignment.","error":"","stackTrace":""}

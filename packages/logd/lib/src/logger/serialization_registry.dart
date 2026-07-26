@@ -229,9 +229,9 @@ class LoggerSerializationRegistry {
     registerDecorator<StyleDecorator>(
       type: 'StyleDecorator',
       fromJson: (final json) => StyleDecorator(
-        theme: json['theme'] != null
+        json['theme'] != null
             ? _deserializeTheme(Map<String, dynamic>.from(json['theme'] as Map))
-            : const LogTheme(colorScheme: LogColorScheme.defaultScheme),
+            : const DarkTheme(),
       ),
       toJson: (final val) => <String, dynamic>{
         'theme': _serializeTheme(val.theme),
@@ -581,16 +581,6 @@ class LoggerSerializationRegistry {
         'info': scheme.info.name,
         'warning': scheme.warning.name,
         'error': scheme.error.name,
-        if (scheme.timestampColor != null)
-          'timestampColor': scheme.timestampColor!.name,
-        if (scheme.loggerNameColor != null)
-          'loggerNameColor': scheme.loggerNameColor!.name,
-        if (scheme.levelColor != null) 'levelColor': scheme.levelColor!.name,
-        if (scheme.borderColor != null) 'borderColor': scheme.borderColor!.name,
-        if (scheme.stackFrameColor != null)
-          'stackFrameColor': scheme.stackFrameColor!.name,
-        if (scheme.hierarchyColor != null)
-          'hierarchyColor': scheme.hierarchyColor!.name,
       };
 
   static LogColorScheme _deserializeColorScheme(
@@ -602,24 +592,6 @@ class LoggerSerializationRegistry {
         info: LogColor.values.byName(json['info'] as String),
         warning: LogColor.values.byName(json['warning'] as String),
         error: LogColor.values.byName(json['error'] as String),
-        timestampColor: json['timestampColor'] != null
-            ? LogColor.values.byName(json['timestampColor'] as String)
-            : null,
-        loggerNameColor: json['loggerNameColor'] != null
-            ? LogColor.values.byName(json['loggerNameColor'] as String)
-            : null,
-        levelColor: json['levelColor'] != null
-            ? LogColor.values.byName(json['levelColor'] as String)
-            : null,
-        borderColor: json['borderColor'] != null
-            ? LogColor.values.byName(json['borderColor'] as String)
-            : null,
-        stackFrameColor: json['stackFrameColor'] != null
-            ? LogColor.values.byName(json['stackFrameColor'] as String)
-            : null,
-        hierarchyColor: json['hierarchyColor'] != null
-            ? LogColor.values.byName(json['hierarchyColor'] as String)
-            : null,
       );
 
   static Map<String, dynamic> _serializeTheme(final LogTheme theme) =>
@@ -637,8 +609,8 @@ class LoggerSerializationRegistry {
           'borderStyle': _serializeStyle(theme.borderStyle!),
         if (theme.stackFrameStyle != null)
           'stackFrameStyle': _serializeStyle(theme.stackFrameStyle!),
-        if (theme.errorStyle != null)
-          'errorStyle': _serializeStyle(theme.errorStyle!),
+        if (theme.exceptionStyle != null)
+          'exceptionStyle': _serializeStyle(theme.exceptionStyle!),
         if (theme.hierarchyStyle != null)
           'hierarchyStyle': _serializeStyle(theme.hierarchyStyle!),
       };
@@ -678,9 +650,11 @@ class LoggerSerializationRegistry {
                 Map<String, dynamic>.from(json['stackFrameStyle'] as Map),
               )
             : null,
-        errorStyle: json['errorStyle'] != null
+        exceptionStyle: (json['exceptionStyle'] ?? json['errorStyle']) != null
             ? _deserializeStyle(
-                Map<String, dynamic>.from(json['errorStyle'] as Map),
+                Map<String, dynamic>.from(
+                  (json['exceptionStyle'] ?? json['errorStyle']) as Map,
+                ),
               )
             : null,
         hierarchyStyle: json['hierarchyStyle'] != null
