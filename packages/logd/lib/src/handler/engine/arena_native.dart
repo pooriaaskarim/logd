@@ -38,6 +38,7 @@ import '../layout/layout.dart';
 ///   decorators receive the arena only to create new nodes.
 /// - This class is **not** thread-safe. Isolate isolation is the safety
 ///   boundary.
+@experimental
 class Arena implements LogPipelineFactory {
   // Private constructor; use [instance] for isolate-local access.
   Arena._();

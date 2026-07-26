@@ -39,7 +39,7 @@ void main() {
 
     test('different levels have different colors', () {
       const decorator = StyleDecorator(
-        theme: LogTheme(
+        LogTheme(
           colorScheme: LogColorScheme(
             trace: LogColor.green,
             debug: LogColor.white,
@@ -100,7 +100,7 @@ void main() {
 
     test('respects custom theme (no message coloring)', () {
       const decorator = StyleDecorator(
-        theme: NoMessageTheme(),
+        NoMessageTheme(),
       );
       final arena = Arena.instance;
       final headerDoc = arena.checkoutDocument();

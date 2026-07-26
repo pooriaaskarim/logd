@@ -24,6 +24,7 @@ import 'isolate_protocol.dart';
 /// [NativeEngine] standardizes the [LogDocument] into a [BinaryIR] instruction
 /// stream before passing it to a native shared library for high-performance
 /// rendering.
+@experimental
 class NativeEngine implements LogEngine {
   /// Creates a [NativeEngine].
   NativeEngine();
@@ -121,6 +122,7 @@ class NativeEngine implements LogEngine {
 /// - [LogDocument]s must not be retained beyond the log cycle.
 /// - Sinks should ideally be [IsolateSink]s to maximize the benefit of
 ///   asynchronous I/O.
+@experimental
 class ArenaEngine implements LogEngine {
   const ArenaEngine();
 

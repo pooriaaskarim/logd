@@ -21,6 +21,7 @@ import '../sink/sink.dart';
 /// This ensures that the main application thread never blocks on disk or
 /// network I/O. It uses [TransferableTypedData] to minimize memory pressure
 /// during isolate communication.
+@experimental
 base class IsolateSink extends LogSink<Uint8List> {
   /// Creates an [IsolateSink] that wraps the [target] sink.
   ///
@@ -125,6 +126,7 @@ class IsolateLog {
 ///
 /// Use [NativeIsolateSink] when using [NativeEngine] to achieve zero-latency
 /// logging on the main thread.
+@experimental
 base class NativeIsolateSink extends LogSink<dynamic> {
   /// Creates a [NativeIsolateSink] wrapping the [target].
   NativeIsolateSink(this.target) : super(enabled: target.enabled) {

@@ -680,12 +680,7 @@ final class NativePacket {
 /// minimizing memory allocations and object traversal.
 @internal
 final class BinaryAnsiEncoder {
-  const BinaryAnsiEncoder({
-    this.theme = const LogTheme(colorScheme: LogColorScheme.defaultScheme),
-  });
-
-  /// The theme used to resolve semantic styles for tags.
-  final LogTheme theme;
+  const BinaryAnsiEncoder();
 
   /// Renders the [BinaryIR] buffer starting at [irPtr] into a string.
   String encode(
@@ -959,9 +954,8 @@ final class BinaryAnsiEncoder {
             } else {
               final innermostBox =
                   indentStack.reversed.whereType<_BoxIndent>().firstOrNull;
-              final style = (innermostBox != null)
-                  ? innermostBox.style
-                  : theme.getStyle(level, LogTag.none);
+              final LogStyle? style =
+                  (innermostBox != null) ? innermostBox.style : null;
               applyStyle(buffer, style);
               buffer.write(' ' * pad);
             }
@@ -981,7 +975,7 @@ final class BinaryAnsiEncoder {
             applyStyle(buffer, filler.style);
             buffer.write(filler.char * state.trailingWidth);
           } else {
-            final style = theme.getStyle(level, LogTag.none);
+            const LogStyle? style = null;
             applyStyle(buffer, style);
             buffer.write(' ' * state.trailingWidth);
           }
@@ -1005,9 +999,7 @@ final class BinaryAnsiEncoder {
           } else {
             final innermostBox =
                 indentStack.reversed.whereType<_BoxIndent>().firstOrNull;
-            final style = (innermostBox != null)
-                ? innermostBox.style
-                : theme.getStyle(level, LogTag.none);
+            final style = (innermostBox != null) ? innermostBox.style : null;
             applyStyle(buffer, style);
             buffer.write(' ' * paddingNeeded);
           }
@@ -1033,7 +1025,7 @@ final class BinaryAnsiEncoder {
 
     void renderJsonWrapped(final Map<String, String> map, final int tags) {
       final jsonStr = convert.jsonEncode(map);
-      final style = theme.getStyle(level, tags);
+      const LogStyle? style = null;
 
       if ((tags & LogTag.noWrap) != 0) {
         ensureIndent();
@@ -1187,9 +1179,8 @@ final class BinaryAnsiEncoder {
 
           final rawText = convert.utf8.decode(dataPtr.asTypedList(len));
           final text = resolveFileUris(rawText);
-          final style = styleBitmask != 0
-              ? logStyleFromBitmask(styleBitmask)
-              : theme.getStyle(level, tags);
+          final style =
+              styleBitmask != 0 ? logStyleFromBitmask(styleBitmask) : null;
 
           void openStyle() {
             applyStyle(buffer, style);
@@ -1261,12 +1252,10 @@ final class BinaryAnsiEncoder {
 
         case BinaryIR.opBoxStart:
           final type = opPtr[1];
-          final tags = opPtr.cast<ffi.Uint32>()[1];
           final styleBitmask = opPtr.cast<ffi.Uint32>()[2];
           final border = BoxBorderStyle.values[type];
-          final style = styleBitmask != 0
-              ? logStyleFromBitmask(styleBitmask)
-              : theme.getStyle(level, tags);
+          final style =
+              styleBitmask != 0 ? logStyleFromBitmask(styleBitmask) : null;
 
           ensureIndent();
 
@@ -1341,12 +1330,10 @@ final class BinaryAnsiEncoder {
 
         case BinaryIR.opFiller:
           final char = String.fromCharCode(opPtr[1]);
-          final tags = opPtr.cast<ffi.Uint32>()[1];
           final styleBitmask = opPtr.cast<ffi.Uint32>()[2];
           final count = opPtr.cast<ffi.Uint32>()[3];
-          final style = styleBitmask != 0
-              ? logStyleFromBitmask(styleBitmask)
-              : theme.getStyle(level, tags);
+          final style =
+              styleBitmask != 0 ? logStyleFromBitmask(styleBitmask) : null;
 
           ensureIndent();
           final boxCount = indentStack.whereType<_BoxIndent>().length;
@@ -1403,7 +1390,7 @@ final class BinaryAnsiEncoder {
                   convert.utf8.decode(segDataPtr.asTypedList(segLen));
               final segStyle = segStyleBitmask != 0
                   ? logStyleFromBitmask(segStyleBitmask)
-                  : theme.getStyle(level, segTags);
+                  : null;
 
               leadingSegments
                   .add(StyledText(segText, style: segStyle, tags: segTags));
@@ -1432,7 +1419,7 @@ final class BinaryAnsiEncoder {
                   convert.utf8.decode(segDataPtr.asTypedList(segLen));
               final segStyle = segStyleBitmask != 0
                   ? logStyleFromBitmask(segStyleBitmask)
-                  : theme.getStyle(level, segTags);
+                  : null;
 
               trailingSegments
                   .add(StyledText(segText, style: segStyle, tags: segTags));
@@ -1597,7 +1584,7 @@ final class BinaryAnsiEncoder {
               } else if (hintIdx == 4) {
                 rawDec = '│${' ' * (leadingWidth - 1)}';
               }
-              final decStyle = theme.getStyle(level, LogTag.hierarchy);
+              const LogStyle? decStyle = null;
               indentStack
                   .add(_DecoratedIndent([StyledText(rawDec, style: decStyle)]));
             }
@@ -1720,11 +1707,9 @@ final class BinaryAnsiEncoder {
 
         case BinaryIR.opRowStart:
           final char = String.fromCharCode(opPtr[1]);
-          final tags = opPtr.cast<ffi.Uint32>()[1];
           final styleBitmask = opPtr.cast<ffi.Uint32>()[2];
-          final style = styleBitmask != 0
-              ? logStyleFromBitmask(styleBitmask)
-              : theme.getStyle(level, tags);
+          final style =
+              styleBitmask != 0 ? logStyleFromBitmask(styleBitmask) : null;
           rowFillerStack.add(_RowFiller(char, style));
           currentOffset += 16;
           break;

@@ -3,19 +3,11 @@ part of 'encoder.dart';
 /// An encoder that produces colorized ANSI output for terminals.
 ///
 /// This encoder uses [TerminalLayout] to calculate the physical geometry of the
-/// log and then applies [LogStyle]s resolved via its [theme] using ANSI escape
+/// log and applies [LogStyle]s present on the segments using ANSI escape
 /// sequences.
 class AnsiEncoder implements LogEncoder {
   /// Creates an [AnsiEncoder].
-  ///
-  /// - [theme]: The theme used to resolve semantic styles.
-  ///            Defaults to [LogColorScheme.defaultScheme].
-  const AnsiEncoder({
-    this.theme = const LogTheme(colorScheme: LogColorScheme.defaultScheme),
-  });
-
-  /// The theme used to resolve semantic styles.
-  final LogTheme theme;
+  const AnsiEncoder();
 
   @override
   void preamble(
@@ -110,8 +102,12 @@ class AnsiEncoder implements LogEncoder {
     for (int i = 0; i < physicalDoc.lines.length; i++) {
       final line = physicalDoc.lines[i];
       for (final segment in line.segments) {
-        final style = segment.style ?? theme.getStyle(level, segment.tags);
-        applyStyle(segment.text, style);
+        final style = segment.style;
+        if (style != null) {
+          applyStyle(segment.text, style);
+        } else {
+          context.writeString(segment.text);
+        }
       }
       resetStyle();
       if (i < physicalDoc.lines.length - 1) {

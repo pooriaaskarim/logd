@@ -1,6 +1,4 @@
-library;
-
-import 'dart:async';
+import 'package:meta/meta.dart';
 
 import '../../logger/logger.dart';
 import '../document/document.dart';
@@ -10,6 +8,7 @@ import '../sink/sink.dart';
 
 /// A [LogSink] that throws under browser/web environments as HTTP servers are
 /// unsupported.
+@experimental
 base class HttpServerSink extends EncodingSink {
   /// Creates an [HttpServerSink] stub that throws [UnsupportedError].
   HttpServerSink({
@@ -42,7 +41,7 @@ base class HttpServerSink extends EncodingSink {
   /// on web stub).
   Future<void> get ready => Future<void>.value();
 
-  static void _unsupported(final _) {}
+  static void _unsupported(final dynamic _) {}
 
   @override
   Future<void> output(

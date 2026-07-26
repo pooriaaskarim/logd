@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.9.0: API Stabilization, Semver Contract, DX Improvements & Theme Presets
+
+This release marks Phase 1 of logd's roadmap, focusing on core API surface stabilization, publishing a formal Semantic Versioning contract, enhancing developer experience (DX), and standardizing light and dark terminal themes.
+
+- ### API Stabilization & Symbol Audit
+  - **Symbol Stability Annotations**: Audited public exports and decorated native/FFI and isolate components (`Arena`, `NativeEngine`, `ArenaEngine`, `HttpServerSink`, `IsolateSink`, `NativeIsolateSink`) with `@experimental` to establish clear stability guarantees.
+  - **Extension Point Freeze**: Formally frozen `LogFormatter` (interface class), `LogDecorator` (sealed class), `LogSink` (base class), and `Handler` as the core stable extensibility points.
+
+- ### Semver Contract
+  - **Semver Specification**: Published `doc/semver_contract.md` detailing breaking change guarantees for stable, experimental, and internal APIs to support ecosystem and satellite package development.
+
+- ### Developer Experience & Diagnostic Hardening
+  - **Implicit Timezone Initialization Fallback**: Added graceful exception handling to implicit timezone database loading, falling back to fixed local offsets to prevent runtime initialization crashes.
+  - **JSON Schema Validation**: Added explicit JSON schema validation with descriptive `FormatException` error messages for pipeline component deserialization in `LoggerSerializationRegistry`.
+  - **Runtime Assertions**: Added runtime assertions for pipeline options, including non-negative `timeout` validation in `Handler`.
+
+- ### Theming API Overhaul & Architectural Modernization
+  - **Single Source of Truth Architecture**: Standardized `StyleDecorator([this.theme = const DarkTheme()])` as the sole authority for semantic tag-to-style resolution on `LogDocument`, making `theme` a positional optional parameter for cleaner DX (`StyleDecorator(LightTheme())`). `StyleDecorator` automatically attaches `document.metadata['logd.theme']` as an immutable context bus for encoders. Removed redundant `theme:` parameters from `AnsiEncoder` and `HtmlEncoder`.
+  - **Unified `LogColorScheme` & `LogStyle` System Design**: Simplified `LogColorScheme` to represent a pure 5-level semantic color palette (`trace`, `debug`, `info`, `warning`, `error`). Consolidated all visual properties and tag-specific overrides into `LogStyle` (`timestampStyle`, `levelStyle`, `borderStyle`, `exceptionStyle`, etc.), eliminating redundant `*Color` tag fields following Flutter `TextTheme` design patterns. Renamed tag-based `errorStyle` to `exceptionStyle` to eliminate naming collisions with severity levels.
+  - **Extracted `HtmlStylesheet`**: Decoupled CSS/JS generation from `HtmlEncoder` into an interchangeable `HtmlStylesheet` interface and default `DefaultHtmlStylesheet`.
+  - **Interactive HTML UI Refinements**: Redesigned the HTML copy-to-clipboard button with glassmorphic floating pill styling, exact top/right margin alignment matching `.log-entry` content padding, and SVG checkmark feedback animations.
+  - **Standard Theme Presets**: Added top-level `@immutable` theme presets (`DarkTheme`, `LightTheme`, `PastelTheme`, `HighContrastTheme`) along with `LogColorScheme` preset palettes (`darkScheme`, `lightScheme`, `pastelScheme`, `highContrastScheme`).
+
 ## 0.8.9: Web Source Mapping, Polymorphic Serialization Registry & Architecture Hardening
 
 This release adds support for Web Source Mapping, fixes a critical polymorphic serialization registry bug under multi-isolate configurations, hardens timezone input parsing, adds multi-isolate stress testing, and introduces formal Architecture Decision Records.

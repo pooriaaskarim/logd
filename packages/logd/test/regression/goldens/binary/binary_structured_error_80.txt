@@ -1,2 +1,2 @@
-[1;31m____[0m[2;31m2025-01-01 12:00:05[0m[1;31m [ERROR] [[0m[2;31mBinaryError[0m[1;31m] [error.dart:1]____________________[0m
-[1;31m----|[0m[31mCritical system failure detected in the binary pipeline!                   [0m
+____2025-01-01 12:00:05 [ERROR] [BinaryError] [error.dart:1]____________________
+----|Critical system failure detected in the binary pipeline!                   

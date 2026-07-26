@@ -29,11 +29,12 @@ void main() async {
   // ---------------------------------------------------------------------------
   final darkSink = FileSink(
     darkFile.path,
-    encoder: const HtmlEncoder(darkMode: true),
+    encoder: const HtmlEncoder(),
     strategy: WrappingStrategy.document,
   );
   final darkHandler = Handler(
-    formatter: StructuredFormatter(),
+    formatter: const StructuredFormatter(),
+    decorators: const [StyleDecorator(DarkTheme())],
     sink: darkSink,
   );
 
@@ -42,26 +43,28 @@ void main() async {
   // ---------------------------------------------------------------------------
   final lightSink = FileSink(
     lightFile.path,
-    encoder: const HtmlEncoder(darkMode: false),
+    encoder: const HtmlEncoder(),
     strategy: WrappingStrategy.document,
   );
   final lightHandler = Handler(
-    formatter: StructuredFormatter(),
+    formatter: const StructuredFormatter(),
+    decorators: const [StyleDecorator(LightTheme())],
     sink: lightSink,
   );
 
   // ---------------------------------------------------------------------------
-  // SCENARIO 3: "Mobile Viewport" (Narrrow Wrapping)
+  // SCENARIO 3: "Mobile Viewport" (Narrow Wrapping)
   // Goal: Test that HTML blocks wrap correctly when width is restricted.
   // ---------------------------------------------------------------------------
   final mobileSink = FileSink(
     mobileFile.path,
-    encoder: const HtmlEncoder(darkMode: true),
+    encoder: const HtmlEncoder(),
     strategy: WrappingStrategy.document,
     lineLength: 40,
   );
   final mobileHandler = Handler(
-    formatter: StructuredFormatter(),
+    formatter: const StructuredFormatter(),
+    decorators: const [StyleDecorator(DarkTheme())],
     sink: mobileSink,
   );
 

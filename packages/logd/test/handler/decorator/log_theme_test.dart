@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 import '../test_helpers.dart';
 
 void main() {
-  group('LogColorScheme Tag-Specific Overrides', () {
+  group('LogColorScheme and LogTheme Tag Overrides', () {
     final infoEntry = LogEntry(
       loggerName: 'test',
       origin: 'test',
@@ -13,52 +13,7 @@ void main() {
       timestamp: 'now',
     );
 
-    test('colorFor respects tag-specific overrides', () {
-      const scheme = LogColorScheme(
-        info: LogColor.blue,
-        error: LogColor.red,
-        warning: LogColor.yellow,
-        debug: LogColor.white,
-        trace: LogColor.green,
-        // Tag-specific overrides
-        timestampColor: LogColor.brightBlack,
-        levelColor: LogColor.brightBlue,
-        loggerNameColor: LogColor.cyan,
-        borderColor: LogColor.brightBlack,
-      );
-
-      // Base level color
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.none),
-        equals(LogColor.blue),
-      );
-
-      // Tag-specific overrides
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.timestamp),
-        equals(LogColor.brightBlack),
-      );
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.level),
-        equals(LogColor.brightBlue),
-      );
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.loggerName),
-        equals(LogColor.cyan),
-      );
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.border),
-        equals(LogColor.brightBlack),
-      );
-
-      // No override: falls back to base color
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.message),
-        equals(LogColor.blue),
-      );
-    });
-
-    test('colorFor falls back to base level color when no override', () {
+    test('LogColorScheme provides 5-level color palette', () {
       const scheme = LogColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
@@ -67,34 +22,29 @@ void main() {
         trace: LogColor.green,
       );
 
-      // All tags should get base level color
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.timestamp),
-        equals(LogColor.blue),
-      );
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.level),
-        equals(LogColor.blue),
-      );
-      expect(
-        scheme.colorFor(LogLevel.info, LogTag.message),
-        equals(LogColor.blue),
-      );
+      expect(scheme.colorForLevel(LogLevel.info), equals(LogColor.blue));
+      expect(scheme.colorForLevel(LogLevel.error), equals(LogColor.red));
+      expect(scheme.colorForLevel(LogLevel.warning), equals(LogColor.yellow));
+      expect(scheme.colorForLevel(LogLevel.debug), equals(LogColor.white));
+      expect(scheme.colorForLevel(LogLevel.trace), equals(LogColor.green));
     });
 
-    test('StyleDecorator applies tag-specific colors', () {
+    test('StyleDecorator applies tag-specific LogStyle overrides', () {
       const customScheme = LogColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
         debug: LogColor.white,
         trace: LogColor.green,
-        timestampColor: LogColor.brightBlack,
-        levelColor: LogColor.brightCyan, // Different from base
       );
 
-      const decorator =
-          StyleDecorator(theme: LogTheme(colorScheme: customScheme));
+      const customTheme = LogTheme(
+        colorScheme: customScheme,
+        timestampStyle: LogStyle(color: LogColor.brightBlack),
+        levelStyle: LogStyle(color: LogColor.brightCyan, bold: true),
+      );
+
+      const decorator = StyleDecorator(customTheme);
 
       // Create a document with specific tags
       final doc = createTestDocument([]);
@@ -117,9 +67,6 @@ void main() {
         decorator.decorate(doc, infoEntry, arena);
         final rendered = renderLines(doc);
 
-        // Rendered output might be split or joined depending on layout.
-        // renderLines produces a List<String>.
-        // We check if the expected ANSI codes are present in the output.
         final fullOutput = rendered.join('\n');
 
         // Timestamp should be dimmed (2) + brightBlack (90)
@@ -136,35 +83,33 @@ void main() {
     test('LogTheme respects custom logic via subclass', () {
       const theme = NoMessageTheme();
       final style = theme.getStyle(LogLevel.info, LogTag.message);
-      expect(style.color, isNull); // Should be no color
+      expect(style.color, isNull);
     });
 
     test('LogTheme resolves defaults correctly', () {
       const theme = LogTheme(colorScheme: LogColorScheme.defaultScheme);
       final style = theme.getStyle(LogLevel.info, LogTag.message);
-      expect(style.color, LogColor.blue); // Default scheme info is blue
+      expect(style.color, LogColor.blue);
     });
 
-    test('LogColorScheme equality includes tag-specific overrides', () {
+    test('LogColorScheme equality compares level colors', () {
       const scheme1 = LogColorScheme(
         info: LogColor.blue,
         error: LogColor.red,
         warning: LogColor.yellow,
         debug: LogColor.white,
         trace: LogColor.green,
-        timestampColor: LogColor.brightBlack,
       );
 
-      const scheme3 = LogColorScheme(
-        info: LogColor.blue,
+      const scheme2 = LogColorScheme(
+        info: LogColor.cyan,
         error: LogColor.red,
         warning: LogColor.yellow,
         debug: LogColor.white,
         trace: LogColor.green,
-        // No timestampColor override
       );
 
-      expect(scheme1, isNot(equals(scheme3)));
+      expect(scheme1, isNot(equals(scheme2)));
     });
   });
 }
@@ -175,18 +120,16 @@ class NoMessageTheme extends LogTheme {
   @override
   LogStyle getStyle(final LogLevel level, final int tags) {
     if ((tags & LogTag.message) != 0) {
-      return const LogStyle(); // No style, no color
+      return const LogStyle();
     }
 
-    // For others, behave "normally" but let's just minimal implementation for
-    // test
     var style = LogStyle(color: colorScheme.colorForLevel(level));
 
     if ((tags & LogTag.header) != 0) {
       style = LogStyle(
         color: style.color,
         bold: true,
-        inverse: true, // Test expects inverse
+        inverse: true,
       );
     }
 

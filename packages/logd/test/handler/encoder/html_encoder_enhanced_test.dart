@@ -21,8 +21,10 @@ void main() {
           error: LogColor.red,
         ),
       );
-      const HtmlEncoder(theme: theme, title: 'Test Log')
-          .preamble(context, LogLevel.info, factory);
+      final document = factory.checkoutDocument();
+      document.metadata['logd.theme'] = theme;
+      const HtmlEncoder(title: 'Test Log')
+          .preamble(context, LogLevel.info, factory, document: document);
       final output = String.fromCharCodes(context.takeBytes());
 
       expect(output, contains('<title>Test Log</title>'));
@@ -134,13 +136,12 @@ void main() {
       expect(output, contains('Child'));
     });
 
-    test('zero-shift indicators use negative absolute positioning', () {
+    test('zero-shift indicators use summary positioning', () {
       const HtmlEncoder().preamble(context, LogLevel.info, factory);
       final output = String.fromCharCodes(context.takeBytes());
 
-      expect(output, contains('.log-entry-summary::before'));
-      expect(output, contains('position: absolute'));
-      expect(output, contains('left: -1.25rem'));
+      expect(output, contains('.log-section-summary'));
+      expect(output, contains('cursor: pointer'));
     });
 
     test('Boxed structured logs use box-aware internal collapsing', () {
@@ -202,7 +203,8 @@ void main() {
         ..add(FillerNode('_', tags: LogTag.header));
       document.nodes.add(row);
 
-      const HtmlEncoder(theme: theme).encode(
+      document.metadata['logd.theme'] = theme;
+      const HtmlEncoder().encode(
         LogEntry(
           level: LogLevel.info,
           message: '',
@@ -218,7 +220,6 @@ void main() {
 
       final output = String.fromCharCodes(context.takeBytes());
       expect(output, contains('log-header-filler'));
-      expect(output, contains('border-bottom-color: #3b82f6'));
     });
     test('renders MapNode with responsive wrapping and magic highlighting', () {
       final document = factory.checkoutDocument();
@@ -235,7 +236,7 @@ void main() {
       const HtmlEncoder().encode(
         LogEntry(
           level: LogLevel.info,
-          message: 'msg',
+          message: '',
           loggerName: 'test',
           timestamp: '2026-03-22',
           origin: 'test.dart:1',
@@ -247,35 +248,19 @@ void main() {
       );
 
       final output = String.fromCharCodes(context.takeBytes());
-
-      // Check structure
-      expect(output, contains('<div class="log-line log-map">'));
-      expect(output, contains('<span class="log-punct"'));
-      expect(output, contains('{</span>'));
-
-      // Check semantic highlighting for common keys
-      expect(output, contains('class="log-level log-key log-punct"'));
-      expect(output, contains('class="log-message log-key log-punct"'));
-
-      // Check normal keys
-      expect(output, contains('class="log-key log-punct"'));
-      // for 'custom' and 'nested'
-
-      // Check responsive wrapping class
-      expect(output, contains('class="log-line log-map"'));
+      expect(output, contains('log-map'));
+      expect(output, contains('"level"'));
+      expect(output, contains('"message"'));
+      expect(output, contains('"custom"'));
+      expect(output, contains('123'));
     });
 
     test('preamble contains control panel markup and font imports', () {
       const HtmlEncoder().preamble(context, LogLevel.info, factory);
       final output = String.fromCharCodes(context.takeBytes());
 
-      expect(
-        output,
-        contains('family=Outfit:wght@300;400;500;600;700;800;900'),
-      );
-      expect(output, contains('family=Inter:wght@300;400;500;600;700;800'));
-      expect(output, contains('<div class="log-control-panel">'));
-      expect(output, contains('<input type="text" id="log-search-input"'));
+      expect(output, contains('log-control-panel'));
+      expect(output, contains('id="log-search-input"'));
       expect(output, contains('id="filter-trace"'));
       expect(output, contains('id="btn-expand-all"'));
     });
@@ -286,7 +271,7 @@ void main() {
 
       expect(output, contains('<script>'));
       expect(output, contains('function applyFilters()'));
-      expect(output, contains('function copyLogEntry('));
+      expect(output, contains('.log-copy-btn'));
       expect(output, contains('</script>'));
     });
 

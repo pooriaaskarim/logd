@@ -359,7 +359,7 @@ Logger.configure('global', handlers: [
     decorators: [
       HierarchyDepthPrefixDecorator(indent: '│ '),
       BoxDecorator(borderStyle: BorderStyle.rounded),
-      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
+      StyleDecorator(DarkTheme()),
     ],
     sink: const ConsoleSink(lineLength: 80),
   ),

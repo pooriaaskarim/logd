@@ -67,7 +67,7 @@ void main() async {
   const mixHandler = Handler(
     formatter: ToonPrettyFormatter(),
     decorators: [
-      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
+      StyleDecorator(DarkTheme()),
       BoxDecorator(borderStyle: BorderStyle.double),
       SuffixDecorator(
         ' [FINAL] ',

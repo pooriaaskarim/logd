@@ -1,5 +1,77 @@
 # Migration Guide
 
+## v0.8.9 to v0.9.0 (Theming API Overhaul & Architectural Stabilization)
+
+### 1. Unified `LogColorScheme` & `LogStyle` System Design (Breaking Change)
+**Change**: The theming model has been unified into a Flutter-like design architecture where `LogColorScheme` represents a pure 5-level semantic color palette, and `LogStyle` represents all visual properties (color, bold, dim, italic, underline, inverse) for individual log tags.
+* **Impact**:
+  - All bare `*Color` tag fields (`timestampColor`, `loggerNameColor`, `levelColor`, `borderColor`, `stackFrameColor`, `hierarchyColor`) on both `LogTheme` and `LogColorScheme` have been removed.
+  - Direct level color fields (`trace`, `debug`, `info`, `warning`, `error`) on `LogTheme` have been removed. Level colors are now delegated cleanly to `LogColorScheme`.
+  - Tag-based exception override `errorStyle` on `LogTheme` is renamed to `exceptionStyle` to disambiguate exception details from `LogLevel.error`. Deserialization gracefully falls back to `json['exceptionStyle'] ?? json['errorStyle']`.
+* **Migration**:
+  - Update custom themes to specify element colors within each tag's `LogStyle`:
+
+```dart
+// ❌ Before (v0.8.x) — Parallel track color fields
+const customTheme = LogTheme(
+  trace: LogColor.green,
+  debug: LogColor.cyan,
+  info: LogColor.brightBlue,
+  warning: LogColor.yellow,
+  error: LogColor.brightRed,
+  timestampColor: LogColor.magenta,
+  timestampStyle: LogStyle(bold: true),
+  errorStyle: LogStyle(bold: true),
+);
+
+// ✅ After (v0.9.0) — Unified LogColorScheme & LogStyle
+const customTheme = LogTheme(
+  colorScheme: LogColorScheme(
+    trace: LogColor.green,
+    debug: LogColor.cyan,
+    info: LogColor.brightBlue,
+    warning: LogColor.yellow,
+    error: LogColor.brightRed,
+  ),
+  timestampStyle: LogStyle(color: LogColor.magenta, bold: true),
+  exceptionStyle: LogStyle(bold: true),
+);
+```
+
+### 2. `StyleDecorator` Positional Constructor Parameter
+**Change**: `StyleDecorator`'s `theme` parameter is now a positional optional parameter (`[this.theme = const DarkTheme()]`).
+* **Impact**: You no longer need named parameter syntax `theme: ...` when instantiating `StyleDecorator`.
+* **Migration**:
+
+```dart
+// ❌ Before
+StyleDecorator(theme: LightTheme())
+
+// ✅ After
+StyleDecorator(LightTheme())
+StyleDecorator() // Defaults to DarkTheme()
+```
+
+### 3. Single Source of Truth Architecture for Encoders
+**Change**: `StyleDecorator` is now the single authority for attaching theme metadata (`document.metadata['logd.theme']`) to the semantic IR document. `AnsiEncoder` and `HtmlEncoder` extract the active theme automatically during preamble and block encoding.
+* **Impact**: Constructor parameters `theme:` on `AnsiEncoder` and `HtmlEncoder` have been removed.
+* **Migration**: Remove `theme:` arguments from encoder constructors. Supply the theme to `StyleDecorator` instead.
+
+```dart
+// ❌ Before
+const HtmlEncoder(theme: LightTheme())
+
+// ✅ After
+const HtmlEncoder() // Reads active theme from StyleDecorator(LightTheme())
+```
+
+### 4. Standard Theme Presets Introduced
+**Change**: Introduced standard top-level `@immutable` theme preset classes and color scheme presets:
+- **Theme Presets**: `DarkTheme()`, `LightTheme()`, `PastelTheme()`, `HighContrastTheme()`.
+- **Scheme Presets**: `LogColorScheme.darkScheme`, `LogColorScheme.lightScheme`, `LogColorScheme.pastelScheme`, `LogColorScheme.highContrastScheme`, `LogColorScheme.defaultScheme`.
+
+---
+
 ## v0.8.5 to v0.8.6 (Sub-Library Restructure & Web Logging Fix)
 
 ### 1. Web Compilation Restored (Bug Fix)
@@ -150,4 +222,5 @@
 | **v0.7.0** | Engine API | `LogEngine` and `LogPipelineFactory` become public. `StandardEngine` default. |
 | **v0.7.0** | Structural Overhaul| Files moved to `document/`, `layout/`, `engine/`, and `decorator/`. |
 | **v0.8.4** | Flutter Decoupling | Flutter SDK dependency removed. `Logger.attachToFlutterErrors` API removed. |
+| **v0.9.0** | Theming System Overhaul | Unified `LogColorScheme` (5-level palette) and `LogStyle` tag overrides. Positional `StyleDecorator([theme])`. Removed `theme:` from `AnsiEncoder` and `HtmlEncoder`. |
 

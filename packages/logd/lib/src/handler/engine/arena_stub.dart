@@ -1,11 +1,21 @@
 library;
 
+import 'package:meta/meta.dart';
+
 import '../../logger/logger.dart';
 import '../../stack_trace/stack_trace.dart';
 import '../document/document.dart';
 import '../engine/engine.dart';
 import '../layout/layout.dart';
 
+/// A fallback implementation of the [Arena] resource pool for web/browser runtimes.
+///
+/// Under environments where FFI/IO is unsupported (such as Web/JS/WASM), this class
+/// transparently falls back to using standard heap allocations
+/// ([StandardDocument.pooled], etc.)
+/// rather than native memory page pools. This allows logging code targeting
+/// [Arena] to execute without runtime crashes on all platforms.
+@experimental
 class Arena implements LogPipelineFactory {
   Arena._();
   static final Arena instance = Arena._();

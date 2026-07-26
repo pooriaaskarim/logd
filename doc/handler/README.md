@@ -37,12 +37,12 @@ All modern formatters accept a `Set<LogMetadata>` (`timestamp`, `logger`, `origi
 `StyleDecorator` uses the `LogTheme` system to map semantic tags to visual styles, decoupling intent from platform representation:
 
 ```dart
-// Use predefined color schemes
+// Use predefined theme presets (DarkTheme, LightTheme, PastelTheme, HighContrastTheme)
 final darkHandler = Handler(
   formatter: const StructuredFormatter(),
   decorators: const [
     BoxDecorator(),
-    StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
+    StyleDecorator(DarkTheme()),
   ],
   sink: const ConsoleSink(),
 );
@@ -51,14 +51,14 @@ final darkHandler = Handler(
 final customTheme = LogTheme(
   colorScheme: LogColorScheme.defaultScheme,
   levelStyle: const LogStyle(bold: true, inverse: true), // Bold & Inverted levels
-  timestampStyle: const LogStyle(dim: true, italic: true), // Dim & Italic timestamps
+  timestampStyle: const LogStyle(color: LogColor.magenta, dim: true, italic: true),
   borderStyle: const LogStyle(color: LogColor.white), // Always white borders
 );
 
 final customHandler = Handler(
   formatter: const StructuredFormatter(),
   decorators: [
-    StyleDecorator(theme: customTheme),
+    StyleDecorator(customTheme),
   ],
   sink: const ConsoleSink(),
 );
@@ -226,7 +226,7 @@ logger.configure(
         const SuffixDecorator('[ONLINE]', style: LogStyle(color: LogColor.green)),
         const HierarchyDepthPrefixDecorator(),
         const BoxDecorator(borderStyle: BorderStyle.rounded),
-        StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.darkScheme)),
+        const StyleDecorator(DarkTheme()),
       ],
       sink: const ConsoleSink(),
     ),

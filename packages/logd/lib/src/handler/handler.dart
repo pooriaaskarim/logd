@@ -68,6 +68,11 @@ class Handler {
   /// Process the entry: filter, format, decorate, output.
   @internal
   Future<void> log(final LogEntry entry) async {
+    assert(
+      timeout == null || !timeout!.isNegative,
+      'timeout must not be negative',
+    );
+
     if (filters.any((final filter) => !filter.shouldLog(entry))) {
       return;
     }

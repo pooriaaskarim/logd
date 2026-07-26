@@ -22,7 +22,7 @@ void main() async {
     formatter: StructuredFormatter(),
     decorators: [
       StyleDecorator(
-        theme: _HeaderBackgroundTheme(),
+        _HeaderBackgroundTheme(),
       ),
       BoxDecorator(
         borderStyle: BorderStyle.rounded,
@@ -35,11 +35,12 @@ void main() async {
 
   final htmlSink = FileSink(
     '$basePath/dashboard.html',
-    encoder: const HtmlEncoder(darkMode: true),
+    encoder: const HtmlEncoder(),
     strategy: WrappingStrategy.document,
   );
   final htmlHandler = Handler(
     formatter: const StructuredFormatter(),
+    decorators: const [StyleDecorator(DarkTheme())],
     sink: htmlSink,
   );
 

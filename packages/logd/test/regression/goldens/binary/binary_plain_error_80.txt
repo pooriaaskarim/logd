@@ -1,2 +1,2 @@
-[1;31m[ERROR][0m[2;31m 2025-01-01 12:00:05 [BinaryError][0m[31m Critical system failure detected in[0m
-                                          [31mthe binary pipeline![0m
+[ERROR] 2025-01-01 12:00:05 [BinaryError] Critical system failure detected in
+                                          the binary pipeline!

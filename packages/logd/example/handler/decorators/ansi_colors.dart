@@ -22,7 +22,7 @@ void main() async {
   const standardHandler = Handler(
     formatter: StructuredFormatter(),
     decorators: [
-      StyleDecorator(theme: LogTheme(colorScheme: LogColorScheme.pastelScheme)),
+      StyleDecorator(PastelTheme()),
     ],
     sink: ConsoleSink(),
   );
@@ -42,7 +42,7 @@ void main() async {
   const adminHandler = Handler(
     formatter: StructuredFormatter(),
     decorators: [
-      StyleDecorator(theme: _HighContrastTheme()),
+      StyleDecorator(_HighContrastTheme()),
     ],
     sink: ConsoleSink(),
   );
@@ -64,7 +64,7 @@ void main() async {
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
     decorators: [
-      StyleDecorator(theme: _TagSpecialistTheme()),
+      StyleDecorator(_TagSpecialistTheme()),
     ],
     sink: ConsoleSink(),
   );

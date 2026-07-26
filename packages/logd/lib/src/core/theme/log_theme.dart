@@ -1,6 +1,8 @@
 import 'package:meta/meta.dart';
 import '../../../logd.dart';
 
+export 'log_brightness.dart';
+
 /// Semantic tags describing the content of a [LogNode].
 abstract class LogTag {
   /// No tags.
@@ -101,15 +103,6 @@ class LogStyle {
   final bool? underline;
 
   /// Returns a packed 32-bit integer representing this style.
-  ///
-  /// Layout:
-  /// - `[0-3]`: Foreground color index (0-15, 15 if null)
-  /// - `[4-7]`: Background color index (0-15, 15 if null)
-  /// - `[8]`: Bold
-  /// - `[9]`: Dim
-  /// - `[10]`: Italic
-  /// - `[11]`: Inverse
-  /// - `[12]`: Underline
   int get bitmask {
     int mask = 0;
     mask |= (color?.index ?? 15) & 0xF;
@@ -158,10 +151,6 @@ class LogStyle {
 }
 
 /// Abstract color definitions for log rendering.
-///
-/// These colors are semantic and do not imply any specific rendering technology
-/// (like ANSI). Sinks are free to interpret these colors as they see fit, or
-/// ignore them entirely.
 enum LogColor {
   black,
   red,
@@ -181,93 +170,47 @@ enum LogColor {
   brightWhite;
 }
 
-/// Configuration for color schemes based on log levels.
+/// Defines the semantic level color palette for a logging session.
+///
+/// [LogColorScheme] maps each severity level ([LogLevel.trace] through
+/// [LogLevel.error]) to a primary [LogColor]. Visual styles and tag overrides
+/// (such as bolding or dimmed timestamps) are managed separately by [LogTheme].
 @immutable
 class LogColorScheme {
-  /// Creates a color scheme.
+  /// Creates a [LogColorScheme].
   const LogColorScheme({
     required this.trace,
     required this.debug,
     required this.info,
     required this.warning,
     required this.error,
-    this.timestampColor,
-    this.loggerNameColor,
-    this.levelColor,
-    this.borderColor,
-    this.stackFrameColor,
-    this.hierarchyColor,
   });
 
-  // Base colors per level
+  /// Base color for trace log entries.
   final LogColor trace;
+
+  /// Base color for debug log entries.
   final LogColor debug;
+
+  /// Base color for info log entries.
   final LogColor info;
+
+  /// Base color for warning log entries.
   final LogColor warning;
+
+  /// Base color for error log entries.
   final LogColor error;
 
-  // Override colors for specific tags (optional)
-  /// Color for timestamp segments. If null, uses base level color.
-  final LogColor? timestampColor;
+  /// Resolves the base color for a given [LogLevel].
+  LogColor colorForLevel(final LogLevel level) => switch (level) {
+        LogLevel.trace => trace,
+        LogLevel.debug => debug,
+        LogLevel.info => info,
+        LogLevel.warning => warning,
+        LogLevel.error => error,
+      };
 
-  /// Color for logger name segments. If null, uses base level color.
-  final LogColor? loggerNameColor;
-
-  /// Color for level indicator segments. If null, uses base level color.
-  final LogColor? levelColor;
-
-  /// Color for border segments. If null, uses base level color.
-  final LogColor? borderColor;
-
-  /// Color for stack frame segments. If null, uses base level color.
-  final LogColor? stackFrameColor;
-
-  /// Color for hierarchy lines. If null, defaults to null (no color).
-  final LogColor? hierarchyColor;
-
-  /// Get color for a specific tag set at a given level.
-  ///
-  /// Priority: specific tag overrides > base level color.
-  LogColor colorFor(final LogLevel level, final int tags) {
-    // Check for specific tag overrides first
-    if ((tags & LogTag.timestamp) != 0 && timestampColor != null) {
-      return timestampColor!;
-    }
-    if ((tags & LogTag.loggerName) != 0 && loggerNameColor != null) {
-      return loggerNameColor!;
-    }
-    if ((tags & LogTag.level) != 0 && levelColor != null) {
-      return levelColor!;
-    }
-    if ((tags & LogTag.border) != 0 && borderColor != null) {
-      return borderColor!;
-    }
-    if ((tags & LogTag.stackFrame) != 0 && stackFrameColor != null) {
-      return stackFrameColor!;
-    }
-    if ((tags & LogTag.hierarchy) != 0 && hierarchyColor != null) {
-      return hierarchyColor!;
-    }
-
-    // Fallback to base level color
-    return colorForLevel(level);
-  }
-
-  LogColor colorForLevel(final LogLevel level) {
-    switch (level) {
-      case LogLevel.trace:
-        return trace;
-      case LogLevel.debug:
-        return debug;
-      case LogLevel.info:
-        return info;
-      case LogLevel.warning:
-        return warning;
-      case LogLevel.error:
-        return error;
-    }
-  }
-
+  /// Standard default color scheme.
   static const defaultScheme = LogColorScheme(
     trace: LogColor.green,
     debug: LogColor.white,
@@ -276,17 +219,37 @@ class LogColorScheme {
     error: LogColor.red,
   );
 
+  /// Dark terminal color scheme.
   static const darkScheme = LogColorScheme(
-    trace: LogColor.brightGreen,
-    debug: LogColor.brightWhite,
-    info: LogColor.brightBlue,
+    trace: LogColor.green,
+    debug: LogColor.white,
+    info: LogColor.blue,
+    warning: LogColor.yellow,
+    error: LogColor.red,
+  );
+
+  /// Soft pastel color scheme.
+  static const pastelScheme = LogColorScheme(
+    trace: LogColor.green,
+    debug: LogColor.cyan,
+    info: LogColor.brightCyan,
     warning: LogColor.brightYellow,
     error: LogColor.brightRed,
   );
 
-  static const pastelScheme = LogColorScheme(
+  /// Light terminal color scheme.
+  static const lightScheme = LogColorScheme(
     trace: LogColor.green,
-    debug: LogColor.cyan,
+    debug: LogColor.black,
+    info: LogColor.blue,
+    warning: LogColor.brightYellow,
+    error: LogColor.red,
+  );
+
+  /// High contrast color scheme for legibility.
+  static const highContrastScheme = LogColorScheme(
+    trace: LogColor.brightGreen,
+    debug: LogColor.brightWhite,
     info: LogColor.brightCyan,
     warning: LogColor.brightYellow,
     error: LogColor.brightRed,
@@ -300,87 +263,101 @@ class LogColorScheme {
           debug == other.debug &&
           info == other.info &&
           warning == other.warning &&
-          error == other.error &&
-          timestampColor == other.timestampColor &&
-          loggerNameColor == other.loggerNameColor &&
-          levelColor == other.levelColor &&
-          borderColor == other.borderColor &&
-          stackFrameColor == other.stackFrameColor &&
-          hierarchyColor == other.hierarchyColor;
+          error == other.error;
 
   @override
-  int get hashCode => Object.hash(
-        trace,
-        debug,
-        info,
-        warning,
-        error,
-        timestampColor,
-        loggerNameColor,
-        levelColor,
-        borderColor,
-        stackFrameColor,
-        hierarchyColor,
-      );
+  int get hashCode => Object.hash(trace, debug, info, warning, error);
 }
 
-/// Defines a theme for logging, mapping semantic concepts to [LogStyle]s.
+/// Defines visual styling rules for log elements across a pipeline.
+///
+/// [LogTheme] pairs a semantic level palette ([colorScheme]) with per-element
+/// [LogStyle] rules (such as bold headers, dimmed timestamps, or custom
+/// border colors).
 @immutable
 class LogTheme {
   /// Creates a [LogTheme].
-  ///
-  /// [colorScheme] is required and defines the base palette.
-  /// Optional style parameters allow overriding specific semantic segments.
   const LogTheme({
-    required this.colorScheme,
+    this.colorScheme = LogColorScheme.darkScheme,
+    this.brightness = LogBrightness.dark,
     this.timestampStyle,
     this.loggerNameStyle,
     this.levelStyle,
     this.messageStyle,
     this.borderStyle,
     this.stackFrameStyle,
-    this.errorStyle,
+    this.exceptionStyle,
     this.hierarchyStyle,
   });
 
-  /// The base color scheme for log levels.
+  /// Creates a standard dark terminal theme.
+  @Deprecated('Use DarkTheme() instead')
+  const factory LogTheme.dark({
+    final LogStyle? timestampStyle,
+    final LogStyle? loggerNameStyle,
+    final LogStyle? levelStyle,
+    final LogStyle? messageStyle,
+    final LogStyle? borderStyle,
+    final LogStyle? stackFrameStyle,
+    final LogStyle? exceptionStyle,
+    final LogStyle? hierarchyStyle,
+  }) = _LegacyDarkTheme;
+
+  /// Creates a standard light terminal theme.
+  @Deprecated('Use LightTheme() instead')
+  const factory LogTheme.light({
+    final LogStyle? timestampStyle,
+    final LogStyle? loggerNameStyle,
+    final LogStyle? levelStyle,
+    final LogStyle? messageStyle,
+    final LogStyle? borderStyle,
+    final LogStyle? stackFrameStyle,
+    final LogStyle? exceptionStyle,
+    final LogStyle? hierarchyStyle,
+  }) = _LegacyLightTheme;
+
+  /// The level color palette.
   final LogColorScheme colorScheme;
 
-  /// Style for timestamps.
+  /// Overall background brightness hint (e.g., for HTML stylesheet generation).
+  final LogBrightness brightness;
+
+  /// Style override for timestamp segments (`LogTag.timestamp`).
   final LogStyle? timestampStyle;
 
-  /// Style for logger names.
+  /// Style override for logger name segments (`LogTag.loggerName`).
   final LogStyle? loggerNameStyle;
 
-  /// Style for level indicators.
+  /// Style override for level text segments (`LogTag.level`).
   final LogStyle? levelStyle;
 
-  /// Style for the main message.
+  /// Style override for log message content (`LogTag.message`).
   final LogStyle? messageStyle;
 
-  /// Style for borders/dividers.
+  /// Style override for structural borders (`LogTag.border`).
   final LogStyle? borderStyle;
 
-  /// Style for stack trace frames.
+  /// Style override for stack trace frames (`LogTag.stackFrame`).
   final LogStyle? stackFrameStyle;
 
-  /// Style for error messages.
-  final LogStyle? errorStyle;
+  /// Style override for exception details (`LogTag.error`).
+  final LogStyle? exceptionStyle;
 
-  /// Style for hierarchy lines.
+  /// Style override for hierarchy lines (`LogTag.hierarchy`).
   final LogStyle? hierarchyStyle;
+
+  /// Resolves the base color for a given log level.
+  LogColor colorForLevel(final LogLevel level) =>
+      colorScheme.colorForLevel(level);
 
   /// Resolves the style for a given segment based on level and tags.
   LogStyle getStyle(final LogLevel level, final int tags) {
-    // 1. Start with base color for the level
-    // Exception: Hierarchy lines should NOT take level color by default.
     final baseColor = (tags & LogTag.hierarchy) != 0
         ? null
         : colorScheme.colorForLevel(level);
 
     var style = LogStyle(color: baseColor);
 
-    // 2. Apply default semantic styles
     if ((tags & LogTag.level) != 0) {
       style = _merge(style, const LogStyle(bold: true));
     } else if ((tags & LogTag.timestamp) != 0 ||
@@ -390,43 +367,22 @@ class LogTheme {
       style = _merge(style, const LogStyle(bold: true));
     }
 
-    // 3. Apply tag-specific overrides/merges
     if ((tags & LogTag.level) != 0) {
       style = _merge(style, levelStyle);
-      // Ensure level color override from scheme
-      // is respected if theme style doesn't enforce one
-      if (colorScheme.levelColor != null) {
-        style = _merge(style, LogStyle(color: colorScheme.levelColor));
-      }
     } else if ((tags & LogTag.timestamp) != 0) {
       style = _merge(style, timestampStyle);
-      if (colorScheme.timestampColor != null) {
-        style = _merge(style, LogStyle(color: colorScheme.timestampColor));
-      }
     } else if ((tags & LogTag.loggerName) != 0) {
       style = _merge(style, loggerNameStyle);
-      if (colorScheme.loggerNameColor != null) {
-        style = _merge(style, LogStyle(color: colorScheme.loggerNameColor));
-      }
     } else if ((tags & LogTag.message) != 0) {
       style = _merge(style, messageStyle);
     } else if ((tags & LogTag.border) != 0) {
       style = _merge(style, borderStyle);
-      if (colorScheme.borderColor != null) {
-        style = _merge(style, LogStyle(color: colorScheme.borderColor));
-      }
     } else if ((tags & LogTag.stackFrame) != 0) {
       style = _merge(style, stackFrameStyle);
-      if (colorScheme.stackFrameColor != null) {
-        style = _merge(style, LogStyle(color: colorScheme.stackFrameColor));
-      }
     } else if ((tags & LogTag.error) != 0) {
-      style = _merge(style, errorStyle);
+      style = _merge(style, exceptionStyle);
     } else if ((tags & LogTag.hierarchy) != 0) {
       style = _merge(style, hierarchyStyle);
-      if (colorScheme.hierarchyColor != null) {
-        style = _merge(style, LogStyle(color: colorScheme.hierarchyColor));
-      }
     }
 
     return style;
@@ -443,6 +399,7 @@ class LogTheme {
       dim: override.dim ?? base.dim,
       italic: override.italic ?? base.italic,
       inverse: override.inverse ?? base.inverse,
+      underline: override.underline ?? base.underline,
     );
   }
 
@@ -452,25 +409,121 @@ class LogTheme {
       other is LogTheme &&
           runtimeType == other.runtimeType &&
           colorScheme == other.colorScheme &&
+          brightness == other.brightness &&
           timestampStyle == other.timestampStyle &&
           loggerNameStyle == other.loggerNameStyle &&
           levelStyle == other.levelStyle &&
           messageStyle == other.messageStyle &&
           borderStyle == other.borderStyle &&
           stackFrameStyle == other.stackFrameStyle &&
-          errorStyle == other.errorStyle &&
+          exceptionStyle == other.exceptionStyle &&
           hierarchyStyle == other.hierarchyStyle;
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
         colorScheme,
+        brightness,
         timestampStyle,
         loggerNameStyle,
         levelStyle,
         messageStyle,
         borderStyle,
         stackFrameStyle,
-        errorStyle,
+        exceptionStyle,
         hierarchyStyle,
-      );
+      ]);
+}
+
+/// A standard dark terminal theme.
+@immutable
+final class DarkTheme extends LogTheme {
+  /// Creates a [DarkTheme].
+  const DarkTheme({
+    super.colorScheme = LogColorScheme.darkScheme,
+    super.levelStyle = const LogStyle(bold: true),
+    super.timestampStyle = const LogStyle(dim: true),
+    super.loggerNameStyle = const LogStyle(dim: true),
+    super.messageStyle,
+    super.borderStyle,
+    super.stackFrameStyle,
+    super.exceptionStyle,
+    super.hierarchyStyle,
+  }) : super(brightness: LogBrightness.dark);
+}
+
+/// A standard light terminal theme.
+@immutable
+final class LightTheme extends LogTheme {
+  /// Creates a [LightTheme].
+  const LightTheme({
+    super.colorScheme = LogColorScheme.lightScheme,
+    super.levelStyle = const LogStyle(bold: true),
+    super.timestampStyle = const LogStyle(dim: true),
+    super.loggerNameStyle = const LogStyle(dim: true),
+    super.messageStyle,
+    super.borderStyle,
+    super.stackFrameStyle,
+    super.exceptionStyle,
+    super.hierarchyStyle,
+  }) : super(brightness: LogBrightness.light);
+}
+
+/// A pastel color theme.
+@immutable
+final class PastelTheme extends LogTheme {
+  /// Creates a [PastelTheme].
+  const PastelTheme({
+    super.colorScheme = LogColorScheme.pastelScheme,
+    super.levelStyle = const LogStyle(bold: true),
+    super.timestampStyle = const LogStyle(dim: true),
+    super.loggerNameStyle = const LogStyle(dim: true),
+    super.messageStyle,
+    super.borderStyle,
+    super.stackFrameStyle,
+    super.exceptionStyle,
+    super.hierarchyStyle,
+  }) : super(brightness: LogBrightness.dark);
+}
+
+/// A high contrast theme for maximum legibility.
+@immutable
+final class HighContrastTheme extends LogTheme {
+  /// Creates a [HighContrastTheme].
+  const HighContrastTheme({
+    super.colorScheme = LogColorScheme.highContrastScheme,
+    super.levelStyle = const LogStyle(bold: true, inverse: true),
+    super.timestampStyle = const LogStyle(bold: true),
+    super.loggerNameStyle = const LogStyle(bold: true),
+    super.messageStyle,
+    super.borderStyle = const LogStyle(bold: true),
+    super.stackFrameStyle,
+    super.exceptionStyle = const LogStyle(bold: true),
+    super.hierarchyStyle,
+  }) : super(brightness: LogBrightness.dark);
+}
+
+final class _LegacyDarkTheme extends DarkTheme {
+  const _LegacyDarkTheme({
+    super.timestampStyle,
+    super.loggerNameStyle,
+    super.levelStyle,
+    super.messageStyle,
+    super.borderStyle,
+    super.stackFrameStyle,
+    super.exceptionStyle,
+    super.hierarchyStyle,
+  });
+}
+
+final class _LegacyLightTheme extends LightTheme {
+  const _LegacyLightTheme({
+    super.timestampStyle,
+    super.loggerNameStyle,
+    super.levelStyle,
+    super.messageStyle,
+    super.borderStyle,
+    super.stackFrameStyle,
+    super.exceptionStyle,
+    super.hierarchyStyle,
+  });
 }

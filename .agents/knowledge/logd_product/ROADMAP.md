@@ -1,6 +1,6 @@
 # logd Product — Roadmap & Philosophy
 > Canonical product direction, philosophy, and unified roadmap.
-> Synthesized from sub-module plans (logger, handler, time, stack_trace).
+> Last Updated: 2026-07-18 | Reflects v0.8.9 + strategic planning session.
 
 ---
 
@@ -13,50 +13,122 @@
 ### Core Architectural Pillars
 1. **Purity of Representation**: Formatters and decorators operate strictly on Semantic IR (`LogDocument`). Wrapping, layout, and colors are physical layer concerns managed by `TerminalLayout` and Encoders.
 2. **Zero Garbage Collection Overhead**: Hot-path logging targets zero heap allocations per 10k log operations via LIFO pooling (`Arena`, `LogBuffer`) and linear serialization (`Binary IR`).
-3. **Platform-Agnostic Core**: Compile-time decoupling (zero conditional exports in package entry point) ensures out-of-the-box browser/web support, VM support, and Flutter independence.
+3. **Platform-Agnostic Core**: Compile-time decoupling ensures out-of-the-box browser/web support, VM support, and Flutter independence.
+4. **Minimal Core, Rich Ecosystem**: The core package should carry only foundational dependencies. Platform-specific or heavyweight integrations belong in satellite packages.
 
 ---
 
-## Unified Roadmap (Active & Planned)
+## Criticisms of the Roadmap (Recorded 2026-07-18)
 
-This unified roadmap synthesizes priorities across all sub-modules (see [doc/logger/roadmap.md](file:///home/ono/Projects/logd/doc/logger/roadmap.md), [doc/handler/roadmap.md](file:///home/ono/Projects/logd/doc/handler/roadmap.md), [doc/stack_trace/roadmap.md](file:///home/ono/Projects/logd/doc/stack_trace/roadmap.md), and [doc/time/roadmap.md](file:///home/ono/Projects/logd/doc/time/roadmap.md)).
+The following is a professional critical analysis of the three-area product roadmap proposed by the author, recorded as a permanent knowledge item for agent continuity.
+
+### Area 1: Dedicated Sinks (SqlSink, MemorySink, SentrySink)
+
+**Strengths**: External sinks are a natural ecosystem driver. Production maturity signals come largely from the integration catalogue.
+
+**Critical Problems**:
+- Building and publishing sink packages (`logd_sqlite`, `logd_sentry`) while the core API is unstable forces synchronized breaking-change version bumps across all sink packages the moment the extension contract changes.
+- `LogSink`, `LogFormatter`, and `Handler` extension points must be declared `@stable` before any satellite package targets them.
+
+**Decision**: Area 1 should happen in **Phase 2**, after the core public API is stabilized (Phase 1). Building sinks on a moving API is wasteful.
+
+---
+
+### Area 2: API Surface Stabilization & DX for v1.0
+
+**Strengths**: Correct anchor. Gates everything else. Without a stable contract, no ecosystem can form.
+
+**Critical Problems**:
+- "Gradually stabilizing" without a concrete mechanism produces API limbo. Developers cannot distinguish safe from unsafe surface.
+  - **Required**: Annotate every public symbol as `@stable`, `@experimental`, or `@internal` (via `package:meta`). Commit to per-symbol guarantees.
+- "Standard DX" is underspecified without concrete deliverables:
+  - Does `Timezone.ensureInitialized()` need to be called manually? Or does the API self-configure?
+  - Is there a single `logd.dart` import that works everywhere without conditional logic from the user's side?
+  - Are error messages actionable? (e.g., "Add `sink: ConsoleSink()` to your Handler constructor" instead of "Handler has no sink.")
+- No breaking-change policy defined. A semver contract document is required before v1.0 can be declared.
+
+**Decision**: This is the correct **Phase 1** anchor. Must produce concrete deliverables:
+1. Symbol annotation audit (`@stable` / `@experimental` / `@internal`).
+2. Self-initialization review (zero mandatory setup for standard use cases).
+3. Error message quality pass.
+4. Semver policy document.
+
+---
+
+### Area 3: Extracting Heavy Dependencies (http, socket, ffi) from Core
+
+**Strengths**: Architecturally correct. Developers using `logd` for local/console logging should not pull HTTP stacks. Reduces pub.dev dependency weight and cold start times.
+
+**Current core dependencies to extract**:
+- `http: ^1.2.0` — consumed by `HttpServerSink` only.
+- `web_socket_channel: ^3.0.0` — consumed by `SocketSink` / WebSocket streaming only.
+- `ffi: ^2.1.3` — consumed by `Arena` / `NativeEngine` only.
+
+**Critical Problems**:
+- Moving `HttpServerSink` and `SocketSink` out of `package:logd/logd.dart` is a **breaking API change**. It requires a **major version bump**. Cannot be a minor release.
+- Correct execution sequence:
+  1. Stabilize API (Phase 1).
+  2. Cut v1.0 with documented deprecations of `HttpServerSink`, `SocketSink`, `NativeEngine` in core.
+  3. Publish `logd_http`, `logd_socket`, `logd_native` as separate satellite packages.
+  4. Remove from core in v1.1 or v2.0 per the semver policy.
+
+**Decision**: This is a **Phase 3** concern. It is the final phase because it requires a deprecation cycle and a major version bump.
+
+---
+
+## Unified Phased Roadmap (Revised 2026-07-18)
 
 ```
-  v0.8.7 (Core Stable)   v0.8.8 / v0.8.9 (Async / DB / Web)        v0.9.0 (Output API)     v1.0.0 (Stable Release)
-           │                             │                              │                           │
-  • Concurrency stress      • AsyncFormatter & Isolate worker      • LogSurface & Theme         • LogOutput Facade
-  • Memory caps             • SqliteSink / Sentry / MemorySinks    • lightScheme contrast       • Session/Handle Lifecycle
-  • Isolate auto-recovery   • JS Source Map Stack Parsing          • requiredStrategy auto-wrap • ADR Finalization
+Phase 1 (v0.9.x) — API Stabilization
+  - Audit all public symbols: @stable / @experimental / @internal
+  - Define and publish semver contract document
+  - DX quality pass (error messages, self-init, single import)
+  - Freeze Handler, LogSink, LogFormatter extension points
+  - Criticize and Standardize Theming API (light/dark, WCAG compliance) + integrated various outputs themes and color schemes + API DX ovehaul
+  
+
+Phase 2 (v1.0) — Major Release & Ecosystem Expansion
+  - No breaking changes vs Phase 1 stable symbols
+  - First-party satellite sinks: logd_sqlite, logd_memory, logd_sentry
+  - Deprecation notices on HttpServerSink, SocketSink, NativeEngine in core
+
+Phase 3 (v1.1+) — Dependency Extraction & Lean Core
+  - logd_http, logd_socket, logd_native published as satellite packages
+  - Remove deprecated transitive deps from core
+  - Core becomes dependency-minimal (timezone, meta, characters only)
 ```
 
-### Phase A: Concurrency, Testing & Code Hardening (Current / Active)
-Focuses on VM safety, stress testing, and formalizing architecture decisions.
-- **Concurrency stress testing**: Add tests for multiple isolates configuring independently, rapid `configure()` calls, and stress testing cache invalidation (P3).
-- **Architecture Decision Records (ADRs)**: Create `doc/decisions/` and document key design decisions (ADR-001: Hierarchical inheritance, ADR-002: Cache invalidation, ADR-003: Sparse storage, ADR-004: Unmodifiable collections, ADR-005: InternalLogger).
-- **Quality Audits**: Audit classes for immutability gaps and add null safety asserts (P3).
-- **Offset Cache Validation**: Benchmark timezone offset cache performance (target: 50% lookup reduction) (P2).
+---
 
-### Phase B: Async Formatting, Database Sinks & Web Trace Mapping (Planned)
-Focuses on offloading expensive operations and expanding target destinations.
-- **Async Formatter Support (P1)**: Implement `AsyncFormatter` and `AsyncHandler` wrapper that offloads heavy serialization (e.g. complex JSON) to worker isolates to avoid blocking the calling isolate.
-- **Additional Sinks (P1)**:
-  - `SqliteSink`: Local database persistence with schemas.
-  - `SentrySink`: Direct error tracking integration.
-  - `MemorySink`: In-memory ring-buffer for test assertion and debugging.
-- **Web Source Mapping (P1)**: Map JS bundle stack trace locations back to Dart source files using source maps in dev mode.
+## Phase Timeline Detail
 
-### Phase C: Web-Based Log Viewer & Consolidated HTML Output (Planned)
-Focuses on remote debugging and HTML visual pipeline modernization.
-- **Logd Dashboard (P2)**: Implement an `HttpServerSink` serving a small Vite/React dashboard with real-time log streaming via WebSockets, plus browser-side filtering and search.
-- **HTML Logging Consolidation (P1)**:
-  - Evaluate if `HtmlFormatter` should only emit structured semantic tags (like JSON).
-  - Determine if `HtmlSink` CSS should be moved to a shared theme system.
-  - Consider a unified `WebLogHandler` managing both static file generation and server streaming.
+### Phase 1: API Stabilization (v0.9.x)
+**Goal**: Produce a stable, documented, annotated public API surface that can safely be targeted by satellite packages.
+- Symbol annotation audit (`@stable`, `@experimental`, `@internal` via `package:meta`)
+- Publish semver contract document in `doc/`
+- DX quality pass: self-initialization, unified import, actionable error messages
+- Formal freeze of `LogSink`, `LogFormatter`, `LogDecorator`, `Handler` extension points
+- `LogSurface` / light mode theme consolidation (defer facade until Phase 2)
 
-### Phase D: Output API Overhaul & Stable Release (Planned for v0.9.0 / v1.0.0)
-Focuses on clarifying API naming, theme propagation, and beginner conveniences.
-- **LogSurface Integration**: Add `LogSurface` (dark, light) to `LogTheme` to separate canvas background from level color schemes.
-- **`lightScheme` Palette**: Formally introduce `lightScheme` to `LogColorScheme` with WCAG AA/AAA-compliant hex values.
-- **Self-Declaring Wrapping**: Introduce `requiredStrategy` on `LogEncoder` so sinks auto-wrap outputs.
-- **Beginner Facade**: Expose the `LogOutput` named constructor factory (e.g., `LogOutput.console()`, `LogOutput.htmlFile()`).
-- **Teardown Lifecycle**: Transition to a Session/Handle lifecycle pattern for atomic, race-free sink disposal.
+### Phase 2: Major Release & Ecosystem Expansion (v1.0)
+**Goal**: Publicly declare API stability and launch the plugin ecosystem.
+- Zero breaking changes relative to Phase 1 `@stable` symbols
+- Launch satellite packages: `logd_sqlite`, `logd_memory`, `logd_sentry`
+- `LogOutput` facade (convenience constructors: `LogOutput.console()`, `LogOutput.htmlFile()`)
+- Deprecation notices on `HttpServerSink`, `SocketSink`, `NativeEngine` in core with migration guides to satellite equivalents
+- Session/Handle lifecycle pattern for atomic sink disposal
+
+### Phase 3: Lean Core (v1.1+)
+**Goal**: Reduce core to a minimal, fast, dependency-light foundation.
+- Publish `logd_http` (HttpServerSink + WebSocket dashboard)
+- Publish `logd_socket` (SocketSink, network reconnect)
+- Publish `logd_native` (Arena, NativeEngine, FFI pool)
+- Remove extracted sinks from core
+- Core dependencies reduced to: `timezone`, `meta`, `characters`, `source_maps`, `source_span`
+
+---
+
+## Out-of-Scope (Explicitly Deferred)
+- **Automatic log rotation UI**: Not planning to support configuration or log parsing dashboards. Keep `logd` as a pure, lightweight engine.
+- **Fluent logger builders**: Configuration remains structured (`Logger.configure`) rather than builder-based, keeping the API footprint small.
+- **Direct database sinks in core**: Database persistence is a satellite package concern, not a core package concern.

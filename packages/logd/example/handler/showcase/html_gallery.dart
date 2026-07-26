@@ -22,9 +22,10 @@ void main() async {
   // ===========================================================================
   final minimalHandler = Handler(
     formatter: const PlainFormatter(),
+    decorators: const [StyleDecorator(LightTheme())],
     sink: FileSink(
       '${outputDir.path}/1_minimal_light.html',
-      encoder: const HtmlEncoder(darkMode: false, title: 'Minimal Light Logs'),
+      encoder: const HtmlEncoder(title: 'Minimal Light Logs'),
       strategy: WrappingStrategy.document,
     ),
   );
@@ -42,13 +43,11 @@ void main() async {
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
     decorators: [
-      const StyleDecorator(
-        theme: LogTheme(colorScheme: LogColorScheme.darkScheme),
-      ),
+      const StyleDecorator(DarkTheme()),
     ],
     sink: FileSink(
       '${outputDir.path}/2_dark_architect.html',
-      encoder: const HtmlEncoder(darkMode: true, title: 'Dark Architect Logs'),
+      encoder: const HtmlEncoder(title: 'Dark Architect Logs'),
       strategy: WrappingStrategy.document,
     ),
   );
@@ -73,7 +72,7 @@ void main() async {
     ],
     sink: FileSink(
       '${outputDir.path}/3_json_inspector.html',
-      encoder: const HtmlEncoder(darkMode: true, title: 'JSON Inspector'),
+      encoder: const HtmlEncoder(title: 'JSON Inspector'),
       strategy: WrappingStrategy.document,
     ),
   );
@@ -100,7 +99,7 @@ void main() async {
     ),
     sink: FileSink(
       '${outputDir.path}/4_json_compact.html',
-      encoder: const HtmlEncoder(darkMode: true, title: 'Compact JSON'),
+      encoder: const HtmlEncoder(title: 'Compact JSON'),
       strategy: WrappingStrategy.document,
     ),
   );
@@ -163,8 +162,7 @@ void main() async {
     ],
     sink: FileSink(
       '${outputDir.path}/5_toon_stream.html',
-      encoder:
-          const HtmlEncoder(darkMode: true, title: 'Toon Stream Telemetry'),
+      encoder: const HtmlEncoder(title: 'Toon Stream Telemetry'),
       strategy: WrappingStrategy.document,
     ),
   );
@@ -181,7 +179,7 @@ void main() async {
   final fullHandler = Handler(
     formatter: const StructuredFormatter(),
     decorators: [
-      const StyleDecorator(theme: _CustomGalleryTheme()),
+      const StyleDecorator(_CustomGalleryTheme()),
       const PrefixDecorator(
         ' [LOGD] ',
         style: LogStyle(
@@ -196,7 +194,7 @@ void main() async {
     ],
     sink: FileSink(
       '${outputDir.path}/6_full_stack.html',
-      encoder: const HtmlEncoder(darkMode: true, title: 'Full Stack Showcase'),
+      encoder: const HtmlEncoder(title: 'Full Stack Showcase'),
       strategy: WrappingStrategy.document,
     ),
   );
