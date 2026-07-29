@@ -184,5 +184,5 @@
 **Planned Sinks**:
 - [ ] `SqliteSink`: Persist logs to local SQLite database with a configurable schema
 - [ ] `SentrySink`: Direct integration with Sentry.io error tracking
-- [ ] `MemorySink`: In-memory ring-buffer for testing and in-process log inspection
+- [x] `MemorySink`: In-memory ring-buffer for testing and in-process log inspection (`@experimental`)
 

@@ -20,6 +20,7 @@ import '../engine/engine.dart';
 
 part 'console_sink.dart';
 part 'encoding_sink.dart';
+part 'memory_sink.dart';
 part 'multi_sink.dart';
 part 'network_sink.dart';
 part 'print_sink.dart';
