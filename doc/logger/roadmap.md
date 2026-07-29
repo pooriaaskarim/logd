@@ -74,7 +74,7 @@ Items in this phase are prerequisites for subsequent phases.
 - [x] **Documentation**: Documented `autoSinkBuffer` behavior and importance of `.sink()`
 - [x] **Finalizer-based tracking**: Implemented via `Finalizer` with stack trace capturing for leaks
 - [x] **New Default**: `autoSinkBuffer` now defaults to `false`
-- [ ] **Max-size safeguard**: Add optional `maxEntries` limit on `LogBuffer` to bound memory growth in the "forgot to sink" case (Deferred)
+- [x] **Max-size safeguard**: Add optional `maxEntries` limit on `LogBuffer` to bound memory growth in the "forgot to sink" case (v0.9.1)
 - [-] **Add lint rule** to warn about acquiring a buffer without sinking it (Working on it: branch [mororepo+linter](https://github.com/pooriaaskarim/logd/tree/feat/monorepo%2Blinter)) 
 - [x] Tests added for leak detection state and error/stackTrace fields
 
@@ -203,11 +203,8 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Current**: All-or-nothing replacement.
 
 **TODO**:
-- [x] **Decision**: Keep current behavior OR implement merge (implemented merge)
+- [x] **Decision**: Implemented key-by-key merge semantics (v0.8.4)
 - [x] If merge: update resolution and add tests
-- [ ] If keep current: document clearly in `Logger.configure` docs and add FAQ entry
-
-**Recommendation**: Document current behavior first, consider merge if requested.
 
 ---
 
@@ -283,9 +280,9 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 - `1` (skipFrames in `_log`)
 
 **TODO**:
-- [ ] Create `const _globalLoggerName = 'global'`
-- [ ] Create `const _logMethodSkipFrames = 1`
-- [ ] Update all usages
+- [x] Create `const _globalLoggerName = 'global'`
+- [x] Create `const _logMethodSkipFrames = 1`
+- [x] Update all usages
 
 ---
 

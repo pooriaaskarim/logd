@@ -162,7 +162,7 @@
 - [x] `_globalLoggerName` constant — eliminate raw `'global'` string literals from `log_entry.dart`
 - [x] Roadmap hygiene — remove stale `ContextFilter` duplicate, prune completed proposals
 - [x] ADR-002 through ADR-005 filled in `doc/decisions/`
-- [ ] `LogBuffer.maxEntries` safeguard — drop-with-warning on overflow instead of unbounded growth
+- [x] `LogBuffer.maxEntries` safeguard — drop-with-warning on overflow instead of unbounded growth
 - [ ] `LogOutput` beginner facade (`@experimental`) — single-call correct `Handler` construction for `console`, `htmlFile`, `jsonFile`, `plainFile` targets
 
 ---

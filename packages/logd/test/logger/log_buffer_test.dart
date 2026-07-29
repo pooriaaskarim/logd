@@ -79,12 +79,22 @@ void main() {
       expect(entryCollector.entries, hasLength(1));
     });
 
-    test('LogBuffer auto-sinks via finalizer if abandoned with error',
-        () async {
-      // Note: This test is probabilistic but usually works if GC is triggered
-      // or if we just verify the logic
-      // In logger_leak_test.dart they use a more complex setup.
-      // For now, let's at least verify that it sinks manually.
+    test('LogBuffer.maxEntries drops excess entries after limit', () async {
+      final buffer = logger.buffer(LogLevel.info, maxEntries: 2)!;
+      expect(buffer.maxEntries, equals(2));
+
+      buffer
+        ..writeln('line 1')
+        ..writeln('line 2')
+        ..writeln('line 3')
+        ..writeln('line 4')
+        ..sink();
+
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(entryCollector.entries, hasLength(1));
+      final entry = entryCollector.entries.first;
+      expect(entry.message, equals('line 1\nline 2\n'));
     });
   });
 }
