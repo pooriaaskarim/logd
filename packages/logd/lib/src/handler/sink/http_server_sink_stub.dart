@@ -15,7 +15,7 @@ base class HttpServerSink extends EncodingSink {
     this.address = 'localhost',
     this.port = 8080,
     super.encoder = const HtmlEncoder(),
-    super.strategy = WrappingStrategy.none,
+    super.strategy,
     final int? lineLength,
     super.enabled = true,
   }) : super(

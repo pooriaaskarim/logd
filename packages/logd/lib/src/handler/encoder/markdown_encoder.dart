@@ -10,8 +10,11 @@ part of 'encoder.dart';
 /// - [LogTag.stackFrame]: Code blocks (```).
 @immutable
 class MarkdownEncoder implements LogEncoder {
+
   /// Creates a [MarkdownEncoder].
   const MarkdownEncoder();
+  @override
+  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
 
   @override
   void preamble(

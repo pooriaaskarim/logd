@@ -33,10 +33,10 @@ base class EncodingSink extends LogSink<LogDocument> {
   const EncodingSink({
     required this.encoder,
     required this.delegate,
-    this.strategy = WrappingStrategy.none,
+    final WrappingStrategy? strategy,
     this.preferredWidth = 100,
     super.enabled,
-  });
+  }) : _strategy = strategy;
 
   /// The encoder used to serialize logs.
   final LogEncoder encoder;
@@ -44,8 +44,10 @@ base class EncodingSink extends LogSink<LogDocument> {
   /// The transport callback.
   final FutureOr<void> Function(Uint8List data) delegate;
 
+  final WrappingStrategy? _strategy;
+
   /// The wrapping strategy for this sink.
-  final WrappingStrategy strategy;
+  WrappingStrategy get strategy => _strategy ?? encoder.requiredStrategy;
 
   /// The maximum line length for the output.
   final int? preferredWidth;

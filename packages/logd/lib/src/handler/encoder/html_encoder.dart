@@ -6,6 +6,7 @@ part of 'encoder.dart';
 /// CSS classes based on [LogTag]s.
 @immutable
 class HtmlEncoder implements LogEncoder {
+
   /// Creates an [HtmlEncoder].
   ///
   /// - [title]: The title of the generated HTML document.
@@ -14,6 +15,9 @@ class HtmlEncoder implements LogEncoder {
     this.title = 'Log Output',
     this.stylesheet = const DefaultHtmlStylesheet(),
   });
+  
+  @override
+  WrappingStrategy get requiredStrategy => WrappingStrategy.document;
 
   /// The title of the generated HTML document.
   final String title;

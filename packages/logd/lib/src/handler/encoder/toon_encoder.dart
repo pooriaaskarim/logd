@@ -7,8 +7,11 @@ part of 'encoder.dart';
 /// document's metadata to produce headers and delimited rows. It handles
 /// recursive formatting for nested Maps and Lists within the TOON rows.
 class ToonEncoder implements LogEncoder {
+
   /// Creates a [ToonEncoder].
   const ToonEncoder();
+  @override
+  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
 
   @override
   void preamble(

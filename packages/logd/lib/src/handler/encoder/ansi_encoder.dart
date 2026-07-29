@@ -6,8 +6,12 @@ part of 'encoder.dart';
 /// log and applies [LogStyle]s present on the segments using ANSI escape
 /// sequences.
 class AnsiEncoder implements LogEncoder {
+
   /// Creates an [AnsiEncoder].
   const AnsiEncoder();
+
+  @override
+  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
 
   @override
   void preamble(

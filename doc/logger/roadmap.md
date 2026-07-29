@@ -321,7 +321,7 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **TODO**:
 - [x] Expose `Logger.reset()` or `Logger.clearAll()`
 - [x] Add warning documentation (loses all configs)
-- [ ] Consider partial reset: `Logger.reset('subtree')`
+- [x] Consider partial reset: `Logger.reset('subtree')`
 
 ---
 
@@ -336,19 +336,19 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 ---
 
-### 🔵 P3: Architecture Decision Records (ADRs)
+### ~~🔵 P3: Architecture Decision Records (ADRs)~~ ✅ v0.9.1
 
 **Issue**: Design decisions not formally documented.
 
 **TODO**:
-- [ ] Create `doc/decisions/` directory
-- [ ] Write ADRs for key decisions:
-  - [ ] ADR-001: Hierarchical inheritance model
-  - [ ] ADR-002: Version-based cache invalidation
-  - [ ] ADR-003: Sparse configuration storage
-  - [ ] ADR-004: Unmodifiable resolved collections
-  - [ ] ADR-005: InternalLogger for fail-safe
-- [ ] Use [MADR](https://adr.github.io/madr/) format
+- [x] Create `doc/decisions/` directory
+- [x] Write ADRs for key decisions:
+  - [x] ADR-001: Hierarchical inheritance model
+  - [x] ADR-002: Version-based cache invalidation
+  - [x] ADR-003: Sparse configuration storage
+  - [x] ADR-004: Unmodifiable resolved collections
+  - [x] ADR-005: InternalLogger for fail-safe
+- [x] Use [MADR](https://adr.github.io/madr/) format
 
 ---
 
