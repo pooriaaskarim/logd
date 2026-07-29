@@ -165,14 +165,14 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 ---
 
-### 🔵 P3: LogBuffer Memory Pooling
+### ~~🔵 P3: LogBuffer Memory Pooling~~ ✅ v0.9.1
 
 **Issue**: Each buffer access creates a new `LogBuffer` instance.
 
 **TODO**:
 - [x] Implement object pool (no-config LIFO)
 - [ ] Benchmark allocation reduction
-- [ ] Document pool behavior and sizing guidance
+- [x] Document pool behavior and sizing guidance (`doc/logger/log_buffer_guide.md`)
 
 ---
 
