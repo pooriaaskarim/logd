@@ -173,7 +173,7 @@
 **Context**: `AsyncHandler` (shipped v0.8.8) offloads the full format → decorate → sink pipeline to a background isolate. The original "AsyncFormatter" concept was superseded by this approach — no separate `AsyncFormatter` interface is needed.
 
 **Remaining Work**:
-- [ ] Benchmark `AsyncHandler` vs `StandardEngine` throughput on high-volume JSON payloads (document in `benchmarks/records/`)
+- [x] Benchmark `AsyncHandler` vs `StandardEngine` throughput on high-volume JSON payloads (`async_handler_benchmark.dart` & `doc/handler/async_handler_guide.md`)
 - [ ] Add `AsyncHandler` to `LogOutput` facade once A4 ships
 
 ---
