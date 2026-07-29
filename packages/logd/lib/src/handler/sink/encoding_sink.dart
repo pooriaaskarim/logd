@@ -36,7 +36,11 @@ base class EncodingSink extends LogSink<LogDocument> {
     final WrappingStrategy? strategy,
     this.preferredWidth = 100,
     super.enabled,
-  }) : _strategy = strategy;
+  })  : assert(
+          preferredWidth == null || preferredWidth > 0,
+          'preferredWidth must be greater than zero',
+        ),
+        _strategy = strategy;
 
   /// The encoder used to serialize logs.
   final LogEncoder encoder;
