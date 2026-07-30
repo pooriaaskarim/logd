@@ -31,17 +31,13 @@ void main() async {
 
   // Configure a logger that outputs structured logs to the dashboard
   final handler = Handler(
-    formatter: const ToonPrettyFormatter(
+    formatter: const ToonFormatter(
       metadata: {
         LogMetadata.timestamp,
         LogMetadata.logger,
         LogMetadata.origin,
       },
     ),
-    decorators: const [
-      StyleDecorator(),
-      BoxDecorator(borderStyle: BorderStyle.rounded),
-    ],
     sink: sink,
   );
 

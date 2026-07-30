@@ -3,4 +3,5 @@
 ":"error.dart:1","level":"ERROR","messag
 e":"Critical system failure detected in
 the binary
-pipeline!","error":"","stackTrace":""}
+pipeline!","error":"","stackTrace":"","c
+ontext":""}

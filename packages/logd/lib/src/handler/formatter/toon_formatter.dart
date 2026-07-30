@@ -5,9 +5,6 @@ part of 'formatter.dart';
 /// TOON is a compact, token-efficient format designed for feeding logs into
 /// machine parsers or Large Language Models (LLMs). It uses a header definition
 /// followed by uniform rows of values separated by a delimiter (default: Tab).
-///
-/// This version is optimized for token efficiency and raw data transport.
-/// For a more human-friendly, structured version, use [ToonPrettyFormatter].
 @immutable
 final class ToonFormatter implements LogFormatter {
   /// Creates a [ToonFormatter].
@@ -17,6 +14,9 @@ final class ToonFormatter implements LogFormatter {
   /// - [metadata]: Contextual metadata to include in the output columns.
   /// - [explicitSchema]: Whether to include a typed, aligned schema definition
   ///   in the header block (default: false).
+  /// - [sortKeys]: Whether to sort Map keys alphabetically.
+  /// - [maxDepth]: Maximum depth for recursive object serialization.
+  /// - [dialect]: Controls preamble header comments and null token encoding.
   const ToonFormatter({
     this.delimiter = '\t',
     this.arrayName = 'logs',
@@ -26,6 +26,9 @@ final class ToonFormatter implements LogFormatter {
       LogMetadata.origin,
     },
     this.explicitSchema = false,
+    this.sortKeys = false,
+    this.maxDepth = 5,
+    this.dialect = ToonDialect.compact,
   });
 
   /// Whether to include an explicit schema definition in the header.
@@ -40,6 +43,15 @@ final class ToonFormatter implements LogFormatter {
   /// Contextual metadata to include.
   @override
   final Set<LogMetadata> metadata;
+
+  /// Whether to sort Map keys alphabetically.
+  final bool sortKeys;
+
+  /// Maximum depth for recursion.
+  final int maxDepth;
+
+  /// Controls preamble header comments and null token encoding.
+  final ToonDialect dialect;
 
   @override
   void format(
@@ -78,9 +90,7 @@ final class ToonFormatter implements LogFormatter {
       add('message', line, ToonType.markdown);
       add('error', entry.error ?? '', ToonType.string);
       add('stackTrace', entry.stackTrace ?? '', ToonType.stacktrace);
-      if (entry.context != null && entry.context!.isNotEmpty) {
-        add('context', entry.context, ToonType.string);
-      }
+      add('context', entry.context ?? '', ToonType.string);
 
       document.metadataBlock(map, factory: factory);
       isFirst = false;
@@ -90,6 +100,9 @@ final class ToonFormatter implements LogFormatter {
       ..metadata['toon_array'] = arrayName
       ..metadata['toon_delimiter'] = delimiter
       ..metadata['toon_columns'] = columns
+      ..metadata['toon_sort_keys'] = sortKeys
+      ..metadata['toon_max_depth'] = maxDepth
+      ..metadata['toon_dialect'] = dialect
       ..metadata['toon_schema'] = explicitSchema ? schema : null;
   }
 
@@ -100,17 +113,34 @@ final class ToonFormatter implements LogFormatter {
           runtimeType == other.runtimeType &&
           delimiter == other.delimiter &&
           arrayName == other.arrayName &&
+          explicitSchema == other.explicitSchema &&
+          sortKeys == other.sortKeys &&
+          maxDepth == other.maxDepth &&
+          dialect == other.dialect &&
           setEquals(metadata, other.metadata);
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, delimiter, arrayName, Object.hashAll(metadata));
+  int get hashCode => Object.hash(
+        runtimeType,
+        delimiter,
+        arrayName,
+        explicitSchema,
+        sortKeys,
+        maxDepth,
+        dialect,
+        Object.hashAll(metadata),
+      );
 }
 
 /// A [LogFormatter] for TOON with "Wise" object representation.
 ///
 /// TOON-Pretty enhances basic TOON by recursively formatting complex objects
 /// (Maps and Lists) inside columns using a compact, token-efficient notation.
+@Deprecated(
+  'ToonPrettyFormatter will be removed in v1.0. '
+  'TOON is a machine-only format; color tags serve no real consumer. '
+  'Migrate to ToonFormatter(sortKeys: ..., maxDepth: ...) instead.',
+)
 @immutable
 final class ToonPrettyFormatter implements LogFormatter {
   /// Creates a [ToonPrettyFormatter].
@@ -209,9 +239,7 @@ final class ToonPrettyFormatter implements LogFormatter {
         LogTag.stackFrame,
         ToonType.stacktrace,
       );
-      if (entry.context != null && entry.context!.isNotEmpty) {
-        add('context', entry.context, LogTag.preview, ToonType.string);
-      }
+      add('context', entry.context ?? '', LogTag.preview, ToonType.string);
 
       document.metadataBlock(
         map,

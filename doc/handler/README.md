@@ -301,7 +301,7 @@ final sink = HttpServerSink(
 );
 
 final handler = Handler(
-  formatter: const ToonPrettyFormatter(),
+  formatter: const ToonFormatter(),
   decorators: const [
     BoxDecorator(borderStyle: BorderStyle.rounded),
     StyleDecorator(),

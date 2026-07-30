@@ -65,7 +65,7 @@ void main() async {
   // Ensuring tags from different phases (Formatter + Box + Suffix) all style
   // correctly.
   const mixHandler = Handler(
-    formatter: ToonPrettyFormatter(),
+    formatter: ToonFormatter(),
     decorators: [
       StyleDecorator(DarkTheme()),
       BoxDecorator(borderStyle: BorderStyle.double),

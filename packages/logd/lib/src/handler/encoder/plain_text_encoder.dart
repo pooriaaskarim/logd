@@ -5,7 +5,6 @@ part of 'encoder.dart';
 /// This is the default encoder for file sinks where usually raw text is
 /// preferred over ANSI codes.
 class PlainTextEncoder implements LogEncoder {
-
   /// Creates a [PlainTextEncoder].
   const PlainTextEncoder();
   @override

@@ -259,7 +259,16 @@ class DefaultHtmlStylesheet implements HtmlStylesheet {
     .log-message-node { margin-bottom: 0.2rem; word-break: break-word; }
     .log-error-node { color: var(--error); font-weight: 500; margin-top: 0.4rem; }
     .log-footer-node { opacity: 0.7; font-size: 11px; margin-top: 0.4rem; }
-    .log-line { margin: 0; white-space: pre-wrap; word-break: break-word; }
+    .log-line,
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
     /* === Structural Components === */
     .log-box {
@@ -268,6 +277,9 @@ class DefaultHtmlStylesheet implements HtmlStylesheet {
       padding: 0.75rem 1rem;
       margin: 0.5rem 0;
       background: rgba(0,0,0,0.1);
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .log-box-sharp { border-radius: 0; }
     .log-box-double { border-style: double; border-width: 3px; }
@@ -282,16 +294,29 @@ class DefaultHtmlStylesheet implements HtmlStylesheet {
       padding-left: 1.2rem;
       border-left: 1px dashed var(--border);
       margin: 0.2rem 0;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .log-decorated {
       display: flex;
       align-items: flex-start;
       gap: 0.5rem;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .log-decorated-content {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
     }
     .log-leading, .log-trailing {
       opacity: 0.6;
       user-select: none;
+      flex-shrink: 0;
     }
 
     .log-row {

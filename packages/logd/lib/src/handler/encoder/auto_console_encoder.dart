@@ -3,10 +3,9 @@ part of 'encoder.dart';
 /// An encoder that automatically chooses between [AnsiEncoder] and
 /// [PlainTextEncoder] based on terminal capabilities.
 class AutoConsoleEncoder implements LogEncoder {
-
   /// Creates an [AutoConsoleEncoder].
   const AutoConsoleEncoder();
-  
+
   @override
   WrappingStrategy get requiredStrategy => WrappingStrategy.none;
 

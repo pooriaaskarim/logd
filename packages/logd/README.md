@@ -395,18 +395,33 @@ Logger.configure('ai.agent', handlers: [
 
 **Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. 
 
-#### Schema Maturity
-v0.7.1+ introduces **Explicit Schemas** for TOON. By setting `explicitSchema: true`, the formatter generates a typed, aligned header block that describes every column (including enum values for levels):
+#### Dialects & Pipeline Ingestion (v0.9.1+)
+TOON supports two output dialects via `ToonFormatter(dialect: ...)`:
+- **`ToonDialect.compact`** (default): Minimal byte footprint for LLM context windows.
+- **`ToonDialect.strict`**: Adds version headers (`-- TOON/1.0 logs`) and parser hints (`-- DELIMITER:\t QUOTE:" NULL:\N`) while emitting explicit `\N` tokens for null/absent fields. Ideal for automated log processing with **DuckDB**, **Loki**, or **awk**.
 
-```text
-logs[]{
-  timestamp  : iso8601;
-  level      : enum(TRACE,DEBUG,INFO,WARNING,ERROR);
-  message    : markdown;
-}:
+```dart
+// Strict dialect for DuckDB / log pipelines
+Handler(
+  formatter: const ToonFormatter(
+    dialect: ToonDialect.strict,
+    sortKeys: true, // Deterministic key ordering
+    maxDepth: 3,    // Bounded map recursion
+  ),
+  sink: FileSink('logs/pipeline.toon'),
+)
 ```
 
-This provides zero-shot precision for machine-consumption without prior out-of-band configuration.
+#### LLM Context Slicing (`extractPreamble`)
+When slicing a TOON log stream for a sliding window or RAG context prompt, extract the preamble header line to retain full schema context:
+
+```dart
+final bytes = await File('logs/app.toon').readAsBytes();
+final schema = ToonEncoder.extractPreamble(bytes) ?? '';
+final recentLines = sliceLines(bytes, last: 50);
+
+final llmPrompt = '$schema\n${recentLines.join('\n')}';
+```
 
 
 

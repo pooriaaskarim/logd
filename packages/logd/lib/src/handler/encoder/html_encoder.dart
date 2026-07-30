@@ -6,7 +6,6 @@ part of 'encoder.dart';
 /// CSS classes based on [LogTag]s.
 @immutable
 class HtmlEncoder implements LogEncoder {
-
   /// Creates an [HtmlEncoder].
   ///
   /// - [title]: The title of the generated HTML document.
@@ -15,7 +14,7 @@ class HtmlEncoder implements LogEncoder {
     this.title = 'Log Output',
     this.stylesheet = const DefaultHtmlStylesheet(),
   });
-  
+
   @override
   WrappingStrategy get requiredStrategy => WrappingStrategy.document;
 
@@ -509,16 +508,14 @@ ${stylesheet.buildJs()}
   ) {
     final toonColumns = document.metadata['toon_columns'] as List<String>?;
     if (toonColumns != null) {
-      final arrayName = document.metadata['toon_array'] as String? ?? 'logs';
       final delimiter = document.metadata['toon_delimiter'] as String? ?? '\t';
-      final columnStr = toonColumns.join(',');
       final row = toonColumns
           .map((final col) => node.map[col]?.toString() ?? '')
-          .join(delimiter);
+          .join(delimiter)
+          .trimRight();
 
       context
         ..writeString('<pre class="log-line log-toon">')
-        ..writeString(_escapeHtml('$arrayName[]{$columnStr}:\n'))
         ..writeString(_escapeHtml('$row\n'))
         ..writeString('</pre>\n');
       return;

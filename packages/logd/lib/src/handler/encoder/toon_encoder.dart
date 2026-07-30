@@ -7,11 +7,10 @@ part of 'encoder.dart';
 /// document's metadata to produce headers and delimited rows. It handles
 /// recursive formatting for nested Maps and Lists within the TOON rows.
 class ToonEncoder implements LogEncoder {
-
   /// Creates a [ToonEncoder].
   const ToonEncoder();
   @override
-  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
+  WrappingStrategy get requiredStrategy => WrappingStrategy.document;
 
   @override
   void preamble(
@@ -24,11 +23,21 @@ class ToonEncoder implements LogEncoder {
       return;
     }
     final arrayName = document.metadata['toon_array'] as String? ?? 'logs';
+    final delimiter = document.metadata['toon_delimiter'] as String? ?? '\t';
     final columns = document.metadata['toon_columns'] as List<String>?;
     final schema = document.metadata['toon_schema'] as Map<String, ToonType>?;
+    final dialect = document.metadata['toon_dialect'] as ToonDialect? ??
+        ToonDialect.compact;
 
     if (columns == null) {
       return;
+    }
+
+    if (dialect == ToonDialect.strict) {
+      final delimDisplay = delimiter == '\t' ? r'\t' : delimiter;
+      context.writeString(
+        '-- TOON/1.0 $arrayName\n-- DELIMITER:$delimDisplay QUOTE:" NULL:\\N\n',
+      );
     }
 
     if (schema != null) {
@@ -47,11 +56,37 @@ class ToonEncoder implements LogEncoder {
           context.writeString('  $col$padding : $type;\n');
         }
       }
-      context.writeString('}:');
+      context.writeString('}:\n');
     } else {
       final columnStr = columns.join(',');
-      context.writeString('$arrayName[]{$columnStr}:');
+      context.writeString('$arrayName[]{$columnStr}:\n');
     }
+  }
+
+  /// Extracts the TOON preamble (schema header line) from a TOON byte buffer.
+  ///
+  /// Returns the header string (e.g., `logs[]{timestamp,logger,...}:`) or
+  /// `null` if no valid TOON preamble is found.
+  ///
+  /// Use this when slicing a TOON stream for LLM context injection:
+  /// ```dart
+  /// final schema = ToonEncoder.extractPreamble(await file.readAsBytes());
+  /// final chunk = [schema, ...windowLines].join('\n');
+  /// ```
+  static String? extractPreamble(final Uint8List bytes) {
+    if (bytes.isEmpty) {
+      return null;
+    }
+    final str = convert.utf8.decode(bytes, allowMalformed: true);
+    final colonIndex = str.indexOf(':');
+    if (colonIndex == -1) {
+      return null;
+    }
+    final lineEnd = str.indexOf('\n', colonIndex);
+    if (lineEnd != -1) {
+      return str.substring(0, lineEnd + 1);
+    }
+    return str.substring(0, colonIndex + 1);
   }
 
   @override
@@ -74,6 +109,8 @@ class ToonEncoder implements LogEncoder {
     final columns = document.metadata['toon_columns'] as List<String>?;
     final sortKeys = document.metadata['toon_sort_keys'] as bool? ?? false;
     final maxDepth = document.metadata['toon_max_depth'] as int? ?? 5;
+    final dialect = document.metadata['toon_dialect'] as ToonDialect? ??
+        ToonDialect.compact;
 
     final nodes = document.nodes;
     for (var i = 0; i < nodes.length; i++) {
@@ -89,6 +126,10 @@ class ToonEncoder implements LogEncoder {
               sortKeys: sortKeys,
               maxDepth: maxDepth,
             );
+
+            if (dialect == ToonDialect.strict && serialized.isEmpty) {
+              serialized = r'\N';
+            }
 
             // Optional truncation if width is provided.
             // In TOON, we only truncate if a width is specified, and we

@@ -3,4 +3,5 @@
 :"binary.dart:42","level":"INFO","messag
 e":"Verified Binary IR rendering with
 semantic coloring and
-alignment.","error":"","stackTrace":""}
+alignment.","error":"","stackTrace":"","
+context":""}

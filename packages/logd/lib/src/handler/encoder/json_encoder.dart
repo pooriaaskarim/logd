@@ -5,13 +5,12 @@ part of 'encoder.dart';
 /// It prioritizes [MapNode] and [ListNode] for direct serialization.
 /// If multiple nodes are present, they are joined with newlines.
 class JsonEncoder implements LogEncoder {
-
   /// Creates a [JsonEncoder].
   ///
   /// - [indent]: Indentation for pretty printing. If null, compact JSON is
   /// used.
   const JsonEncoder({this.indent});
-  
+
   @override
   WrappingStrategy get requiredStrategy => WrappingStrategy.none;
 

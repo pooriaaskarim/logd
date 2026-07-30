@@ -275,26 +275,145 @@ const String dashboardHtml = '''
 
     .console-output {
       flex: 1;
-      padding: 1.5rem;
+      padding: 1rem 1.5rem;
       overflow-y: auto;
+      overflow-x: hidden;
       font-family: var(--font-mono);
       font-size: 0.875rem;
       line-height: 1.6;
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: 0.35rem;
+      tab-size: 16;
+      -moz-tab-size: 16;
+      position: relative;
+      min-width: 0;
+      width: 100%;
+    }
+
+    /* Flex item constraints to enforce proper CSS text wrapping */
+    .dashboard-layout,
+    .console-container,
+    .console-output,
+    .log-row,
+    .log-entry,
+    .log-main,
+    .log-content,
+    .log-decorated-content,
+    .log-line,
+    pre {
+      min-width: 0 !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Default: All text line & pre elements wrap text cleanly */
+    .log-content,
+    .log-line,
+    .details-val,
+    pre {
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+      font-family: var(--font-mono);
+      tab-size: 16;
+      -moz-tab-size: 16;
+    }
+
+    .console-output .log-decorated {
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 0.5rem !important;
+      min-width: 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    .console-output .log-decorated-content {
+      flex: 1 !important;
+      min-width: 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Option to turn OFF wrapping */
+    .console-output.no-wrap .log-content,
+    .console-output.no-wrap .log-line,
+    .console-output.no-wrap .log-decorated-content,
+    .console-output.no-wrap .details-val,
+    .console-output.no-wrap pre {
+      white-space: pre !important;
+      word-break: normal !important;
+      overflow-wrap: normal !important;
+    }
+
+    .btn.active {
+      background: var(--primary-glow);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .toon-sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(13, 17, 30, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(80, 250, 123, 0.3);
+      padding: 0.6rem 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.825rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      user-select: none;
+      flex-wrap: wrap;
+    }
+
+    .toon-header-tag {
+      font-family: var(--font-display);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      background: rgba(80, 250, 123, 0.15);
+      border: 1px solid rgba(80, 250, 123, 0.35);
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      color: var(--primary);
+    }
+
+    .toon-header-cols {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toon-col-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 500;
     }
 
     .log-row {
       display: flex;
       flex-direction: column;
-      border-radius: 4px;
-      padding: 0.25rem 0.5rem;
-      transition: background 0.1s ease;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      transition: background 0.15s ease;
+      width: 100%;
     }
 
     .log-row:hover {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     .log-main {
@@ -302,6 +421,7 @@ const String dashboardHtml = '''
       flex-direction: column;
       gap: 0.25rem;
       cursor: pointer;
+      width: 100%;
     }
 
     .log-meta-info {
@@ -319,8 +439,10 @@ const String dashboardHtml = '''
     .log-content {
       flex: 1;
       white-space: pre;
-      overflow-x: auto;
+      overflow-x: visible;
       font-family: var(--font-mono);
+      tab-size: 16;
+      -moz-tab-size: 16;
     }
 
     .log-details {
@@ -369,6 +491,72 @@ const String dashboardHtml = '''
     .level-info { color: var(--info); }
     .level-warning { color: var(--warning); }
     .level-error { color: var(--error); }
+    .panel-resizer {
+      width: 6px;
+      background: var(--border-color);
+      cursor: col-resize;
+      user-select: none;
+      transition: background 0.2s ease;
+      z-index: 40;
+      flex-shrink: 0;
+    }
+
+    .panel-resizer:hover, .panel-resizer.active {
+      background: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    .console-output .log-entry {
+      margin-bottom: 0.25rem !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 6px !important;
+      transition: background 0.15s ease !important;
+      padding: 0.5rem 0.75rem !important;
+      position: relative !important;
+    }
+
+    .console-output .log-entry:hover {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .log-copy-btn {
+      position: absolute !important;
+      top: 0.4rem !important;
+      right: 0.5rem !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid var(--border-color) !important;
+      color: var(--text-muted) !important;
+      opacity: 0 !important;
+      cursor: pointer !important;
+      padding: 0.25rem !important;
+      width: 24px !important;
+      height: 24px !important;
+      border-radius: 4px !important;
+      transition: all 0.15s ease !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 10 !important;
+    }
+
+    .log-entry:hover .log-copy-btn {
+      opacity: 0.7 !important;
+    }
+
+    .log-copy-btn:hover {
+      opacity: 1 !important;
+      background: rgba(255, 255, 255, 0.15) !important;
+      color: var(--primary) !important;
+      border-color: var(--primary) !important;
+    }
+
+    .log-copy-btn svg {
+      width: 13px !important;
+      height: 13px !important;
+      pointer-events: none !important;
+      stroke: currentColor !important;
+    }
   </style>
 </head>
 <body>
@@ -438,10 +626,16 @@ const String dashboardHtml = '''
       </div>
     </aside>
 
+    <div class="panel-resizer" id="panelResizer" title="Drag to resize sidebar"></div>
+
     <main class="console-container">
       <div class="console-header">
         <span id="logCountLabel" style="font-size: 0.9rem; color: var(--text-muted);">Showing 0 logs</span>
         <div class="console-actions">
+          <button class="btn" id="btnWrap" title="Toggle line wrapping for long messages">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h15a3 3 0 1 1 0 6h-4M3 18h7"/><polyline points="16 16 14 18 16 20"/></svg>
+            Wrap Lines
+          </button>
           <button class="btn" id="btnPause">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
             Pause
@@ -465,6 +659,7 @@ const String dashboardHtml = '''
     const logCountLabel = document.getElementById('logCountLabel');
     const btnPause = document.getElementById('btnPause');
     const btnClear = document.getElementById('btnClear');
+    const btnWrap = document.getElementById('btnWrap');
 
     // Filter elements
     const chkError = document.getElementById('chkError');
@@ -486,6 +681,60 @@ const String dashboardHtml = '''
     let ws = null;
     let totalCount = 0;
     let errorCount = 0;
+
+    // Line Wrapping State (Always enabled by default)
+    let isWrapped = true;
+
+    function updateWrapState() {
+      if (isWrapped) {
+        consoleOutput.classList.remove('no-wrap');
+        btnWrap.classList.add('active');
+      } else {
+        consoleOutput.classList.add('no-wrap');
+        btnWrap.classList.remove('active');
+      }
+    }
+
+    btnWrap.addEventListener('click', () => {
+      isWrapped = !isWrapped;
+      localStorage.setItem('logd_wrap_lines', isWrapped);
+      updateWrapState();
+    });
+
+    updateWrapState();
+
+    // Draggable Panel Resizer Logic
+    const panelResizer = document.getElementById('panelResizer');
+    const controlPanel = document.querySelector('.control-panel');
+    let isResizing = false;
+
+    const savedWidth = localStorage.getItem('logd_sidebar_width');
+    if (savedWidth) {
+      controlPanel.style.width = savedWidth + 'px';
+    }
+
+    panelResizer.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      panelResizer.classList.add('active');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      const newWidth = Math.max(200, Math.min(e.clientX, window.innerWidth - 300));
+      controlPanel.style.width = newWidth + 'px';
+      localStorage.setItem('logd_sidebar_width', newWidth);
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isResizing) {
+        isResizing = false;
+        panelResizer.classList.remove('active');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    });
 
     // Connect WebSocket
     function connect() {
@@ -633,10 +882,45 @@ const String dashboardHtml = '''
     }
 
     function renderLogRow(payload, appendToBottom) {
+      if (payload.toon && !document.getElementById('toonHeaderBar')) {
+        const headerBar = document.createElement('div');
+        headerBar.id = 'toonHeaderBar';
+        headerBar.className = 'toon-sticky-header';
+        const colPills = payload.toon.columns ? payload.toon.columns.map(c => `<span class="toon-col-pill">\${c}</span>`).join('') : '';
+        headerBar.innerHTML = `<span class="toon-header-tag">\${payload.toon.array}[]</span><div class="toon-header-cols">\${colPills}</div>`;
+        consoleOutput.insertBefore(headerBar, consoleOutput.firstChild);
+      }
+
       const isHtml = payload.formatted && payload.formatted.trim().startsWith('<div');
+      const isToon = !!payload.toon || (payload.formatted && payload.formatted.includes('log-toon'));
+
+      if (isHtml) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = payload.formatted.trim();
+        const htmlElement = tempDiv.firstElementChild || tempDiv;
+        htmlElement.dataset.level = payload.entry.level;
+        htmlElement.dataset.message = payload.entry.message;
+        htmlElement.dataset.logger = payload.entry.loggerName;
+        htmlElement.dataset.origin = payload.entry.origin;
+
+        if (!shouldShow(payload.entry)) {
+          htmlElement.style.display = 'none';
+        }
+
+        if (appendToBottom) {
+          consoleOutput.appendChild(htmlElement);
+          consoleOutput.scrollTop = consoleOutput.scrollHeight;
+          while (consoleOutput.children.length > 1000) {
+            consoleOutput.removeChild(consoleOutput.firstChild);
+          }
+        } else {
+          consoleOutput.appendChild(htmlElement);
+        }
+        return;
+      }
 
       const row = document.createElement('div');
-      row.className = `log-row level-\${payload.entry.level}`;
+      row.className = `log-row level-\${payload.entry.level}\${isToon ? ' toon-mode' : ''}`;
       row.dataset.level = payload.entry.level;
       row.dataset.message = payload.entry.message;
       row.dataset.logger = payload.entry.loggerName;
@@ -645,7 +929,7 @@ const String dashboardHtml = '''
       const main = document.createElement('div');
       main.className = 'log-main';
 
-      if (!isHtml) {
+      if (!isToon) {
         const meta = document.createElement('div');
         meta.className = 'log-meta-info';
         meta.innerHTML = `<span>\${payload.entry.timestamp}</span><span class="level-\${payload.entry.level}">[&nbsp;\${payload.entry.level.toUpperCase()}&nbsp;]</span><span>\${payload.entry.loggerName}</span>`;
@@ -654,37 +938,35 @@ const String dashboardHtml = '''
 
       const content = document.createElement('div');
       content.className = 'log-content';
-      content.innerHTML = isHtml ? payload.formatted : ansiToHtml(payload.formatted || payload.entry.message);
+      content.innerHTML = ansiToHtml(payload.formatted || payload.entry.message);
 
       main.appendChild(content);
       row.appendChild(main);
 
       // Expandable details
-      if (!isHtml) {
-        const hasError = !!payload.entry.error;
-        const hasStack = !!payload.entry.stackTrace;
-        const hasContext = payload.entry.context && Object.keys(payload.entry.context).length > 0;
+      const hasError = !!payload.entry.error;
+      const hasStack = !!payload.entry.stackTrace;
+      const hasContext = payload.entry.context && Object.keys(payload.entry.context).length > 0;
 
-        if (hasError || hasStack || hasContext) {
-          const details = document.createElement('div');
-          details.className = 'log-details';
+      if (hasError || hasStack || hasContext) {
+        const details = document.createElement('div');
+        details.className = 'log-details';
 
-          if (hasError) {
-            details.innerHTML += `<div class="details-section"><span class="details-label">Error</span><span class="details-val">\${payload.entry.error}</span></div>`;
-          }
-          if (hasContext) {
-            details.innerHTML += `<div class="details-section"><span class="details-label">Context</span><span class="details-val context">\${JSON.stringify(payload.entry.context, null, 2)}</span></div>`;
-          }
-          if (hasStack) {
-            details.innerHTML += `<div class="details-section"><span class="details-label">Stack Trace</span><span class="details-val stack">\${payload.entry.stackTrace}</span></div>`;
-          }
-
-          row.appendChild(details);
-
-          main.addEventListener('click', () => {
-            row.classList.toggle('expanded');
-          });
+        if (hasError) {
+          details.innerHTML += `<div class="details-section"><span class="details-label">Error</span><span class="details-val">\${payload.entry.error}</span></div>`;
         }
+        if (hasContext) {
+          details.innerHTML += `<div class="details-section"><span class="details-label">Context</span><span class="details-val context">\${JSON.stringify(payload.entry.context, null, 2)}</span></div>`;
+        }
+        if (hasStack) {
+          details.innerHTML += `<div class="details-section"><span class="details-label">Stack Trace</span><span class="details-val stack">\${payload.entry.stackTrace}</span></div>`;
+        }
+
+        row.appendChild(details);
+
+        main.addEventListener('click', () => {
+          row.classList.toggle('expanded');
+        });
       }
 
       // Check filters immediately

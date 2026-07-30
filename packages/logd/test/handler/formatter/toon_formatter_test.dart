@@ -151,6 +151,92 @@ void main() {
         doc.releaseRecursive(Arena.instance);
       }
     });
+
+    test('always includes context column even when context is null', () {
+      const formatter = ToonFormatter();
+      final doc = formatDoc(formatter, entry);
+      try {
+        final lines = renderToon(doc, entry, LogLevel.info);
+        expect(lines[0], contains(',context}:'));
+      } finally {
+        doc.releaseRecursive(Arena.instance);
+      }
+    });
+
+    test('sortKeys sorts map keys alphabetically when sortKeys is true', () {
+      final mapEntry = LogEntry(
+        loggerName: 'test.logger',
+        origin: 'main.dart',
+        level: LogLevel.info,
+        message: 'sortTest',
+        timestamp: '2025-01-01',
+        error: {'z': 1, 'a': 2, 'm': 3},
+      );
+      const formatter = ToonFormatter(sortKeys: true);
+      final doc = formatDoc(formatter, mapEntry);
+
+      try {
+        final lines = renderToon(doc, mapEntry, LogLevel.info);
+        expect(lines[1], contains('{a:2,m:3,z:1}'));
+      } finally {
+        doc.releaseRecursive(Arena.instance);
+      }
+    });
+
+    test('maxDepth limits recursion depth for nested maps', () {
+      final deepMap = {
+        'l1': {
+          'l2': {
+            'l3': {'l4': 'deep'},
+          },
+        },
+      };
+      final mapEntry = LogEntry(
+        loggerName: 'test.logger',
+        origin: 'main.dart',
+        level: LogLevel.info,
+        message: 'depthTest',
+        timestamp: '2025-01-01',
+        error: deepMap,
+      );
+      const formatter = ToonFormatter(maxDepth: 2);
+      final doc = formatDoc(formatter, mapEntry);
+
+      try {
+        final lines = renderToon(doc, mapEntry, LogLevel.info);
+        expect(lines[1], contains('...'));
+      } finally {
+        doc.releaseRecursive(Arena.instance);
+      }
+    });
+  });
+
+  group('ToonEncoder.extractPreamble', () {
+    test('extracts preamble line from TOON bytes', () {
+      final bytes = Uint8List.fromList(
+        utf8.encode(
+          'logs[]{timestamp,logger,level,message,error,stackTrace,context}:\n'
+          '2025-01-01\tapp\tINFO\tmsg\t\t\t\n',
+        ),
+      );
+      final preamble = ToonEncoder.extractPreamble(bytes);
+      expect(
+        preamble,
+        equals(
+          'logs[]{timestamp,logger,level,message,error,stackTrace,context}:\n',
+        ),
+      );
+    });
+
+    test('returns null for empty bytes or non-TOON text', () {
+      expect(ToonEncoder.extractPreamble(Uint8List(0)), isNull);
+      expect(
+        ToonEncoder.extractPreamble(
+          Uint8List.fromList(utf8.encode('just a plain text string')),
+        ),
+        isNull,
+      );
+    });
   });
 }
 
