@@ -35,8 +35,7 @@ void main() async {
 
   final htmlSink = FileSink(
     '$basePath/dashboard.html',
-    encoder: const HtmlEncoder(),
-    strategy: WrappingStrategy.document,
+    encoder: const HtmlEncoder(title: 'logd Theatre Production Run'),
   );
   final htmlHandler = Handler(
     formatter: const StructuredFormatter(),
@@ -59,7 +58,10 @@ void main() async {
 
   final toonHandler = Handler(
     formatter: const ToonFormatter(),
-    sink: FileSink('$basePath/llm_context.toon'),
+    sink: FileSink(
+      '$basePath/llm_context.toon',
+      encoder: const ToonEncoder(),
+    ),
   );
 
   // Configure everything

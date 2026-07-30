@@ -19,7 +19,6 @@ void main() async {
     encoder: const HtmlEncoder(
       title: 'Dark Performance Dashboard',
     ),
-    strategy: WrappingStrategy.document,
   );
 
   // 2. Custom Pastel Theme
@@ -28,7 +27,6 @@ void main() async {
     encoder: const HtmlEncoder(
       title: 'Light Pastel Report',
     ),
-    strategy: WrappingStrategy.document,
   );
 
   final darkHandler = Handler(

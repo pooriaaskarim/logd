@@ -46,7 +46,6 @@ Future<void> _generateDarkHtml(final String dir) async {
     encoder: const HtmlEncoder(
       title: 'logd — Dark Theme Showcase',
     ),
-    strategy: WrappingStrategy.document,
   );
 
   final handler = Handler(
@@ -70,7 +69,6 @@ Future<void> _generateLightHtml(final String dir) async {
     encoder: const HtmlEncoder(
       title: 'logd — Light Theme Showcase',
     ),
-    strategy: WrappingStrategy.document,
   );
 
   final handler = Handler(
@@ -94,7 +92,6 @@ Future<void> _generatePastelHtml(final String dir) async {
     encoder: const HtmlEncoder(
       title: 'logd — Pastel Theme Showcase',
     ),
-    strategy: WrappingStrategy.document,
   );
 
   final handler = Handler(
@@ -131,7 +128,6 @@ Future<void> _generateCustomHtml(final String dir) async {
     encoder: const HtmlEncoder(
       title: 'logd — Custom Theme Showcase',
     ),
-    strategy: WrappingStrategy.document,
   );
 
   final handler = Handler(

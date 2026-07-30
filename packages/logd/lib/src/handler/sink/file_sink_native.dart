@@ -336,18 +336,15 @@ base class FileSink extends EncodingSink {
   ///
   /// - [basePath]: The relative or absolute path to the log file. Must point
   ///   to a filename, not a directory.
-  /// - [encoder]: The encoder used to serialize logs
+  /// - [encoder]: The encoder used to serialize logs into raw bytes
   /// (default: [PlainTextEncoder]).
   /// - [fileRotation]: An optional policy for rotating the log file.
-  /// - [strategy]: The wrapping strategy for this sink
-  /// (default: [WrappingStrategy.none]).
   /// - [lineLength]: The maximum line length for the output (default: 120).
   /// - [enabled]: Whether the sink is currently active.
   FileSink(
     this.basePath, {
     super.encoder = const PlainTextEncoder(),
     this.fileRotation,
-    super.strategy,
     final int? lineLength,
     super.enabled = true,
   }) : super(

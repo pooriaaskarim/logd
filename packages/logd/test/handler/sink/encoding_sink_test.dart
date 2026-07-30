@@ -35,8 +35,8 @@ class CustomTestEncoder implements LogEncoder {
 }
 
 void main() {
-  group('EncodingSink strategy fallback', () {
-    test('falls back to encoder.requiredStrategy if strategy is null', () {
+  group('EncodingSink strategy', () {
+    test('uses encoder.requiredStrategy when document', () {
       const encoder = CustomTestEncoder(WrappingStrategy.document);
       final sink = EncodingSink(
         encoder: encoder,
@@ -45,7 +45,7 @@ void main() {
       expect(sink.strategy, equals(WrappingStrategy.document));
     });
 
-    test('uses WrappingStrategy.none as fallback if encoder has none', () {
+    test('uses encoder.requiredStrategy when none', () {
       const encoder = CustomTestEncoder(WrappingStrategy.none);
       final sink = EncodingSink(
         encoder: encoder,
@@ -54,18 +54,7 @@ void main() {
       expect(sink.strategy, equals(WrappingStrategy.none));
     });
 
-    test('explicit strategy parameter overrides encoder.requiredStrategy', () {
-      const encoder = CustomTestEncoder(WrappingStrategy.document);
-      final sink = EncodingSink(
-        encoder: encoder,
-        delegate: (final data) {},
-        strategy: WrappingStrategy.none,
-      );
-      expect(sink.strategy, equals(WrappingStrategy.none));
-    });
-
-    test('HtmlEncoder defaults to WrappingStrategy.document in EncodingSink',
-        () {
+    test('HtmlEncoder requiredStrategy is WrappingStrategy.document', () {
       final sink = EncodingSink(
         encoder: const HtmlEncoder(),
         delegate: (final data) {},

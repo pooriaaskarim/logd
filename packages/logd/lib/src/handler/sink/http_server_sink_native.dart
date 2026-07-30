@@ -23,7 +23,6 @@ base class HttpServerSink extends EncodingSink {
     this.address = 'localhost',
     this.port = 8080,
     super.encoder = const HtmlEncoder(),
-    super.strategy,
     final int? lineLength,
     super.enabled = true,
   }) : super(
@@ -150,6 +149,12 @@ base class HttpServerSink extends EncodingSink {
             'stackTrace': entry.stackTrace.toString(),
           if (entry.context != null) 'context': entry.context,
         },
+        if (document.metadata.containsKey('toon_columns'))
+          'toon': {
+            'array': document.metadata['toon_array'] as String? ?? 'logs',
+            'columns': document.metadata['toon_columns'] as List<String>?,
+            'delimiter': document.metadata['toon_delimiter'] as String? ?? '\t',
+          },
       };
 
       final payloadJson = convert.jsonEncode(payload);

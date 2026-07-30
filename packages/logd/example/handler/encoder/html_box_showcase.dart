@@ -15,14 +15,12 @@ void main() async {
   final darkSink = FileSink(
     darkFile.path,
     encoder: const HtmlEncoder(),
-    strategy: WrappingStrategy.document,
   );
   final lightSink = FileSink(
     lightFile.path,
     encoder: const HtmlEncoder(
       title: 'Light Boxed Logs',
     ),
-    strategy: WrappingStrategy.document,
   );
 
   final darkHandler = Handler(

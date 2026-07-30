@@ -107,7 +107,6 @@ base class FileSink extends EncodingSink {
     this.basePath, {
     super.encoder = const PlainTextEncoder(),
     this.fileRotation,
-    super.strategy,
     final int? lineLength,
     super.enabled = true,
   }) : super(

@@ -26,7 +26,6 @@ void main() async {
     sink: FileSink(
       '${outputDir.path}/1_minimal_light.html',
       encoder: const HtmlEncoder(title: 'Minimal Light Logs'),
-      strategy: WrappingStrategy.document,
     ),
   );
 
@@ -48,7 +47,6 @@ void main() async {
     sink: FileSink(
       '${outputDir.path}/2_dark_architect.html',
       encoder: const HtmlEncoder(title: 'Dark Architect Logs'),
-      strategy: WrappingStrategy.document,
     ),
   );
 
@@ -73,7 +71,6 @@ void main() async {
     sink: FileSink(
       '${outputDir.path}/3_json_inspector.html',
       encoder: const HtmlEncoder(title: 'JSON Inspector'),
-      strategy: WrappingStrategy.document,
     ),
   );
 
@@ -100,7 +97,6 @@ void main() async {
     sink: FileSink(
       '${outputDir.path}/4_json_compact.html',
       encoder: const HtmlEncoder(title: 'Compact JSON'),
-      strategy: WrappingStrategy.document,
     ),
   );
 
@@ -148,10 +144,10 @@ void main() async {
   ]);
 
   // ===========================================================================
-  // 5. TOON STREAM (ToonPretty + Suffix + Hierarchy)
+  // 5. TOON STREAM (ToonFormatter + Suffix + Hierarchy)
   // ===========================================================================
   final toonHandler = Handler(
-    formatter: const ToonPrettyFormatter(),
+    formatter: const ToonFormatter(),
     decorators: [
       const StyleDecorator(),
       const SuffixDecorator(
@@ -163,7 +159,6 @@ void main() async {
     sink: FileSink(
       '${outputDir.path}/5_toon_stream.html',
       encoder: const HtmlEncoder(title: 'Toon Stream Telemetry'),
-      strategy: WrappingStrategy.document,
     ),
   );
 
@@ -195,7 +190,6 @@ void main() async {
     sink: FileSink(
       '${outputDir.path}/6_full_stack.html',
       encoder: const HtmlEncoder(title: 'Full Stack Showcase'),
-      strategy: WrappingStrategy.document,
     ),
   );
 
