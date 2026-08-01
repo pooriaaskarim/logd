@@ -105,7 +105,7 @@ Complex formats like JSON and TOON use semantic tags (`LogTag.timestamp`, `LogTa
 - `MultiSink`: Distributes output to multiple sinks concurrently, ensuring resilient logging.
 - `HttpServerSink`: A native loopback web server hosting a real-time developer log dashboard. Automatically encodes logs using the dynamic `HtmlEncoder` and streams them to browser clients using WebSockets.
 
-> **Network Sink Design**: `HttpSink` and `SocketSink` are now protocol-agnostic. While `JsonFormatter` + `JsonEncoder` is recommended for standard aggregation, you can pair `ToonFormatter` + `ToonEncoder` for efficient real-time streaming to custom monitors.
+> **Protocol Auto-Detection & `logd.encoder` Contract**: Sinks feature Protocol Auto-Detection by default (via `AutoConsoleEncoder` and `AutoTextEncoder`). Formatters specify their preferred physical serialization under the standard `AutoEncoder.encoderKey` (`'logd.encoder'`) metadata entry. Setting a Handler's formatter (`JsonFormatter`, `ToonFormatter`, or custom formatters) configures any default Sink (`ConsoleSink`, `FileSink`, `HttpSink`, `SocketSink`) to emit valid JSON, TOON, or custom output automatically without requiring explicit `encoder:` overrides.
 
 ### Engines (Orchestration)
 The engine is the "mechanical core" of the pipeline, responsible for orchestration and resource management.

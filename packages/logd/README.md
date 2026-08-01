@@ -393,7 +393,7 @@ Logger.configure('ai.agent', handlers: [
 ]);
 ```
 
-**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. 
+**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. All standard sinks (`ConsoleSink`, `FileSink`, `HttpSink`) auto-detect `ToonFormatter` via the standard `AutoEncoder.encoderKey` contract (`'logd.encoder'`), automatically emitting TOON table structures without requiring manual `encoder: ToonEncoder()` overrides.
 
 #### Dialects & Pipeline Ingestion (v0.9.1+)
 TOON supports two output dialects via `ToonFormatter(dialect: ...)`:

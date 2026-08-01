@@ -105,7 +105,7 @@ base class FileSink extends EncodingSink {
   /// Creates a [FileSink] stub.
   FileSink(
     this.basePath, {
-    super.encoder = const PlainTextEncoder(),
+    super.encoder = const AutoTextEncoder(),
     this.fileRotation,
     final int? lineLength,
     super.enabled = true,

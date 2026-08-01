@@ -24,7 +24,7 @@ abstract base class NetworkSink extends EncodingSink {
   /// - [dropPolicy]: Behavior when [maxBufferSize] is reached.
   /// - [enabled]: Whether the sink is active.
   const NetworkSink({
-    super.encoder = const PlainTextEncoder(),
+    super.encoder = const AutoTextEncoder(),
     this.maxBufferSize = 1000,
     this.dropPolicy = DropPolicy.discardOldest,
     super.enabled,
@@ -168,7 +168,7 @@ base class HttpSink extends NetworkSink {
   /// - [enabled]: Whether the sink is active.
   const HttpSink({
     required this.url,
-    super.encoder = const PlainTextEncoder(),
+    super.encoder = const AutoTextEncoder(),
     this.headers = const {},
     this.batchSize = 50,
     this.flushInterval = const Duration(seconds: 60),
@@ -343,7 +343,7 @@ base class SocketSink extends NetworkSink {
     this.headers = const {},
     this.reconnectInterval = const Duration(seconds: 15),
     this.channel,
-    super.encoder = const PlainTextEncoder(),
+    super.encoder = const AutoTextEncoder(),
     super.maxBufferSize = 1000,
     super.dropPolicy = DropPolicy.discardOldest,
     super.enabled,

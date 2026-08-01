@@ -17,7 +17,7 @@ import '../sink/sink.dart' show ConsoleSink, LogSink, WrappingStrategy;
 
 part 'ansi_encoder.dart';
 part 'ansi_encoder_adapter.dart';
-part 'auto_console_encoder.dart';
+part 'auto_encoder.dart';
 part 'fast_string_writer.dart';
 part 'html_encoder.dart';
 part 'html_stylesheet.dart';

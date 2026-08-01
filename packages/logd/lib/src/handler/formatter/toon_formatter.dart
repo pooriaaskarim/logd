@@ -97,6 +97,7 @@ final class ToonFormatter implements LogFormatter {
     }
 
     document
+      ..metadata[AutoEncoder.encoderKey] = const ToonEncoder()
       ..metadata['toon_array'] = arrayName
       ..metadata['toon_delimiter'] = delimiter
       ..metadata['toon_columns'] = columns
@@ -250,6 +251,7 @@ final class ToonPrettyFormatter implements LogFormatter {
     }
 
     document
+      ..metadata[AutoEncoder.encoderKey] = const ToonEncoder()
       ..metadata['toon_array'] = arrayName
       ..metadata['toon_delimiter'] = delimiter
       ..metadata['toon_columns'] = columns

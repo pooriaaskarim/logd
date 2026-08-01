@@ -343,7 +343,7 @@ base class FileSink extends EncodingSink {
   /// - [enabled]: Whether the sink is currently active.
   FileSink(
     this.basePath, {
-    super.encoder = const PlainTextEncoder(),
+    super.encoder = const AutoTextEncoder(),
     this.fileRotation,
     final int? lineLength,
     super.enabled = true,

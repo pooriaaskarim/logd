@@ -119,7 +119,7 @@ This stage transforms the semantic `LogDocument` into the final physical protoco
 - **TerminalLayout**: For text-based formats (ANSI, Plain) in the **Object Pipeline**, the encoder uses `TerminalLayout` to perform word-wrapping, ASCII box rendering, and indentation based on the `totalWidth`.
 - **BinaryAnsiEncoder**: For the **Native Pipeline**, this reference implementation processes the linearized **Binary IR (B-IR)** stream in a single pass, performing high-speed rendering and wrapping with minimal memory overhead.
 - **MarkdownEncoder**: Specializes in GFM (GitHub Flavored Markdown) serialization, mapping semantic blocks to headers, bold text, alerts, and collapsible sections.
-- **Inversion of Control**: Sinks delegate to specialized encoders (`JsonEncoder`, `ToonEncoder`, `AnsiEncoder`, `BinaryAnsiEncoder`, `MarkdownEncoder`), keeping the transport medium agnostic of the data format.
+- **Inversion of Control & Auto-Detection**: Sinks delegate physical serialization to specialized encoders (`JsonEncoder`, `ToonEncoder`, `AnsiEncoder`, `BinaryAnsiEncoder`, `MarkdownEncoder`). Sinks default to protocol-aware `AutoEncoder`s (`AutoConsoleEncoder`, `AutoTextEncoder`) that inspect `LogDocument.metadata[AutoEncoder.encoderKey]` (`'logd.encoder'`) to dynamically resolve the appropriate physical encoder at runtime.
 
 ### Stage 5: Output (Sinking)
 **Component**: `LogSink`
