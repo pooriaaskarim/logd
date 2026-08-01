@@ -2,6 +2,18 @@
 
 ## Completed
 
+### ✅ v0.8.8: Async Isolate Offloading, Web-Based Log Viewer & HTML Consolidation
+**Goal**: Implement isolate-offloaded async pipeline execution, real-time web-based log dashboard streaming via WebSockets, and consolidate HTML logging.
+**Result**: `AsyncHandler` offloads the full format → decorate → sink pipeline to a background isolate, `HttpServerSink` serves an embedded real-time log dashboard via WebSockets, and legacy `HtmlFormatter`/`HtmlSink` were consolidated into the high-fidelity `HtmlEncoder`.
+- [x] `AsyncHandler` — isolate-backed pipeline execution with `ready` completer and graceful `dispose`
+- [x] `IsolateWorker` — unified isolate lifecycle manager (spawn, recovery, teardown)
+- [x] Embed loopback-bound HTTP dashboard server (`HttpServerSink`)
+- [x] Real-time log streaming to served dashboard via WebSockets
+- [x] Consolidate HTML logging: legacy `HtmlFormatter`/`HtmlSink` removed; `HtmlEncoder` + standard formatters is the unified path
+- [x] Dynamic CSS stylesheet injection from `HtmlEncoder` directly to the dashboard
+
+---
+
 ### ✅ v0.8.4: Decoupling, Decorator Optimization & Context Filtering
 **Goal**: Resolve pure-Dart compatibility packaging issues, optimize decorator performance, introduce fallback warning diagnostics, and implement structured context filters.
 **Result**: Removed Flutter dependencies/stubs, cached visible length measurements in decorators, implemented compile-time safe diagnostics in NativeEngine, and added a ContextFilter.
@@ -144,59 +156,33 @@
 
 ## Active Development
 
-### 🟡 v0.8.5: Async Formatter & Sinks (Planned)
-**Goal**: Offload heavy formatting tasks to worker isolates and expand available log destinations (Sqlite, Sentry, Memory).
-- [ ] Add `AsyncFormatter` and an worker-isolate `AsyncHandler` wrapper.
-- [ ] Implement `SqliteSink` with customizable persistence schemas.
-- [ ] Implement `SentrySink` for production error tracking.
-- [ ] Implement `MemorySink` with ring-buffer capabilities for testing.
+### 🟡 v0.9.1: API Polish, Correctness Hardening & Documentation
+**Goal**: Stabilize v0.9.0 freeze, close silent-failure footguns, and harden the encoder pipeline.
+- [x] `LogEncoder.requiredStrategy` — encoders self-declare required `WrappingStrategy`, ending the `HtmlEncoder` + `FileSink` silent-failure trap
+- [x] `_globalLoggerName` constant — eliminate raw `'global'` string literals from `log_entry.dart`
+- [x] Roadmap hygiene — remove stale `ContextFilter` duplicate, prune completed proposals
+- [x] ADR-002 through ADR-005 filled in `doc/decisions/`
+- [x] `LogBuffer.maxEntries` safeguard — drop-with-warning on overflow instead of unbounded growth
+- [ ] `LogOutput` beginner facade (`@experimental`) — single-call correct `Handler` construction for `console`, `htmlFile`, `jsonFile`, `plainFile` targets
 
 ---
 
 ## Features
 
-### 🟡 P1: Async Formatter Support
-**Context**: Heavy serialization (complex JSON) blocks the calling isolate.
+### 🟡 P1: Async Pipeline Offloading
+**Context**: `AsyncHandler` (shipped v0.8.8) offloads the full format → decorate → sink pipeline to a background isolate. The original "AsyncFormatter" concept was superseded by this approach — no separate `AsyncFormatter` interface is needed.
 
-**Proposal**:
-- [ ] Add `AsyncFormatter` interface with `Future<Iterable<String>> format(LogEntry)`
-- [ ] Create `AsyncHandler` wrapper that offloads formatting to a worker isolate
-- [ ] Benchmark performance improvement on large objects
+**Remaining Work**:
+- [x] Benchmark `AsyncHandler` vs `StandardEngine` throughput on high-volume JSON payloads (`async_handler_benchmark.dart` & `doc/handler/async_handler_guide.md`)
+- [ ] Add `AsyncHandler` to `LogOutput` facade once A4 ships
 
 ---
 
 ### 🟡 P1: Additional Sinks
-**Context**: Users require diverse output destinations.
+**Context**: Users require diverse output destinations beyond console, file, and network.
 
 **Planned Sinks**:
-- [ ] `SqliteSink`: Persist logs to local database with schema
-- [ ] `SentrySink`: Direct integration with error tracking
-- [ ] `MemorySink`: In-memory buffer for testing/debugging
+- [ ] `SqliteSink`: Persist logs to local SQLite database with a configurable schema
+- [ ] `SentrySink`: Direct integration with Sentry.io error tracking
+- [x] `MemorySink`: In-memory ring-buffer for testing and in-process log inspection (`@experimental`)
 
----
-
-### 🟡 P1: Context Filtering Support
-**Context**: Once structured context is present, users should be able to filter logs based on context keys or values.
-
-**Proposal**:
-- [ ] Implement `ContextFilter` to filter log entries based on matching key-value pairs (e.g. `ContextFilter('userId', '123')`)
-
----
-
-### 🟢 P2: Web-Based Log Viewer (Logd Dashboard)
-**Context**: Terminal output is great, but remote debugging needs more.
-
-**Proposal**:
-- [ ] Implement `HttpServerSink` that serves a small Vite/React dashboard
-- [ ] Real-time log streaming via WebSockets
-- [ ] Browser-side filtering and search across all attached handlers
-
----
-
-### 🟡 P1: HTML Logging Consolidation & Simplification
-**Context**: We currently have both `HtmlFormatter` and `HtmlSink`. With the planned `HttpServerSink` (Dashboard), we need to evaluate if both are necessary or if they can be unified.
-
-**Research Tasks**:
-- [ ] Evaluate if `HtmlFormatter` should be simplified to only emit structured semantic tags (like `JSON`).
-- [ ] Determine if `HtmlSink` CSS should be moved to a shared theme system.
-- [ ] Consider if a single `WebLogHandler` could manage both static file generation and future server-side streaming.

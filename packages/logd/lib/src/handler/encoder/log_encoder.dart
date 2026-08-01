@@ -14,6 +14,14 @@ part of 'encoder.dart';
 /// - JsonEncoder: Produces structured JSON.
 /// - ToonEncoder: Produces TOON-formatted rows.
 abstract interface class LogEncoder {
+  /// The wrapping strategy required by this encoder.
+  ///
+  /// Defaults to [WrappingStrategy.none]. Encoders producing document-level
+  /// structures (such as [HtmlEncoder]) should override this to
+  /// [WrappingStrategy.document] so that [EncodingSink] can manage the
+  /// lifecycle automatically.
+  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
+
   /// Returns the document start (e.g., HTML header or TOON header), if
   /// applicable.
   ///

@@ -124,20 +124,18 @@ class StackTraceParser {
 
 ## 🔵 P3: Low Priority (Future Enhancements)
 
-### Symbol Deobfuscation
+### ~~Symbol Deobfuscation~~ ✅ v0.9.1
 **Context**: Release builds with `--obfuscate` produce mangled names:
 
 ```
 #0 a.b (file.dart:10)
 ```
 
-**Blockers**: Requires access to symbol map generated during compilation.
-
 **TODO**:
-- [ ] Research feasibility of embedding symbol map in app
-- [ ] Add `SymbolResolver` interface for external deobfuscation services
-- [ ] Document manual deobfuscation workflow using `flutter symbolize`
-- [ ] Add example of deobfuscation integration
+- [x] Research feasibility of embedding symbol map in app
+- [x] Add `SymbolResolver` interface for external deobfuscation services (`@experimental`)
+- [x] Document manual deobfuscation workflow using `flutter symbolize` (`doc/stack_trace/deobfuscation.md`)
+- [x] Add example of deobfuscation integration
 
 **Acceptance Criteria**:
 - API designed for symbol resolution

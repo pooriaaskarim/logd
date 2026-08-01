@@ -1,7 +1,3 @@
-logs[]{timestamp,log
-ger,origin,level,mes
-sage,error,stackTrac
-e}:
 2025-01-01
 12:00:00	Snap
 Test	snap.dart:10
@@ -9,4 +5,4 @@ Test	snap.dart:10
  is a standard log
 message for golden
 verification.	
-	
+		

@@ -23,9 +23,9 @@ base class HttpServerSink extends EncodingSink {
     this.address = 'localhost',
     this.port = 8080,
     super.encoder = const HtmlEncoder(),
-    super.strategy = WrappingStrategy.none,
     final int? lineLength,
     super.enabled = true,
+    this.bufferCapacity = 100,
   }) : super(
           preferredWidth: lineLength ?? 120,
           delegate: _staticWrite,
@@ -39,6 +39,10 @@ base class HttpServerSink extends EncodingSink {
   /// The local port number to bind to.
   final int port;
 
+  /// Maximum number of historical log entries to buffer and replay to new
+  /// WebSocket dashboard connections.
+  final int bufferCapacity;
+
   /// Completer to track server readiness.
   final Completer<void> _ready = Completer<void>();
 
@@ -51,6 +55,7 @@ base class HttpServerSink extends EncodingSink {
 
   io.HttpServer? _server;
   final List<io.WebSocket> _sockets = [];
+  final List<String> _history = [];
   bool _isDisposed = false;
 
   static void _staticWrite(final Uint8List data) {
@@ -81,6 +86,11 @@ base class HttpServerSink extends EncodingSink {
           try {
             final socket = await io.WebSocketTransformer.upgrade(request);
             _sockets.add(socket);
+            for (final item in _history) {
+              if (socket.readyState == io.WebSocket.open) {
+                socket.add(item);
+              }
+            }
             socket.listen(
               (final _) {},
               onError: (final _) {
@@ -150,9 +160,22 @@ base class HttpServerSink extends EncodingSink {
             'stackTrace': entry.stackTrace.toString(),
           if (entry.context != null) 'context': entry.context,
         },
+        if (document.metadata.containsKey('toon_columns'))
+          'toon': {
+            'array': document.metadata['toon_array'] as String? ?? 'logs',
+            'columns': document.metadata['toon_columns'] as List<String>?,
+            'delimiter': document.metadata['toon_delimiter'] as String? ?? '\t',
+          },
       };
 
       final payloadJson = convert.jsonEncode(payload);
+
+      if (bufferCapacity > 0) {
+        _history.add(payloadJson);
+        if (_history.length > bufferCapacity) {
+          _history.removeAt(0);
+        }
+      }
 
       final sockets = List<io.WebSocket>.from(_sockets);
       for (final socket in sockets) {
@@ -182,6 +205,7 @@ base class HttpServerSink extends EncodingSink {
       await socket.close();
     }
     _sockets.clear();
+    _history.clear();
 
     await _server?.close(force: true);
     await super.dispose();

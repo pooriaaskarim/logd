@@ -12,6 +12,7 @@ A <b> modular</b> <b>hierarchical</b> logger for Dart and Flutter. Build structu
 - **Zero‑boilerplate** – Simple `Logger.get('app')` gives a fully‑configured logger.
 - **Performance‑first** – Lazy resolution, aggressive caching, and optional inheritance freezing keep the cost of a disabled logger essentially zero.
 - **Flexible output** – Choose between console, file, network, HTML, or any custom sink; format logs as text, structured JSON, HTML, Markdown or **LLM‑optimized TOON**.
+- **Protocol Auto-Detection** – Standard sinks (`ConsoleSink`, `FileSink`, `HttpSink`, `SocketSink`) automatically detect the handler's formatter (`ToonFormatter`, `JsonFormatter`, or custom formatters via `'logd.encoder'`) and delegate to matching physical encoders out-of-the-box.
 - **Layout Sovereignty** – A centralized engine guarantees structural integrity (e.g., perfect boxes) across all terminal widths.
 - **Platform‑agnostic styling** – Decouple visual intent from representation using the semantic `LogTheme` system.
 - **Web & Desktop Parity** – Built-in platform-aware stack trace parsers for Chrome (V8), Firefox, Safari, and the Dart VM, preserving column numbers for high-fidelity source map resolution.
@@ -393,20 +394,35 @@ Logger.configure('ai.agent', handlers: [
 ]);
 ```
 
-**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. 
+**Result**: A highly token-efficient, flat format that LLMs can parse with minimal overhead. All standard sinks (`ConsoleSink`, `FileSink`, `HttpSink`) auto-detect `ToonFormatter` via the standard `AutoEncoder.encoderKey` contract (`'logd.encoder'`), automatically emitting TOON table structures without requiring manual `encoder: ToonEncoder()` overrides.
 
-#### Schema Maturity
-v0.7.1+ introduces **Explicit Schemas** for TOON. By setting `explicitSchema: true`, the formatter generates a typed, aligned header block that describes every column (including enum values for levels):
+#### Dialects & Pipeline Ingestion (v0.9.1+)
+TOON supports two output dialects via `ToonFormatter(dialect: ...)`:
+- **`ToonDialect.compact`** (default): Minimal byte footprint for LLM context windows.
+- **`ToonDialect.strict`**: Adds version headers (`-- TOON/1.0 logs`) and parser hints (`-- DELIMITER:\t QUOTE:" NULL:\N`) while emitting explicit `\N` tokens for null/absent fields. Ideal for automated log processing with **DuckDB**, **Loki**, or **awk**.
 
-```text
-logs[]{
-  timestamp  : iso8601;
-  level      : enum(TRACE,DEBUG,INFO,WARNING,ERROR);
-  message    : markdown;
-}:
+```dart
+// Strict dialect for DuckDB / log pipelines
+Handler(
+  formatter: const ToonFormatter(
+    dialect: ToonDialect.strict,
+    sortKeys: true, // Deterministic key ordering
+    maxDepth: 3,    // Bounded map recursion
+  ),
+  sink: FileSink('logs/pipeline.toon'),
+)
 ```
 
-This provides zero-shot precision for machine-consumption without prior out-of-band configuration.
+#### LLM Context Slicing (`extractPreamble`)
+When slicing a TOON log stream for a sliding window or RAG context prompt, extract the preamble header line to retain full schema context:
+
+```dart
+final bytes = await File('logs/app.toon').readAsBytes();
+final schema = ToonEncoder.extractPreamble(bytes) ?? '';
+final recentLines = sliceLines(bytes, last: 50);
+
+final llmPrompt = '$schema\n${recentLines.join('\n')}';
+```
 
 
 
@@ -434,6 +450,21 @@ Supported sinks: `HttpSink` (batching & retries), `SocketSink` (real-time stream
 const socketSink = SocketSink(
   url: 'wss://monitor.example.com/logs',
 );
+```
+
+### In-Memory Ring Buffering (MemorySink)
+
+For testing, in-app debug panels, or transient error buffer dumps:
+```dart
+final memorySink = MemorySink<LogDocument>(capacity: 100);
+
+Logger.configure('global', handlers: [
+  Handler(formatter: const PlainFormatter(), sink: memorySink),
+]);
+
+// Inspect stored entries or clear buffer:
+print(memorySink.logs.length);
+memorySink.clear();
 ```
 
 

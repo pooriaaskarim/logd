@@ -74,7 +74,7 @@ Items in this phase are prerequisites for subsequent phases.
 - [x] **Documentation**: Documented `autoSinkBuffer` behavior and importance of `.sink()`
 - [x] **Finalizer-based tracking**: Implemented via `Finalizer` with stack trace capturing for leaks
 - [x] **New Default**: `autoSinkBuffer` now defaults to `false`
-- [ ] **Max-size safeguard**: Add optional `maxEntries` limit on `LogBuffer` to bound memory growth in the "forgot to sink" case (Deferred)
+- [x] **Max-size safeguard**: Add optional `maxEntries` limit on `LogBuffer` to bound memory growth in the "forgot to sink" case (v0.9.1)
 - [-] **Add lint rule** to warn about acquiring a buffer without sinking it (Working on it: branch [mororepo+linter](https://github.com/pooriaaskarim/logd/tree/feat/monorepo%2Blinter)) 
 - [x] Tests added for leak detection state and error/stackTrace fields
 
@@ -165,14 +165,14 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 
 ---
 
-### 🔵 P3: LogBuffer Memory Pooling
+### ~~🔵 P3: LogBuffer Memory Pooling~~ ✅ v0.9.1
 
 **Issue**: Each buffer access creates a new `LogBuffer` instance.
 
 **TODO**:
 - [x] Implement object pool (no-config LIFO)
 - [ ] Benchmark allocation reduction
-- [ ] Document pool behavior and sizing guidance
+- [x] Document pool behavior and sizing guidance (`doc/logger/log_buffer_guide.md`)
 
 ---
 
@@ -203,11 +203,8 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **Current**: All-or-nothing replacement.
 
 **TODO**:
-- [x] **Decision**: Keep current behavior OR implement merge (implemented merge)
+- [x] **Decision**: Implemented key-by-key merge semantics (v0.8.4)
 - [x] If merge: update resolution and add tests
-- [ ] If keep current: document clearly in `Logger.configure` docs and add FAQ entry
-
-**Recommendation**: Document current behavior first, consider merge if requested.
 
 ---
 
@@ -283,9 +280,9 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 - `1` (skipFrames in `_log`)
 
 **TODO**:
-- [ ] Create `const _globalLoggerName = 'global'`
-- [ ] Create `const _logMethodSkipFrames = 1`
-- [ ] Update all usages
+- [x] Create `const _globalLoggerName = 'global'`
+- [x] Create `const _logMethodSkipFrames = 1`
+- [x] Update all usages
 
 ---
 
@@ -321,34 +318,34 @@ Depends on Phase 1 (particularly the freeze no-op fix).
 **TODO**:
 - [x] Expose `Logger.reset()` or `Logger.clearAll()`
 - [x] Add warning documentation (loses all configs)
-- [ ] Consider partial reset: `Logger.reset('subtree')`
+- [x] Consider partial reset: `Logger.reset('subtree')`
 
 ---
 
-### 🔵 P3: Add Concurrency Test
+### ~~🔵 P3: Add Concurrency Test~~ ✅ v0.9.1
 
 **Issue**: No test for rapid concurrent configuration changes.
 
 **TODO**:
-- [ ] Test multiple isolates configuring independently
-- [ ] Test rapid `configure()` calls (stress test cache invalidation)
-- [ ] Verify no race conditions in cache
+- [x] Test multiple isolates configuring independently
+- [x] Test rapid `configure()` calls (stress test cache invalidation)
+- [x] Verify no race conditions in cache
 
 ---
 
-### 🔵 P3: Architecture Decision Records (ADRs)
+### ~~🔵 P3: Architecture Decision Records (ADRs)~~ ✅ v0.9.1
 
 **Issue**: Design decisions not formally documented.
 
 **TODO**:
-- [ ] Create `doc/decisions/` directory
-- [ ] Write ADRs for key decisions:
-  - [ ] ADR-001: Hierarchical inheritance model
-  - [ ] ADR-002: Version-based cache invalidation
-  - [ ] ADR-003: Sparse configuration storage
-  - [ ] ADR-004: Unmodifiable resolved collections
-  - [ ] ADR-005: InternalLogger for fail-safe
-- [ ] Use [MADR](https://adr.github.io/madr/) format
+- [x] Create `doc/decisions/` directory
+- [x] Write ADRs for key decisions:
+  - [x] ADR-001: Hierarchical inheritance model
+  - [x] ADR-002: Version-based cache invalidation
+  - [x] ADR-003: Sparse configuration storage
+  - [x] ADR-004: Unmodifiable resolved collections
+  - [x] ADR-005: InternalLogger for fail-safe
+- [x] Use [MADR](https://adr.github.io/madr/) format
 
 ---
 

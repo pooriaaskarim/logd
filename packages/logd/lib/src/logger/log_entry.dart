@@ -4,6 +4,8 @@ import 'package:meta/meta.dart';
 import '../core/log_level.dart';
 import '../stack_trace/stack_trace.dart';
 
+const String _globalLoggerName = 'global';
+
 /// Structured representation of a log event passed to handlers.
 ///
 /// Single source of truth for all log data. Handlers receive
@@ -57,7 +59,7 @@ class LogEntry {
     if (_hierarchyDepthCache != null) {
       return _hierarchyDepthCache!;
     }
-    if (loggerName == 'global' || loggerName.isEmpty) {
+    if (loggerName == _globalLoggerName || loggerName.isEmpty) {
       return _hierarchyDepthCache = 0;
     }
     int count = 1;

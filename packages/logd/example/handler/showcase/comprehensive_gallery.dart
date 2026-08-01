@@ -45,8 +45,7 @@ void main() async {
   // 2. THE DATA SCIENTIST (Toon + Custom Prefix + Style)
   // ===========================================================================
   const dataHandler = Handler(
-    formatter: ToonPrettyFormatter(
-      color: true,
+    formatter: ToonFormatter(
       metadata: {LogMetadata.timestamp},
     ),
     decorators: [

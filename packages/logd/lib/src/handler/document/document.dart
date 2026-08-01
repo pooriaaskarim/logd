@@ -17,3 +17,4 @@ part 'styled_text.dart';
 part 'toon_type.dart';
 part 'alignment.dart';
 part 'log_metadata.dart';
+part 'toon_dialect.dart';

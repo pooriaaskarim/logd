@@ -27,16 +27,16 @@ base class EncodingSink extends LogSink<LogDocument> {
   ///
   /// - [encoder]: The encoder to serialize LogDocuments into bytes.
   /// - [delegate]: The transport callback.
-  /// - [strategy]: The wrapping strategy for this sink (default:
-  /// [WrappingStrategy.none]).
   /// - [preferredWidth]: The preferred width for wrapping logs (default: 100).
   const EncodingSink({
     required this.encoder,
     required this.delegate,
-    this.strategy = WrappingStrategy.none,
     this.preferredWidth = 100,
     super.enabled,
-  });
+  }) : assert(
+          preferredWidth == null || preferredWidth > 0,
+          'preferredWidth must be greater than zero',
+        );
 
   /// The encoder used to serialize logs.
   final LogEncoder encoder;
@@ -44,8 +44,8 @@ base class EncodingSink extends LogSink<LogDocument> {
   /// The transport callback.
   final FutureOr<void> Function(Uint8List data) delegate;
 
-  /// The wrapping strategy for this sink.
-  final WrappingStrategy strategy;
+  /// The wrapping strategy for this sink, as required by its encoder.
+  WrappingStrategy get strategy => encoder.requiredStrategy;
 
   /// The maximum line length for the output.
   final int? preferredWidth;

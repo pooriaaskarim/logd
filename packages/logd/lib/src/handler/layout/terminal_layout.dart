@@ -63,44 +63,11 @@ class TerminalLayout {
       case final MapNode n:
         final toonColumns = document.metadata['toon_columns'] as List<String>?;
         if (toonColumns != null) {
-          final arrayName =
-              document.metadata['toon_array'] as String? ?? 'logs';
           final delimiter =
               document.metadata['toon_delimiter'] as String? ?? '\t';
           final row = toonColumns
               .map((final col) => n.map[col]?.toString() ?? '')
               .join(delimiter);
-
-          final schema =
-              document.metadata['toon_schema'] as Map<String, ToonType>?;
-
-          final String preamble;
-          if (schema != null) {
-            int maxColLen = 0;
-            for (final col in toonColumns) {
-              if (col.length > maxColLen) {
-                maxColLen = col.length;
-              }
-            }
-
-            final sb = StringBuffer()..writeln('$arrayName[]{');
-            for (final col in toonColumns) {
-              final type = schema[col];
-              if (type != null) {
-                final padding = ' ' * (maxColLen - col.length);
-                sb.writeln('  $col$padding : $type;');
-              }
-            }
-            sb.write('}:');
-            preamble = sb.toString();
-          } else {
-            preamble = '$arrayName[]{${toonColumns.join(',')}}:';
-          }
-
-          final pNode = factory.checkoutHeader()
-            ..segments.add(StyledText(preamble));
-          _renderContent(pNode, availableWidth, out);
-          pNode.releaseRecursive(factory);
 
           final rNode = factory.checkoutHeader()..segments.add(StyledText(row));
           _renderContent(rNode, availableWidth, out);

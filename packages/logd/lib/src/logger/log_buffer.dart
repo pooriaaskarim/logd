@@ -6,13 +6,19 @@ import 'logger.dart';
 /// Internal: The actual buffer implementation holding state.
 /// This acts as the "Body" which survives the "Handle" (LogBuffer).
 class _LogBuffer extends StringBuffer {
-  _LogBuffer(this._logger, this.logLevel);
+  _LogBuffer(this._logger, this.logLevel, {this.maxEntries});
 
   /// Internal: The logger to sync to.
   Logger _logger;
 
   /// The level for this buffer's log.
   LogLevel logLevel;
+
+  /// Maximum number of entries allowed before dropping excess data.
+  int? maxEntries;
+
+  int _entryCount = 0;
+  bool _warnedMaxEntries = false;
 
   /// Optional error associated with this log.
   Object? error;
@@ -34,6 +40,23 @@ class _LogBuffer extends StringBuffer {
   }
 
   @override
+  void writeln([final Object? obj = '']) {
+    if (maxEntries != null && _entryCount >= maxEntries!) {
+      if (!_warnedMaxEntries) {
+        _warnedMaxEntries = true;
+        InternalLogger.log(
+          LogLevel.warning,
+          'LogBuffer: maxEntries ($maxEntries) reached for logger'
+          ' "${_logger.name}". Excess entries dropped.',
+        );
+      }
+      return;
+    }
+    _entryCount++;
+    super.writeln(obj);
+  }
+
+  @override
   void writeAll(final Iterable objects, [final String separator = '']) {
     for (final object in objects) {
       writeln(object);
@@ -45,6 +68,8 @@ class _LogBuffer extends StringBuffer {
     error = null;
     stackTrace = null;
     context = null;
+    _entryCount = 0;
+    _warnedMaxEntries = false;
     super.clear();
   }
 
@@ -76,8 +101,11 @@ class _LogBuffer extends StringBuffer {
 /// finalizer without creating circular references that prevent garbage
 /// collection.
 class LogBuffer implements StringSink {
-  LogBuffer._(final Logger logger, final LogLevel level)
-      : _buffer = _LogBuffer(logger, level) {
+  LogBuffer._(
+    final Logger logger,
+    final LogLevel level, {
+    final int? maxEntries,
+  }) : _buffer = _LogBuffer(logger, level, maxEntries: maxEntries) {
     _finalizer.attach(this, _buffer, detach: this);
   }
 
@@ -86,6 +114,9 @@ class LogBuffer implements StringSink {
 
   /// Whether this buffer has been released back to the pool.
   bool _released = false;
+
+  /// Maximum number of entries allowed before dropping excess data.
+  int? get maxEntries => _released ? null : _buffer.maxEntries;
 
   /// Maximum number of [LogBuffer] instances held in the LIFO pool.
   ///
@@ -150,20 +181,30 @@ class LogBuffer implements StringSink {
 
   /// Internal: Checks out a [LogBuffer] from the pool, or creates a new one.
   @internal
-  static LogBuffer checkout(final Logger logger, final LogLevel level) {
+  static LogBuffer checkout(
+    final Logger logger,
+    final LogLevel level, {
+    final int? maxEntries,
+  }) {
     LoggerMetrics.incrementBufferAllocations();
     if (_pool.isNotEmpty) {
-      final buffer = _pool.removeLast().._reset(logger, level);
+      final buffer = _pool.removeLast()
+        .._reset(logger, level, maxEntries: maxEntries);
       return buffer;
     }
-    return LogBuffer._(logger, level);
+    return LogBuffer._(logger, level, maxEntries: maxEntries);
   }
 
   /// Resets this buffer's state for reuse.
-  void _reset(final Logger logger, final LogLevel level) {
+  void _reset(
+    final Logger logger,
+    final LogLevel level, {
+    final int? maxEntries,
+  }) {
     _released = false;
     _buffer._logger = logger;
     _buffer.logLevel = level;
+    _buffer.maxEntries = maxEntries;
     _buffer.clear();
     _finalizer.attach(this, _buffer, detach: this);
   }

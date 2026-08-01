@@ -11,6 +11,9 @@ class JsonEncoder implements LogEncoder {
   /// used.
   const JsonEncoder({this.indent});
 
+  @override
+  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
+
   /// Optional indentation for pretty printing.
   final String? indent;
 

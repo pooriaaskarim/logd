@@ -10,6 +10,9 @@ class AnsiEncoder implements LogEncoder {
   const AnsiEncoder();
 
   @override
+  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
+
+  @override
   void preamble(
     final HandlerContext context,
     final LogLevel level,

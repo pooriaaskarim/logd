@@ -7,6 +7,8 @@ part of 'encoder.dart';
 class PlainTextEncoder implements LogEncoder {
   /// Creates a [PlainTextEncoder].
   const PlainTextEncoder();
+  @override
+  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
 
   @override
   void preamble(

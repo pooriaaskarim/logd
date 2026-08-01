@@ -12,6 +12,8 @@ part of 'encoder.dart';
 class MarkdownEncoder implements LogEncoder {
   /// Creates a [MarkdownEncoder].
   const MarkdownEncoder();
+  @override
+  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
 
   @override
   void preamble(
@@ -185,17 +187,14 @@ class MarkdownEncoder implements LogEncoder {
     } else if (node is MapNode) {
       final toonColumns = document.metadata['toon_columns'] as List<String>?;
       if (toonColumns != null) {
-        final arrayName = document.metadata['toon_array'] as String? ?? 'logs';
         final delimiter =
             document.metadata['toon_delimiter'] as String? ?? '\t';
-        final columnStr = toonColumns.join(',');
         final row = toonColumns
             .map((final col) => node.map[col]?.toString() ?? '')
             .join(delimiter);
 
         context
           ..writeString('\n```text\n')
-          ..writeString('$arrayName[]{$columnStr}:\n')
           ..writeString('$row\n')
           ..writeString('```\n');
       } else {

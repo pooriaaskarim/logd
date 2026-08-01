@@ -30,7 +30,6 @@ void main() async {
   final darkSink = FileSink(
     darkFile.path,
     encoder: const HtmlEncoder(),
-    strategy: WrappingStrategy.document,
   );
   final darkHandler = Handler(
     formatter: const StructuredFormatter(),
@@ -44,7 +43,6 @@ void main() async {
   final lightSink = FileSink(
     lightFile.path,
     encoder: const HtmlEncoder(),
-    strategy: WrappingStrategy.document,
   );
   final lightHandler = Handler(
     formatter: const StructuredFormatter(),
@@ -59,7 +57,6 @@ void main() async {
   final mobileSink = FileSink(
     mobileFile.path,
     encoder: const HtmlEncoder(),
-    strategy: WrappingStrategy.document,
     lineLength: 40,
   );
   final mobileHandler = Handler(

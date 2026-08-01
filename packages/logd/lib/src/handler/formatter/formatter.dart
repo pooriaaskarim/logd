@@ -8,6 +8,7 @@ import '../../core/utils/utils.dart';
 import '../../logger/logger.dart';
 import '../decorator/decorator.dart';
 import '../document/document.dart';
+import '../encoder/encoder.dart';
 import '../engine/engine.dart';
 import '../layout/layout.dart';
 

@@ -8,6 +8,7 @@ import 'memory_churn_benchmark.dart';
 import 'v080_native_offload.dart';
 import 'invalidation_benchmark.dart';
 import 'timezone_benchmark.dart';
+import 'async_handler_benchmark.dart';
 
 Future<void> main() async {
   print('Running Baseline Benchmarks...');
@@ -19,6 +20,7 @@ Future<void> main() async {
   runMultiSinkBenchmarks();
   runInvalidationBenchmark();
   runTimezoneBenchmarks();
+  await runAsyncHandlerBenchmarks();
 
   await runNativeOffloadBenchmarks();
 

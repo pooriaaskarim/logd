@@ -1726,6 +1726,13 @@ class Logger {
   LogBuffer? get errorBuffer =>
       enabled ? LogBuffer.checkout(this, LogLevel.error) : null;
 
+  /// Returns a buffer for building multi-line logs at the specified [level].
+  ///
+  /// Optionally accepts [maxEntries] to limit the maximum number of entries
+  /// stored in the buffer before dropping excess data.
+  LogBuffer? buffer(final LogLevel level, {final int? maxEntries}) =>
+      enabled ? LogBuffer.checkout(this, level, maxEntries: maxEntries) : null;
+
   /// Logs a trace-level message.
   ///
   /// Intentions: For fine-grained diagnostic information.

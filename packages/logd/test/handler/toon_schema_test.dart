@@ -28,7 +28,7 @@ void main() {
 
       expect(
         context.toString(),
-        contains('logs[]{timestamp,level,message,error,stackTrace}:'),
+        contains('logs[]{timestamp,level,message,error,stackTrace,context}:'),
       );
     });
 
@@ -67,8 +67,10 @@ void main() {
       expect(output, contains('}:'));
     });
 
+    // ignore: deprecated_member_use
     test('ToonPrettyFormatter produces explicit schema when requested',
         () async {
+      // ignore: deprecated_member_use
       const formatter = ToonPrettyFormatter(
         metadata: {LogMetadata.logger},
         explicitSchema: true,
@@ -99,6 +101,51 @@ void main() {
       expect(output, contains('  level'));
       expect(output, contains(': enum'));
       expect(output, contains('}:'));
+    });
+
+    test(
+        'ToonFormatter with ToonDialect.strict includes version comment and emits \\N for nulls',
+        () async {
+      const formatter = ToonFormatter(
+        metadata: {LogMetadata.timestamp},
+        dialect: ToonDialect.strict,
+      );
+      final entry = LogEntry(
+        loggerName: 'test',
+        origin: 'main',
+        level: LogLevel.info,
+        message: 'strict test',
+        timestamp: '2026-07-30',
+        error: null,
+      );
+      final doc = StandardDocument();
+      formatter.format(entry, doc, const StandardPipelineFactory());
+
+      const encoder = ToonEncoder();
+      final context = HandlerContext();
+      encoder.preamble(
+        context,
+        LogLevel.info,
+        const StandardPipelineFactory(),
+        document: doc,
+      );
+
+      final preambleOutput = context.toString();
+      expect(preambleOutput, contains('-- TOON/1.0 logs'));
+      expect(preambleOutput, contains('-- DELIMITER:\\t QUOTE:" NULL:\\N'));
+
+      context.takeBytes(); // Clear preamble
+      encoder.encode(
+        entry,
+        doc,
+        LogLevel.info,
+        context,
+        const StandardPipelineFactory(),
+      );
+
+      final rowOutput = context.toString();
+      // Absent error, stackTrace, context fields should be \N
+      expect(rowOutput, contains(r'\N'));
     });
   });
 }

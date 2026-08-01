@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.9.1: Native TOON Support, Auto-Encoder Protocol Detection, MemorySink, LogBuffer Safeguards & Strategy Fallback
+
+This release introduces native TOON (Tree-Oriented Object Notation) logging format and dialect engine with HTTP live dashboard integration, Protocol-Aware Auto-Detect Encoders (`AutoEncoder` with standard `'logd.encoder'` contract), in-memory ring-buffer `MemorySink`, bounds-capped `LogBuffer` queuing, self-declaring encoder wrapping strategies with fallback handling, custom symbol resolution hooks for stack trace deobfuscation, unified theme architecture, and formal Architecture Decision Records (ADRs 002–005).
+
+- ### Native TOON Format & Dialect Integration
+  - **Tree-Oriented Object Notation (`ToonFormatter` / `ToonEncoder`)**: Added native support for the TOON semantic dialect, including `ToonFormatter` for semantic IR document layout, `ToonEncoder` for string and ANSI rendering, and custom dialect token handling (`toon_dialect.dart`).
+  - **HttpServerSink Live Dashboard Integration**: Upgraded the embedded HTTP log dashboard viewer to dynamically render TOON-formatted logs with interactive controls, copy buttons, dark/light theme toggling, and live WebSocket streaming.
+  - **TOON Format Specification**: Documented format architecture, token rules, and layout specifications in `doc/toon_spec.md`.
+
+- ### Log Sinks & Wrapping Strategy Fallback
+  - **In-Memory Log Sink (`MemorySink`)**: Added `@experimental` `MemorySink<T>` supporting bounded in-memory ring-buffering (`capacity`), FIFO log eviction, unmodifiable log sequence inspection via `.logs`, and manual flushing with `.clear()`.
+  - **Self-Declaring Encoder Wrapping Strategies**: Added `requiredStrategy` getter to `LogEncoder` base class, allowing encoders (`HtmlEncoder`, `AnsiEncoder`, `JsonEncoder`, `ToonEncoder`) to self-declare minimum wrapping strategy requirements. `EncodingSink` now automatically defaults to `encoder.requiredStrategy` when no explicit strategy is provided.
+  - **Protocol Auto-Detect Encoders (`AutoEncoder`)**: Introduced `AutoEncoder` base class (`AutoConsoleEncoder`, `AutoTextEncoder`) establishing the standardized `AutoEncoder.encoderKey` (`'logd.encoder'`) metadata contract. Formatters (`ToonFormatter`, `JsonFormatter`, and custom formatters) attach their preferred physical encoder directly to `document.metadata`, enabling default sinks (`ConsoleSink`, `FileSink`, `HttpSink`, `SocketSink`) to automatically delegate to `ToonEncoder`, `JsonEncoder`, or custom encoders without requiring manual `encoder:` parameter overrides.
+  - **HttpServerSink Log History Buffering & Replay**: Added `bufferCapacity` to `HttpServerSink` (default: 100) to maintain an in-memory ring buffer of recent logs and automatically replay historical events to late-connecting WebSocket dashboard clients.
+  - **Defensive Width Validation**: Added a runtime assertion in `EncodingSink` ensuring `preferredWidth` is strictly positive (`preferredWidth > 0`).
+
+- ### Log Buffer & Logger Capping Safeguards
+  - **`LogBuffer` Capacity Safeguard**: Introduced `maxEntries` capacity limits to `_LogBuffer` and `LogBuffer` handle class, dropping excess oldest entries and logging diagnostic warnings via `InternalLogger` when limits are breached.
+  - **Logger Convenience Helper**: Added `logger.buffer(level, {maxEntries})` API to `Logger` for creating bounded log buffers with single-call chaining.
+
+- ### Stack Trace Parsing & Symbol Resolution
+  - **`SymbolResolver` Hook**: Added `@experimental` `SymbolResolver` hook (`String? Function(String symbol)`) to `StackTraceParser` and `ParsedFrame` engine to support custom symbol demangling, native C/C++ symbol resolution, and custom obfuscation map translations.
+
+- ### Architecture Decisions & Internal Refactoring
+  - **Architecture Decision Records (ADRs 002–005)**: Authored formal ADRs documenting core design invariants for Cache Invalidation (ADR-002), Sparse Storage (ADR-003), Unmodifiable Collections (ADR-004), and Internal Logger Contracts (ADR-005).
+  - **Internal Source Reorganization**: Relocated conditional platform import stubs (`io_native.dart`, `io_stub.dart`) to `src/core/context/io/` for cleaner modular project structure.
+  - **Theme & ColorScheme Architecture Unification**: Unified `LogTheme` and `LogColorScheme` with explicit `LogBrightness` support (`dark`, `light`), extracted `HtmlStylesheet` from `HtmlEncoder`, and added comprehensive golden tests and theme showcases (`themes_console_example.dart`, `themes_html_example.dart`).
+
+- ### Benchmarks & Diagnostics
+  - **Async vs Standard Benchmark Target**: Added a benchmark target comparing `AsyncHandler` isolate pipeline throughput against synchronous `StandardEngine` execution.
+  - **Baseline Benchmark Suite**: Recorded baseline execution metrics for `v0.9.1`.
+
 ## 0.9.0: API Stabilization, Semver Contract, DX Improvements & Theme Presets
 
 This release marks Phase 1 of logd's roadmap, focusing on core API surface stabilization, publishing a formal Semantic Versioning contract, enhancing developer experience (DX), and standardizing light and dark terminal themes.

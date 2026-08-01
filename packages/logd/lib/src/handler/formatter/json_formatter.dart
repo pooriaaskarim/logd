@@ -58,6 +58,7 @@ final class JsonFormatter implements LogFormatter {
       map['context'] = entry.context;
     }
 
+    document.metadata[AutoEncoder.encoderKey] = const JsonEncoder();
     document.writeNode(node);
   }
 

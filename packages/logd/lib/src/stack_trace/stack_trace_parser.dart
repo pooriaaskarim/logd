@@ -3,7 +3,14 @@ part of 'stack_trace.dart';
 /// Filter function to decide if a frame should be ignored.
 typedef FrameFilter = bool Function(String frame);
 
+/// A callback that resolves an obfuscated symbol or method name to its
+/// original human-readable form.
+///
+/// Returns the deobfuscated name, or `null` if the symbol cannot be resolved.
+typedef SymbolResolver = String? Function(String symbol);
+
 /// Parser for extracting useful information from stack traces.
+@experimental
 @immutable
 class StackTraceParser {
   /// Creates a [StackTraceParser] with optional ignored packages and filter.
@@ -11,6 +18,7 @@ class StackTraceParser {
     this.ignorePackages = const [],
     this.customFilter,
     this.includeAsyncOrigin = false,
+    this.symbolResolver,
   });
 
   static final Map<String, source_maps.Mapping> _sourceMaps = {};
@@ -37,6 +45,9 @@ class StackTraceParser {
 
   /// Whether to include asynchronous suspension lines as frames.
   final bool includeAsyncOrigin;
+
+  /// Optional callback to resolve or deobfuscate method/symbol names.
+  final SymbolResolver? symbolResolver;
 
   bool _shouldIgnoreFrame(final String frame, final CallbackInfo info) {
     if (customFilter != null && !customFilter!(frame)) {
@@ -143,7 +154,29 @@ class StackTraceParser {
     if (info == null) {
       return null;
     }
-    return _resolveSourceMap(info);
+    final resolved = _resolveSourceMap(info);
+    if (symbolResolver == null) {
+      return resolved;
+    }
+    final deobfuscated = symbolResolver!(resolved.fullMethod) ??
+        symbolResolver!(resolved.methodName);
+    if (deobfuscated == null) {
+      return resolved;
+    }
+    final dotIndex = deobfuscated.lastIndexOf('.');
+    final className = dotIndex != -1
+        ? deobfuscated.substring(0, dotIndex)
+        : resolved.className;
+    final methodName =
+        dotIndex != -1 ? deobfuscated.substring(dotIndex + 1) : deobfuscated;
+    return CallbackInfo(
+      className: className,
+      methodName: methodName,
+      filePath: resolved.filePath,
+      lineNumber: resolved.lineNumber,
+      columnNumber: resolved.columnNumber,
+      fullMethod: deobfuscated,
+    );
   }
 
   CallbackInfo? _parseFrameRaw(final String frame) {
