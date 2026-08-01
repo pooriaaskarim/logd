@@ -80,5 +80,63 @@ void main() {
       await socket.close();
       await sink.dispose();
     });
+
+    test(
+        'should buffer log history and replay to late-connecting WebSocket'
+        ' clients', () async {
+      final sink = HttpServerSink(
+        address: 'localhost',
+        port: 0,
+        bufferCapacity: 10,
+        encoder: const PlainTextEncoder(),
+      );
+
+      await sink.ready;
+      final port = sink.boundPort;
+
+      // 1. Emit logs BEFORE any WebSocket client connects
+      final logger = Logger.get('buffered_logger');
+      Logger.configure(
+        'buffered_logger',
+        handlers: [
+          Handler(
+            formatter: const PlainFormatter(),
+            sink: sink,
+          ),
+        ],
+      );
+
+      logger
+        ..info('Early startup event 1')
+        ..warning('Early startup event 2');
+
+      // 2. Connect WebSocket AFTER log emission
+      final wsUrl = 'ws://localhost:$port/ws';
+      final socket = await io.WebSocket.connect(wsUrl);
+
+      final receivedLogs = <String>[];
+      final completer = Completer<void>();
+
+      socket.listen((final data) {
+        receivedLogs.add(data as String);
+        if (receivedLogs.length == 2 && !completer.isCompleted) {
+          completer.complete();
+        }
+      });
+
+      await completer.future.timeout(const Duration(seconds: 5));
+      expect(receivedLogs.length, equals(2));
+
+      final firstPayload =
+          convert.jsonEncode(convert.jsonDecode(receivedLogs[0]));
+      expect(firstPayload, contains('Early startup event 1'));
+
+      final secondPayload =
+          convert.jsonEncode(convert.jsonDecode(receivedLogs[1]));
+      expect(secondPayload, contains('Early startup event 2'));
+
+      await socket.close();
+      await sink.dispose();
+    });
   });
 }

@@ -17,6 +17,7 @@ base class HttpServerSink extends EncodingSink {
     super.encoder = const HtmlEncoder(),
     final int? lineLength,
     super.enabled = true,
+    this.bufferCapacity = 100,
   }) : super(
           preferredWidth: lineLength ?? 120,
           delegate: _unsupported,
@@ -32,6 +33,9 @@ base class HttpServerSink extends EncodingSink {
 
   /// The local port number (unsupported on web).
   final int port;
+
+  /// Maximum number of historical log entries to buffer (unsupported on web).
+  final int bufferCapacity;
 
   /// The actual bound port (unsupported on web).
   int get boundPort => port;

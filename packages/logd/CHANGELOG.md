@@ -12,6 +12,7 @@ This release introduces native TOON (Tree-Oriented Object Notation) logging form
 - ### Log Sinks & Wrapping Strategy Fallback
   - **In-Memory Log Sink (`MemorySink`)**: Added `@experimental` `MemorySink<T>` supporting bounded in-memory ring-buffering (`capacity`), FIFO log eviction, unmodifiable log sequence inspection via `.logs`, and manual flushing with `.clear()`.
   - **Self-Declaring Encoder Wrapping Strategies**: Added `requiredStrategy` getter to `LogEncoder` base class, allowing encoders (`HtmlEncoder`, `AnsiEncoder`, `JsonEncoder`, `ToonEncoder`) to self-declare minimum wrapping strategy requirements. `EncodingSink` now automatically defaults to `encoder.requiredStrategy` when no explicit strategy is provided.
+  - **HttpServerSink Log History Buffering & Replay**: Added `bufferCapacity` to `HttpServerSink` (default: 100) to maintain an in-memory ring buffer of recent logs and automatically replay historical events to late-connecting WebSocket dashboard clients.
   - **Defensive Width Validation**: Added a runtime assertion in `EncodingSink` ensuring `preferredWidth` is strictly positive (`preferredWidth > 0`).
 
 - ### Log Buffer & Logger Capping Safeguards
