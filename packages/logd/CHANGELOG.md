@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.9.1: Native TOON Support, MemorySink, LogBuffer Safeguards & Strategy Fallback
+## 0.9.1: Native TOON Support, Auto-Encoder Protocol Detection, MemorySink, LogBuffer Safeguards & Strategy Fallback
 
-This release introduces native TOON (Tree-Oriented Object Notation) logging format and dialect engine with HTTP live dashboard integration, in-memory ring-buffer `MemorySink`, bounds-capped `LogBuffer` queuing, self-declaring encoder wrapping strategies with fallback handling, custom symbol resolution hooks for stack trace deobfuscation, unified theme architecture, and formal Architecture Decision Records (ADRs 002–005).
+This release introduces native TOON (Tree-Oriented Object Notation) logging format and dialect engine with HTTP live dashboard integration, Protocol-Aware Auto-Detect Encoders (`AutoEncoder` with standard `'logd.encoder'` contract), in-memory ring-buffer `MemorySink`, bounds-capped `LogBuffer` queuing, self-declaring encoder wrapping strategies with fallback handling, custom symbol resolution hooks for stack trace deobfuscation, unified theme architecture, and formal Architecture Decision Records (ADRs 002–005).
 
 - ### Native TOON Format & Dialect Integration
   - **Tree-Oriented Object Notation (`ToonFormatter` / `ToonEncoder`)**: Added native support for the TOON semantic dialect, including `ToonFormatter` for semantic IR document layout, `ToonEncoder` for string and ANSI rendering, and custom dialect token handling (`toon_dialect.dart`).

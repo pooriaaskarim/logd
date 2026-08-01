@@ -12,6 +12,7 @@ A <b> modular</b> <b>hierarchical</b> logger for Dart and Flutter. Build structu
 - **Zero‑boilerplate** – Simple `Logger.get('app')` gives a fully‑configured logger.
 - **Performance‑first** – Lazy resolution, aggressive caching, and optional inheritance freezing keep the cost of a disabled logger essentially zero.
 - **Flexible output** – Choose between console, file, network, HTML, or any custom sink; format logs as text, structured JSON, HTML, Markdown or **LLM‑optimized TOON**.
+- **Protocol Auto-Detection** – Standard sinks (`ConsoleSink`, `FileSink`, `HttpSink`, `SocketSink`) automatically detect the handler's formatter (`ToonFormatter`, `JsonFormatter`, or custom formatters via `'logd.encoder'`) and delegate to matching physical encoders out-of-the-box.
 - **Layout Sovereignty** – A centralized engine guarantees structural integrity (e.g., perfect boxes) across all terminal widths.
 - **Platform‑agnostic styling** – Decouple visual intent from representation using the semantic `LogTheme` system.
 - **Web & Desktop Parity** – Built-in platform-aware stack trace parsers for Chrome (V8), Firefox, Safari, and the Dart VM, preserving column numbers for high-fidelity source map resolution.
@@ -449,6 +450,21 @@ Supported sinks: `HttpSink` (batching & retries), `SocketSink` (real-time stream
 const socketSink = SocketSink(
   url: 'wss://monitor.example.com/logs',
 );
+```
+
+### In-Memory Ring Buffering (MemorySink)
+
+For testing, in-app debug panels, or transient error buffer dumps:
+```dart
+final memorySink = MemorySink<LogDocument>(capacity: 100);
+
+Logger.configure('global', handlers: [
+  Handler(formatter: const PlainFormatter(), sink: memorySink),
+]);
+
+// Inspect stored entries or clear buffer:
+print(memorySink.logs.length);
+memorySink.clear();
 ```
 
 
