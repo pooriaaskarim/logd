@@ -7,15 +7,26 @@ A high-performance SQLite persistence log sink for [`logd`](https://pub.dev/pack
 
 Features pre-compiled prepared statements, Write-Ahead Logging (WAL mode), atomic transaction batching, full log field fidelity (`origin`, `error`, `stackTrace`, `context`), auto-pruning retention policies (`maxEntries`, `maxAge`), and a rich query engine.
 
+---
+
 ## Installation
 
-Add `logd_sqlite` to your `pubspec.yaml`:
+Add `logd` and `logd_sqlite` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   logd: ^0.9.2
   logd_sqlite: ^0.1.0
 ```
+
+### Platform & Native Setup
+
+`logd_sqlite` relies on standard `package:sqlite3` dynamic library bindings:
+
+* **Flutter (Android / iOS / macOS / Windows / Linux)**: Add `sqlite3_flutter_libs` to your `pubspec.yaml` to bundle native SQLite binaries.
+* **Pure Dart CLI / Server**: Uses system SQLite libraries (e.g. `libsqlite3.so` on Linux, `libsqlite3.dylib` on macOS).
+
+---
 
 ## Basic Usage
 
@@ -44,18 +55,37 @@ void main() async {
 
   final logger = Logger.get('app.service');
   logger.info(
-    'Payment processed',
+    'Payment processed successfully',
     context: {'transactionId': 'TX-1002', 'amount': 99.99},
   );
 
-  // Querying logs
+  // Querying stored logs
   final errorLogs = sqliteSink.queryLogs(
     minLevel: LogLevel.warning,
     search: 'Payment',
     limit: 50,
   );
+
+  // Flush and dispose handle on app exit
+  await sqliteSink.dispose();
 }
 ```
+
+---
+
+## Configuration Reference
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `dbPath` | `String` | `'logs.db'` | Path to SQLite database file (or `:memory:` for testing). |
+| `tableName` | `String` | `'logs'` | SQL table name for log records. |
+| `maxEntries` | `int?` | `10000` | Capped record count retained before auto-pruning. |
+| `maxAge` | `Duration?` | `null` | Maximum age of log records before auto-pruning. |
+| `batchSize` | `int` | `50` | Number of log entries buffered before committing transaction. |
+| `flushInterval` | `Duration?` | `2 seconds` | Interval timer to flush pending memory buffer. |
+| `walMode` | `bool` | `true` | Enables Write-Ahead Logging for high write throughput. |
+
+---
 
 ## Advanced Query Engine & Inspection
 
@@ -82,6 +112,42 @@ final loggerNamespaces = sqliteSink.fetchDistinctLoggerNames();
 // List<Map<String, dynamic>> -> [{'logger_name': 'app.auth', 'record_count': 14}, ...]
 ```
 
+---
+
+## Database Schema Reference
+
+`SqliteSink` automatically initializes the following SQL table structure (`tableName: 'logs'`):
+
+| Column Name | SQL Type | Description |
+| :--- | :--- | :--- |
+| `id` | `INTEGER PRIMARY KEY` | Auto-incrementing log record ID. |
+| `timestamp` | `TEXT NOT NULL` | ISO-8601 formatted timestamp string. |
+| `level` | `INTEGER NOT NULL` | Numeric level index (`0=trace` to `4=error`). |
+| `level_name` | `TEXT NOT NULL` | Uppercase level string (`'INFO'`, `'ERROR'`). |
+| `logger_name` | `TEXT NOT NULL` | Hierarchical namespace (`'app.payment'`). |
+| `origin` | `TEXT NOT NULL` | Caller method/function origin string. |
+| `message` | `TEXT NOT NULL` | Log message body. |
+| `error` | `TEXT` | Formatted exception message (optional). |
+| `stack_trace` | `TEXT` | Decomposed stack trace string (optional). |
+| `context_json` | `TEXT` | JSON encoded context parameters (optional). |
+| `created_at` | `INTEGER NOT NULL` | Milliseconds since Unix epoch (indexed). |
+
+---
+
+## Lifecycle & Graceful Shutdown
+
+Because `SqliteSink` buffers entries in memory (`batchSize: 50`), ensure you dispose or flush the sink during application shutdown to avoid losing buffered entries:
+
+```dart
+// Explicitly flush pending entries to disk
+await sqliteSink.flush();
+
+// Flush remaining buffer and close SQLite database handle
+await sqliteSink.dispose();
+```
+
+---
+
 ## Maintenance Utilities
 
 ```dart
@@ -98,6 +164,8 @@ sqliteSink.clear();
 sqliteSink.vacuum();
 ```
 
+---
+
 ## Executable Examples
 
 The package includes interactive and automated CLI examples:
@@ -113,6 +181,8 @@ The package includes interactive and automated CLI examples:
   ```bash
   dart run example/sqlite_sink_showcase.dart
   ```
+
+---
 
 ## License
 
