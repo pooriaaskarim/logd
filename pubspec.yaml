@@ -7,3 +7,5 @@ workspace:
   - packages/logd
   - packages/benchmarks
   - packages/logd_linters
+  - packages/logd_sqlite
+

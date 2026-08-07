@@ -29,6 +29,10 @@ pubspec_overrides.yaml
 # Logging
 *.log
 logs/
+*.db
+*.db-shm
+*.db-wal
+
 
 # Python
 .venv/
