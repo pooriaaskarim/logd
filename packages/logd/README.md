@@ -467,6 +467,68 @@ print(memorySink.logs.length);
 memorySink.clear();
 ```
 
+### SQLite Persistence Logging (`logd_sqlite`)
+
+For structured SQLite database persistence, WAL-mode batch transaction commits, retention policies, and built-in search query filtering, use the satellite package [`logd_sqlite`](https://pub.dev/packages/logd_sqlite):
+
+```yaml
+dependencies:
+  logd: ^0.9.2
+  logd_sqlite: ^0.1.0
+```
+
+```dart
+import 'package:logd/logd.dart';
+import 'package:logd_sqlite/logd_sqlite.dart';
+
+void main() async {
+  final sqliteSink = SqliteSink(
+    dbPath: 'app_logs.db',
+    maxEntries: 10000,
+    maxAge: const Duration(days: 7),
+    batchSize: 50,
+    flushInterval: const Duration(seconds: 2),
+    walMode: true,
+  );
+
+  Logger.configure(
+    handlers: [
+      Handler(
+        formatter: const PlainFormatter(),
+        sink: sqliteSink,
+      ),
+    ],
+  );
+
+  final logger = Logger.get('app.payment');
+  logger.info(
+    'Payment transaction processed',
+    context: {'transactionId': 'TX-9042', 'amount': 150.00},
+  );
+
+  // Search & Filter stored logs
+  final errorLogs = sqliteSink.queryLogs(
+    minLevel: LogLevel.warning,
+    search: 'Payment',
+    limit: 50,
+  );
+
+  // Inspect level breakdown summary
+  final counts = sqliteSink.fetchLevelCounts();
+  print('Warning/Error count: ${counts[LogLevel.warning]}');
+
+  await sqliteSink.dispose();
+}
+```
+
+Key features:
+- **Write-Ahead Logging (WAL Mode)** & atomic transaction batching (`batchSize`, `flushInterval`).
+- **Auto-Pruning Retention Policies** (`maxEntries`, `maxAge`).
+- **Rich Query & Inspection Engine** (`queryLogs`, `fetchLevelCounts`, `fetchDistinctLoggerNames`).
+- See full documentation, configuration parameters, and schema details in the [`logd_sqlite` Package Manual](https://pub.dev/packages/logd_sqlite).
+
+
+
 
 ### Microservice Logging
 

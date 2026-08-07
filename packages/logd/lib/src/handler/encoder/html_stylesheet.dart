@@ -23,6 +23,7 @@ class DefaultHtmlStylesheet implements HtmlStylesheet {
   @override
   String buildCss(final LogTheme theme) {
     final isDark = theme.brightness == LogBrightness.dark;
+
     final bg = isDark ? '#1e1e1e' : '#ffffff';
     final fg = isDark ? '#d4d4d4' : '#000000';
 
@@ -487,6 +488,7 @@ class DefaultHtmlStylesheet implements HtmlStylesheet {
   String _cssColor(final LogTheme theme, final LogLevel level) {
     final color = theme.colorForLevel(level);
     final isDark = theme.brightness == LogBrightness.dark;
+
     final map = isDark ? _darkColorMap : _lightColorMap;
     return map[color] ?? 'inherit';
   }
