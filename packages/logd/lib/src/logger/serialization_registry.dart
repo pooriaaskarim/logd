@@ -596,6 +596,7 @@ class LoggerSerializationRegistry {
 
   static Map<String, dynamic> _serializeTheme(final LogTheme theme) =>
       <String, dynamic>{
+        'brightness': theme.brightness.name,
         'colorScheme': _serializeColorScheme(theme.colorScheme),
         if (theme.timestampStyle != null)
           'timestampStyle': _serializeStyle(theme.timestampStyle!),
@@ -617,6 +618,9 @@ class LoggerSerializationRegistry {
 
   static LogTheme _deserializeTheme(final Map<String, dynamic> json) =>
       LogTheme(
+        brightness: json['brightness'] != null
+            ? LogBrightness.values.byName(json['brightness'] as String)
+            : LogBrightness.dark,
         colorScheme: _deserializeColorScheme(
           Map<String, dynamic>.from(json['colorScheme'] as Map),
         ),

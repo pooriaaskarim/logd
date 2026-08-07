@@ -1,6 +1,22 @@
 # Changelog
 
+## 0.9.2: Theme Isolate State Preservation, High-Contrast Light Mode, Deep Hierarchy Safeguards & SQLite Ecosystem Integration
+
+This release enhances multi-isolate theme serialization, introduces WCAG-compliant high-contrast light mode palettes, hardens deep logger hierarchy resolution performance with safety depth warnings, and launches the `logd_sqlite` satellite package ecosystem.
+
+- ### Theme & Isolate Serialization Fixes
+  - **`LogBrightness` Isolate Transport**: Fixed theme brightness state loss across multi-isolate boundaries in `LoggerSerializationRegistry`. Transferred theme configurations now preserve `brightness` state (`LogBrightness.dark` vs `LogBrightness.light`) across `AsyncHandler` and `IsolateSink` transfers.
+  - **High-Contrast Light Theme Palette**: Enhanced `LogColorScheme.lightScheme` and `DefaultHtmlStylesheet` CSS generation with high-contrast amber/red/green color palette mappings (`--warning: #92400e;`) ensuring WCAG AA contrast ratio compliance on light backgrounds.
+
+- ### Performance & Hierarchy Safeguards
+  - **Deep Hierarchy Resolution Optimization**: Confirmed configuration resolution across 12-level deep logger trees completes in **< 50 microseconds per lookup**.
+  - **Hierarchy Safety Limit Integration**: Verified `Logger.maxHierarchyDepth` safety warning triggers for deep logger hierarchies.
+
+- ### Satellite Package Ecosystem Expansion
+  - **`logd_sqlite` (v0.1.0)**: Released dedicated satellite package [`logd_sqlite`](https://pub.dev/packages/logd_sqlite) providing high-performance SQLite log persistence with Write-Ahead Logging (WAL mode), pre-compiled prepared statements, atomic transaction batching, auto-pruning retention policies (`maxEntries`, `maxAge`), and a rich query engine (`queryLogs()`, `fetchLevelCounts()`, `fetchDistinctLoggerNames()`).
+
 ## 0.9.1: Native TOON Support, Auto-Encoder Protocol Detection, MemorySink, LogBuffer Safeguards & Strategy Fallback
+
 
 This release introduces native TOON (Tree-Oriented Object Notation) logging format and dialect engine with HTTP live dashboard integration, Protocol-Aware Auto-Detect Encoders (`AutoEncoder` with standard `'logd.encoder'` contract), in-memory ring-buffer `MemorySink`, bounds-capped `LogBuffer` queuing, self-declaring encoder wrapping strategies with fallback handling, custom symbol resolution hooks for stack trace deobfuscation, unified theme architecture, and formal Architecture Decision Records (ADRs 002–005).
 

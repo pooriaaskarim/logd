@@ -145,6 +145,25 @@ void main() {
       final LogLevel levelInIsolate = await receivePort.first;
       expect(levelInIsolate, equals(LogLevel.error));
     });
+
+    test('should preserve LogBrightness across theme serialization', () {
+      const config = LoggerConfig(
+        handlers: [
+          Handler(
+            formatter: PlainFormatter(),
+            decorators: [StyleDecorator(LightTheme())],
+            sink: ConsoleSink(),
+          ),
+        ],
+      );
+
+      final json = config.toJson();
+      final deserialized = LoggerConfig.fromJson(json);
+      final deserializedTheme =
+          (deserialized.handlers!.first.decorators[0] as StyleDecorator).theme;
+
+      expect(deserializedTheme.brightness, equals(LogBrightness.light));
+    });
   });
 }
 
