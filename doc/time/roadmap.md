@@ -61,7 +61,5 @@
 
 ## Known Limitations
 
-## Known Limitations
-
 **Leap Seconds**: Not handled explicitly. Relies on Dart's `DateTime` implementation (which follows POSIX time).
 

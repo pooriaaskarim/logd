@@ -2,6 +2,28 @@
 
 ## Completed
 
+### ✅ v0.9.2: Theme Isolate State Preservation, High-Contrast Light Mode, Deep Hierarchy Safeguards & SQLite Ecosystem Integration
+**Goal**: Preserve multi-isolate theme brightness, introduce WCAG-compliant high-contrast light mode, harden deep hierarchy resolution performance, and launch the `logd_sqlite` satellite package.
+**Result**: `LogBrightness` transport across multi-isolate boundaries in `LoggerSerializationRegistry`, high-contrast palette mappings (`--warning: #92400e;`) for light mode, verified <50μs lookup across 12-level logger trees with `Logger.maxHierarchyDepth` safety limit integration, and launched satellite package `logd_sqlite` (v0.1.1).
+- [x] `LogBrightness` Isolate Transport — state preservation across `AsyncHandler` and `IsolateSink` transfers
+- [x] High-Contrast Light Theme Palette — WCAG AA compliant contrast ratios in `LogColorScheme.lightScheme` and `DefaultHtmlStylesheet`
+- [x] Deep Hierarchy Resolution Optimization & Safeguards — <50μs lookup performance and `Logger.maxHierarchyDepth` warnings
+- [x] Launch `logd_sqlite` Satellite Package (v0.1.1) — SQLite persistence with WAL mode, atomic batching, retention auto-pruning, and log query engine
+
+---
+
+### ✅ v0.9.1: Native TOON Support, Auto-Encoder Protocol Detection, MemorySink & Bounds Safeguards
+**Goal**: Integrate TOON semantic format, auto-detect encoders, memory ring-buffer sink, bounds-capped buffer queuing, and custom symbol resolution hooks.
+**Result**: Introduced `ToonFormatter`/`ToonEncoder`, protocol-aware `AutoEncoder` (`AutoConsoleEncoder`, `AutoTextEncoder`), bounded `MemorySink`, `LogBuffer.maxEntries` capacity safeguard, `SymbolResolver` deobfuscation hook, and ADRs 002–005.
+- [x] Native TOON format & dialect integration (`ToonFormatter`, `ToonEncoder`, `toon_dialect.dart`)
+- [x] Protocol Auto-Detect Encoders (`AutoEncoder` with standard `'logd.encoder'` contract)
+- [x] In-Memory Log Sink (`MemorySink`) — bounded ring-buffering with FIFO eviction
+- [x] `LogBuffer` capacity safeguards (`maxEntries` limit with diagnostic warnings)
+- [x] `SymbolResolver` hook in `StackTraceParser` for stack trace deobfuscation
+- [x] Authored ADRs 002–005 in `doc/decisions/`
+
+---
+
 ### ✅ v0.8.8: Async Isolate Offloading, Web-Based Log Viewer & HTML Consolidation
 **Goal**: Implement isolate-offloaded async pipeline execution, real-time web-based log dashboard streaming via WebSockets, and consolidate HTML logging.
 **Result**: `AsyncHandler` offloads the full format → decorate → sink pipeline to a background isolate, `HttpServerSink` serves an embedded real-time log dashboard via WebSockets, and legacy `HtmlFormatter`/`HtmlSink` were consolidated into the high-fidelity `HtmlEncoder`.
@@ -27,6 +49,8 @@
   - [x] Implement one-time warning in `NativeEngine` on StandardEngine fallbacks
 * **Context Filtering**:
   - [x] Implement `ContextFilter` to filter log entries by structured context key/value
+
+---
 
 ### ✅ v0.8.3: Performance, Structured Context & Parity
 **Goal**: Optimize performance bottlenecks, support structured logging context, and achieve full cross-platform compatibility on Windows.
@@ -156,33 +180,42 @@
 
 ## Active Development
 
-### 🟡 v0.9.1: API Polish, Correctness Hardening & Documentation
-**Goal**: Stabilize v0.9.0 freeze, close silent-failure footguns, and harden the encoder pipeline.
-- [x] `LogEncoder.requiredStrategy` — encoders self-declare required `WrappingStrategy`, ending the `HtmlEncoder` + `FileSink` silent-failure trap
-- [x] `_globalLoggerName` constant — eliminate raw `'global'` string literals from `log_entry.dart`
-- [x] Roadmap hygiene — remove stale `ContextFilter` duplicate, prune completed proposals
-- [x] ADR-002 through ADR-005 filled in `doc/decisions/`
-- [x] `LogBuffer.maxEntries` safeguard — drop-with-warning on overflow instead of unbounded growth
-- [ ] `LogOutput` beginner facade (`@experimental`) — single-call correct `Handler` construction for `console`, `htmlFile`, `jsonFile`, `plainFile` targets
+### 🟡 v0.9.3: `{Target}Handler` Convenience Subclasses & Custom Linters
+**Goal**: Introduce pre-wired `Handler` subclasses for common output targets (ADR-006) and publish `logd_linters`.
+**See**: [ADR-006: `{Target}Handler` Subclass Convention](../decisions/adr-006-handler-subclass-convention.md)
+
+- [ ] `ConsoleHandler` — `StructuredFormatter` + `StyleDecorator(DarkTheme())` + `ConsoleSink()`; supports `theme`, `lineLength` parameters
+- [ ] `HtmlFileHandler(path)` — correct formatter + `HtmlEncoder` + `FileSink`; `WrappingStrategy.document` wired internally, eliminating the silent-failure footgun
+- [ ] `JsonFileHandler(path)` — `JsonPrettyFormatter` + `JsonEncoder` + `FileSink`
+- [ ] `PlainFileHandler(path)` — `PlainFormatter` + `FileSink`
+- [ ] `packages/logd_linters` — publish custom lint rules warning about un-sinked `LogBuffer` instances and missing `Handler.dispose()` calls
+
+> **Withdrawn**: The `LogOutput` facade concept (`LogOutput.console()`, `LogOutput.htmlFile()`, etc.) is withdrawn in favour of the `{Target}Handler` subclass convention. See ADR-006 for the full rationale.
 
 ---
 
-## Features
+## Features & Ecosystem Roadmap
 
 ### 🟡 P1: Async Pipeline Offloading
-**Context**: `AsyncHandler` (shipped v0.8.8) offloads the full format → decorate → sink pipeline to a background isolate. The original "AsyncFormatter" concept was superseded by this approach — no separate `AsyncFormatter` interface is needed.
+**Context**: `AsyncHandler` (shipped v0.8.8) offloads the full format → decorate → sink pipeline to a background isolate.
 
 **Remaining Work**:
 - [x] Benchmark `AsyncHandler` vs `StandardEngine` throughput on high-volume JSON payloads (`async_handler_benchmark.dart` & `doc/handler/async_handler_guide.md`)
-- [ ] Add `AsyncHandler` to `LogOutput` facade once A4 ships
+- [ ] Document `AsyncHandler` wrapping of convenience subclasses in README (e.g., `AsyncHandler(ConsoleHandler())`, `AsyncHandler(SqliteHandler('app.db'))`)
 
 ---
 
-### 🟡 P1: Additional Sinks
-**Context**: Users require diverse output destinations beyond console, file, and network.
+### 🟡 P1: Satellite Ecosystem & Sinks
+**Context**: Expand `logd` output destinations via the `{Target}Handler` subclass convention (ADR-006). Each satellite package provides its own `{Target}Handler extends Handler` subclass, consistent with core's naming pattern.
 
-**Planned Sinks**:
-- [ ] `SqliteSink`: Persist logs to local SQLite database with a configurable schema
-- [ ] `SentrySink`: Direct integration with Sentry.io error tracking
-- [x] `MemorySink`: In-memory ring-buffer for testing and in-process log inspection (`@experimental`)
+**Completed**:
+- [x] `MemorySink`: In-memory ring-buffer for testing and in-process log inspection (`@experimental`, v0.9.1)
+- [x] `SqliteHandler` / `logd_sqlite`: High-performance WAL-mode SQLite persistence satellite package ([`logd_sqlite`](file:///home/ono/Projects/logd/packages/logd_sqlite), v0.1.1)
+
+**Planned Satellite Packages — each ships a `{Target}Handler extends Handler`**:
+- [ ] `logd_sentry`: `SentryHandler` — forwards structured log events and stack traces to Sentry.io
+- [ ] `logd_flutter`: `FlutterOverlayHandler` — in-app UI log viewer and automatic `FlutterError.onError` / `PlatformDispatcher` hooks
+- [ ] `logd_opentelemetry`: `OtlpHandler` — OTLP format exporter for Grafana Loki, Datadog, and ELK
+- [ ] Core `HtmlHttpHandler` — `StructuredFormatter` + `HtmlEncoder` + `HttpServerSink` convenience subclass
+- [ ] Core `MarkdownFileHandler` — `StructuredFormatter` + `MarkdownEncoder` + `FileSink`
 

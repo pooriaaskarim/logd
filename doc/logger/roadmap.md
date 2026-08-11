@@ -396,12 +396,20 @@ Resolved by switch to `parse()` — configured parser is always used.
 | Descendant invalidation reverse-index | v0.8.3 | Replaced cache invalidation linear scanning with O(m) descendant index |
 | Pure-Dart & Flutter Decoupling | v0.8.4 | Removed Flutter SDK dependency, deleted conditional stubs, and switched to manual hook setup |
 | Bulk & Pattern-Based Configurations | v0.8.5 | Implemented `configureMultiple` and `configurePattern` with glob-style matching |
+| Hierarchy Depth Safeguards | v0.8.5/v0.9.2 | Added `Logger.maxHierarchyDepth` warning and verified <50μs lookup across 12-level trees |
+| ADR-001 through ADR-005 | v0.9.1 | Authored formal Architecture Decision Records for core logger and cache invariants |
+| LogBuffer maxEntries Safeguard | v0.9.1 | Bounded buffer capacity drop-with-warning safeguard |
+| Multi-Isolate Stress Testing | v0.9.1 | Concurrent multi-isolate configuration and logging stress tests |
+| Theme Isolate State Preservation | v0.9.2 | Preserved `LogBrightness` across multi-isolate transfers in serialization registry |
+| ADR-006: `{Target}Handler` Subclass Convention | v0.9.3 (planning) | Decided beginner DX pattern; replaces `LogOutput` facade concept |
 
 ---
 
 ## Rejected ❌
 
-_(No rejected items at this stage.)_
+| Concept | Reason |
+|---|---|
+| `LogOutput` facade (`LogOutput.console()`, `LogOutput.htmlFile()`, etc.) | Does not scale to satellite packages — satellites cannot add named constructors to a foreign class, producing two inconsistent API shapes. Replaced by the `{Target}Handler extends Handler` subclass convention. See [ADR-006](../decisions/adr-006-handler-subclass-convention.md). |
 
 ---
 
