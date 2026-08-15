@@ -118,11 +118,66 @@ Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
 | `warning` | Potential issue |
 | `error` | Failure |
 
+## Output Handlers
+
+### Pre-Wired Target Handlers (v0.9.3+)
+
+`logd` ships with pre-wired, strongly-typed `Handler` subclasses for all common output destinations. You can configure complete, styled logging pipelines with zero boilerplate:
+
+```dart
+// 1. Terminal / Console (with Dark or Light themes)
+Logger.configure('app', handlers: [
+  ConsoleHandler(theme: const LogTheme.dark()),
+]);
+
+// 2. Structured JSON File (Pretty-printed or compact single-line)
+Logger.configure('app.api', handlers: [
+  JsonFileHandler('logs/api.json', pretty: true),
+]);
+
+// 3. HTML Log Report (self-contained with embedded CSS and document shell)
+Logger.configure('app.web', handlers: [
+  HtmlFileHandler('logs/session.html', title: 'App Web Logs'),
+]);
+
+// 4. Token-Optimized TOON File (designed for LLM / AI parsing)
+Logger.configure('app.ai', handlers: [
+  ToonFileHandler('logs/telemetry.toon'),
+]);
+
+// 5. In-Memory Ring Buffer (for in-app debug screens or tests)
+final memoryHandler = MemoryHandler(capacity: 200);
+Logger.configure('app.debug', handlers: [memoryHandler]);
+// Programmatically inspect recent entries:
+print(memoryHandler.entries.length);
+
+// 6. Live Interactive Web Dashboard (HTTP + WebSockets)
+Logger.configure('app.dashboard', handlers: [
+  HttpDashboardHandler(port: 8080),
+]);
+```
+
+### Dual-Mode Execution: Non-Blocking Background Isolates (`.async()`)
+
+For Flutter UI applications and high-throughput servers, all output-bound file and console handlers provide an `.async()` constructor. This automatically offloads document formatting, decoration, and disk I/O to a background worker isolate (~15µs return):
+
+```dart
+// Zero-config isolate offloading — keeps the UI thread 100% jank-free
+Logger.configure('app', handlers: [
+  ConsoleHandler.async(),
+  JsonFileHandler.async('logs/production.json'),
+  HtmlFileHandler.async('logs/report.html'),
+]);
+```
+
+> [!TIP]
+> State-bound handlers like `MemoryHandler` (in-process heap) and `HttpDashboardHandler` (local socket server) intentionally run synchronously in-process to ensure direct memory visibility and deterministic port binding.
+
 ## Advanced Features
 
-### Custom Handlers
+### Custom Pipeline Handlers
 
-Create complex pipelines of formatters and sinks:
+When you need granular control, compose custom formatters, decorators, and sinks manually:
 
 ```dart
 final jsonHandler = Handler(

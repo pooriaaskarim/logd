@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.9.3: Pre-Wired `{Target}Handler` Subclasses, Dual-Mode `.async()` Pipeline Offloading & Advanced Library Entry Point
+
+This release introduces the pre-wired `{Target}Handler` convenience subclass architecture ([ADR-006](doc/decisions/adr-006-handler-subclass-convention.md)) to eliminate beginner pipeline wiring friction, adds dual-mode `.async()` isolate offloading constructors for non-blocking I/O, prevents state-isolation bugs by design, and introduces a dedicated `package:logd/advanced.dart` entry point for power users and custom engine developers.
+
+- ### Pre-Wired `{Target}Handler` Convenience Subclass Architecture (ADR-006)
+  - **Zero-Config Target Handlers**: Replaced multi-stage manual pipeline construction (`Formatter` + `Decorator` + `Encoder` + `Sink` + `WrappingStrategy`) with 8 pre-wired, strongly-typed `Handler` subclasses:
+    - **`ConsoleHandler`**: Standard terminal/stdout logging with customizable themes (`LogTheme.dark()`, `LogTheme.light()`) and line length limits.
+    - **`HtmlFileHandler`**: Encapsulates `HtmlEncoder` + `FileSink` and enforces `WrappingStrategy.document` internally, eliminating broken HTML markup issues out of the box.
+    - **`JsonFileHandler`**: Outputs structured JSON with toggleable 2-space indentation (`pretty: true`) or compact single-line mode (`pretty: false`).
+    - **`PlainFileHandler`**: Outputs unstyled raw text logs to disk.
+    - **`ToonFileHandler`**: Generates Token-Oriented Object Notation (TOON) files optimized for AI/LLM token efficiency.
+    - **`MarkdownFileHandler`**: Outputs GitHub-Flavored Markdown (`.md`) formatted logs suitable for CI/CD job summaries and release artifacts.
+    - **`HttpDashboardHandler`**: Starts an embedded HTTP/WebSocket server hosting the live interactive browser dashboard.
+    - **`MemoryHandler`**: Retains recent log entries in an in-memory ring-buffer with direct programmatic inspection via `handler.entries`.
+  - **Single Architectural Convention Across Ecosystem**: Standardized the `{Target}Handler` naming and subclass pattern across core and all satellite packages (e.g. `SqliteHandler` in `logd_sqlite`, `SentryHandler` in `logd_sentry`).
+
+- ### Dual-Mode Execution & Background Isolate Offloading (`.async()`)
+  - **`.async()` Factory Constructors**: Added `.async()` constructors across all 6 output-bound handlers (`ConsoleHandler.async()`, `HtmlFileHandler.async()`, `JsonFileHandler.async()`, `PlainFileHandler.async()`, `ToonFileHandler.async()`, `MarkdownFileHandler.async()`).
+  - **Unblocked Main Thread**: `.async()` constructors offload formatting, decoration, and physical I/O to a background worker isolate via `AsyncHandler`, returning in ~15µs to ensure zero jank in UI frameworks (Flutter) and high-throughput servers.
+  - **Safety by Design for State-Bound Handlers**: Omitted `.async()` from `MemoryHandler` (retaining heap visibility on caller isolate) and `HttpDashboardHandler` (binding local socket server directly), structurally preventing cross-isolate memory disconnects and duplicate socket binds.
+
+- ### Modular Entry Point (`package:logd/advanced.dart`)
+  - **Power-User Entry Point**: Created `package:logd/advanced.dart` exporting low-level engine and isolate internals (`AsyncHandler`, `ArenaEngine`, `NativeEngine`, `IsolateSink`, `LogEngine`) for custom pipeline and engine authors.
+  - **Mainstream DX Polish**: Refined `package:logd/logd.dart` to emphasize `{Target}Handler` convenience subclasses while maintaining full backward compatibility.
+
+- ### Testing & Verification
+  - **Target Handler Test Suite**: Added `packages/logd/test/handler/target_handlers_test.dart` verifying all 8 sync target handlers and all 6 `.async()` isolate pipelines with 100% test pass rate.
+
 ## 0.9.2: Theme Isolate State Preservation, High-Contrast Light Mode, Deep Hierarchy Safeguards & SQLite Ecosystem Integration
 
 This release enhances multi-isolate theme serialization, introduces WCAG-compliant high-contrast light mode palettes, hardens deep logger hierarchy resolution performance with safety depth warnings, and launches the `logd_sqlite` satellite package ecosystem.

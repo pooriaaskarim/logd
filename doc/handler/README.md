@@ -8,6 +8,26 @@ A `Handler` encapsulates two core operations:
 1. **Formatting**: Transforming a structured `LogEntry` into a serialized format (String, JSON, TOON, etc.).
 2. **Output**: Writing the serialized data to a destination (Console, File, Network).
 
+## Pre-Wired Target Handlers ({Target}Handler)
+
+Starting in **v0.9.3** ([ADR-006](../decisions/adr-006-handler-subclass-convention.md)), `logd` introduces pre-wired convenience subclasses extending `Handler`. These provide zero-boilerplate output pipelines configured with optimal formatters, decorators, and encoders out of the box:
+
+| Class | Output Destination | Pre-Wired Pipeline Defaults | Dual-Mode `.async()` |
+|---|---|---|---|
+| `ConsoleHandler` | Terminal / stdout | `StructuredFormatter` + `StyleDecorator(LogTheme.dark())` + `ConsoleSink` | ✅ Yes |
+| `HtmlFileHandler` | HTML Report File | `StructuredFormatter` + `HtmlEncoder` + `FileSink` (`WrappingStrategy.document`) | ✅ Yes |
+| `JsonFileHandler` | JSON File | `JsonFormatter` + `JsonEncoder(pretty: ...)` + `FileSink` | ✅ Yes |
+| `PlainFileHandler` | Raw Text File | `PlainFormatter` + `AutoTextEncoder` + `FileSink` | ✅ Yes |
+| `ToonFileHandler` | TOON AI-Token File | `ToonFormatter` + `ToonEncoder` + `FileSink` | ✅ Yes |
+| `MarkdownFileHandler` | GFM Markdown File | `StructuredFormatter` + `MarkdownEncoder` + `FileSink` | ✅ Yes |
+| `HttpDashboardHandler`| Web Browser Dashboard | `StructuredFormatter` + `HtmlEncoder` + `HttpServerSink` (Embedded Server) | ❌ In-Process |
+| `MemoryHandler` | Memory Ring-Buffer | `StructuredFormatter` + `MemorySink` (Inspectable `.entries`) | ❌ In-Process |
+
+### Dual-Mode Execution & Safety by Design
+
+- **Output-Bound Sinks (`.async()`)**: For file and terminal logging, `.async()` factory constructors offload formatting, decoration, and I/O to a background worker isolate via `AsyncHandler`, returning in ~15µs to prevent main-thread jank in Flutter and high-concurrency servers.
+- **State-Bound Sinks (Sync-Only)**: `MemoryHandler` (relying on caller heap for `.entries`) and `HttpDashboardHandler` (binding local port) deliberately omit `.async()`, preventing cross-isolate memory disconnects and duplicate socket binds by design.
+
 ## Components
 
 ### Formatters
