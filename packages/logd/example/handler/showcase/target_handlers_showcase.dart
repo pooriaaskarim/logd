@@ -161,7 +161,7 @@ void main() async {
     // -----------------------------------------------------------------
     _section('CHAPTER 4: Embedded Live Web Dashboard');
 
-    const dashboardPort = 8085;
+    final dashboardPort = await _findAvailablePort(8085);
     final dashboardHandler = HttpDashboardHandler(
       port: dashboardPort,
       title: 'Target Handlers Live Dashboard',
@@ -209,5 +209,21 @@ void _inspectFile(
     final content = file.readAsStringSync();
     print('  - File size: ${file.lengthSync()} bytes');
     print('  - Sample preview: ${preview(content)}');
+  }
+}
+
+Future<int> _findAvailablePort(final int preferredPort) async {
+  try {
+    final server = await HttpServer.bind('localhost', preferredPort);
+    final port = server.port;
+    await server.close(force: true);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    return port;
+  } catch (_) {
+    final server = await HttpServer.bind('localhost', 0);
+    final port = server.port;
+    await server.close(force: true);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    return port;
   }
 }
