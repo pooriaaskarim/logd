@@ -22,7 +22,7 @@ void main() async {
     () async {
       _showcaseBasics();
       _showcaseHierarchy();
-      _showcaseTargetHandlers();
+      await _showcaseTargetHandlers();
       _showcasePipelines();
       _showcaseTimeAndLocalization();
       _showcaseAdvancedLayouts();
@@ -103,7 +103,7 @@ void _showcaseHierarchy() {
 /// 3. Pre-Wired Target Handlers & Dual-Mode .async() (v0.9.3+)
 /// logd provides zero-config TargetHandlers for common output destinations,
 /// with .async() factories for unblocked background isolate offloading.
-void _showcaseTargetHandlers() {
+Future<void> _showcaseTargetHandlers() async {
   _section('3. Pre-Wired Target Handlers (v0.9.3+)');
 
   // ConsoleHandler with customized theme
@@ -119,6 +119,9 @@ void _showcaseTargetHandlers() {
   final logger = Logger.get('app.target_demo');
   logger.info('Event dispatched to ConsoleHandler and MemoryHandler');
   logger.warning('Second event captured in memory ring-buffer');
+
+  // Yield to allow non-blocking async pipeline dispatch to complete
+  await Future<void>.delayed(Duration.zero);
 
   print(
     'Inspect MemoryHandler entries: ${memory.entries.length} logs captured.',
