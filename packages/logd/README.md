@@ -639,6 +639,7 @@ void main() {
 - **[Logger Philosophy](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/philosophy.md)** - Design principles and rationale
 - **[Logger Architecture](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/architecture.md)** - Implementation details
 - **[Handler Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/architecture.md)** - Pipeline and sink customization
+- **[Target Handlers Showcase](https://github.com/pooriaaskarim/logd/blob/master/packages/logd/example/handler/showcase/target_handlers_showcase.dart)** - Interactive showcase and verification of all 8 pre-wired TargetHandlers
 - **[Execution Engines Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/engines.md)** - Standard, Arena, and Native engines guide
 - **[Engine Stability Report](https://github.com/pooriaaskarim/logd/blob/master/doc/engine_stability_report.md)** - Engine profiling & memory lifecycle report
 - **[Migration Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/migration.md)** - Upgrading from legacy components
