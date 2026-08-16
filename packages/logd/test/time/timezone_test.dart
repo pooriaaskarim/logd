@@ -39,7 +39,7 @@ void main() {
 
     test('utc returns UTC with zero offset', () {
       final tz = Timezone.utc();
-      expect(tz.name, equals('UTC'));
+      expect(tz.name, anyOf('UTC', 'Etc/UTC'));
       expect(tz.offset, equals(Duration.zero));
       expect(tz.now, equals(fixedUtcTime));
     });

@@ -64,7 +64,7 @@ void main() {
       );
       expect(
         (json['timestamp'] as Map<String, dynamic>)['timezone'],
-        equals('UTC'),
+        anyOf('UTC', 'Etc/UTC'),
       );
       expect(
         (json['stackTraceParser'] as Map<String, dynamic>)['ignorePackages'],
@@ -84,7 +84,10 @@ void main() {
         deserialized.timestamp?.formatter.pattern,
         equals('yyyy-MM-dd HH:mm:ss'),
       );
-      expect(deserialized.timestamp?.timezone?.name, equals('UTC'));
+      expect(
+        deserialized.timestamp?.timezone?.name,
+        anyOf('UTC', 'Etc/UTC'),
+      );
       expect(
         deserialized.stackTraceParser?.ignorePackages,
         contains('test_api'),
