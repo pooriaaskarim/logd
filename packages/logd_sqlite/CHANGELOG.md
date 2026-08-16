@@ -1,3 +1,10 @@
+## 0.1.2
+
+- **ADR-006 `{Target}Handler` Alignment**:
+  - Introduced `SqliteHandler` convenience subclass extending `Handler` (`SqliteHandler()`, `SqliteHandler.inMemory()`, and `SqliteHandler.database()`).
+  - Added direct `sqliteSink` getter on `SqliteHandler` for rich query engine access (`queryLogs()`, `fetchLevelCounts()`, `fetchDistinctLoggerNames()`).
+  - Updated `logd` dependency constraint to `^0.9.3`.
+
 ## 0.1.1
 
 - **Pub.dev Maintenance & Score Fixes**:

@@ -5,4 +5,5 @@
 /// High-performance SQLite log sink satellite package for `logd`.
 library;
 
+export 'src/sqlite_handler.dart';
 export 'src/sqlite_sink.dart';
