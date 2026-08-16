@@ -149,13 +149,11 @@ base class SqliteSink extends LogSink<LogDocument> {
         ? _db.prepare('DELETE FROM $tableName WHERE created_at < ?;')
         : null;
 
-    _pruneCountStmt = maxEntries != null
-        ? _db.prepare('''
+    _pruneCountStmt = maxEntries != null ? _db.prepare('''
             DELETE FROM $tableName WHERE id NOT IN (
               SELECT id FROM $tableName ORDER BY id DESC LIMIT ?
             );
-          ''')
-        : null;
+          ''') : null;
   }
 
   void _startFlushTimer() {
@@ -356,7 +354,6 @@ base class SqliteSink extends LogSink<LogDocument> {
     return results.map((final row) => Map<String, dynamic>.from(row)).toList();
   }
 
-
   /// Returns total count of log records currently stored in the database.
   int count() {
     if (_batch.isNotEmpty) {
@@ -386,10 +383,10 @@ base class SqliteSink extends LogSink<LogDocument> {
     _flushTimer?.cancel();
     await flush();
 
-    _insertStmt.dispose();
-    _pruneAgeStmt?.dispose();
-    _pruneCountStmt?.dispose();
-    _db.dispose();
+    _insertStmt.close();
+    _pruneAgeStmt?.close();
+    _pruneCountStmt?.close();
+    _db.close();
 
     await super.dispose();
   }

@@ -3,25 +3,12 @@
 // found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:logd/logd.dart';
 import 'package:logd_sqlite/logd_sqlite.dart';
-import 'package:sqlite3/open.dart';
 
 void main() async {
-  // Register Linux dynamic library fallback if needed
-  if (Platform.isLinux) {
-    open.overrideFor(OperatingSystem.linux, () {
-      try {
-        return DynamicLibrary.open('libsqlite3.so');
-      } catch (_) {
-        return DynamicLibrary.open('libsqlite3.so.0');
-      }
-    });
-  }
-
   const dbPath = 'interactive_logs.db';
 
   final sqliteSink = SqliteSink(
@@ -329,8 +316,7 @@ void _inspectRecord(final SqliteSink sink) {
     return;
   }
 
-  const line =
-      '==================================================='
+  const line = '==================================================='
       '=============================';
   print('\n$line');
   print('  INSPECT RECORD #$id');
@@ -456,17 +442,13 @@ void _renderLogTable(final List<Map<String, dynamic>> rows) {
     return;
   }
 
-  const border =
-      '┌─────┬─────────┬──────────────────┬'
+  const border = '┌─────┬─────────┬──────────────────┬'
       '──────────────────────────────────────────┐';
-  const header =
-      '│ ID  │ LEVEL   │ LOGGER           │'
+  const header = '│ ID  │ LEVEL   │ LOGGER           │'
       ' MESSAGE                                  │';
-  const divider =
-      '├─────┼─────────┼──────────────────┼'
+  const divider = '├─────┼─────────┼──────────────────┼'
       '──────────────────────────────────────────┤';
-  const bottom =
-      '└─────┴─────────┴──────────────────┴'
+  const bottom = '└─────┴─────────┴──────────────────┴'
       '──────────────────────────────────────────┘';
 
   print(border);
@@ -512,8 +494,7 @@ Future<void> _cleanup(final SqliteSink sink, final String dbPath) async {
 }
 
 void _printHeader(final String title) {
-  const line =
-      '==================================================='
+  const line = '==================================================='
       '=============================';
   print(line);
   print('  $title');

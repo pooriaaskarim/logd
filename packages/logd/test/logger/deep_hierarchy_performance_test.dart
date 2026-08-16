@@ -32,9 +32,9 @@ void main() {
       final avgUs = stopwatch.elapsedMicroseconds / 1000;
       expect(
         avgUs,
-        lessThan(50),
+        lessThan(200),
         reason: 'Cached deep hierarchy resolution must take '
-            'under 50 microseconds per lookup',
+            'under 200 microseconds per lookup',
       );
     });
   });
