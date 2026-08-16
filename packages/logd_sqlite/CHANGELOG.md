@@ -1,16 +1,13 @@
-## 0.1.3
-
-- **`sqlite3` 3.x Native Assets Modernization**:
-  - Modernized dynamic library loading to leverage Dart Native Assets hooks (`package:hooks` / `package:native_toolchain_c`), eliminating manual `open.overrideFor` FFI boilerplate.
-  - Replaced deprecated `PreparedStatement.dispose()` and `Database.dispose()` calls with `.close()`.
-  - Updated `sqlite3` version constraint to `'>=2.4.0 <4.0.0'`.
-
 ## 0.1.2
 
 - **ADR-006 `{Target}Handler` Alignment**:
   - Introduced `SqliteHandler` convenience subclass extending `Handler` (`SqliteHandler()`, `SqliteHandler.inMemory()`, and `SqliteHandler.database()`).
   - Added direct `sqliteSink` getter on `SqliteHandler` for rich query engine access (`queryLogs()`, `fetchLevelCounts()`, `fetchDistinctLoggerNames()`).
   - Updated `logd` dependency constraint to `^0.9.3`.
+- **`sqlite3` 3.x & Native Assets Modernization**:
+  - Updated `sqlite3` version constraint to `'>=2.4.0 <4.0.0'`, fully supporting `sqlite3` 3.x releases.
+  - Leveraged Dart Native Assets build hooks, removing obsolete manual dynamic library overrides (`open.overrideFor`).
+  - Updated statement and database disposal lifecycle calls to `.close()`.
 
 ## 0.1.1
 
