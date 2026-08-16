@@ -74,3 +74,11 @@ Profiling: Modern Human ...
 
 ### 3. The Framing Squeeze (Prefix -> Box -> ConsoleSink @ 40 width)
 Profiling: Framing Squeeze ...
+2067 Ops/sec | p90: 647.00µs | p95: 776.00µs | p99: 1497.00µs | GC Pressure: 290.40 KB/10k
+
+
+--- Structural Efficiency Report ---
+Error: VM Service not enabled. Run with --observe or --enable-vm-service.
+==============================
+Benchmarks Complete.
+```
