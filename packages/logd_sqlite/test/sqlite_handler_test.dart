@@ -1,23 +1,11 @@
 // ignore_for_file: invalid_use_of_internal_member
-import 'dart:ffi';
 
 import 'package:logd/logd.dart';
 import 'package:logd_sqlite/logd_sqlite.dart';
-import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
 void main() {
-  setUpAll(() {
-    open.overrideFor(OperatingSystem.linux, () {
-      try {
-        return DynamicLibrary.open('libsqlite3.so');
-      } catch (_) {
-        return DynamicLibrary.open('libsqlite3.so.0');
-      }
-    });
-  });
-
   group('SqliteHandler (ADR-006)', () {
     test('SqliteHandler.inMemory creates a valid Handler pipeline', () async {
       final handler = SqliteHandler.inMemory(

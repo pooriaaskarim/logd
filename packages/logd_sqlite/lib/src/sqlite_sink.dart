@@ -383,10 +383,10 @@ base class SqliteSink extends LogSink<LogDocument> {
     _flushTimer?.cancel();
     await flush();
 
-    _insertStmt.dispose();
-    _pruneAgeStmt?.dispose();
-    _pruneCountStmt?.dispose();
-    _db.dispose();
+    _insertStmt.close();
+    _pruneAgeStmt?.close();
+    _pruneCountStmt?.close();
+    _db.close();
 
     await super.dispose();
   }

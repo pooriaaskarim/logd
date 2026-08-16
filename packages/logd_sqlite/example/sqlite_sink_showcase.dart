@@ -3,25 +3,12 @@
 // found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:logd/logd.dart';
 import 'package:logd_sqlite/logd_sqlite.dart';
-import 'package:sqlite3/open.dart';
 
 void main() async {
-  // Register Linux dynamic library fallback if needed
-  if (Platform.isLinux) {
-    open.overrideFor(OperatingSystem.linux, () {
-      try {
-        return DynamicLibrary.open('libsqlite3.so');
-      } catch (_) {
-        return DynamicLibrary.open('libsqlite3.so.0');
-      }
-    });
-  }
-
   _printHeader('LOGD_SQLITE SHOWCASE & PROOF-OF-CONCEPT');
 
   // Phase 1: Initialize SqliteSink & Logging Pipeline

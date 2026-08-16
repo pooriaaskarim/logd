@@ -22,7 +22,7 @@ resolution: workspace
 dependencies:
   logd: ^0.9.3
   meta: ^1.17.0
-  sqlite3: '>=2.4.0 <3.0.0'
+  sqlite3: '>=2.4.0 <4.0.0'
 
 dev_dependencies:
   lints: ^5.0.0

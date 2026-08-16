@@ -2,25 +2,12 @@
 // Use of this source code is governed by a BSD-3-Clause license that can be
 // found in the LICENSE file.
 
-import 'dart:ffi';
-
 import 'package:logd/logd.dart';
 import 'package:logd_sqlite/logd_sqlite.dart';
-import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
 void main() {
-  setUpAll(() {
-    open.overrideFor(OperatingSystem.linux, () {
-      try {
-        return DynamicLibrary.open('libsqlite3.so');
-      } catch (_) {
-        return DynamicLibrary.open('libsqlite3.so.0');
-      }
-    });
-  });
-
   group('SqliteSink Production Suite', () {
     late Database memoryDb;
     late LogPipelineFactory factory;
@@ -32,7 +19,7 @@ void main() {
 
     tearDown(() {
       try {
-        memoryDb.dispose();
+        memoryDb.close();
       } catch (_) {}
     });
 
