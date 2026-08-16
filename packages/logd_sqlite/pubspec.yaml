@@ -17,6 +17,13 @@ license: BSD-3-Clause
 environment:
   sdk: '>=3.6.0 <4.0.0'
 
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  windows:
+
 resolution: workspace
 
 dependencies:
