@@ -29,4 +29,7 @@ class MemoryHandler extends Handler {
 
   /// Unmodifiable view of currently retained entries in [MemorySink].
   List<LogEntry> get entries => (sink as MemorySink).entries;
+
+  /// Empties all retained log entries.
+  void clear() => (sink as MemorySink).clear();
 }

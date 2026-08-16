@@ -474,12 +474,7 @@ void main() {
 
         expect(handler.entries.length, equals(1));
 
-        // Use the sink reference if needed, or if MemoryHandler exposes clear:
-        // Actually, MemorySink has clear(), but we can't easily access it unless MemoryHandler exposes it.
-        // Let's verify MemoryHandler has clear. Oh, wait, in previous logs we said "MemoryHandler.clear()". Let's check MemoryHandler implementation!
-        if (handler.sink is MemorySink) {
-          (handler.sink as MemorySink).clear();
-        }
+        handler.clear();
 
         expect(handler.entries.isEmpty, isTrue);
       });
@@ -487,7 +482,8 @@ void main() {
 
     group('4. High-Throughput Async Stress Test', () {
       test(
-        'JsonFileHandler.async safely processes rapid burst loads without dropping entries',
+        'JsonFileHandler.async safely processes rapid burst loads without '
+        'dropping entries',
         () async {
           final stressFile = File('${tempDir.path}/stress.json');
           final handler = JsonFileHandler.async(
