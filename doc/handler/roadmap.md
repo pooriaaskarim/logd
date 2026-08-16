@@ -2,6 +2,16 @@
 
 ## Completed
 
+### ✅ v0.9.3: `{Target}Handler` Subclasses, Dual-Mode `.async()` Offloading & Advanced Entry Point
+**Goal**: Introduce pre-wired `Handler` subclasses for common output targets (ADR-006), dual-mode `.async()` isolate constructors, and `package:logd/advanced.dart`.
+**Result**: 8 pre-wired `{Target}Handler` subclasses (`Console`, `HtmlFile`, `JsonFile`, `PlainFile`, `ToonFile`, `MarkdownFile`, `HttpDashboard`, `Memory`), 6 `.async()` isolate constructors, `package:logd/advanced.dart` entry point, interactive showcase, and comprehensive 22-test target handler test suite.
+- [x] Pre-wired 8 `{Target}Handler` convenience subclasses (ADR-006)
+- [x] Dual-mode `.async()` isolate constructors across all 6 I/O handlers
+- [x] Modular `package:logd/advanced.dart` entry point
+- [x] Comprehensive test suite & interactive showcase
+
+---
+
 ### ✅ v0.9.2: Theme Isolate State Preservation, High-Contrast Light Mode, Deep Hierarchy Safeguards & SQLite Ecosystem Integration
 **Goal**: Preserve multi-isolate theme brightness, introduce WCAG-compliant high-contrast light mode, harden deep hierarchy resolution performance, and launch the `logd_sqlite` satellite package.
 **Result**: `LogBrightness` transport across multi-isolate boundaries in `LoggerSerializationRegistry`, high-contrast palette mappings (`--warning: #92400e;`) for light mode, verified <50μs lookup across 12-level logger trees with `Logger.maxHierarchyDepth` safety limit integration, and launched satellite package `logd_sqlite` (v0.1.1).
