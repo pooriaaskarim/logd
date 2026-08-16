@@ -1,3 +1,10 @@
+## 0.1.3
+
+- **`sqlite3` 3.x Native Assets Modernization**:
+  - Modernized dynamic library loading to leverage Dart Native Assets hooks (`package:hooks` / `package:native_toolchain_c`), eliminating manual `open.overrideFor` FFI boilerplate.
+  - Replaced deprecated `PreparedStatement.dispose()` and `Database.dispose()` calls with `.close()`.
+  - Updated `sqlite3` version constraint to `'>=2.4.0 <4.0.0'`.
+
 ## 0.1.2
 
 - **ADR-006 `{Target}Handler` Alignment**:
