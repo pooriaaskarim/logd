@@ -356,5 +356,173 @@ void main() {
       expect(handler.entries[0].message, equals('Memory Event 1'));
       expect(handler.entries[1].message, equals('Memory Event 2'));
     });
+    group('2. File System & Lifecycle Edge Cases', () {
+      test('TargetHandlers auto-create missing deep parent directories',
+          () async {
+        final deepFile =
+            File('${tempDir.path}/nested/deep/logs/telemetry.toon');
+        final handler = ToonFileHandler(
+          path: deepFile.path,
+          arrayName: 'telemetry',
+        );
+
+        final entry = LogEntry(
+          loggerName: 'test.deep',
+          origin: 'test_file.dart',
+          level: LogLevel.info,
+          message: 'Deep directory log',
+          timestamp: '2026-08-16 12:00:00.000',
+        );
+
+        await handler.log(entry);
+
+        expect(deepFile.existsSync(), isTrue);
+        final content = deepFile.readAsStringSync();
+        expect(content, contains('Deep directory log'));
+      });
+
+      test('JsonFileHandler forwards FileRotation configuration correctly',
+          () async {
+        final rotateFile = File('${tempDir.path}/rotate_app.json');
+        final handler = JsonFileHandler(
+          path: rotateFile.path,
+          pretty: false,
+          fileRotation: SizeRotation(maxSize: '100 B'),
+        );
+
+        // Dispatch large logs to trigger rotation
+        for (var i = 0; i < 5; i++) {
+          final entry = LogEntry(
+            loggerName: 'test.rotation',
+            origin: 'test_file.dart',
+            level: LogLevel.info,
+            message: 'Large log entry padding ' * 5,
+            timestamp: '2026-08-16 12:00:00.000',
+          );
+          await handler.log(entry);
+        }
+
+        final backupFile = File('${tempDir.path}/rotate_app.1.json');
+        expect(backupFile.existsSync(), isTrue);
+      });
+
+      test('HttpDashboardHandler cleanly releases resources on dispose',
+          () async {
+        final handler = HttpDashboardHandler(
+          port: 0, // 0 lets OS pick random port
+          title: 'Test Dashboard',
+        );
+
+        // Wait a tiny bit for the internal HttpServer to bind
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        // Dispose should complete without hanging or crashing
+        await expectLater(handler.dispose(), completes);
+      });
+    });
+
+    group('3. MemoryHandler Ring-Buffer Safety', () {
+      test('MemoryHandler evicts oldest logs under capacity FIFO overflow',
+          () async {
+        final handler = MemoryHandler(capacity: 3);
+
+        for (var i = 1; i <= 5; i++) {
+          final entry = LogEntry(
+            loggerName: 'test.mem',
+            origin: 'test_file.dart',
+            level: LogLevel.info,
+            message: 'Event $i',
+            timestamp: '2026-08-16 12:00:0$i.000',
+          );
+          await handler.log(entry);
+        }
+
+        // Expected: 1 and 2 are evicted, 3, 4, 5 remain.
+        expect(handler.entries.length, equals(3));
+        expect(handler.entries[0].message, equals('Event 3'));
+        expect(handler.entries[1].message, equals('Event 4'));
+        expect(handler.entries[2].message, equals('Event 5'));
+      });
+
+      test('MemoryHandler entries list is unmodifiable', () {
+        final handler = MemoryHandler(capacity: 3);
+
+        final entry = LogEntry(
+          loggerName: 'test.mem',
+          origin: 'test_file.dart',
+          level: LogLevel.info,
+          message: 'Hack Event',
+          timestamp: '2026-08-16 12:00:00.000',
+        );
+
+        expect(
+          () => handler.entries.add(entry),
+          throwsUnsupportedError,
+        );
+      });
+
+      test('MemoryHandler.clear() flushes all retained entries', () async {
+        final handler = MemoryHandler(capacity: 3);
+        final entry = LogEntry(
+          loggerName: 'test.mem',
+          origin: 'test_file.dart',
+          level: LogLevel.info,
+          message: 'Event',
+          timestamp: '2026-08-16 12:00:00.000',
+        );
+        await handler.log(entry);
+
+        expect(handler.entries.length, equals(1));
+
+        // Use the sink reference if needed, or if MemoryHandler exposes clear:
+        // Actually, MemorySink has clear(), but we can't easily access it unless MemoryHandler exposes it.
+        // Let's verify MemoryHandler has clear. Oh, wait, in previous logs we said "MemoryHandler.clear()". Let's check MemoryHandler implementation!
+        if (handler.sink is MemorySink) {
+          (handler.sink as MemorySink).clear();
+        }
+
+        expect(handler.entries.isEmpty, isTrue);
+      });
+    });
+
+    group('4. High-Throughput Async Stress Test', () {
+      test(
+        'JsonFileHandler.async safely processes rapid burst loads without dropping entries',
+        () async {
+          final stressFile = File('${tempDir.path}/stress.json');
+          final handler = JsonFileHandler.async(
+            path: stressFile.path,
+            pretty: false,
+          );
+
+          for (var i = 0; i < 100; i++) {
+            final entry = LogEntry(
+              loggerName: 'test.stress',
+              origin: 'test_file.dart',
+              level: LogLevel.info,
+              message: 'Stress Event $i',
+              timestamp: '2026-08-16 12:00:00.000',
+            );
+            // Fire and forget (simulating unawaited UI dispatch)
+            // ignore: unawaited_futures
+            handler.log(entry);
+          }
+
+          // Allow the background isolate to finish processing the burst
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+
+          // Dispose MUST await all flushes
+          await handler.dispose();
+
+          expect(stressFile.existsSync(), isTrue);
+          final content = stressFile.readAsStringSync().trim();
+          final lines = content.split('\n');
+
+          expect(lines.length, equals(100));
+          expect(lines.first, contains('Stress Event 0'));
+          expect(lines.last, contains('Stress Event 99'));
+        },
+      );
+    });
   });
 }

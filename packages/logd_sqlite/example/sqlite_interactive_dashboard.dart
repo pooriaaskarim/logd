@@ -329,8 +329,7 @@ void _inspectRecord(final SqliteSink sink) {
     return;
   }
 
-  const line =
-      '==================================================='
+  const line = '==================================================='
       '=============================';
   print('\n$line');
   print('  INSPECT RECORD #$id');
@@ -456,17 +455,13 @@ void _renderLogTable(final List<Map<String, dynamic>> rows) {
     return;
   }
 
-  const border =
-      '┌─────┬─────────┬──────────────────┬'
+  const border = '┌─────┬─────────┬──────────────────┬'
       '──────────────────────────────────────────┐';
-  const header =
-      '│ ID  │ LEVEL   │ LOGGER           │'
+  const header = '│ ID  │ LEVEL   │ LOGGER           │'
       ' MESSAGE                                  │';
-  const divider =
-      '├─────┼─────────┼──────────────────┼'
+  const divider = '├─────┼─────────┼──────────────────┼'
       '──────────────────────────────────────────┤';
-  const bottom =
-      '└─────┴─────────┴──────────────────┴'
+  const bottom = '└─────┴─────────┴──────────────────┴'
       '──────────────────────────────────────────┘';
 
   print(border);
@@ -512,8 +507,7 @@ Future<void> _cleanup(final SqliteSink sink, final String dbPath) async {
 }
 
 void _printHeader(final String title) {
-  const line =
-      '==================================================='
+  const line = '==================================================='
       '=============================';
   print(line);
   print('  $title');
