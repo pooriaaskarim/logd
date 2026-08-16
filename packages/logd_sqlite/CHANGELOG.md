@@ -1,3 +1,9 @@
+## 0.1.3
+
+- **Pub.dev Score & Lower-Bound Analysis Fixes**:
+  - Updated `sqlite3` lower bound constraint to `^3.0.0` to resolve `PreparedStatement.close()` lower-bound compatibility under `dart pub downgrade` analysis.
+  - Added explicit `platforms` section in `pubspec.yaml` for `android`, `ios`, `linux`, `macos`, and `windows` native OS targets.
+
 ## 0.1.2
 
 - **ADR-006 `{Target}Handler` Alignment**:
