@@ -22,6 +22,7 @@ void main() async {
     () async {
       _showcaseBasics();
       _showcaseHierarchy();
+      await _showcaseTargetHandlers();
       _showcasePipelines();
       _showcaseTimeAndLocalization();
       _showcaseAdvancedLayouts();
@@ -99,11 +100,39 @@ void _showcaseHierarchy() {
   Logger.removePattern('*.database');
 }
 
-/// 3. Pipeline Architecture: Handlers, Formatters, & Decorators
+/// 3. Pre-Wired Target Handlers & Dual-Mode .async() (v0.9.3+)
+/// logd provides zero-config TargetHandlers for common output destinations,
+/// with .async() factories for unblocked background isolate offloading.
+Future<void> _showcaseTargetHandlers() async {
+  _section('3. Pre-Wired Target Handlers (v0.9.3+)');
+
+  // ConsoleHandler with customized theme
+  final console = ConsoleHandler(
+    theme: const LogTheme.dark(),
+  );
+
+  // In-memory ring-buffer with direct programmatic inspection
+  final memory = MemoryHandler(capacity: 10);
+
+  Logger.configure('app.target_demo', handlers: [console, memory]);
+
+  final logger = Logger.get('app.target_demo');
+  logger.info('Event dispatched to ConsoleHandler and MemoryHandler');
+  logger.warning('Second event captured in memory ring-buffer');
+
+  // Yield to allow non-blocking async pipeline dispatch to complete
+  await Future<void>.delayed(Duration.zero);
+
+  print(
+    'Inspect MemoryHandler entries: ${memory.entries.length} logs captured.',
+  );
+}
+
+/// 4. Pipeline Architecture: Handlers, Formatters, & Decorators
 /// logd pipelines are modular. A Handler composes a Formatter (what it says),
 /// a sequence of Decorators (how it looks), and a Sink (where it goes).
 void _showcasePipelines() {
-  _section('3. Pipeline Architecture');
+  _section('4. Pipeline Architecture');
 
   const prettyHandler = Handler(
     formatter: JsonPrettyFormatter(),
@@ -132,11 +161,11 @@ void _showcasePipelines() {
   Logger.get('app.audit').info('Audit log saved to file (logs/) and console.');
 }
 
-/// 4. Time & Localization
+/// 5. Time & Localization
 /// You can configure how timestamps appear globally or per handler.
 /// Timezones are fully supported (UTC, Local, or Fixed offsets).
 void _showcaseTimeAndLocalization() {
-  _section('4. Time & Localization');
+  _section('5. Time & Localization');
 
   // Global Timestamp configuration via Logger.configure
   Logger.configure(
@@ -178,10 +207,10 @@ void _showcaseTimeAndLocalization() {
   );
 }
 
-/// 5. Advanced Layouts: Toon & JSON
+/// 6. Advanced Layouts: Toon & JSON
 /// Specialized formatters provide unique visual styles for different use cases.
 void _showcaseAdvancedLayouts() {
-  _section('5. Advanced Layouts');
+  _section('6. Advanced Layouts');
 
   // Comic-style structured logs (with explicit schema for machine parsing)
   Logger.configure('app.toon', handlers: [
@@ -202,11 +231,11 @@ void _showcaseAdvancedLayouts() {
   Logger.get('app.vibrant').info('Inspection of complex data.');
 }
 
-/// 6. Grid Layouts: Tables & Columns
+/// 7. Grid Layouts: Tables & Columns
 /// One of the most powerful features of logd is its ability to render true
 /// multi-column grids in the terminal.
 void _showcaseGridLayouts() {
-  _section('6. Grid Layouts');
+  _section('7. Grid Layouts');
 
   final gridHandler = Handler(
     formatter: const TableExampleFormatter(),
@@ -232,56 +261,57 @@ class TableExampleFormatter implements LogFormatter {
   ) {
     document.startBox(tags: LogTag.header);
     document.startAlignment(LogAlignment.center);
-    document.text('SYSTEM PERFORMANCE REPORT',
-        style: const LogStyle(bold: true));
+    document.text('SYSTEM HEALTH REPORT', style: const LogStyle(bold: true));
     document.endAlignment();
     document.endBox();
 
-    document.newline();
+    document.startTable(columnWidths: [16, 12, 12]);
 
-    // 3-column table with specific widths
-    document.startTable(columnWidths: [15, 30, 10]);
-
-    // Header Row
     document.startRow();
     document.startCell();
-    document.text('COMPONENT', style: const LogStyle(bold: true));
+    document.text('SUBSYSTEM', style: const LogStyle(bold: true));
     document.endCell();
     document.startCell();
-    document.text('STATUS & METRICS', style: const LogStyle(bold: true));
+    document.text('STATUS', style: const LogStyle(bold: true));
     document.endCell();
     document.startCell();
-    document.text('LOAD', style: const LogStyle(bold: true));
+    document.text('LATENCY', style: const LogStyle(bold: true));
     document.endCell();
     document.endRow();
 
-    // Data Row 1
     document.startRow();
     document.startCell();
-    document.text('Database');
+    document.text('Authentication');
     document.endCell();
     document.startCell();
-    document.text('Operational\nLatency: 12ms');
+    document.text('ONLINE', style: const LogStyle(color: LogColor.green));
     document.endCell();
     document.startCell();
-    document.startAlignment(LogAlignment.right);
-    document.text('Low');
-    document.endAlignment();
+    document.text('12ms');
     document.endCell();
     document.endRow();
 
-    // Data Row 2 (with wrapping content)
     document.startRow();
     document.startCell();
-    document.text('API Gateway');
+    document.text('Payment Gateway');
     document.endCell();
     document.startCell();
-    document.text('Stable - Processing 1.2k req/sec with no drops');
+    document.text('DEGRADED', style: const LogStyle(color: LogColor.yellow));
     document.endCell();
     document.startCell();
-    document.startAlignment(LogAlignment.right);
-    document.text('Medium');
-    document.endAlignment();
+    document.text('185ms');
+    document.endCell();
+    document.endRow();
+
+    document.startRow();
+    document.startCell();
+    document.text('Database Pool');
+    document.endCell();
+    document.startCell();
+    document.text('ONLINE', style: const LogStyle(color: LogColor.green));
+    document.endCell();
+    document.startCell();
+    document.text('3ms');
     document.endCell();
     document.endRow();
 
@@ -289,10 +319,10 @@ class TableExampleFormatter implements LogFormatter {
   }
 }
 
-/// 6. High-Performance Network Logging
+/// 8. High-Performance Network Logging
 /// logd can ship logs to remote servers via WebSocket or HTTP with batching.
 Future<void> _showcaseNetwork() async {
-  _section('6. Network Logging');
+  _section('8. Network Logging');
 
   Process? socketServer;
   Process? httpServer;

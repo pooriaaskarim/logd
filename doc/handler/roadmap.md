@@ -184,10 +184,15 @@
 **Goal**: Introduce pre-wired `Handler` subclasses for common output targets (ADR-006) and publish `logd_linters`.
 **See**: [ADR-006: `{Target}Handler` Subclass Convention](../decisions/adr-006-handler-subclass-convention.md)
 
-- [ ] `ConsoleHandler` — `StructuredFormatter` + `StyleDecorator(DarkTheme())` + `ConsoleSink()`; supports `theme`, `lineLength` parameters
-- [ ] `HtmlFileHandler(path)` — correct formatter + `HtmlEncoder` + `FileSink`; `WrappingStrategy.document` wired internally, eliminating the silent-failure footgun
-- [ ] `JsonFileHandler(path)` — `JsonPrettyFormatter` + `JsonEncoder` + `FileSink`
-- [ ] `PlainFileHandler(path)` — `PlainFormatter` + `FileSink`
+- [x] `ConsoleHandler` (`.async()`) — `StructuredFormatter` + `StyleDecorator(DarkTheme())` + `ConsoleSink()`; supports `theme`, `lineLength` parameters
+- [x] `HtmlFileHandler(path)` (`.async()`) — correct formatter + `HtmlEncoder` + `FileSink`; `WrappingStrategy.document` wired internally, eliminating the silent-failure footgun
+- [x] `JsonFileHandler(path)` (`.async()`) — `JsonFormatter` + `JsonEncoder` + `FileSink`
+- [x] `PlainFileHandler(path)` (`.async()`) — `PlainFormatter` + `FileSink`
+- [x] `ToonFileHandler(path)` (`.async()`) — `ToonFormatter` + `ToonEncoder` + `FileSink`; token-optimized AI log output
+- [x] `MarkdownFileHandler(path)` (`.async()`) — `StructuredFormatter` + `MarkdownEncoder` + `FileSink`; GFM log reports
+- [x] `HttpDashboardHandler(port)` — `StructuredFormatter` + `HtmlEncoder` + `HttpServerSink`; embedded live web dashboard
+- [x] `MemoryHandler(capacity)` — `StructuredFormatter` + `MemorySink`; in-memory ring-buffer with `.entries` access
+- [x] Dual-Mode Architecture & `package:logd/advanced.dart` — offloadable sinks provide `.async()` constructors, while advanced isolate/engine primitives are organized in `package:logd/advanced.dart`
 - [ ] `packages/logd_linters` — publish custom lint rules warning about un-sinked `LogBuffer` instances and missing `Handler.dispose()` calls
 
 > **Withdrawn**: The `LogOutput` facade concept (`LogOutput.console()`, `LogOutput.htmlFile()`, etc.) is withdrawn in favour of the `{Target}Handler` subclass convention. See ADR-006 for the full rationale.

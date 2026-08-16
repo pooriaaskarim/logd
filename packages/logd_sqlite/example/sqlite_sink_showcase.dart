@@ -198,8 +198,7 @@ void main() async {
 }
 
 void _printHeader(final String title) {
-  const line =
-      '==================================================='
+  const line = '==================================================='
       '=============================';
   print(line);
   print('  $title');

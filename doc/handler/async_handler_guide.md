@@ -1,17 +1,56 @@
 # Isolate Offloading (`AsyncHandler`) & Concurrency Guide
 
-`logd` provides `AsyncHandler` to offload the entire logging pipeline—formatting, decorating, layout calculation, and physical sinking—to a background worker isolate.
+`logd` provides isolate offloading to transfer the entire logging pipeline—formatting, decorating, layout calculation, and physical sinking—to a background worker isolate.
 
 ---
 
-## 1. When to Use `AsyncHandler`
+## 1. Idiomatic Path: Zero-Config `.async()` Constructors (v0.9.3+)
+
+For all output-bound file and console logging, you do not need to manually construct `AsyncHandler`. Simply use the `.async()` factory constructor on the corresponding `{Target}Handler`:
+
+```dart
+import 'package:logd/logd.dart';
+
+// Terminal logging on background isolate
+final console = ConsoleHandler.async();
+
+// File logging on background isolate
+final jsonLogs = JsonFileHandler.async('logs/production.json');
+final htmlReport = HtmlFileHandler.async('logs/report.html');
+final toonLogs = ToonFileHandler.async('logs/telemetry.toon');
+final plainLogs = PlainFileHandler.async('logs/app.log');
+final markdown = MarkdownFileHandler.async('logs/summary.md');
+
+Logger.configure('app', handlers: [console, jsonLogs]);
+```
+
+---
+
+## 2. Advanced Path: Raw `AsyncHandler` (package:logd/advanced.dart)
+
+When composing custom formatters, decorators, or multi-sinks on a background isolate, import `package:logd/advanced.dart`:
+
+```dart
+import 'package:logd/advanced.dart';
+import 'package:logd/logd.dart';
+
+final customAsyncHandler = AsyncHandler(
+  formatter: const JsonFormatter(),
+  decorators: const [StyleDecorator()],
+  sink: FileSink('logs/custom.json'),
+);
+```
+
+---
+
+## 3. When to Use Background Isolate Offloading
 
 | Scenario | Recommendation | Rationale |
 |---|---|---|
-| High-volume CLI logging | `StandardEngine` | Synchronous console output is fast; isolate thread context switches add minor latency overhead (~15µs). |
-| Heavy JSON / HTML serialization | `AsyncHandler` | Offloads CPU-intensive encoding away from the main UI / event-loop thread. |
-| Slow physical sinks (File, Network, HTTP Viewer) | `AsyncHandler` | Main thread returns immediately (~15–20µs); physical disk/network I/O happens asynchronously on the background worker. |
-| In-memory testing | `StandardEngine` | In-memory sinks require zero I/O and run instantaneously inline. |
+| High-volume CLI logging | Sync `ConsoleHandler()` | Synchronous console output is fast; isolate thread context switches add minor latency overhead (~15µs). |
+| Flutter UI applications | `ConsoleHandler.async()` / `JsonFileHandler.async()` | Offloads formatting & disk I/O completely off the UI thread to guarantee 0 dropped frames (60/120 fps). |
+| Heavy JSON / HTML serialization | `JsonFileHandler.async()` / `HtmlFileHandler.async()` | Offloads CPU-intensive encoding away from the main UI / event-loop thread. |
+| In-memory testing / Ring-buffers | `MemoryHandler()` | In-memory sinks require zero I/O, run inline, and keep `.entries` on the caller isolate heap. |
 
 ---
 

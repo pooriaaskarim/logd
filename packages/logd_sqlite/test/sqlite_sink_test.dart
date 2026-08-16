@@ -181,12 +181,10 @@ void main() {
       // Test distinct logger names helper
       final distinctLoggers = sink.fetchDistinctLoggerNames();
       expect(distinctLoggers.length, equals(2));
-      final names =
-          distinctLoggers.map((final l) => l['logger_name']).toList();
+      final names = distinctLoggers.map((final l) => l['logger_name']).toList();
 
       expect(names, containsAll(['auth.service', 'db.service']));
     });
-
 
     test('should apply maxEntries retention policy on flush', () async {
       final sink = SqliteSink(
