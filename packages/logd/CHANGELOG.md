@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.9.4: Hot-Path Performance Optimization, Ambient Structured Context & Cross-Isolate Maturation
+
+This release advances logd's production architecture with hot-path stack trace capture bypasses for high-throughput workloads, ambient scope-based structured logging (MDC), and cross-isolate configuration synchronization.
+
+- ### Hot-Path Performance & Lazy Stack Trace Bypass
+  - **Configurable Caller Origin (`includeOrigin`)**: Added `includeOrigin` to `LoggerConfig`, `Logger.configure`, `Logger.configureMultiple`, `Logger.configurePattern`, and `Logger.includeOrigin` getter. Defaults to `true` on the global logger for full backward compatibility.
+  - **VM Stack Unwinding Bypass**: When `includeOrigin: false` and `stackMethodCount[level] == 0` without an explicit `stackTrace`, log dispatch completely bypasses `StackTrace.current` VM capture and `StackTraceParser.parse` regex matching, delivering up to a **~5x throughput gain** (~2.38 µs vs ~11.76 µs dispatch latency).
+  - **Preserved Frame & Trace Invariants**:
+    - When `stackMethodCount[level] > 0` is set, stack frames are collected on `LogEntry.stackFrames` without extracting caller origin headers.
+    - When an explicit `stackTrace` is passed (e.g. `logger.error('Failed', stackTrace: st)`), it is preserved directly on `LogEntry.stackTrace`.
+  - **Hierarchy & Serialization Integration**: Wired `includeOrigin` into hierarchy inheritance, pattern-based matching, `freezeInheritance()` / `unfreezeInheritance()`, and JSON serialization.
+
+- ### Benchmarks & Diagnostics
+  - **Lazy Stack & Origin Bypass Benchmark Target**: Added `packages/benchmarks/lib/lazy_stack_benchmark.dart` to the benchmark harness to measure and safeguard log dispatch throughput.
+
+- ### Testing & Verification
+  - **Dedicated Unit Test Suite**: Added `packages/logd/test/logger/lazy_stack_trace_test.dart` and expanded `logger_serialization_test.dart`, validating origin bypass, frame collection, inheritance, freeze/unfreeze, pattern rules, and serialization roundtrips.
+
 ## 0.9.3: Pre-Wired `{Target}Handler` Subclasses, Dual-Mode `.async()` Pipeline Offloading & Advanced Library Entry Point
 
 This release introduces the pre-wired `{Target}Handler` convenience subclass architecture ([ADR-006](doc/decisions/adr-006-handler-subclass-convention.md)) to eliminate beginner pipeline wiring friction, adds dual-mode `.async()` isolate offloading constructors for non-blocking I/O, prevents state-isolation bugs by design, and introduces a dedicated `package:logd/advanced.dart` entry point for power users and custom engine developers.
