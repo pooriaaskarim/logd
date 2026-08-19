@@ -76,6 +76,11 @@ final class StructuredFormatter implements LogFormatter {
     // 2. Body (----| Message)
     final msgNode = factory.checkoutMessage()
       ..segments.add(StyledText(entry.message));
+    if (entry.context != null && entry.context!.isNotEmpty) {
+      msgNode.segments.add(
+        StyledText(' ${entry.context}', tags: LogTag.none),
+      );
+    }
     final msgPara = factory.checkoutParagraph()..children.add(msgNode);
     final msgDecorated = factory.checkoutDecorated()
       ..leadingWidth = 5

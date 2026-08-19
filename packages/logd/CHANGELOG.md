@@ -12,11 +12,19 @@ This release advances logd's production architecture with hot-path stack trace c
     - When an explicit `stackTrace` is passed (e.g. `logger.error('Failed', stackTrace: st)`), it is preserved directly on `LogEntry.stackTrace`.
   - **Hierarchy & Serialization Integration**: Wired `includeOrigin` into hierarchy inheritance, pattern-based matching, `freezeInheritance()` / `unfreezeInheritance()`, and JSON serialization.
 
+- ### Ambient Structured Context (MDC / `LogContext`)
+  - **Zone-Based Scoped Context (`LogContext.run`)**: Introduced ambient structured context propagation using Dart's `Zone` mechanism. Callers can bind key-value pairs (such as `traceId`, `requestId`, `userId`, `tenantId`) across synchronous blocks, asynchronous `await` chains, and microtasks without manually passing `context` maps through function signatures.
+  - **Scope Nesting & Hierarchical Merging**: Inner `LogContext.run` scopes automatically inherit values from enclosing outer scopes. Keys defined in deeper scopes override parent keys for the lifetime of that scope without mutating the outer context.
+  - **Fast-Path Zero Allocation**: Integrated `LogContext.merge()` into `Logger.logInternal`. When no ambient or explicit context is present, dispatch performs 0 heap allocations.
+  - **Seamless Formatter & Filter Integration**: Ambient context values flow directly into `LogEntry.context`, immediately accessible to `JsonFormatter`, `PlainFormatter`, `StructuredFormatter`, `ToonFormatter`, `HttpDashboardHandler`, and `ContextFilter`.
+
 - ### Benchmarks & Diagnostics
-  - **Lazy Stack & Origin Bypass Benchmark Target**: Added `packages/benchmarks/lib/lazy_stack_benchmark.dart` to the benchmark harness to measure and safeguard log dispatch throughput.
+  - **Lazy Stack & Origin Bypass Benchmark Target**: Added `packages/benchmarks/lib/lazy_stack_benchmark.dart` to measure and safeguard log dispatch throughput.
+  - **Ambient Context Benchmark Target**: Added `packages/benchmarks/lib/log_context_benchmark.dart` to measure ambient zone lookup and merging overhead on the hot path.
 
 - ### Testing & Verification
-  - **Dedicated Unit Test Suite**: Added `packages/logd/test/logger/lazy_stack_trace_test.dart` and expanded `logger_serialization_test.dart`, validating origin bypass, frame collection, inheritance, freeze/unfreeze, pattern rules, and serialization roundtrips.
+  - **Stack Bypass & Caller Origin Suite**: Added `packages/logd/test/logger/lazy_stack_trace_test.dart` and expanded `logger_serialization_test.dart`, validating origin bypass, frame collection, inheritance, freeze/unfreeze, pattern rules, and serialization roundtrips.
+  - **Structured Context Test Suite**: Added `packages/logd/test/logger/log_context_test.dart` with comprehensive coverage of sync/async execution, nested scopes, concurrent event isolation, call-site overrides, filter integration, and structured JSON formatting.
 
 ## 0.9.3: Pre-Wired `{Target}Handler` Subclasses, Dual-Mode `.async()` Pipeline Offloading & Advanced Library Entry Point
 

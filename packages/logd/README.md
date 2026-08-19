@@ -108,6 +108,40 @@ Logger.configurePattern('vendor.*', enabled: false);
 Logger.configurePattern('app.services.*', logLevel: LogLevel.info);
 ```
 
+### Ambient Structured Context (MDC / `LogContext`) (v0.9.4+)
+
+In complex systems, microservices, and asynchronous pipelines, you often need to attach contextual metadata (such as `requestId`, `userId`, `traceId`, or `tenantId`) to every log entry across many deeply nested functions without manually threading a map through every method argument.
+
+`logd` provides **`LogContext.run()`** — an ambient, async-safe Mapped Diagnostic Context (MDC) powered by Dart [Zone]s:
+
+```dart
+import 'package:logd/logd.dart';
+
+Future<void> handleCheckout(String requestId, int userId) async {
+  // Bind ambient context across all sync and async calls in this scope
+  await LogContext.run({'requestId': requestId, 'userId': userId}, () async {
+    final logger = Logger.get('app.checkout');
+
+    logger.info('Validating cart items'); // Context attached automatically!
+    await chargePaymentGateway();        // Downstream async calls inherit context
+    logger.info('Order completed');
+  });
+}
+
+Future<void> chargePaymentGateway() async {
+  // Deep in the call stack — zero logger or context parameters passed!
+  final logger = Logger.get('app.payment');
+  logger.info('Connecting to Stripe gateway'); 
+  // Output: [INFO] [app.payment] Connecting to Stripe gateway {requestId: req-9812, userId: 42}
+}
+```
+
+#### Nested Scopes & Call-Site Overrides
+- **Inheritance & Shadowing**: Inner `LogContext.run` scopes inherit keys from outer scopes. Conflicting keys in the child scope override the parent's value for the duration of the child scope without mutating the parent.
+- **Call-Site Overrides**: Pass `logger.info('msg', context: {'key': 'val'})` to append or override specific metadata keys for a single log entry.
+- **Strict Concurrency Isolation**: Concurrent tasks (e.g. `Future.wait` or parallel HTTP requests) maintain separate contexts with zero race conditions.
+- **Zero-Cost Fast Path**: When no ambient or explicit context is present, log dispatch performs 0 heap allocations.
+
 ### Log levels
 
 | Level | Description |
@@ -202,6 +236,23 @@ Logger.configure('app', handlers: [jsonHandler]);
 **Result**: JSON logs written to `logs/app.log`, rotated daily, keeping 7 compressed backups.  
 > [!NOTE]  
 > Modern formatters (v0.6.1+) automatically include mandatory data like `level`, `message`, `error`, and `stackTrace`. The `metadata` parameter is used only for additional context like timestamps or logger names.
+
+### High-Throughput Caller Origin Bypass (`includeOrigin: false`) (v0.9.4+)
+
+By default, `logd` captures the caller's file and line origin (e.g., `main.dart:42 (handleCheckout)`) for development convenience. In ultra-high-throughput environments (e.g., processing millions of logs/sec or tight loops), capturing and parsing VM stack traces incurs non-trivial latency.
+
+You can configure `includeOrigin: false` to completely bypass `StackTrace.current` VM unwinding and regex parsing, boosting log dispatch throughput by up to **~5x**:
+
+```dart
+// Completely bypass caller stack unwinding for high-frequency logs
+Logger.configure(
+  'app.analytics',
+  includeOrigin: false,
+  handlers: [ConsoleHandler()],
+);
+```
+
+- **Selective Error Preservation**: Passing explicit stack traces (`logger.error('Failed', stackTrace: st)`) or configuring `stackMethodCount[LogLevel.error] = 5` continues to capture and preserve error traces even when caller origin is bypassed.
 
 ### Atomic multi‑line logs
 
