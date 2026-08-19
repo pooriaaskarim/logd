@@ -9,12 +9,14 @@ import '../time/timestamp.dart';
 import '../time/timezone.dart';
 import 'internal_logger.dart';
 import 'log_buffer.dart';
+import 'log_context.dart';
 import 'log_entry.dart';
 import 'serialization_registry.dart';
 
 export '../core/log_level.dart';
 export 'internal_logger.dart';
 export 'log_buffer.dart';
+export 'log_context.dart';
 export 'log_entry.dart';
 export 'serialization_registry.dart';
 
@@ -1965,6 +1967,8 @@ class Logger {
           (needsFrames && parsed.frames.isNotEmpty) ? parsed.frames : null;
     }
 
+    final effectiveContext = LogContext.merge(context);
+
     final entry = Arena.instance.checkoutLogEntry(
       loggerName: name,
       level: level,
@@ -1974,7 +1978,7 @@ class Logger {
       stackFrames: stackFrames,
       error: error,
       stackTrace: stackTrace,
-      context: context,
+      context: effectiveContext,
     );
 
     try {
