@@ -4,6 +4,65 @@
 
 ---
 
+## 2026-08-19 | v0.9.4 | Hot-Path Origin Bypass & Ambient Structured Context (MDC)
+
+- **Focus**: Performance optimization and Mapped Diagnostic Context (MDC).
+- **Key Deliverables**:
+  - `includeOrigin: false` config option bypassing `StackTrace.current` VM unwinding for ~5x throughput speedup.
+  - `LogContext.run()` Zone-based ambient structured context propagation across async boundaries.
+  - Zero-allocation merge semantics (`LogContext.merge()`) on baseline logging paths.
+  - Full formatter integration across `StructuredFormatter`, `PlainFormatter`, `JsonFormatter`, and `ToonFormatter`.
+- **Strategic Architecture Decision**:
+  - Audited multi-isolate behavior following `LogContext` Zone-scoping.
+  - Rejected point-patch cross-isolate pub/sub bus (`LogdIsolateHub`) in favor of a comprehensive, principled multi-isolate architecture for the **v0.10.x milestone track** before locking the API for `v1.0.0`.
+  - Established dedicated knowledge item `.agents/knowledge/logd_isolate_model/` covering topology roles, configuration authority, ambient context bridging, and unified log ingestion.
+- **PR**: #60 merged to `dev`; #61 open on `dev`.
+
+---
+
+## 2026-08-05 | v0.9.3 | Target Handlers & Dual-Mode `.async()` Offloading
+
+- **Focus**: Beginner developer experience (DX) and pipeline wiring simplification.
+- **Key Deliverables**:
+  - Authored and adopted **ADR-006**: Pre-Wired `{Target}Handler` Convenience Subclass Architecture.
+  - Introduced 8 zero-config target handler subclasses (`ConsoleHandler`, `HtmlFileHandler`, `JsonFileHandler`, `PlainFileHandler`, `ToonFileHandler`, `MarkdownFileHandler`, `HttpDashboardHandler`, `MemoryHandler`).
+  - Added `.async()` factory constructors across all output-bound handlers for non-blocking isolate offloading (~15 µs return).
+  - Created `package:logd/advanced.dart` entry point for custom engine developers.
+
+---
+
+## 2026-08-01 | v0.9.2 | Theme Isolate State Preservation & SQLite Satellite Package
+
+- **Focus**: Multi-isolate state synchronization and satellite ecosystem launch.
+- **Key Deliverables**:
+  - Preserved `LogBrightness` across isolate transfers in `LoggerSerializationRegistry`.
+  - Launched `logd_sqlite` (v0.1.0) with WAL persistence, prepared statement caching, and retention pruning.
+  - Added high-contrast WCAG AA light mode palettes.
+
+---
+
+## 2026-07-28 | v0.9.1 | Native TOON Logging & AutoEncoder Protocol Detection
+
+- **Focus**: Token-optimized LLM formatting and sink self-configuration.
+- **Key Deliverables**:
+  - Native `ToonFormatter` / `ToonEncoder` implementation and `doc/toon_spec.md` specification.
+  - Protocol auto-detection via `AutoEncoder` and `'logd.encoder'` metadata contract.
+  - Self-declaring `requiredStrategy` on encoders.
+  - `MemorySink<T>` in-memory ring-buffer with capacity caps.
+
+---
+
+## 2026-07-22 | v0.9.0 | API Stabilization & Semver Contract (Phase 1 Milestone)
+
+- **Focus**: Public symbol audit, semver breaking-change guarantees, and theme unification.
+- **Key Deliverables**:
+  - Audited and decorated public symbols (`@experimental` on low-level FFI/isolate engines).
+  - Published `doc/semver_contract.md`.
+  - Unified theme ownership under `StyleDecorator` and `document.metadata['logd.theme']`.
+  - Extracted `HtmlStylesheet` from `HtmlEncoder`.
+
+---
+
 ## 2026-07-18 | v0.8.9 | Hardening, Web Source Mapping & Roadmap Pivot
 
 - **Focus**: Phase A Hardening completion — polymorphic serialization fix, timezone input hardening and benchmarks, concurrency stress tests, Web Source Mapping, formal ADR documentation.

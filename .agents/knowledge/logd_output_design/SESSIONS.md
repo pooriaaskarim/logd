@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-08-05 | v0.9.3 | Target Handlers & ADR-006 Resolution
+
+### What We Did
+- Standardized 8 pre-wired `{Target}Handler` convenience subclasses (`ConsoleHandler`, `HtmlFileHandler`, `JsonFileHandler`, `PlainFileHandler`, `ToonFileHandler`, `MarkdownFileHandler`, `HttpDashboardHandler`, `MemoryHandler`).
+- Added `.async()` background isolate constructors across all output-bound handlers (~15 µs return).
+- Standardized the `{Target}Handler` convention across core and satellite ecosystem (`logd_sqlite`, `logd_sentry`).
+
+---
+
+## 2026-07-28 | v0.9.1 | TOON Format, AutoEncoder Protocol & Self-Declaring Wrapping
+
+### What We Did
+- Introduced native `ToonFormatter` and `ToonEncoder` for token-efficient LLM logging and telemetry streams.
+- Added `AutoEncoder` protocol contract (`'logd.encoder'`), allowing sinks to automatically detect the matching physical encoder from `document.metadata`.
+- Added `requiredStrategy` to `LogEncoder`, allowing `EncodingSink` to self-default to `WrappingStrategy.document` for `HtmlEncoder` without manual user configuration.
+- Added bounded `MemorySink<T>` ring buffer.
+
+---
+
+## 2026-07-22 | v0.9.0 | Theming Unification & HtmlStylesheet Extraction
+
+### What We Did
+- Resolved theme ownership: `StyleDecorator` is now the single source of truth for semantic tag-to-style resolution and attaches `document.metadata['logd.theme']`.
+- Decoupled CSS/JS generation from `HtmlEncoder` into `HtmlStylesheet` and `DefaultHtmlStylesheet`.
+- Added `LogBrightness` (`dark`, `light`), `lightScheme`, and theme presets (`DarkTheme`, `LightTheme`, `PastelTheme`, `HighContrastTheme`).
+
+---
+
 ## 2026-07-08 | v0.8.7 | Session d882b493
 
 ### What We Did
