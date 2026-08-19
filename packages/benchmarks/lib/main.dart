@@ -9,6 +9,8 @@ import 'v080_native_offload.dart';
 import 'invalidation_benchmark.dart';
 import 'timezone_benchmark.dart';
 import 'async_handler_benchmark.dart';
+import 'lazy_stack_benchmark.dart';
+import 'log_context_benchmark.dart';
 
 Future<void> main() async {
   print('Running Baseline Benchmarks...');
@@ -17,6 +19,8 @@ Future<void> main() async {
   runFormatterBenchmarks();
   runDecoratorBenchmarks();
   await runPipelineBenchmarks();
+  runLazyStackBenchmarks();
+  runLogContextBenchmarks();
   runMultiSinkBenchmarks();
   runInvalidationBenchmark();
   runTimezoneBenchmarks();

@@ -9,12 +9,14 @@ import '../time/timestamp.dart';
 import '../time/timezone.dart';
 import 'internal_logger.dart';
 import 'log_buffer.dart';
+import 'log_context.dart';
 import 'log_entry.dart';
 import 'serialization_registry.dart';
 
 export '../core/log_level.dart';
 export 'internal_logger.dart';
 export 'log_buffer.dart';
+export 'log_context.dart';
 export 'log_entry.dart';
 export 'serialization_registry.dart';
 
@@ -49,6 +51,7 @@ class LoggerConfig {
     checkType('enabled', (final v) => v is bool, 'bool');
     checkType('logLevel', (final v) => v is String, 'String');
     checkType('includeFileLineInHeader', (final v) => v is bool, 'bool');
+    checkType('includeOrigin', (final v) => v is bool, 'bool');
     checkType('autoSinkBuffer', (final v) => v is bool, 'bool');
     checkType('version', (final v) => v is int, 'int');
     checkType('frozenFields', (final v) => v is List, 'List');
@@ -143,6 +146,7 @@ class LoggerConfig {
           ? LogLevel.values.byName(json['logLevel'] as String)
           : null,
       includeFileLineInHeader: json['includeFileLineInHeader'] as bool?,
+      includeOrigin: json['includeOrigin'] as bool?,
       stackMethodCount: smc,
       timestamp: timestamp,
       stackTraceParser: stackTraceParser,
@@ -159,6 +163,7 @@ class LoggerConfig {
     this.enabled,
     this.logLevel,
     this.includeFileLineInHeader,
+    this.includeOrigin,
     this.stackMethodCount,
     this.timestamp,
     this.stackTraceParser,
@@ -177,6 +182,15 @@ class LoggerConfig {
 
   /// Optional: Include file/line in origin. Inherits from parent if null.
   final bool? includeFileLineInHeader;
+
+  /// Optional: Whether to extract call-site origin (class.method).
+  ///
+  /// When `false`, caller resolution and stack trace capture are completely
+  /// bypassed if [stackMethodCount] is 0 and no explicit stack trace is
+  /// provided, significantly improving logging throughput.
+  ///
+  /// Inherits from parent if `null`. Defaults to `true` on the global logger.
+  final bool? includeOrigin;
 
   /// Optional: Stack frames per level. Inherits from parent if null.
   final Map<LogLevel, int>? stackMethodCount;
@@ -215,6 +229,7 @@ class LoggerConfig {
     final Object? enabled = const Object(),
     final Object? logLevel = const Object(),
     final Object? includeFileLineInHeader = const Object(),
+    final Object? includeOrigin = const Object(),
     final Object? stackMethodCount = const Object(),
     final Object? timestamp = const Object(),
     final Object? stackTraceParser = const Object(),
@@ -232,6 +247,9 @@ class LoggerConfig {
         includeFileLineInHeader: includeFileLineInHeader == const Object()
             ? this.includeFileLineInHeader
             : (includeFileLineInHeader as bool?),
+        includeOrigin: includeOrigin == const Object()
+            ? this.includeOrigin
+            : (includeOrigin as bool?),
         stackMethodCount: stackMethodCount == const Object()
             ? this.stackMethodCount
             : (stackMethodCount as Map<LogLevel, int>?),
@@ -257,6 +275,7 @@ class LoggerConfig {
         if (logLevel != null) 'logLevel': logLevel!.name,
         if (includeFileLineInHeader != null)
           'includeFileLineInHeader': includeFileLineInHeader,
+        if (includeOrigin != null) 'includeOrigin': includeOrigin,
         if (stackMethodCount != null)
           'stackMethodCount': <String, int>{
             for (final entry in stackMethodCount!.entries)
@@ -353,6 +372,10 @@ class LoggerCache {
   static bool includeFileLineInHeader(final String loggerName) =>
       _resolve(Logger._normalizeName(loggerName)).includeFileLineInHeader;
 
+  /// Resolves the effective [includeOrigin] for [loggerName].
+  static bool includeOrigin(final String loggerName) =>
+      _resolve(Logger._normalizeName(loggerName)).includeOrigin;
+
   /// Resolves the effective [stackMethodCount] for [loggerName].
   static Map<LogLevel, int> stackMethodCount(final String loggerName) =>
       _resolve(Logger._normalizeName(loggerName)).stackMethodCount;
@@ -400,6 +423,7 @@ class LoggerCache {
     bool? resolvedEnabled;
     LogLevel? resolvedLogLevel;
     bool? resolvedIncludeFileLineInHeader;
+    bool? resolvedIncludeOrigin;
     Map<LogLevel, int>? resolvedStackMethodCount;
     Timestamp? resolvedTimestamp;
     StackTraceParser? resolvedStackTraceParser;
@@ -412,6 +436,7 @@ class LoggerCache {
         resolvedEnabled ??= cSource.enabled;
         resolvedLogLevel ??= cSource.logLevel;
         resolvedIncludeFileLineInHeader ??= cSource.includeFileLineInHeader;
+        resolvedIncludeOrigin ??= cSource.includeOrigin;
         if (cSource.stackMethodCount != null) {
           resolvedStackMethodCount ??= {};
           for (final entry in cSource.stackMethodCount!.entries) {
@@ -432,6 +457,7 @@ class LoggerCache {
             resolvedEnabled ??= pSource.enabled;
             resolvedLogLevel ??= pSource.logLevel;
             resolvedIncludeFileLineInHeader ??= pSource.includeFileLineInHeader;
+            resolvedIncludeOrigin ??= pSource.includeOrigin;
             if (pSource.stackMethodCount != null) {
               resolvedStackMethodCount ??= {};
               for (final entry in pSource.stackMethodCount!.entries) {
@@ -479,6 +505,7 @@ class LoggerCache {
       enabled: resolvedEnabled ?? true,
       logLevel: resolvedLogLevel ?? LogLevel.debug,
       includeFileLineInHeader: resolvedIncludeFileLineInHeader ?? false,
+      includeOrigin: resolvedIncludeOrigin ?? true,
       stackMethodCount: Map.unmodifiable(finalStackMethodCount),
       timestamp: resolvedTimestamp ??
           Timestamp(
@@ -578,6 +605,7 @@ class _ResolvedConfig {
     required this.enabled,
     required this.logLevel,
     required this.includeFileLineInHeader,
+    required this.includeOrigin,
     required this.stackMethodCount,
     required this.timestamp,
     required this.stackTraceParser,
@@ -589,6 +617,7 @@ class _ResolvedConfig {
   final bool enabled;
   final LogLevel logLevel;
   final bool includeFileLineInHeader;
+  final bool includeOrigin;
   final Map<LogLevel, int> stackMethodCount;
   final Timestamp timestamp;
   final StackTraceParser stackTraceParser;
@@ -743,6 +772,7 @@ class Logger {
     final bool? enabled,
     final LogLevel? logLevel,
     final bool? includeFileLineInHeader,
+    final bool? includeOrigin,
     final Map<LogLevel, int>? stackMethodCount,
     final Timestamp? timestamp,
     final StackTraceParser? stackTraceParser,
@@ -754,6 +784,7 @@ class Logger {
         enabled: enabled,
         logLevel: logLevel,
         includeFileLineInHeader: includeFileLineInHeader,
+        includeOrigin: includeOrigin,
         stackMethodCount: stackMethodCount,
         timestamp: timestamp,
         stackTraceParser: stackTraceParser,
@@ -885,6 +916,25 @@ class Logger {
         }
       }
 
+      bool? newIncludeOrigin = existingConfig.includeOrigin;
+      if (newConfig.includeOrigin != null) {
+        final removed = frozenFields.remove('includeOrigin');
+        if (removed) {
+          InternalLogger.log(
+            LogLevel.warning,
+            "'$normalized' field 'includeOrigin' was frozen; "
+            'configure() has promoted it to explicit. Call '
+            'unfreezeInheritance() first to restore dynamic '
+            'resolution instead.',
+          );
+        }
+        if (newConfig.includeOrigin != existingConfig.includeOrigin ||
+            removed) {
+          newIncludeOrigin = newConfig.includeOrigin;
+          changed = true;
+        }
+      }
+
       Map<LogLevel, int>? newStackMethodCount = existingConfig.stackMethodCount;
       if (newConfig.stackMethodCount != null) {
         final removed = frozenFields.remove('stackMethodCount');
@@ -982,6 +1032,7 @@ class Logger {
           enabled: newEnabled,
           logLevel: newLogLevel,
           includeFileLineInHeader: newIncludeFileLineInHeader,
+          includeOrigin: newIncludeOrigin,
           stackMethodCount: newStackMethodCount,
           timestamp: newTimestamp,
           stackTraceParser: newStackTraceParser,
@@ -1032,6 +1083,7 @@ class Logger {
     final bool? enabled,
     final LogLevel? logLevel,
     final bool? includeFileLineInHeader,
+    final bool? includeOrigin,
     final Map<LogLevel, int>? stackMethodCount,
     final Timestamp? timestamp,
     final StackTraceParser? stackTraceParser,
@@ -1046,6 +1098,7 @@ class Logger {
       enabled: enabled,
       logLevel: logLevel,
       includeFileLineInHeader: includeFileLineInHeader,
+      includeOrigin: includeOrigin,
       stackMethodCount: stackMethodCount,
       timestamp: timestamp,
       stackTraceParser: stackTraceParser,
@@ -1208,8 +1261,11 @@ class Logger {
   /// The minimum level to log (events below this are dropped).
   LogLevel get logLevel => LoggerCache.logLevel(name);
 
-  /// Whether to include file path and line number in the origin string.
+  /// Resolves the effective [includeFileLineInHeader] for this logger.
   bool get includeFileLineInHeader => LoggerCache.includeFileLineInHeader(name);
+
+  /// Resolves the effective [includeOrigin] for this logger.
+  bool get includeOrigin => LoggerCache.includeOrigin(name);
 
   /// Map of how many stack frames to include per log level.
   ///
@@ -1288,6 +1344,7 @@ class Logger {
         bool? newEnabled = childConfig.enabled;
         LogLevel? newLogLevel = childConfig.logLevel;
         bool? newIncludeFileLineInHeader = childConfig.includeFileLineInHeader;
+        bool? newIncludeOrigin = childConfig.includeOrigin;
         Map<LogLevel, int>? newStackMethodCount = childConfig.stackMethodCount;
         Timestamp? newTimestamp = childConfig.timestamp;
         StackTraceParser? newStackTraceParser = childConfig.stackTraceParser;
@@ -1318,6 +1375,15 @@ class Logger {
         )) {
           newIncludeFileLineInHeader = includeFileLineInHeader;
           nextFrozenFields.add('includeFileLineInHeader');
+          changed = true;
+          writtenCount++;
+        }
+        if (shouldWrite(
+          field: 'includeOrigin',
+          isNull: childConfig.includeOrigin == null,
+        )) {
+          newIncludeOrigin = includeOrigin;
+          nextFrozenFields.add('includeOrigin');
           changed = true;
           writtenCount++;
         }
@@ -1371,6 +1437,7 @@ class Logger {
             enabled: newEnabled,
             logLevel: newLogLevel,
             includeFileLineInHeader: newIncludeFileLineInHeader,
+            includeOrigin: newIncludeOrigin,
             stackMethodCount: newStackMethodCount,
             timestamp: newTimestamp,
             stackTraceParser: newStackTraceParser,
@@ -1432,6 +1499,7 @@ class Logger {
         bool? newEnabled = childConfig.enabled;
         LogLevel? newLogLevel = childConfig.logLevel;
         bool? newIncludeFileLineInHeader = childConfig.includeFileLineInHeader;
+        bool? newIncludeOrigin = childConfig.includeOrigin;
         Map<LogLevel, int>? newStackMethodCount = childConfig.stackMethodCount;
         Timestamp? newTimestamp = childConfig.timestamp;
         StackTraceParser? newStackTraceParser = childConfig.stackTraceParser;
@@ -1446,6 +1514,8 @@ class Logger {
               newLogLevel = null;
             case 'includeFileLineInHeader':
               newIncludeFileLineInHeader = null;
+            case 'includeOrigin':
+              newIncludeOrigin = null;
             case 'stackMethodCount':
               newStackMethodCount = null;
             case 'timestamp':
@@ -1466,6 +1536,7 @@ class Logger {
             enabled: newEnabled,
             logLevel: newLogLevel,
             includeFileLineInHeader: newIncludeFileLineInHeader,
+            includeOrigin: newIncludeOrigin,
             stackMethodCount: newStackMethodCount,
             timestamp: newTimestamp,
             stackTraceParser: newStackTraceParser,
@@ -1496,6 +1567,10 @@ class Logger {
     if (config.includeFileLineInHeader != null &&
         !config.frozenFields.contains('includeFileLineInHeader')) {
       fields.add('includeFileLineInHeader');
+    }
+    if (config.includeOrigin != null &&
+        !config.frozenFields.contains('includeOrigin')) {
+      fields.add('includeOrigin');
     }
     if (config.stackMethodCount != null &&
         !config.frozenFields.contains('stackMethodCount')) {
@@ -1536,6 +1611,7 @@ class Logger {
         'enabled',
         'logLevel',
         'includeFileLineInHeader',
+        'includeOrigin',
         'stackMethodCount',
         'timestamp',
         'stackTraceParser',
@@ -1552,6 +1628,9 @@ class Logger {
     }
     if (config.includeFileLineInHeader == null) {
       fields.add('includeFileLineInHeader');
+    }
+    if (config.includeOrigin == null) {
+      fields.add('includeOrigin');
     }
     if (config.stackMethodCount == null) {
       fields.add('stackMethodCount');
@@ -1597,6 +1676,7 @@ class Logger {
         'enabled': logger.enabled,
         'logLevel': logger.logLevel.name,
         'includeFileLineInHeader': logger.includeFileLineInHeader,
+        'includeOrigin': logger.includeOrigin,
         'stackMethodCount': {
           for (final e in smc.entries) e.key.name: e.value,
         },
@@ -1853,30 +1933,52 @@ class Logger {
       return;
     }
     final frameCount = stackMethodCount[level] ?? 0;
-    final StackTrace trace;
-    if (stackTrace != null) {
-      trace = stackTrace;
+    final shouldExtractOrigin = includeOrigin;
+    final needsFrames = frameCount > 0;
+    final hasExplicitTrace = stackTrace != null;
+
+    final String origin;
+    final List<CallbackInfo>? stackFrames;
+
+    if (!shouldExtractOrigin && !needsFrames) {
+      origin = '';
+      stackFrames = null;
     } else {
-      trace = StackTrace.current;
+      final StackTrace trace;
+      if (hasExplicitTrace) {
+        trace = stackTrace;
+      } else {
+        trace = StackTrace.current;
+      }
+      final parsed = stackTraceParser.parse(
+        stackTrace: trace,
+        skipFrames: _logMethodSkipFrames,
+        maxFrames: frameCount,
+      );
+      if (shouldExtractOrigin) {
+        if (parsed.caller == null) {
+          return;
+        }
+        origin = _buildOrigin(parsed.caller!);
+      } else {
+        origin = '';
+      }
+      stackFrames =
+          (needsFrames && parsed.frames.isNotEmpty) ? parsed.frames : null;
     }
-    final parsed = stackTraceParser.parse(
-      stackTrace: trace,
-      skipFrames: _logMethodSkipFrames,
-      maxFrames: frameCount,
-    );
-    if (parsed.caller == null) {
-      return;
-    }
+
+    final effectiveContext = LogContext.merge(context);
+
     final entry = Arena.instance.checkoutLogEntry(
       loggerName: name,
       level: level,
       message: message?.toString() ?? '',
       timestamp: timestamp.timestamp ?? '',
-      origin: _buildOrigin(parsed.caller!),
-      stackFrames: parsed.frames.isEmpty ? null : parsed.frames,
+      origin: origin,
+      stackFrames: stackFrames,
       error: error,
       stackTrace: stackTrace,
-      context: context,
+      context: effectiveContext,
     );
 
     try {

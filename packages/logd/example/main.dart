@@ -23,6 +23,7 @@ void main() async {
       _showcaseBasics();
       _showcaseHierarchy();
       await _showcaseTargetHandlers();
+      await _showcaseStructuredContext();
       _showcasePipelines();
       _showcaseTimeAndLocalization();
       _showcaseAdvancedLayouts();
@@ -128,11 +129,31 @@ Future<void> _showcaseTargetHandlers() async {
   );
 }
 
-/// 4. Pipeline Architecture: Handlers, Formatters, & Decorators
+/// 4. Ambient Structured Context (MDC) (v0.9.4+)
+/// LogContext.run allows attaching request, user, or trace metadata to all logs
+/// in an asynchronous execution scope without passing maps through function parameters.
+Future<void> _showcaseStructuredContext() async {
+  _section('4. Ambient Structured Context (v0.9.4+)');
+
+  final logger = Logger.get('app.order');
+
+  await LogContext.run({'requestId': 'req-9812', 'tenant': 'eu-central'},
+      () async {
+    logger.info('Processing incoming order submission');
+
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    logger.info(
+      'Payment verified',
+      context: {'amount': 120.50, 'currency': 'EUR'},
+    );
+  });
+}
+
+/// 5. Pipeline Architecture: Handlers, Formatters, & Decorators
 /// logd pipelines are modular. A Handler composes a Formatter (what it says),
 /// a sequence of Decorators (how it looks), and a Sink (where it goes).
 void _showcasePipelines() {
-  _section('4. Pipeline Architecture');
+  _section('5. Pipeline Architecture');
 
   const prettyHandler = Handler(
     formatter: JsonPrettyFormatter(),
@@ -161,11 +182,11 @@ void _showcasePipelines() {
   Logger.get('app.audit').info('Audit log saved to file (logs/) and console.');
 }
 
-/// 5. Time & Localization
+/// 6. Time & Localization
 /// You can configure how timestamps appear globally or per handler.
 /// Timezones are fully supported (UTC, Local, or Fixed offsets).
 void _showcaseTimeAndLocalization() {
-  _section('5. Time & Localization');
+  _section('6. Time & Localization');
 
   // Global Timestamp configuration via Logger.configure
   Logger.configure(
@@ -207,10 +228,10 @@ void _showcaseTimeAndLocalization() {
   );
 }
 
-/// 6. Advanced Layouts: Toon & JSON
+/// 7. Advanced Layouts: Toon & JSON
 /// Specialized formatters provide unique visual styles for different use cases.
 void _showcaseAdvancedLayouts() {
-  _section('6. Advanced Layouts');
+  _section('7. Advanced Layouts');
 
   // Comic-style structured logs (with explicit schema for machine parsing)
   Logger.configure('app.toon', handlers: [
@@ -231,11 +252,11 @@ void _showcaseAdvancedLayouts() {
   Logger.get('app.vibrant').info('Inspection of complex data.');
 }
 
-/// 7. Grid Layouts: Tables & Columns
+/// 8. Grid Layouts: Tables & Columns
 /// One of the most powerful features of logd is its ability to render true
 /// multi-column grids in the terminal.
 void _showcaseGridLayouts() {
-  _section('7. Grid Layouts');
+  _section('8. Grid Layouts');
 
   final gridHandler = Handler(
     formatter: const TableExampleFormatter(),
@@ -319,10 +340,10 @@ class TableExampleFormatter implements LogFormatter {
   }
 }
 
-/// 8. High-Performance Network Logging
-/// logd can ship logs to remote servers via WebSocket or HTTP with batching.
+/// 9. Network Logging: HTTP & WebSockets
+/// Send logs over the wire using HttpSink and SocketSink.
 Future<void> _showcaseNetwork() async {
-  _section('8. Network Logging');
+  _section('9. Network Logging');
 
   Process? socketServer;
   Process? httpServer;

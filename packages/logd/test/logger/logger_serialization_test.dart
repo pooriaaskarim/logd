@@ -14,6 +14,7 @@ void main() {
         enabled: true,
         logLevel: LogLevel.debug,
         includeFileLineInHeader: true,
+        includeOrigin: false,
         stackMethodCount: const {
           LogLevel.debug: 3,
           LogLevel.error: 10,
@@ -50,6 +51,7 @@ void main() {
       expect(json['enabled'], isTrue);
       expect(json['logLevel'], equals('debug'));
       expect(json['includeFileLineInHeader'], isTrue);
+      expect(json['includeOrigin'], isFalse);
       expect(
         (json['stackMethodCount'] as Map<String, dynamic>)['debug'],
         equals(3),
@@ -78,6 +80,7 @@ void main() {
       expect(deserialized.enabled, isTrue);
       expect(deserialized.logLevel, equals(LogLevel.debug));
       expect(deserialized.includeFileLineInHeader, isTrue);
+      expect(deserialized.includeOrigin, isFalse);
       expect(deserialized.stackMethodCount?[LogLevel.debug], equals(3));
       expect(deserialized.stackMethodCount?[LogLevel.error], equals(10));
       expect(

@@ -1,5 +1,5 @@
 # logd Output Pipeline — Status
-> Current as of: v0.8.7 | Updated: 2026-07-08
+> Current as of: v0.9.4 | Updated: 2026-08-19
 
 ---
 
@@ -7,61 +7,26 @@
 
 | Component | State |
 |---|---|
-| `AnsiEncoder` | ✅ Stable. Correct design, delegate all color to `LogTheme`. |
-| `HtmlEncoder` | ⚠️ Functional but has design debt. Interactive control panel added in v0.8.7. |
-| `MarkdownEncoder` | 🔲 Unknown — not yet deeply reviewed. |
-| `LogTheme` / `LogColorScheme` | ⚠️ Missing `LogSurface`. Dark/light heuristic is a workaround. |
-| `WrappingStrategy` | ⚠️ Still a manual user tax. Not yet self-declared by encoders. |
-| `StyleDecorator` | ⚠️ One of three theme owners. No single source of truth. |
-| `FileSink` | ⚠️ Lifecycle (dispose) is manual. Silent failure if omitted for HTML. |
-| `LogOutput` facade | ❌ Not yet implemented. Waiting for user validation. |
+| `AnsiEncoder` | ✅ Stable. Pure rendering, delegates all color/styling to `LogTheme`. |
+| `HtmlEncoder` | ✅ Stable. Extracted `HtmlStylesheet`, interactive control panel, copy button. |
+| `MarkdownEncoder` | ✅ Stable. GitHub-flavored markdown rendering for CI/CD artifacts. |
+| `ToonEncoder` | ✅ Stable since v0.9.1. Token-optimized output for LLMs and WebSocket streams. |
+| `LogTheme` / `LogColorScheme` | ✅ Stable since v0.9.0/v0.9.2. `LogBrightness.dark`/`light`, `lightScheme`, preset themes. |
+| `WrappingStrategy` | ✅ Stable since v0.9.1. Encoders self-declare `requiredStrategy`. Sinks auto-default. |
+| `StyleDecorator` | ✅ Stable since v0.9.0. Sole source of truth attaching `document.metadata['logd.theme']`. |
+| `TargetHandler` Subclasses | ✅ Stable since v0.9.3 (ADR-006). Pre-wired subclasses eliminate pipeline friction. |
+| `FileSink` | ✅ Stable. Auto-flush, time/size rotation, dispose lifecycle. |
+| `LogOutput` facade | 🔲 Superseded by `{Target}Handler` convenience subclasses (`ConsoleHandler`, `HtmlFileHandler`, etc.). |
 
 ---
 
-## What Was Just Done (v0.8.7)
+## What Was Done (v0.8.8 – v0.9.4)
 
-- Added interactive control panel (search, level filters, live counters) to `HtmlEncoder`
-- Added copy-to-clipboard per log entry (JS postamble)
-- Added `_lightColorMap` for WCAG-compliant light-mode colors
-- Added `darkMode: bool` field to `HtmlEncoder` as an explicit surface override
-- Fixed `_css()` to use `_isDark` as the single truth (was two parallel heuristics)
-- All HTML showcase examples now delete stale files at startup (append-mode integrity)
-- XSS escaping added for map keys
-- Fixed `TableNode` column fallback when `columnWidths` is empty
-- All HTML goldens regenerated
-
----
-
-## Next Steps (Prioritized)
-
-### 1. `LogSurface` in `LogTheme` ← Unblocks everything downstream
-Additive change. No breaking API impact.
-```dart
-enum LogSurface { dark, light }
-class LogTheme {
-  final LogSurface surface; // new field
-  static const dark  = LogTheme(surface: LogSurface.dark,  ...);
-  static const light = LogTheme(surface: LogSurface.light, ...);
-}
-```
-Once this exists: `HtmlEncoder.darkMode` is deprecated, `_lightColorMap` moves to `LogColorScheme.lightScheme`.
-
-### 2. `lightScheme` in `LogColorScheme`
-The WCAG-AA values are already known (see ARCHITECTURE.md). This is a pure addition.
-
-### 3. Encoder declares `requiredStrategy`
-```dart
-abstract interface class LogEncoder {
-  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
-}
-class HtmlEncoder implements LogEncoder {
-  @override WrappingStrategy get requiredStrategy => WrappingStrategy.document;
-}
-```
-`EncodingSink` reads this automatically. `WrappingStrategy` disappears from public API.
-
-### 4. `LogOutput` facade (deferred — do after steps 1–3)
-Only ship after 2–3 real production use cases validate the API shape. Not yet.
+- **v0.9.3**: Implemented ADR-006 Pre-Wired `{Target}Handler` convenience subclasses (`ConsoleHandler`, `HtmlFileHandler`, `JsonFileHandler`, `PlainFileHandler`, `ToonFileHandler`, `MarkdownFileHandler`, `HttpDashboardHandler`, `MemoryHandler`) and `.async()` isolate factories.
+- **v0.9.2**: Fixed `LogBrightness` theme serialization across isolate boundaries; added high-contrast light mode palettes (`--warning: #92400e;`).
+- **v0.9.1**: Added native `ToonFormatter` / `ToonEncoder`; added `AutoEncoder` protocol auto-detection contract (`'logd.encoder'`); enabled encoders to self-declare `requiredStrategy`.
+- **v0.9.0**: Unified theming with `StyleDecorator` as sole authority; decoupled CSS/JS into `HtmlStylesheet`; added standard theme presets (`DarkTheme`, `LightTheme`, `PastelTheme`, `HighContrastTheme`).
+- **v0.8.8**: Added `HttpServerSink` live dashboard viewer with live WebSocket streaming and raw HTML segment rendering.
 
 ---
 

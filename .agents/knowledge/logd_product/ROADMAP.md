@@ -79,20 +79,24 @@ The following is a professional critical analysis of the three-area product road
 ## Unified Phased Roadmap (Revised 2026-07-18)
 
 ```
-Phase 1 (v0.9.x) — API Stabilization
-  - Audit all public symbols: @stable / @experimental / @internal
-  - Define and publish semver contract document
-  - DX quality pass (error messages, self-init, single import)
-  - Freeze Handler, LogSink, LogFormatter extension points
-  - Criticize and Standardize Theming API (light/dark, WCAG compliance) + integrated various outputs themes and color schemes + API DX ovehaul
-  
+Phase 1 (v0.9.x) — Foundation, DX & Performance
+  - Audit public symbols: @stable / @experimental / @internal
+  - Publish semver contract document
+  - TargetHandler convenience subclasses (ADR-006) & dual-mode .async() offloading
+  - Unified theming & HtmlStylesheet extraction
+  - Ambient Structured Context (LogContext.run / MDC) & caller origin bypass
 
-Phase 2 (v1.0) — Major Release & Ecosystem Expansion
-  - No breaking changes vs Phase 1 stable symbols
-  - First-party satellite sinks: logd_sqlite, logd_memory, logd_sentry
+Phase 2 (v0.10.x) — Multi-Isolate Architecture & Ecosystem Expansion
+  - Principled Multi-Isolate Architecture (explicit topology roles, configuration broadcast protocol, ambient context bridging, unified ingestion stream — see `logd_isolate_model/`)
+  - Satellite ecosystem maturation: logd_sqlite, logd_memory, logd_sentry
+  - Validate multi-isolate contracts in real-world server/cluster/worker scenarios
+
+Phase 3 (v1.0.0) — Major Release & API Stability Lock
+  - Public declaration of complete API stability across single and multi-isolate models
+  - Zero breaking changes to @stable symbols without major semver bumps
   - Deprecation notices on HttpServerSink, SocketSink, NativeEngine in core
 
-Phase 3 (v1.1+) — Dependency Extraction & Lean Core
+Phase 4 (v1.1+ / v2.0) — Dependency Extraction & Lean Core
   - logd_http, logd_socket, logd_native published as satellite packages
   - Remove deprecated transitive deps from core
   - Core becomes dependency-minimal (timezone, meta, characters only)
@@ -102,23 +106,29 @@ Phase 3 (v1.1+) — Dependency Extraction & Lean Core
 
 ## Phase Timeline Detail
 
-### Phase 1: API Stabilization (v0.9.x)
-**Goal**: Produce a stable, documented, annotated public API surface that can safely be targeted by satellite packages.
+### Phase 1: Foundation, DX & Performance (v0.9.x)
+**Goal**: Establish clean DX, robust theming, ambient structured logging, and hot-path execution efficiency.
 - Symbol annotation audit (`@stable`, `@experimental`, `@internal` via `package:meta`)
 - Publish semver contract document in `doc/`
-- DX quality pass: self-initialization, unified import, actionable error messages
-- Formal freeze of `LogSink`, `LogFormatter`, `LogDecorator`, `Handler` extension points
-- `LogSurface` / light mode theme consolidation (defer facade until Phase 2)
+- TargetHandler pre-wired subclasses (ADR-006)
+- Ambient Structured Context (`LogContext.run`) & hot-path caller origin bypass (`includeOrigin: false`)
+- Theming unification (`LogBrightness`, `lightScheme`)
 
-### Phase 2: Major Release & Ecosystem Expansion (v1.0)
-**Goal**: Publicly declare API stability and launch the plugin ecosystem.
-- Zero breaking changes relative to Phase 1 `@stable` symbols
-- Launch satellite packages: `logd_sqlite`, `logd_memory`, `logd_sentry`
-- `LogOutput` facade (convenience constructors: `LogOutput.console()`, `LogOutput.htmlFile()`)
-- Deprecation notices on `HttpServerSink`, `SocketSink`, `NativeEngine` in core with migration guides to satellite equivalents
-- Session/Handle lifecycle pattern for atomic sink disposal
+### Phase 2: Multi-Isolate Architecture & Ecosystem Expansion (v0.10.x)
+**Goal**: Design and iterate on a principled multi-isolate semantic model with full design freedom before committing to v1.0 API freeze.
+- Explicit topology roles (`primary`, `worker`)
+- Deterministic binary configuration broadcast protocol
+- Cross-isolate ambient context serialization & restoration bridges
+- Centralized unified ingestion stream vs. distributed pipeline validation
+- Satellite packages launch: `logd_sqlite`, `logd_memory`, `logd_sentry`
 
-### Phase 3: Lean Core (v1.1+)
+### Phase 3: Major Release & API Stability Lock (v1.0.0)
+**Goal**: Publicly declare full API stability across all execution models.
+- Zero breaking changes relative to `@stable` symbols
+- Full semver breaking-change commitment for production consumers
+- Formal deprecation notices for heavy transitive network/FFI dependencies in core
+
+### Phase 4: Lean Core (v1.1+ / v2.0)
 **Goal**: Reduce core to a minimal, fast, dependency-light foundation.
 - Publish `logd_http` (HttpServerSink + WebSocket dashboard)
 - Publish `logd_socket` (SocketSink, network reconnect)

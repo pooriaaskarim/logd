@@ -4,6 +4,81 @@
 
 ---
 
+## 2026-08-19 | v0.9.4 | Hot-Path Origin Bypass & Ambient Structured Context (MDC)
+
+### What We Did
+- **Origin Bypass (`includeOrigin: false`)**: Bypassed `StackTrace.current` VM unwinding and regex parsing when caller origin is not needed and `stackMethodCount == 0`, delivering ~5x throughput speedup (~2.38 µs/log). Preserved explicit stack traces and frame count collections.
+- **Ambient Structured Context (`LogContext.run` / MDC)**: Implemented Zone-based ambient context propagation across synchronous execution and async `await` chains without threading maps through method parameters.
+- **Scope Hierarchy & Fast Path**: Scopes merge hierarchically (inner overrides outer for scope duration). `LogContext.merge()` performs 0 heap allocations when no context is active.
+- **Formatter Integration**: Formatter suite (`StructuredFormatter`, `PlainFormatter`, `JsonFormatter`, `ToonFormatter`) and `ContextFilter` seamlessly render and filter `LogEntry.context`.
+- **Validation & Benchmarks**: Added `lazy_stack_benchmark.dart`, `log_context_benchmark.dart`, `origin_bypass_demo.dart`, `ambient_context_demo.dart`, and full test suites with 100% pass rate across 2,513 tests.
+- **Documentation**: Updated `README.md`, `CHANGELOG.md`, `doc/logger/architecture.md`, `doc/logger/README.md`, and `doc/stack_trace/architecture.md`.
+
+### Key Decisions
+- `context` is treated as core payload data (like `message`, `error`, `stackTrace`), rather than suppressible envelope metadata in `LogMetadata` (`timestamp`, `logger`, `origin`). This maintains backward compatibility and prevents silent data drops.
+
+---
+
+## 2026-08-05 | v0.9.3 | Target Handlers & Dual-Mode `.async()` Offloading
+
+### What We Did
+- **Pre-Wired `{Target}Handler` Architecture (ADR-006)**: Replaced multi-stage manual pipeline wiring with 8 strongly-typed convenience subclasses: `ConsoleHandler`, `HtmlFileHandler`, `JsonFileHandler`, `PlainFileHandler`, `ToonFileHandler`, `MarkdownFileHandler`, `HttpDashboardHandler`, `MemoryHandler`.
+- **Dual-Mode `.async()` Factory Constructors**: Added `.async()` constructors across all 6 output-bound handlers, automatically offloading formatting, decoration, and physical I/O to background worker isolates (~15 µs return).
+- **Safety by Design**: Kept `MemoryHandler` (in-process heap) and `HttpDashboardHandler` (local socket server) strictly synchronous in-process to avoid cross-isolate state disconnects.
+- **Modular Entry Point**: Created `package:logd/advanced.dart` exposing low-level engine and isolate internals (`AsyncHandler`, `ArenaEngine`, `NativeEngine`, `IsolateSink`, `LogEngine`) for engine authors, simplifying the primary `package:logd/logd.dart` export surface.
+
+---
+
+## 2026-08-01 | v0.9.2 | Theme Isolate State Preservation & SQLite Satellite Package
+
+### What We Did
+- **Theme Brightness Transport**: Fixed theme brightness state loss across multi-isolate boundaries in `LoggerSerializationRegistry`. Preserved `LogBrightness` state (`dark` vs `light`) across `AsyncHandler` and `IsolateSink` transfers.
+- **High-Contrast Light Theme**: Added WCAG AA-compliant high-contrast amber/red/green color palette mappings to `LogColorScheme.lightScheme` and `DefaultHtmlStylesheet`.
+- **Deep Hierarchy Safeguards**: Verified 12-level deep logger tree configuration resolution completes in < 50 µs/lookup; enforced `Logger.maxHierarchyDepth` safety limit warnings.
+- **Ecosystem Expansion**: Launched [`logd_sqlite`](https://pub.dev/packages/logd_sqlite) satellite package (v0.1.0) for high-performance SQLite WAL log persistence.
+
+---
+
+## 2026-07-28 | v0.9.1 | Native TOON Format & Protocol Auto-Detect Encoders
+
+### What We Did
+- **Tree-Oriented Object Notation (TOON)**: Implemented native `ToonFormatter` for semantic IR and `ToonEncoder` for string/ANSI rendering; integrated with live HTTP dashboard viewer; authored `doc/toon_spec.md`.
+- **Protocol Auto-Detect Encoders (`AutoEncoder`)**: Standardized `'logd.encoder'` metadata contract, enabling default sinks (`ConsoleSink`, `FileSink`, `HttpSink`, `SocketSink`) to auto-delegate to matching physical encoders.
+- **Self-Declaring Wrapping Strategies**: Added `requiredStrategy` getter to `LogEncoder`, allowing `EncodingSink` to default to the encoder's minimum required wrapping strategy.
+- **In-Memory Ring Buffer (`MemorySink`)**: Added bounded `MemorySink<T>` and capacity capping (`maxEntries`) on `LogBuffer`.
+- **Stack Trace Symbol Hooks**: Added `@experimental` `SymbolResolver` hook to `StackTraceParser` for custom symbol demangling and deobfuscation.
+- **ADRs 002–005**: Authored architecture decision records covering cache invalidation, sparse storage, unmodifiable collections, and internal logger contracts.
+
+---
+
+## 2026-07-22 | v0.9.0 | Core API Stabilization & Semver Contract (Phase 1)
+
+### What We Did
+- **API Stabilization**: Audited all public exports; decorated low-level FFI/native components with `@experimental`; froze `LogFormatter`, `LogDecorator`, `LogSink`, and `Handler` as stable extension points.
+- **Semver Specification**: Published `doc/semver_contract.md` defining stability tiers and breaking change policies.
+- **Unified Theme Architecture**: Consolidated semantic color palettes into `LogColorScheme` (5 levels) and visual styling into `LogStyle`; standardized `StyleDecorator` as the single source of truth for attaching theme metadata to `document.metadata['logd.theme']`.
+- **Extracted `HtmlStylesheet`**: Decoupled CSS/JS generation from `HtmlEncoder` into interchangeable `HtmlStylesheet` interface.
+
+---
+
+## 2026-07-18 | v0.8.9 | Web Source Mapping & Polymorphic Serialization
+
+### What We Did
+- **Web Source Mapping (Phase B)**: Enabled translation of Chrome, Firefox, and Safari stack traces back to original Dart source coordinates and deobfuscated method names via `.js.map` source maps.
+- **Polymorphic Serialization Fix**: Fixed a bug where custom log sinks or filters registered in multi-isolate environments failed to serialize due to generic type erasure.
+- **Timezone Parameter Hardening**: Hardened named timezone parameter parsing with input validation.
+
+---
+
+## 2026-07-12 | v0.8.8 | Async Isolate Offloading & Live HttpServer Dashboard
+
+### What We Did
+- **Isolate Offloading (`AsyncHandler`)**: Overhauled background worker isolate offloading with reusable `IsolateWorker` lifecycle manager.
+- **Embedded Dashboard (`HttpServerSink`)**: Added loopback HTTP dashboard server with WebSocket upgrade for real-time live log telemetry.
+- **Lifecycle Guarantees**: Added public `Future<void> dispose()` contract to `Handler` base class and `ready` startup completers.
+
+---
+
 ## 2026-07-08 | v0.8.7 | Core Stabilization & Concurrency Hardening
 
 ### What We Did
