@@ -29,21 +29,26 @@ final dbLogger = Logger.get('app.db');  // Inherits from 'app'
 
 ## Component Overview
 
-The logger module consists of 4 source files:
+The logger module consists of 6 source files:
 
 ### Core Components
 
 #### [logger.dart](../../packages/logd/lib/src/logger/logger.dart)
 Main implementation file containing:
 - **`Logger`** - Primary public API for logging operations
-- **`LoggerConfig`** - Sparse configuration storage (nullable fields for inheritance)
+- **`LoggerConfig`** - Sparse configuration storage (nullable fields for inheritance, `includeOrigin` bypass)
 - **`LoggerCache`** - Version-based caching system with lazy resolution
 - **`_ResolvedConfig`** - Immutable container for resolved configuration
 
 #### [log_entry.dart](../../packages/logd/lib/src/logger/log_entry.dart)
 - **`LogEntry`** - Structured representation of a log event
-- Contains: logger name, level, message, timestamp, origin, stack frames, error, stack trace
+- Contains: logger name, level, message, timestamp, origin, stack frames, error, stack trace, and structured context map
 - Computes `hierarchyDepth` dynamically from logger name
+
+#### [log_context.dart](../../packages/logd/lib/src/logger/log_context.dart)
+- **`LogContext`** - Ambient, Zone-based structured logging context (Mapped Diagnostic Context)
+- Enables `LogContext.run({'requestId': '...'}, () => ...)` across asynchronous call stacks
+- Supports nested scope inheritance, shadowing, zero-allocation fast-path merges, and call-site overrides
 
 #### [log_buffer.dart](../../packages/logd/lib/src/logger/log_buffer.dart)
 - **`LogBuffer`** - Efficient buffer for building multi-line log messages
@@ -64,7 +69,9 @@ Main implementation file containing:
 
 - **Hierarchy Management**: Factory pattern via `Logger.get(name)` with dot-separated inheritance
 - **Lazy Resolution**: Sparse configuration storage with version-based cache invalidation (O(1) access)
+- **Ambient Context Propagation**: Zone-based scoped context propagation via `LogContext.run`
 - **Log Dispatch**: Implicit `LogEntry` generation and routing to the `Handler` pipeline
+- **Caller Origin Bypass**: High-throughput mode (`includeOrigin: false`) bypassing VM stack unwinding
 - **Multi-Line Buffering**: Atomic multi-line log output via `LogBuffer`
 - **Fail-Safe Logging**: Internal error handling and graceful fallbacks via `InternalLogger` and `fallbackHandler`
 - **Observability**: Zero-cost framework telemetry via `LoggerMetrics`
