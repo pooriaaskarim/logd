@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.9.4: Hot-Path Performance Optimization, Ambient Structured Context & Cross-Isolate Maturation
+## 0.9.4: Hot-Path Performance Optimization & Ambient Structured Context (MDC)
 
-This release advances logd's production architecture with hot-path stack trace capture bypasses for high-throughput workloads, ambient scope-based structured logging (MDC), and cross-isolate configuration synchronization.
+This release advances logd's production architecture with hot-path stack trace capture bypasses (~5x throughput speedup) for high-throughput workloads and ambient scope-based structured logging (MDC) across synchronous and asynchronous execution paths.
 
 - ### Hot-Path Performance & Lazy Stack Trace Bypass
   - **Configurable Caller Origin (`includeOrigin`)**: Added `includeOrigin` to `LoggerConfig`, `Logger.configure`, `Logger.configureMultiple`, `Logger.configurePattern`, and `Logger.includeOrigin` getter. Defaults to `true` on the global logger for full backward compatibility.
