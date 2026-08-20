@@ -8,4 +8,5 @@ workspace:
   - packages/benchmarks
   - packages/logd_linters
   - packages/logd_sqlite
+  - packages/logd_network
 
