@@ -16,6 +16,10 @@ import 'dashboard_html.dart';
 
 /// A [LogSink] that starts a local HTTP and WebSocket server to host a
 /// real-time log viewer dashboard.
+@Deprecated(
+  'Use HttpServerSink from package:logd_network instead. '
+  'Will be removed in v0.10.0',
+)
 @experimental
 base class HttpServerSink extends EncodingSink {
   /// Creates an [HttpServerSink] binding to [address] and [port].

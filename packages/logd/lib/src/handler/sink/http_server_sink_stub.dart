@@ -8,6 +8,10 @@ import '../sink/sink.dart';
 
 /// A [LogSink] that throws under browser/web environments as HTTP servers are
 /// unsupported.
+@Deprecated(
+  'Use HttpServerSink from package:logd_network instead. '
+  'Will be removed in v0.10.0',
+)
 @experimental
 base class HttpServerSink extends EncodingSink {
   /// Creates an [HttpServerSink] stub that throws [UnsupportedError].

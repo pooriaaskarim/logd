@@ -11,6 +11,10 @@ import '../sink/http_server_sink.dart';
 ///
 /// Pre-wires [StructuredFormatter], [HtmlEncoder], and an [HttpServerSink]
 /// binding to [address] and [port].
+@Deprecated(
+  'Use HttpDashboardHandler from package:logd_network instead. '
+  'Will be removed in v0.10.0',
+)
 @immutable
 class HttpDashboardHandler extends Handler {
   /// Creates an [HttpDashboardHandler].

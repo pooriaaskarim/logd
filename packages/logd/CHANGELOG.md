@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.9.5: Extraction of Network Sinks to Satellite Package (logd_network) & Soft Deprecations (ADR-007)
+
+This release extracts all external network dependencies (`package:http`, `package:web_socket_channel`) into a standalone satellite package: [`package:logd_network`](https://pub.dev/packages/logd_network).
+
+- ### Satellite Package Extraction (`logd_network`)
+  - **Modular Network Telemetry**: Extracted `HttpSink`, `SocketSink`, `HttpServerSink`, `HttpDashboardHandler`, `NetworkSink`, and `DropPolicy` into `packages/logd_network`.
+  - **Standalone Interactive Showcases & Test Harness**: Migrated unit and live integration tests into `packages/logd_network/test/` (17/17 passing) and created an interactive CLI gallery in `packages/logd_network/example/main.dart`.
+  - **Cross-Isolate Serializers**: Implemented `registerLogdNetworkSerializers()` in `package:logd_network` for background isolate deserialization.
+
+- ### Core Package Soft Deprecations & Boundary Protection
+  - **Soft Deprecations (Removal in v0.10.0)**: Added `@Deprecated` annotations targeting `v0.10.0` on `HttpSink`, `SocketSink`, `NetworkSink`, `DropPolicy`, `HttpServerSink`, and `HttpDashboardHandler` in `packages/logd`.
+  - **Encapsulation Access**: Exposed `@protected isPreambleWritten` in `EncodingSink` to allow satellite package sinks to safely format document-level preambles.
+  - **Core Examples Decoupled**: Updated `packages/logd/example/` to focus cleanly on the 7 core TargetHandlers (`ConsoleHandler`, `MemoryHandler`, `JsonFileHandler`, `HtmlFileHandler`, `ToonFileHandler`, `MarkdownFileHandler`, `PlainFileHandler`), removing all local network server dependencies from core examples.
+
+- ### Documentation & Decisions
+  - **ADR-007 Authored**: Documented ADR-007 (*Satellite Package Architecture for Domain-Specific Sinks & Handlers*) in `doc/decisions/adr-007-satellite-package-extraction.md`.
+  - **Migration Guide Updated**: Added `v0.9.4` to `v0.9.5` migration instructions in `doc/migration.md`.
+
 ## 0.9.4: Hot-Path Performance Optimization & Ambient Structured Context (MDC)
 
 This release advances logd's production architecture with hot-path stack trace capture bypasses (~5x throughput speedup) for high-throughput workloads and ambient scope-based structured logging (MDC) across synchronous and asynchronous execution paths.

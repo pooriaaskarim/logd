@@ -1,6 +1,10 @@
 part of 'sink.dart';
 
 /// Defines the behavior when the network buffer reaches its maximum capacity.
+@Deprecated(
+  'Use DropPolicy from package:logd_network instead. '
+  'Will be removed in v0.10.0',
+)
 enum DropPolicy {
   /// Discard the oldest entries in the buffer to make room for new ones.
   discardOldest,
@@ -15,6 +19,10 @@ enum DropPolicy {
 }
 
 /// A base class for network-based sinks that require an internal buffer.
+@Deprecated(
+  'Use NetworkSink from package:logd_network instead. '
+  'Will be removed in v0.10.0',
+)
 abstract base class NetworkSink extends EncodingSink {
   /// Creates a [NetworkSink].
   ///
@@ -87,14 +95,14 @@ abstract base class NetworkSink extends EncodingSink {
     }
 
     // Trigger preamble if needed
-    if (strategy == WrappingStrategy.document && !_preambleWritten) {
+    if (strategy == WrappingStrategy.document && !isPreambleWritten) {
       final context = factory.checkoutContext();
       encoder.preamble(context, level, factory, document: document);
       final preamble = context.takeBytes();
       if (preamble.isNotEmpty) {
         enqueue(preamble);
       }
-      _preambleWritten = true;
+      isPreambleWritten = true;
       factory.release(context);
     }
 
@@ -118,7 +126,7 @@ abstract base class NetworkSink extends EncodingSink {
   @override
   @mustCallSuper
   Future<void> dispose() async {
-    if (strategy == WrappingStrategy.document && _preambleWritten) {
+    if (strategy == WrappingStrategy.document && isPreambleWritten) {
       const factory = StandardPipelineFactory();
       final context = factory.checkoutContext();
       encoder.postamble(context, LogLevel.info, factory);
@@ -152,6 +160,10 @@ class _NetworkState {
 }
 
 /// A [NetworkSink] that transmits logs via HTTP POST.
+@Deprecated(
+  'Use HttpSink from package:logd_network instead. '
+  'Will be removed in v0.10.0',
+)
 base class HttpSink extends NetworkSink {
   /// Creates an [HttpSink].
   ///
@@ -325,6 +337,10 @@ class _HttpState extends _NetworkState {
 }
 
 /// A [NetworkSink] that transmits logs via a WebSocket.
+@Deprecated(
+  'Use SocketSink from package:logd_network instead. '
+  'Will be removed in v0.10.0',
+)
 base class SocketSink extends NetworkSink {
   /// Creates a [SocketSink].
   ///
