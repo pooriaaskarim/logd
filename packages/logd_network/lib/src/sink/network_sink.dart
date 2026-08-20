@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert' as convert;
-import 'dart:io' as io;
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -277,7 +276,7 @@ base class HttpSink extends NetworkSink {
           return;
         }
 
-        throw io.HttpException('HTTP Error ${response.statusCode}', uri: uri);
+        throw http.ClientException('HTTP Error ${response.statusCode}', uri);
       } catch (e) {
         attempts++;
         if (attempts >= maxRetries) {
