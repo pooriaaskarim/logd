@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1
+
+- **Web & WASM Compatibility**:
+  - Replaced `dart:io` `HttpException` with `http.ClientException` in `HttpSink` to enable full Web and WASM runtime compatibility across browser targets.
+- **Example & Developer Experience**:
+  - Hide deprecated core network exports in `example/example.dart` to prevent shadow analyzer warnings.
+  - Added standalone `example/example.dart` entrypoint.
+- **Package Metadata**:
+  - Added explicit target platform declarations (`android`, `ios`, `linux`, `macos`, `web`, `windows`) and topic tags (`logging`, `network`, `http`, `websocket`, `observability`).
+
 ## 0.1.0
 
 - Initial release of `logd_network`, a dedicated satellite package providing HTTP telemetry, WebSocket streaming, and embedded browser dashboards for `logd`.

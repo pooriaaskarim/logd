@@ -1,4 +1,4 @@
-import 'package:logd/logd.dart';
+import 'package:logd/logd.dart' hide HttpDashboardHandler, HttpSink, SocketSink, DropPolicy;
 import 'package:logd_network/logd_network.dart';
 
 void main() async {
