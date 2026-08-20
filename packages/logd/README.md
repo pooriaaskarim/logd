@@ -371,6 +371,34 @@ Logger.configure('app', handlers: [
 ]);
 ```
 
+### SQLite Persistence (`logd_sqlite`)
+
+Store structured logs locally with WAL-mode concurrency and rich query engine using [`package:logd_sqlite`](https://pub.dev/packages/logd_sqlite):
+
+```dart
+import 'package:logd/logd.dart';
+import 'package:logd_sqlite/logd_sqlite.dart';
+
+final sqliteHandler = SqliteHandler(
+  dbPath: 'app_logs.db',
+  maxEntries: 10000,
+  maxAge: const Duration(days: 7),
+  batchSize: 50,
+  flushInterval: const Duration(seconds: 2),
+  walMode: true,
+);
+
+Logger.configure('app', handlers: [sqliteHandler]);
+
+// Query stored logs & level breakdown
+final errors = sqliteHandler.queryLogs(
+  minLevel: LogLevel.warning,
+  search: 'Payment',
+  limit: 50,
+);
+final counts = sqliteHandler.fetchLevelCounts();
+```
+
 ---
 
 ## Performance
@@ -522,53 +550,6 @@ Logger.configure('auth', handlers: [
   ),
 ]);
 ```
-
-### SQLite Persistence (`logd_sqlite`)
-
-```yaml
-dependencies:
-  logd: ^0.9.4
-  logd_sqlite: ^0.1.0
-```
-
-```dart
-import 'package:logd/logd.dart';
-import 'package:logd_sqlite/logd_sqlite.dart';
-
-void main() async {
-  final sqliteHandler = SqliteHandler(
-    dbPath: 'app_logs.db',
-    maxEntries: 10000,
-    maxAge: const Duration(days: 7),
-    batchSize: 50,
-    flushInterval: const Duration(seconds: 2),
-    walMode: true,
-  );
-
-  Logger.configure('app', handlers: [sqliteHandler]);
-
-  final logger = Logger.get('app.payment');
-  logger.info(
-    'Payment processed',
-    context: {'transactionId': 'TX-9042', 'amount': 150.00},
-  );
-
-  // Query stored logs
-  final errors = sqliteHandler.queryLogs(
-    minLevel: LogLevel.warning,
-    search: 'Payment',
-    limit: 50,
-  );
-
-  // Level breakdown
-  final counts = sqliteHandler.fetchLevelCounts();
-  print('Warnings: ${counts[LogLevel.warning]}');
-
-  await sqliteHandler.dispose();
-}
-```
-
-Key features: WAL-mode batch commits, auto-pruning retention (`maxEntries`, `maxAge`), rich query engine (`queryLogs`, `fetchLevelCounts`, `fetchDistinctLoggerNames`).
 
 ### In-Memory Ring Buffer
 
