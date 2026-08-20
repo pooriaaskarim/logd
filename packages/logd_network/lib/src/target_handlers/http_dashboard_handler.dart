@@ -4,17 +4,13 @@ library;
 
 import 'package:meta/meta.dart';
 
-import '../handler.dart';
+import 'package:logd/logd.dart' hide HttpServerSink;
 import '../sink/http_server_sink.dart';
 
 /// A pre-wired [Handler] that hosts a real-time web dashboard over HTTP/WS.
 ///
 /// Pre-wires [StructuredFormatter], [HtmlEncoder], and an [HttpServerSink]
 /// binding to [address] and [port].
-@Deprecated(
-  'Use HttpDashboardHandler from package:logd_network instead. '
-  'Will be removed in v0.10.0',
-)
 @immutable
 class HttpDashboardHandler extends Handler {
   /// Creates an [HttpDashboardHandler].
@@ -30,14 +26,14 @@ class HttpDashboardHandler extends Handler {
     super.engine = const StandardEngine(),
     super.timeout,
   }) : super(
-          formatter: formatter ?? const StructuredFormatter(),
-          sink: HttpServerSink(
-            address: address,
-            port: port,
-            encoder: HtmlEncoder(title: title ?? 'logd Real-Time Dashboard'),
-            bufferCapacity: bufferCapacity,
-            lineLength: lineLength,
-          ),
-          decorators: decorators ?? const [],
-        );
+         formatter: formatter ?? const StructuredFormatter(),
+         sink: HttpServerSink(
+           address: address,
+           port: port,
+           encoder: HtmlEncoder(title: title ?? 'logd Real-Time Dashboard'),
+           bufferCapacity: bufferCapacity,
+           lineLength: lineLength,
+         ),
+         decorators: decorators ?? const [],
+       );
 }

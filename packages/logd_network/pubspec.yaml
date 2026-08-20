@@ -1,0 +1,20 @@
+name: logd_network
+description: Network-based sinks and observability handlers (HTTP, WebSockets, Dashboard) for the logd engine.
+version: 0.1.0
+repository: https://github.com/pooriaaskarim/logd/tree/master/packages/logd_network
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  logd:
+    path: ../logd
+  http: ^1.2.0
+  web_socket_channel: ^3.0.0
+  meta: ^1.19.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  mocktail: ^1.0.4
+  test: ^1.25.6

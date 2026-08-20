@@ -2,7 +2,9 @@
 
 This directory contains detailed documentation regarding the design, architecture, and roadmap of the `logd` library.
 
-- [**Migration Guide**](migration.md): Upgrading from legacy versions and Flutter SDK decoupling details.
+- [**Migration Guide**](migration.md): Upgrading from legacy versions, satellite migrations, and Flutter SDK decoupling details.
+- [**Architecture Decision Records (ADRs)**](decisions/README.md): Formal design decisions from ADR-001 to ADR-007.
+- [**Cross-Isolate Coordination Guide**](logger/isolates.md): Configuration snapshots, serialization registry, and satellite package hooks.
 
 ## Logger Core
 The core module handles logger instantiation, the inheritance hierarchy, and configuration resolution.

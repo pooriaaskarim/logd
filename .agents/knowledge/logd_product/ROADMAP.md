@@ -85,22 +85,31 @@ Phase 1 (v0.9.x) — Foundation, DX & Performance
   - TargetHandler convenience subclasses (ADR-006) & dual-mode .async() offloading
   - Unified theming & HtmlStylesheet extraction
   - Ambient Structured Context (LogContext.run / MDC) & caller origin bypass
+  - Extract `logd_network` satellite package & soft-deprecate core network classes (v0.9.5)
 
-Phase 2 (v0.10.x) — Multi-Isolate Architecture & Ecosystem Expansion
-  - Principled Multi-Isolate Architecture (explicit topology roles, configuration broadcast protocol, ambient context bridging, unified ingestion stream — see `logd_isolate_model/`)
-  - Satellite ecosystem maturation: logd_sqlite, logd_memory, logd_sentry
-  - Validate multi-isolate contracts in real-world server/cluster/worker scenarios
+Phase 2 (v0.10.x) — Zero-Dependency Core Engine & Isolate Topology
+  - Hard removal of deprecated network classes & dependencies from core (`http`, `web_socket_channel`)
+  - Evaluate `logd_time` (IANA timezone) and `logd_native` (FFI) extractions (see `SATELLITE_EXTRACTION_STRATEGY.md`)
+  - Principled Multi-Isolate Architecture (explicit topology roles, configuration broadcast protocol, ambient context bridging — see `logd_isolate_model/`)
+  - Satellite ecosystem expansion (`logd_sqlite`, `logd_network`, `logd_linters`, `logd_flutter`)
 
 Phase 3 (v1.0.0) — Major Release & API Stability Lock
   - Public declaration of complete API stability across single and multi-isolate models
   - Zero breaking changes to @stable symbols without major semver bumps
-  - Deprecation notices on HttpServerSink, SocketSink, NativeEngine in core
-
-Phase 4 (v1.1+ / v2.0) — Dependency Extraction & Lean Core
-  - logd_http, logd_socket, logd_native published as satellite packages
-  - Remove deprecated transitive deps from core
-  - Core becomes dependency-minimal (timezone, meta, characters only)
+  - Complete zero-external-dependency core engine verification
 ```
+
+---
+
+## Satellite Extraction Roadmap (See `SATELLITE_EXTRACTION_STRATEGY.md`)
+
+- [x] Publish `logd_sqlite` (SQLite WAL persistence & rich query engine) — v0.9.0
+- [x] Extract & Publish `logd_network` (`HttpSink`, `SocketSink`, `HttpServerSink`, `HttpDashboardHandler`) — v0.9.5
+- [ ] Hard-remove network classes & `http`/`web_socket_channel` deps from core — v0.10.0
+- [ ] Evaluate `logd_time` extraction (remove `timezone` dependency from core) — v0.10.x
+- [ ] Evaluate `logd_native` extraction (remove `ffi` dependency from core for 100% Web/Dart purity) — v0.10.x
+- [ ] Evaluate `logd_deobfuscate` extraction (remove `source_maps`/`source_span` from core) — v0.10.x
+- [ ] Develop `logd_flutter` (In-app log viewer widget, overlay toasts, DevTools extension panel)
 
 ---
 

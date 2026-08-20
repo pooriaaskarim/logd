@@ -14,9 +14,10 @@
 This project is organized as a **Native Dart Workspace** managed with [Melos](https://melos.invertase.dev/).
 
 - **[packages/logd](packages/logd)**: The core hierarchical logging engine.
+- **[packages/logd_sqlite](packages/logd_sqlite)**: SQLite WAL persistence handler and querying engine.
+- **[packages/logd_network](packages/logd_network)**: HTTP batch shipping, WebSockets streaming, and live browser dashboard.
 - **[doc/](doc)**: Deep-dive technical documentation (Philosophy, Architecture, Roadmaps).
 - **[scripts/](scripts)**: Infrastructure for testing and network logging simulations.
-- **[example/](packages/logd/example)**: Comprehensive tutorial and usage showcases.
 
 ## Development Guide
 

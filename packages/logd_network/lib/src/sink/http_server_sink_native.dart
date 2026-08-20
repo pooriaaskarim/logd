@@ -1,3 +1,4 @@
+// ignore_for_file: invalid_use_of_internal_member, implementation_imports
 library;
 
 import 'dart:async';
@@ -7,19 +8,12 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
-import '../../logger/logger.dart';
-import '../document/document.dart';
-import '../encoder/encoder.dart';
-import '../engine/engine.dart';
-import '../sink/sink.dart';
+import 'package:logd/logd.dart';
+import 'package:logd/src/logger/internal_logger.dart';
 import 'dashboard_html.dart';
 
 /// A [LogSink] that starts a local HTTP and WebSocket server to host a
 /// real-time log viewer dashboard.
-@Deprecated(
-  'Use HttpServerSink from package:logd_network instead. '
-  'Will be removed in v0.10.0',
-)
 @experimental
 base class HttpServerSink extends EncodingSink {
   /// Creates an [HttpServerSink] binding to [address] and [port].
@@ -30,10 +24,7 @@ base class HttpServerSink extends EncodingSink {
     final int? lineLength,
     super.enabled = true,
     this.bufferCapacity = 100,
-  }) : super(
-          preferredWidth: lineLength ?? 120,
-          delegate: _staticWrite,
-        ) {
+  }) : super(preferredWidth: lineLength ?? 120, delegate: _staticWrite) {
     _startServer();
   }
 
@@ -79,10 +70,7 @@ base class HttpServerSink extends EncodingSink {
           final currentEncoder = encoder;
           if (currentEncoder is HtmlEncoder) {
             final css = currentEncoder.stylesheet;
-            html = html.replaceFirst(
-              '</head>',
-              '<style>$css</style></head>',
-            );
+            html = html.replaceFirst('</head>', '<style>$css</style></head>');
           }
           request.response.write(html);
           await request.response.close();

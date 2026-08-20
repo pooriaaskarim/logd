@@ -1,10 +1,18 @@
-part of 'sink.dart';
+import 'dart:async';
+import 'dart:collection';
+import 'dart:convert' as convert;
+import 'dart:io' as io;
+import 'dart:math';
+import 'dart:typed_data';
+
+import 'package:http/http.dart' as http;
+import 'package:logd/logd.dart';
+// ignore: invalid_use_of_internal_member, implementation_imports
+import 'package:logd/src/logger/internal_logger.dart';
+import 'package:meta/meta.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// Defines the behavior when the network buffer reaches its maximum capacity.
-@Deprecated(
-  'Use DropPolicy from package:logd_network instead. '
-  'Will be removed in v0.10.0',
-)
 enum DropPolicy {
   /// Discard the oldest entries in the buffer to make room for new ones.
   discardOldest,
@@ -19,10 +27,6 @@ enum DropPolicy {
 }
 
 /// A base class for network-based sinks that require an internal buffer.
-@Deprecated(
-  'Use NetworkSink from package:logd_network instead. '
-  'Will be removed in v0.10.0',
-)
 abstract base class NetworkSink extends EncodingSink {
   /// Creates a [NetworkSink].
   ///
@@ -36,9 +40,7 @@ abstract base class NetworkSink extends EncodingSink {
     this.maxBufferSize = 1000,
     this.dropPolicy = DropPolicy.discardOldest,
     super.enabled,
-  }) : super(
-          delegate: _doNothing,
-        );
+  }) : super(delegate: _doNothing);
 
   static void _doNothing(final Uint8List _) {}
 
@@ -160,10 +162,6 @@ class _NetworkState {
 }
 
 /// A [NetworkSink] that transmits logs via HTTP POST.
-@Deprecated(
-  'Use HttpSink from package:logd_network instead. '
-  'Will be removed in v0.10.0',
-)
 base class HttpSink extends NetworkSink {
   /// Creates an [HttpSink].
   ///
@@ -269,10 +267,7 @@ base class HttpSink extends NetworkSink {
       try {
         final response = await httpClient.post(
           uri,
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
+          headers: {'Content-Type': 'application/json', ...headers},
           body: convert.jsonEncode(
             batch.map((final b) => convert.utf8.decode(b)).toList(),
           ),
@@ -282,10 +277,7 @@ base class HttpSink extends NetworkSink {
           return;
         }
 
-        throw io.HttpException(
-          'HTTP Error ${response.statusCode}',
-          uri: uri,
-        );
+        throw io.HttpException('HTTP Error ${response.statusCode}', uri: uri);
       } catch (e) {
         attempts++;
         if (attempts >= maxRetries) {
@@ -299,11 +291,13 @@ base class HttpSink extends NetworkSink {
   }
 
   void _handleFailure(final List<Uint8List> batch, final Object error) {
+    // ignore: invalid_use_of_internal_member
     LoggerMetrics.incrementDroppedBatches();
     if (onDropped != null) {
       try {
         onDropped!(batch, error);
       } catch (e, s) {
+        // ignore: invalid_use_of_internal_member
         InternalLogger.log(
           LogLevel.error,
           'HttpSink onDropped callback threw an error',
@@ -312,6 +306,7 @@ base class HttpSink extends NetworkSink {
         );
       }
     }
+    // ignore: invalid_use_of_internal_member
     InternalLogger.log(
       LogLevel.error,
       'HttpSink failed to send batch of ${batch.length} logs after '
@@ -337,10 +332,6 @@ class _HttpState extends _NetworkState {
 }
 
 /// A [NetworkSink] that transmits logs via a WebSocket.
-@Deprecated(
-  'Use SocketSink from package:logd_network instead. '
-  'Will be removed in v0.10.0',
-)
 base class SocketSink extends NetworkSink {
   /// Creates a [SocketSink].
   ///
@@ -432,7 +423,8 @@ base class SocketSink extends NetworkSink {
     _socketState.isConnecting = true;
     try {
       final uri = _socketState.uri ??= Uri.parse(url);
-      _socketState.channel = channel ??
+      _socketState.channel =
+          channel ??
           WebSocketChannel.connect(uri, protocols: headers.keys.toList());
       await _socketState.channel?.ready;
       _socketState.isConnected = true;
@@ -446,9 +438,12 @@ base class SocketSink extends NetworkSink {
       if (!isDisposed) {
         _socketState.retryAttempts++;
         final factor = pow(2, min(_socketState.retryAttempts, 8)).toInt();
-        final backoffMs =
-            min(reconnectInterval.inMilliseconds * factor, 300000);
+        final backoffMs = min(
+          reconnectInterval.inMilliseconds * factor,
+          300000,
+        );
         final delay = Duration(milliseconds: backoffMs);
+        // ignore: invalid_use_of_internal_member
         InternalLogger.log(
           LogLevel.warning,
           'SocketSink reconnection failed. Retrying in '
@@ -460,6 +455,7 @@ base class SocketSink extends NetworkSink {
   }
 
   void _handleFailure(final Object error) {
+    // ignore: invalid_use_of_internal_member
     InternalLogger.log(
       LogLevel.error,
       'SocketSink connection error',

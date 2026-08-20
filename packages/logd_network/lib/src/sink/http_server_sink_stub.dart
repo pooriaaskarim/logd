@@ -1,17 +1,9 @@
 import 'package:meta/meta.dart';
 
-import '../../logger/logger.dart';
-import '../document/document.dart';
-import '../encoder/encoder.dart';
-import '../engine/engine.dart';
-import '../sink/sink.dart';
+import 'package:logd/logd.dart';
 
 /// A [LogSink] that throws under browser/web environments as HTTP servers are
 /// unsupported.
-@Deprecated(
-  'Use HttpServerSink from package:logd_network instead. '
-  'Will be removed in v0.10.0',
-)
 @experimental
 base class HttpServerSink extends EncodingSink {
   /// Creates an [HttpServerSink] stub that throws [UnsupportedError].
@@ -22,10 +14,7 @@ base class HttpServerSink extends EncodingSink {
     final int? lineLength,
     super.enabled = true,
     this.bufferCapacity = 100,
-  }) : super(
-          preferredWidth: lineLength ?? 120,
-          delegate: _unsupported,
-        ) {
+  }) : super(preferredWidth: lineLength ?? 120, delegate: _unsupported) {
     throw UnsupportedError(
       'HttpServerSink is not supported on web platforms. '
       'Please use ConsoleSink, HttpSink, or standard output delegation.',

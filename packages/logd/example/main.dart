@@ -1,11 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:logd/logd.dart';
 import 'package:meta/meta.dart';
-
-import '../../../scripts/servers/network_test_utils.dart';
 
 /// This example serves as a comprehensive tutorial for [logd].
 /// It covers everything from basic usage to advanced hierarchical configuration,
@@ -28,7 +24,6 @@ void main() async {
       _showcaseTimeAndLocalization();
       _showcaseAdvancedLayouts();
       _showcaseGridLayouts();
-      await _showcaseNetwork();
 
       print('\n\x1B[1mTutorial Complete!\x1B[0m');
       print('Check the source code in `example/main.dart` to learn more.');
@@ -337,95 +332,6 @@ class TableExampleFormatter implements LogFormatter {
     document.endRow();
 
     document.endTable();
-  }
-}
-
-/// 9. Network Logging: HTTP & WebSockets
-/// Send logs over the wire using HttpSink and SocketSink.
-Future<void> _showcaseNetwork() async {
-  _section('9. Network Logging');
-
-  Process? socketServer;
-  Process? httpServer;
-
-  try {
-    // Dynamically find script paths
-    final scriptFile = File(Platform.script.toFilePath());
-    final projectRoot = scriptFile.parent.parent.parent.parent.path;
-    final socketDir = '$projectRoot/scripts/servers/socket';
-    final httpDir = '$projectRoot/scripts/servers/http';
-
-    final socketPort = await NetworkTestUtils.findAvailablePort(12347);
-    final httpPort = await NetworkTestUtils.findAvailablePort(8081);
-
-    print('Starting local test servers...');
-    final pythonPath = Platform.isWindows
-        ? '.\\.venv\\Scripts\\python.exe'
-        : './.venv/bin/python';
-
-    socketServer = await Process.start(
-      pythonPath,
-      ['main.py', '--port', socketPort.toString()],
-      workingDirectory: socketDir,
-      environment: {'PYTHONUNBUFFERED': '1'},
-    );
-
-    httpServer = await Process.start(
-      pythonPath,
-      ['main.py', '--port', httpPort.toString()],
-      workingDirectory: httpDir,
-      environment: {'PYTHONUNBUFFERED': '1'},
-    );
-
-    // Give servers a moment to bind
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Show server output in console
-    socketServer.stdout.transform(utf8.decoder).listen((final data) {
-      if (data.contains('ENTRY') || data.contains('Connection')) {
-        stdout.write('\x1B[34m[WS] $data\x1B[0m');
-      }
-    });
-    httpServer.stdout.transform(utf8.decoder).listen((final data) {
-      if (data.contains('BATCH') || data.contains('Received')) {
-        stdout.write('\x1B[35m[HTTP] $data\x1B[0m');
-      }
-    });
-
-    final networkHandler = Handler(
-      formatter: const JsonFormatter(),
-      sink: HttpSink(
-        url: 'http://127.0.0.1:$httpPort/logs',
-        batchSize: 2, // Flush every 2 logs
-        flushInterval: const Duration(seconds: 1),
-      ),
-      timeout: const Duration(seconds: 5), // v0.8.7+ Handler timeout safeguard
-    );
-
-    Logger.configure('app.network', handlers: [networkHandler]);
-    final logger = Logger.get('app.network');
-
-    logger.info('Shipping log #1...');
-    logger.info('Shipping log #2 (Triggers HTTP Batch)...');
-
-    // Socket Sink Example (Manual disposal for flush)
-    final wsHandler = Handler(
-      formatter: const JsonFormatter(),
-      sink: SocketSink(url: 'ws://127.0.0.1:$socketPort'),
-    );
-    Logger.configure('app.ws', handlers: [wsHandler]);
-    Logger.get('app.ws').info('Log via WebSocket');
-
-    // Wait for network activity to settle
-    await Future.delayed(const Duration(seconds: 2));
-    await wsHandler.sink.dispose();
-    await networkHandler.sink.dispose();
-  } catch (e) {
-    print('\x1B[31mNetwork showcase failed (is Python venv setup?): $e\x1B[0m');
-  } finally {
-    socketServer?.kill();
-    httpServer?.kill();
-    print('\n[Cleanup] Network servers terminated.');
   }
 }
 

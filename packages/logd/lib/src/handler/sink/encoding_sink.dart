@@ -52,8 +52,10 @@ base class EncodingSink extends LogSink<LogDocument> {
 
   static final Expando<bool> _preambleFlags = Expando();
 
-  bool get _preambleWritten => _preambleFlags[this] ?? false;
-  set _preambleWritten(final bool value) => _preambleFlags[this] = value;
+  @protected
+  bool get isPreambleWritten => _preambleFlags[this] ?? false;
+  @protected
+  set isPreambleWritten(final bool value) => _preambleFlags[this] = value;
 
   @override
   Future<void> output(
@@ -70,9 +72,9 @@ base class EncodingSink extends LogSink<LogDocument> {
 
     try {
       // Trigger preamble if needed
-      if (strategy == WrappingStrategy.document && !_preambleWritten) {
+      if (strategy == WrappingStrategy.document && !isPreambleWritten) {
         encoder.preamble(context, level, factory, document: document);
-        _preambleWritten = true;
+        isPreambleWritten = true;
       }
 
       // Pass the entry and document to the encoder
@@ -102,7 +104,7 @@ base class EncodingSink extends LogSink<LogDocument> {
   @override
   @mustCallSuper
   Future<void> dispose() async {
-    if (strategy == WrappingStrategy.document && _preambleWritten) {
+    if (strategy == WrappingStrategy.document && isPreambleWritten) {
       const factory = StandardPipelineFactory();
       final context = factory.checkoutContext();
       try {

@@ -2,15 +2,15 @@ import 'dart:io';
 
 import 'package:logd/logd.dart';
 
-/// Comprehensive showcase demonstrating all 8 pre-wired TargetHandlers (v0.9.3+),
+/// Comprehensive showcase demonstrating 7 pre-wired TargetHandlers (v0.9.3+),
 /// including synchronous in-process handlers and background isolate offloaded
 /// `.async()` file handlers.
 void main() async {
   print('=================================================================');
   print('       LOGD: PRE-WIRED TARGET HANDLERS SHOWCASE (v0.9.3+)       ');
   print('=================================================================');
-  print('Demonstrating 8 pre-wired handlers across terminal, memory, disk,');
-  print('and live HTTP dashboard output destinations.\n');
+  print(
+      'Demonstrating 7 pre-wired handlers across terminal, memory, and disk.\n');
 
   final tempDir = Directory('temp_showcase_logs');
   if (tempDir.existsSync()) {
@@ -156,34 +156,11 @@ void main() async {
       preview: (final content) => content.split('\n').first,
     );
 
-    // -----------------------------------------------------------------
-    // CHAPTER 4: Live HTTP Monitoring Dashboard
-    // -----------------------------------------------------------------
-    _section('CHAPTER 4: Embedded Live Web Dashboard');
-
-    final dashboardPort = await _findAvailablePort(8085);
-    final dashboardHandler = HttpDashboardHandler(
-      port: dashboardPort,
-      title: 'Target Handlers Live Dashboard',
-    );
-
-    Logger.configure('app.dashboard', handlers: [dashboardHandler]);
-
-    final dashboardLogger = Logger.get('app.dashboard');
-    dashboardLogger.info('Live dashboard server initialized');
-    dashboardLogger.warning('Streaming real-time events via WebSockets...');
-    dashboardLogger.error('Dashboard test exception logged cleanly');
-
-    print('\n[HttpDashboardHandler Active]');
-    print('  - Local Server Port: $dashboardPort');
-    print('  - WebSocket live stream active.');
-    print('  - Pausing 1 second for live socket initialization...');
-
-    await Future<void>.delayed(const Duration(seconds: 1));
-    await dashboardHandler.dispose();
-
     _section('SHOWCASE COMPLETE');
-    print('All 8 pre-wired TargetHandlers executed & verified successfully!\n');
+    print(
+        'All 7 core pre-wired TargetHandlers executed & verified successfully!');
+    print(
+        '(Note: For live HTTP dashboard monitoring, use HttpDashboardHandler from package:logd_network)\n');
   } finally {
     if (tempDir.existsSync()) {
       tempDir.deleteSync(recursive: true);
@@ -209,21 +186,5 @@ void _inspectFile(
     final content = file.readAsStringSync();
     print('  - File size: ${file.lengthSync()} bytes');
     print('  - Sample preview: ${preview(content)}');
-  }
-}
-
-Future<int> _findAvailablePort(final int preferredPort) async {
-  try {
-    final server = await HttpServer.bind('localhost', preferredPort);
-    final port = server.port;
-    await server.close(force: true);
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-    return port;
-  } catch (_) {
-    final server = await HttpServer.bind('localhost', 0);
-    final port = server.port;
-    await server.close(force: true);
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-    return port;
   }
 }
