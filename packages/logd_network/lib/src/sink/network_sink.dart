@@ -422,8 +422,7 @@ base class SocketSink extends NetworkSink {
     _socketState.isConnecting = true;
     try {
       final uri = _socketState.uri ??= Uri.parse(url);
-      _socketState.channel =
-          channel ??
+      _socketState.channel = channel ??
           WebSocketChannel.connect(uri, protocols: headers.keys.toList());
       await _socketState.channel?.ready;
       _socketState.isConnected = true;

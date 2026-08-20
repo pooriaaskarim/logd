@@ -26,14 +26,14 @@ class HttpDashboardHandler extends Handler {
     super.engine = const StandardEngine(),
     super.timeout,
   }) : super(
-         formatter: formatter ?? const StructuredFormatter(),
-         sink: HttpServerSink(
-           address: address,
-           port: port,
-           encoder: HtmlEncoder(title: title ?? 'logd Real-Time Dashboard'),
-           bufferCapacity: bufferCapacity,
-           lineLength: lineLength,
-         ),
-         decorators: decorators ?? const [],
-       );
+          formatter: formatter ?? const StructuredFormatter(),
+          sink: HttpServerSink(
+            address: address,
+            port: port,
+            encoder: HtmlEncoder(title: title ?? 'logd Real-Time Dashboard'),
+            bufferCapacity: bufferCapacity,
+            lineLength: lineLength,
+          ),
+          decorators: decorators ?? const [],
+        );
 }

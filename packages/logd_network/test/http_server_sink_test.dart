@@ -82,7 +82,8 @@ void main() {
       },
     );
 
-    test('should buffer log history and replay to late-connecting WebSocket'
+    test(
+        'should buffer log history and replay to late-connecting WebSocket'
         ' clients', () async {
       final sink = HttpServerSink(
         address: 'localhost',
