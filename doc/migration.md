@@ -1,5 +1,44 @@
 # Migration Guide
 
+## v0.9.4 to v0.9.5 (Extraction of `logd_network` Satellite Package)
+
+### 1. Network Sinks & Observability Handlers Extracted to Satellite Package
+**Change**: To keep the core `logd` engine lightweight and free of external HTTP/WebSocket network dependencies, all network-related components have been extracted into a dedicated satellite package: [`package:logd_network`](https://pub.dev/packages/logd_network).
+* **Impact**:
+  - `HttpSink`, `SocketSink`, `NetworkSink`, `DropPolicy`, `HttpServerSink`, and `HttpDashboardHandler` in `package:logd` are marked with `@Deprecated` and will be permanently removed in `v0.10.0`.
+* **Migration**:
+  1. Add `logd_network` to your `pubspec.yaml`:
+     ```yaml
+     dependencies:
+       logd: ^0.9.5
+       logd_network: ^0.1.0
+     ```
+  2. Update your imports:
+     ```dart
+     // ❌ Before
+     import 'package:logd/logd.dart';
+
+     final handler = HttpDashboardHandler(port: 8080);
+     ```
+     ```dart
+     // ✅ After
+     import 'package:logd/logd.dart';
+     import 'package:logd_network/logd_network.dart';
+
+     final handler = HttpDashboardHandler(port: 8080);
+     ```
+  3. If transferring configurations to background worker isolates via `Logger.exportConfig()` and `Logger.importConfig()`, register network serializers in the worker isolate:
+     ```dart
+     import 'package:logd_network/logd_network.dart';
+
+     void workerIsolateEntry(SendPort sendPort) {
+       registerLogdNetworkSerializers();
+       Logger.importConfig(configJson);
+     }
+     ```
+
+---
+
 ## v0.8.9 to v0.9.0 (Theming API Overhaul & Architectural Stabilization)
 
 ### 1. Unified `LogColorScheme` & `LogStyle` System Design (Breaking Change)

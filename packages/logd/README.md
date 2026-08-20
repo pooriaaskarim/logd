@@ -53,7 +53,7 @@ Most libraries give you console or file. logd gives you a clean pipeline: Format
 
 ## Pre-Wired Handlers
 
-Eight ready-to-use handlers cover every common destination. No pipeline wiring required:
+Seven core ready-to-use handlers cover common destinations out of the box (with network telemetry provided by [`logd_network`](https://pub.dev/packages/logd_network)). No pipeline wiring required:
 
 ```dart
 // Styled terminal output (dark or light theme)
@@ -74,11 +74,11 @@ PlainFileHandler('logs/app.log')
 // GitHub-Flavored Markdown for CI summaries
 MarkdownFileHandler('logs/ci.md')
 
-// Live browser dashboard via embedded HTTP + WebSocket server
-HttpDashboardHandler(port: 8080)
-
 // In-memory ring buffer for tests and debug panels
 MemoryHandler(capacity: 200)
+
+// Live browser dashboard via HTTP + WebSocket server (from package:logd_network)
+HttpDashboardHandler(port: 8080)
 ```
 
 Add `.async()` to any output-bound handler to offload its pipeline to a background isolate:
@@ -345,26 +345,29 @@ FileSink('logs/app.log', fileRotation: TimeRotation(
 ))
 ```
 
-### Network Logging
+### Network Logging (`logd_network`)
 
-Ship logs to remote servers with built-in resilience:
+Ship logs to remote servers with built-in resilience using [`package:logd_network`](https://pub.dev/packages/logd_network):
 
 ```dart
+import 'package:logd/logd.dart';
+import 'package:logd_network/logd_network.dart';
+
 // HTTP batching with retry and drop policy
-const httpSink = HttpSink(
+final httpSink = HttpSink(
   url: 'https://logs.api.com',
   batchSize: 50,
-  flushInterval: Duration(seconds: 10),
+  flushInterval: const Duration(seconds: 10),
   dropPolicy: DropPolicy.discardOldest,
 );
 
 // Real-time WebSocket streaming
-const socketSink = SocketSink(
+final socketSink = SocketSink(
   url: 'wss://monitor.example.com/logs',
 );
 
 Logger.configure('app', handlers: [
-  Handler(formatter: JsonFormatter(), sink: httpSink),
+  Handler(formatter: const JsonFormatter(), sink: httpSink),
 ]);
 ```
 
@@ -632,6 +635,7 @@ test('logs warning on failure', () async {
 | Package | Purpose |
 |---|---|
 | [`logd_sqlite`](https://pub.dev/packages/logd_sqlite) | WAL-mode SQLite persistence, auto-pruning, rich query engine |
+| [`logd_network`](https://pub.dev/packages/logd_network) | HTTP batching, WebSocket streaming, embedded viewer dashboard |
 | [`logd_linters`](https://pub.dev/packages/logd_linters) | Custom lint rules for arena lifecycle and formatter purity |
 
 ---

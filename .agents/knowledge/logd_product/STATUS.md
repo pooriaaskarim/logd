@@ -19,8 +19,9 @@ v0.9.4 active development. Stack Trace Origin Bypass and Ambient Structured Cont
 | **v0.1.2 (logd_linters)** | Automated quick-fixes for arena lifecycle, purity, and formatting rules | ✅ Published |
 | **v0.9.0–v0.9.2 (API Hardening)** | Symbol audit, semver contract, logd_sqlite satellite package launch | ✅ Released |
 | **v0.9.3 (Target Handlers)** | Pre-wired TargetHandler subclasses, dual-mode `.async()`, `advanced.dart` | ✅ Released |
-| **v0.9.4 (MDC & Performance)** | Hot-path caller origin bypass, ambient structured context (`LogContext.run`) | 🟡 In Progress (PR #61) |
-| **v0.10.0 (Multi-Isolate Architecture)** | Principled isolate topology, config authority, context bridging, satellite ecosystem | 🔲 Next |
+| **v0.9.4 (MDC & Performance)** | Hot-path caller origin bypass, ambient structured context (`LogContext.run`) | ✅ Released |
+| **v0.9.5 (logd_network Satellite)** | Decouple HTTP/WS dependencies to satellite package, core soft deprecations | ✅ Complete |
+| **v0.10.0 (Zero-Network Core & Isolates)** | Permanent removal of deprecated network files from core, multi-isolate architecture | 🔲 Next |
 | **v1.0.0 (API Freeze & Stability)** | Full stability declaration, breaking-change policy lock, deprecation guides | 🔲 Future |
 
 ---
@@ -46,6 +47,6 @@ v0.9.4 active development. Stack Trace Origin Bypass and Ambient Structured Cont
 
 - **Why linters are a separate package**: Avoids inflating core package dependency footprint with custom lint tooling.
 - **Why Flutter is decoupled**: Pure Dart for CLI, server, and VM use cases without Flutter SDK friction.
-- **Why heavy transitive deps stay for now**: `http` and `ffi` remain in core through v1.0 with explicit deprecation notices. Extraction requires a major version bump and is a Phase 3 concern.
+- **Why satellite packages are extracted**: `logd_network` and `logd_sqlite` decouple heavy third-party dependencies from core, keeping the engine pure and zero-overhead for general Dart/Flutter applications. Deprecations in core ensure backwards compatibility until v0.10.0.
 - **Why sinks come after API stabilization**: Building `logd_sqlite` or `logd_sentry` on an unstable `LogSink` extension point forces synchronized breaking version bumps. Extension points must be `@stable` before satellites target them.
 - **No premature facades**: `LogOutput` convenience constructors deferred until the underlying pipeline surface, wrapping, and lifecycle changes settle.

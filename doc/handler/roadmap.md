@@ -1,6 +1,26 @@
 # Handler Roadmap
 
+## Next Milestones
+
+### 🔲 v0.10.0: Zero-Network Core Engine & Hard Deprecation Cleanup
+**Goal**: Permanently remove deprecated network classes and dependencies from `packages/logd`, achieving a pure, zero-network-dependency core logging engine.
+- [ ] Delete `network_sink.dart`, `http_server_sink_native.dart`, `http_server_sink_stub.dart`, `dashboard_html.dart`, and `http_dashboard_handler.dart` from `packages/logd`.
+- [ ] Remove `package:http` and `package:web_socket_channel` from `packages/logd/pubspec.yaml`.
+- [ ] Verify core `packages/logd` compiles with 0 external network dependencies.
+
+---
+
 ## Completed
+
+### ✅ v0.9.5: Satellite Package Extraction (`logd_network`) & Core Soft Deprecations (ADR-007)
+**Goal**: Decouple `HttpSink`, `SocketSink`, `HttpServerSink`, and `HttpDashboardHandler` into the `logd_network` satellite package, soft-deprecating them in `package:logd` targeting `v0.10.0`.
+**Result**: Scaffolded `packages/logd_network` with dedicated unit/integration tests (17/17 passing) and standalone showcases. Added `@Deprecated` annotations targeting `v0.10.0` across core network classes. Exposed `@protected isPreambleWritten` in `EncodingSink`.
+- [x] Extract `logd_network` satellite package with full test suite and interactive CLI showcases.
+- [x] Implement `registerLogdNetworkSerializers()` for cross-isolate configuration transfer.
+- [x] Soft-deprecate core network classes targeting removal in `v0.10.0`.
+- [x] Document ADR-007 and migration paths in `doc/migration.md`.
+
+---
 
 ### ✅ v0.9.3: `{Target}Handler` Subclasses, Dual-Mode `.async()` Offloading & Advanced Entry Point
 **Goal**: Introduce pre-wired `Handler` subclasses for common output targets (ADR-006), dual-mode `.async()` isolate constructors, and `package:logd/advanced.dart`.

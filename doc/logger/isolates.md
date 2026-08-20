@@ -79,6 +79,23 @@ void registerCustomComponents() {
 > [!IMPORTANT]
 > Call `registerCustomComponents()` at the very beginning of the program in **both** the spawning (main) and spawned (worker) isolates.
 
+### Satellite Packages Serialization Helpers
+
+First-party satellite packages provide one-line registration helpers to register all their sinks and handlers automatically:
+
+```dart
+import 'package:logd_network/logd_network.dart';
+import 'package:logd_sqlite/logd_sqlite.dart';
+
+void registerSatelliteSerializers() {
+  // Registers HttpSink, SocketSink, etc.
+  registerLogdNetworkSerializers();
+
+  // Registers SqliteSink, etc.
+  registerLogdSqliteSerializers();
+}
+```
+
 ---
 
 ## 3. Dynamic Configuration Synchronization
