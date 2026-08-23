@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3
+
+- **`SocketSink` Reconnect Timer Fix**:
+  - Replaced fire-and-forget `Future.delayed` with a cancellable `Timer` stored on `_SocketState`. Cancels pending reconnection timers in `dispose()` to prevent memory leaks and unhandled callbacks firing into disposed sinks.
+- **`DropPolicy.block` Eager Validation & Deprecation**:
+  - Added `@Deprecated` annotation to `DropPolicy.block` targeting `v1.0.0` removal.
+  - Added eager constructor `assert` in `NetworkSink` to catch unsupported `DropPolicy.block` configurations at construction time rather than during runtime buffer overflow.
+
 ## 0.1.2
 
 - **Web & WASM Compatibility**:
