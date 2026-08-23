@@ -74,6 +74,12 @@ const handlerChecker = TypeChecker.fromName(
   packageName: 'logd',
 );
 
+/// Matches [AsyncHandler] from `package:logd`.
+const asyncHandlerChecker = TypeChecker.fromName(
+  'AsyncHandler',
+  packageName: 'logd',
+);
+
 /// Matches [LogFormatter] from `package:logd`.
 const logFormatterChecker = TypeChecker.fromName(
   'LogFormatter',
