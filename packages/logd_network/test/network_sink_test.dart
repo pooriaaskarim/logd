@@ -204,6 +204,29 @@ void main() {
 
       verify(() => mockSink.add('buffered')).called(1);
     });
+
+    test('cancels pending reconnect timer on dispose', () async {
+      when(() => mockChannel.ready).thenThrow(Exception('Connection failed'));
+
+      final sink = SocketSink(
+        url: wsUrl,
+        channel: mockChannel,
+        reconnectInterval: const Duration(milliseconds: 50),
+      );
+
+      await sink.output(
+        createTestDocument(['fail']),
+        testEntry,
+        LogLevel.info,
+        const StandardPipelineFactory(),
+      );
+
+      await sink.dispose();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(sink.isDisposed, isTrue);
+    });
   });
 
   group('NetworkSink Edge Cases', () {
@@ -335,29 +358,14 @@ void main() {
       ).called(1);
     });
 
-    test('DropPolicy.block throws UnsupportedError', () async {
-      final sink = HttpSink(
-        url: 'https://example.com/logs',
-        maxBufferSize: 1,
-        dropPolicy: DropPolicy.block,
-        client: mockClient,
-      );
-
-      await sink.output(
-        createTestDocument(['pending']),
-        testEntry,
-        LogLevel.info,
-        const StandardPipelineFactory(),
-      );
-
+    test('DropPolicy.block throws AssertionError on construction', () {
       expect(
-        () => sink.output(
-          createTestDocument(['overflow']),
-          testEntry,
-          LogLevel.info,
-          const StandardPipelineFactory(),
+        () => HttpSink(
+          url: 'https://example.com/logs',
+          dropPolicy: DropPolicy.block,
+          client: mockClient,
         ),
-        throwsUnsupportedError,
+        throwsA(isA<AssertionError>()),
       );
     });
   });
