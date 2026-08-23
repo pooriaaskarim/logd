@@ -170,7 +170,111 @@ void main() {
 
       expect(deserializedTheme.brightness, equals(LogBrightness.light));
     });
+
+    test(
+        'should throw descriptive ArgumentError when serializing unregistered component',
+        () {
+      expect(
+        () => LoggerSerializationRegistry.serializeFormatter(
+          const _UnregisteredFormatter(),
+        ),
+        throwsA(
+          isA<ArgumentError>().having(
+            (final e) => e.message.toString(),
+            'message',
+            contains(
+              'LogFormatter subtype "_UnregisteredFormatter" is not registered in LoggerSerializationRegistry',
+            ),
+          ),
+        ),
+      );
+    });
+
+    test(
+        'should throw descriptive ArgumentError when deserializing unregistered component type',
+        () {
+      expect(
+        () => LoggerSerializationRegistry.deserializeFormatter({
+          'type': 'UnknownFormatter',
+          'config': <String, dynamic>{},
+        }),
+        throwsA(
+          isA<ArgumentError>().having(
+            (final e) => e.message.toString(),
+            'message',
+            contains(
+              'LogFormatter type "UnknownFormatter" is not registered in LoggerSerializationRegistry',
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('verifyFormatter passes for a registered type', () {
+      expect(
+        () => LoggerSerializationRegistry.verifyFormatter<PlainFormatter>(),
+        returnsNormally,
+      );
+    });
+
+    test('verifyFormatter throws StateError for an unregistered type', () {
+      expect(
+        () => LoggerSerializationRegistry.verifyFormatter<
+            _UnregisteredFormatter>(),
+        throwsA(
+          isA<StateError>().having(
+            (final e) => e.message,
+            'message',
+            allOf(
+              contains('_UnregisteredFormatter'),
+              contains('registerFormatter'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('verifySink passes for a registered type', () {
+      expect(
+        () => LoggerSerializationRegistry.verifySink<ConsoleSink>(),
+        returnsNormally,
+      );
+    });
+
+    test('verifySink throws StateError for an unregistered type', () {
+      expect(
+        () => LoggerSerializationRegistry.verifySink<_UnregisteredSink>(),
+        throwsA(
+          isA<StateError>().having(
+            (final e) => e.message,
+            'message',
+            allOf(
+              contains('_UnregisteredSink'),
+              contains('registerSink'),
+            ),
+          ),
+        ),
+      );
+    });
   });
+}
+
+class _UnregisteredFormatter implements LogFormatter {
+  const _UnregisteredFormatter();
+
+  @override
+  Set<LogMetadata> get metadata => const {};
+
+  @override
+  void format(
+    final LogEntry entry,
+    final LogDocument document,
+    final LogPipelineFactory factory,
+  ) {}
+}
+
+final class _UnregisteredSink extends ConsoleSink {
+  const _UnregisteredSink();
 }
 
 void _isolateMain(final Map<String, dynamic> message) {

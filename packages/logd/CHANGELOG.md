@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.6: Serialization Registry Diagnostics & AsyncHandler Leak Safety
+
+This release improves developer experience and resource safety when integrating custom pipeline components (`LogFormatter`, `LogSink`, `LogFilter`, `LogDecorator`, `LogEngine`) and background isolate handlers (`AsyncHandler`).
+
+- ### Isolate Serialization Diagnostics (`LoggerSerializationRegistry`)
+  - **Actionable Error Messages on Serialization Failure**: `serializeFormatter`, `serializeSink`, `serializeFilter`, `serializeDecorator`, and `serializeEngine` now throw `ArgumentError` messages that name the unregistered type and specify the exact registration method to call (e.g., `LogFormatter subtype "MyFormatter" is not registered in LoggerSerializationRegistry. Call LoggerSerializationRegistry.registerFormatter<MyFormatter>(...)...`). Previously the error was `Type "X" is not registered.` with no actionable context.
+  - **Actionable Error Messages on Deserialization Failure**: All `deserialize*` methods now produce equivalent messages, replacing generic `Sink type "X" not registered.`-style errors with component-category-aware messages.
+  - **Internal Invariant Message Fix**: `_lookupName`'s fallback error (a branch that is unreachable under correct usage) is reclassified from `ArgumentError` to `StateError` with a message identifying it explicitly as a registry bug, not a user error.
+
+- ### Proactive Registration Validation (`verify*` helpers)
+  - **`verifyFormatter<T>()`**, **`verifySink<T>()`**, **`verifyFilter<T>()`**, **`verifyDecorator<T>()`**, **`verifyEngine<T>()`**: New static helpers that satellite packages and app initializers can call at startup — after all `register*` calls — to assert that their custom types are registered before any isolate boundary is ever crossed. These throw `StateError` immediately at the call site with a clean stack trace, eliminating the class of delayed, context-free failures that would otherwise only surface during `exportConfig()` or `AsyncHandler` initialization.
+
+- ### Resource Leak Protection (`AsyncHandler`)
+  - **Finalizer Leak Safety**: Wired Dart's `Finalizer` API to `AsyncHandler` (`async_handler_native.dart`). If an `AsyncHandler` instance is garbage-collected without `dispose()` being called explicitly, the `Finalizer` callback logs an `InternalLogger.warning` and immediately terminates the underlying worker isolate via `IsolateWorker.kill()`, preventing abandoned background isolates from leaking CPU/RAM.
+
+- ### Robustness & Defensive Guards
+  - **Pattern RegExp Error Guard**: Wrapped `RegExp` construction in `Logger.configurePattern` ([logger.dart:1183-1194](file:///home/ono/Projects/logd/packages/logd/lib/src/logger/logger.dart#L1183-L1194)) in a `try/catch` block. If an invalid pattern string is supplied, it now catches `FormatException` and throws a descriptive `ArgumentError` citing the pattern string directly.
+
+- ### Testing
+  - Added dedicated tests covering reactive error messages (serialization and deserialization of unregistered types), proactive `verify*` helpers (registered pass, unregistered `StateError`), `configurePattern` parameter validation, and `AsyncHandler` post-dispose safety.
+
 ## 0.9.5: Extraction of Network Sinks to Satellite Package (logd_network) & Soft Deprecations (ADR-007)
 
 This release extracts all external network dependencies (`package:http`, `package:web_socket_channel`) into a standalone satellite package: [`package:logd_network`](https://pub.dev/packages/logd_network).

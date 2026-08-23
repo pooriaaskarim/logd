@@ -1183,7 +1183,15 @@ class Logger {
       }
     }
     buffer.write('\$');
-    return RegExp(buffer.toString(), caseSensitive: false);
+    try {
+      return RegExp(buffer.toString(), caseSensitive: false);
+    } on FormatException catch (e) {
+      throw ArgumentError.value(
+        pattern,
+        'pattern',
+        'Pattern "$pattern" produced an invalid regular expression: ${e.message}',
+      );
+    }
   }
 
   /// Exports the current configurations of all loggers registered.

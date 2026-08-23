@@ -364,11 +364,97 @@ class LoggerSerializationRegistry {
     _enginesByType[T] = spec;
   }
 
+  // --- Proactive Registration Validation ---
+
+  /// Asserts that [T] has a registered serializer and deserializer.
+  ///
+  /// Satellite packages and app initializers should call this after all
+  /// [registerFormatter] calls to catch missing registrations at startup,
+  /// before any isolate boundary crossing.
+  ///
+  /// Throws [StateError] if [T] is not registered.
+  ///
+  /// ```dart
+  /// // In your app's init block, after registering:
+  /// LoggerSerializationRegistry.verifyFormatter<MyFormatter>();
+  /// ```
+  static void verifyFormatter<T extends LogFormatter>() {
+    ensureInitialized();
+    if (!_formattersByType.containsKey(T)) {
+      throw StateError(
+        'LogFormatter subtype "$T" has no registered serializer. '
+        'Call LoggerSerializationRegistry.registerFormatter<$T>(...) '
+        'before exporting or transferring configurations across isolates.',
+      );
+    }
+  }
+
+  /// Asserts that [T] has a registered serializer and deserializer.
+  ///
+  /// See [verifyFormatter] for usage guidance.
+  static void verifySink<T extends LogSink>() {
+    ensureInitialized();
+    if (!_sinksByType.containsKey(T)) {
+      throw StateError(
+        'LogSink subtype "$T" has no registered serializer. '
+        'Call LoggerSerializationRegistry.registerSink<$T>(...) '
+        'before exporting or transferring configurations across isolates.',
+      );
+    }
+  }
+
+  /// Asserts that [T] has a registered serializer and deserializer.
+  ///
+  /// See [verifyFormatter] for usage guidance.
+  static void verifyFilter<T extends LogFilter>() {
+    ensureInitialized();
+    if (!_filtersByType.containsKey(T)) {
+      throw StateError(
+        'LogFilter subtype "$T" has no registered serializer. '
+        'Call LoggerSerializationRegistry.registerFilter<$T>(...) '
+        'before exporting or transferring configurations across isolates.',
+      );
+    }
+  }
+
+  /// Asserts that [T] has a registered serializer and deserializer.
+  ///
+  /// See [verifyFormatter] for usage guidance.
+  static void verifyDecorator<T extends LogDecorator>() {
+    ensureInitialized();
+    if (!_decoratorsByType.containsKey(T)) {
+      throw StateError(
+        'LogDecorator subtype "$T" has no registered serializer. '
+        'Call LoggerSerializationRegistry.registerDecorator<$T>(...) '
+        'before exporting or transferring configurations across isolates.',
+      );
+    }
+  }
+
+  /// Asserts that [T] has a registered serializer and deserializer.
+  ///
+  /// See [verifyFormatter] for usage guidance.
+  static void verifyEngine<T extends LogEngine>() {
+    ensureInitialized();
+    if (!_enginesByType.containsKey(T)) {
+      throw StateError(
+        'LogEngine subtype "$T" has no registered serializer. '
+        'Call LoggerSerializationRegistry.registerEngine<$T>(...) '
+        'before exporting or transferring configurations across isolates.',
+      );
+    }
+  }
+
   // --- Serialization APIs ---
 
   static Map<String, dynamic> serializeFormatter(final LogFormatter val) {
     ensureInitialized();
-    final spec = _lookupSpec(_formattersByType, val);
+    final spec = _lookupSpec(
+      _formattersByType,
+      val,
+      'LogFormatter',
+      'registerFormatter',
+    );
     final type = _lookupName(_formattersByName, spec);
     return <String, dynamic>{
       'type': type,
@@ -383,14 +469,23 @@ class LoggerSerializationRegistry {
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _formattersByName[type];
     if (spec == null) {
-      throw ArgumentError('Formatter type "$type" not registered.');
+      throw ArgumentError(
+        'LogFormatter type "$type" is not registered in '
+        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerFormatter '
+        'is called before deserializing.',
+      );
     }
     return spec.fromJson(config);
   }
 
   static Map<String, dynamic> serializeSink(final LogSink val) {
     ensureInitialized();
-    final spec = _lookupSpec(_sinksByType, val);
+    final spec = _lookupSpec(
+      _sinksByType,
+      val,
+      'LogSink',
+      'registerSink',
+    );
     final type = _lookupName(_sinksByName, spec);
     return <String, dynamic>{
       'type': type,
@@ -405,14 +500,23 @@ class LoggerSerializationRegistry {
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _sinksByName[type];
     if (spec == null) {
-      throw ArgumentError('Sink type "$type" not registered.');
+      throw ArgumentError(
+        'LogSink type "$type" is not registered in '
+        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerSink '
+        'is called before deserializing.',
+      );
     }
     return spec.fromJson(config);
   }
 
   static Map<String, dynamic> serializeFilter(final LogFilter val) {
     ensureInitialized();
-    final spec = _lookupSpec(_filtersByType, val);
+    final spec = _lookupSpec(
+      _filtersByType,
+      val,
+      'LogFilter',
+      'registerFilter',
+    );
     final type = _lookupName(_filtersByName, spec);
     return <String, dynamic>{
       'type': type,
@@ -427,14 +531,23 @@ class LoggerSerializationRegistry {
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _filtersByName[type];
     if (spec == null) {
-      throw ArgumentError('Filter type "$type" not registered.');
+      throw ArgumentError(
+        'LogFilter type "$type" is not registered in '
+        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerFilter '
+        'is called before deserializing.',
+      );
     }
     return spec.fromJson(config);
   }
 
   static Map<String, dynamic> serializeDecorator(final LogDecorator val) {
     ensureInitialized();
-    final spec = _lookupSpec(_decoratorsByType, val);
+    final spec = _lookupSpec(
+      _decoratorsByType,
+      val,
+      'LogDecorator',
+      'registerDecorator',
+    );
     final type = _lookupName(_decoratorsByName, spec);
     return <String, dynamic>{
       'type': type,
@@ -449,14 +562,23 @@ class LoggerSerializationRegistry {
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _decoratorsByName[type];
     if (spec == null) {
-      throw ArgumentError('Decorator type "$type" not registered.');
+      throw ArgumentError(
+        'LogDecorator type "$type" is not registered in '
+        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerDecorator '
+        'is called before deserializing.',
+      );
     }
     return spec.fromJson(config);
   }
 
   static Map<String, dynamic> serializeEngine(final LogEngine val) {
     ensureInitialized();
-    final spec = _lookupSpec(_enginesByType, val);
+    final spec = _lookupSpec(
+      _enginesByType,
+      val,
+      'LogEngine',
+      'registerEngine',
+    );
     final type = _lookupName(_enginesByName, spec);
     return <String, dynamic>{
       'type': type,
@@ -471,7 +593,11 @@ class LoggerSerializationRegistry {
     final config = Map<String, dynamic>.from(json['config'] as Map);
     final spec = _enginesByName[type];
     if (spec == null) {
-      throw ArgumentError('Engine type "$type" not registered.');
+      throw ArgumentError(
+        'LogEngine type "$type" is not registered in '
+        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerEngine '
+        'is called before deserializing.',
+      );
     }
     return spec.fromJson(config);
   }
@@ -515,6 +641,8 @@ class LoggerSerializationRegistry {
   static _SerializerSpec<V> _lookupSpec<V>(
     final Map<Type, _SerializerSpec<V>> typeMap,
     final V val,
+    final String categoryName,
+    final String registerMethodName,
   ) {
     final exact = typeMap[val.runtimeType];
     if (exact != null) {
@@ -526,7 +654,11 @@ class LoggerSerializationRegistry {
         return spec;
       }
     }
-    throw ArgumentError('Type "${val.runtimeType}" is not registered.');
+    throw ArgumentError(
+      '$categoryName subtype "${val.runtimeType}" is not registered in '
+      'LoggerSerializationRegistry. Call LoggerSerializationRegistry.$registerMethodName<${val.runtimeType}>(...) '
+      'before exporting or transferring configurations across isolates.',
+    );
   }
 
   static String _lookupName<V>(
@@ -538,7 +670,14 @@ class LoggerSerializationRegistry {
         return entry.key;
       }
     }
-    throw ArgumentError('Specification not found in name map.');
+    // This should never be reachable: register* always writes both the type
+    // map and the name map atomically. If hit, it is a bug in the registry
+    // itself, not a user error.
+    throw StateError(
+      'LoggerSerializationRegistry internal error: a spec was found in the '
+      'type map but has no corresponding name entry. This is a bug — please '
+      'file an issue.',
+    );
   }
 
   static Map<String, dynamic> _serializeStyle(final LogStyle style) =>

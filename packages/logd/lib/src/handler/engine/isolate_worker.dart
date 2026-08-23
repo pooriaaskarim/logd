@@ -103,6 +103,19 @@ class IsolateWorker {
     _commandPort?.send(message);
   }
 
+  /// Immediately terminates the worker isolate and closes control ports
+  /// without waiting for a graceful stop response.
+  ///
+  /// Intended for emergency resource cleanup in [Finalizer] callbacks.
+  void kill() {
+    _isDisposed = true;
+    _isolate?.kill(priority: Isolate.immediate);
+    _isolate = null;
+    _errorPort?.close();
+    _errorPort = null;
+    _commandPort = null;
+  }
+
   /// Cleanly shuts down the worker isolate, attempting a graceful stop command
   /// before killing the isolate.
   Future<void> dispose() async {
