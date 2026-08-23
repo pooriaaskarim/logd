@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3: Handler Missing Dispose Rule & Quick-Fix
+
+This release introduces static analysis rule C6 (`logd_handler_missing_dispose`) with an automated IDE quick-fix to detect un-disposed `AsyncHandler` instances.
+
+- ### New Lint Rule (Group C)
+  - **Handler Missing Dispose (`logd_handler_missing_dispose`)**: Fires when an `AsyncHandler` is instantiated in a scope without a corresponding call to `dispose()`, preventing abandoned worker isolates and open IPC control ports.
+  - **Automated Quick-Fix**: Added IDE quick-fix to automatically insert `await handler.dispose();` before the instance goes out of scope.
+
 ## 0.1.2: Automation of Code-Style & Arena Lifecycle Rules (Quick-Fixes)
 
 This release focuses on improving the developer experience by introducing automated IDE quick-fixes for core validation warnings.

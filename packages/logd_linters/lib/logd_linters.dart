@@ -39,6 +39,7 @@ import 'src/rules/purity/decorator_not_immutable.dart';
 import 'src/rules/purity/formatter_not_immutable.dart';
 import 'src/rules/purity/formatter_performs_string_rendering.dart';
 import 'src/rules/usage/avoid_print_sink_in_production.dart';
+import 'src/rules/usage/handler_missing_dispose.dart';
 import 'src/rules/usage/handler_missing_engine.dart';
 import 'src/rules/usage/log_buffer_not_sunk.dart';
 import 'src/rules/usage/logtag_use_bitmask.dart';
@@ -64,6 +65,7 @@ class _LogdLintersPlugin extends PluginBase {
         const AvoidPrintSinkInProduction(),
         const LogtagUseBitmask(),
         const LogBufferNotSunk(),
+        const HandlerMissingDispose(),
         const HandlerMissingEngine(),
         const MetadataSetDuplicate(),
 
