@@ -22,6 +22,9 @@ enum DropPolicy {
   /// Pause logging until the buffer has space (blocking the application).
   ///
   /// CAUTION: This can lead to performance issues if the network is down.
+  @Deprecated(
+    'DropPolicy.block is not supported in logd_network and will be removed in v1.0.0.',
+  )
   block,
 }
 
@@ -39,7 +42,12 @@ abstract base class NetworkSink extends EncodingSink {
     this.maxBufferSize = 1000,
     this.dropPolicy = DropPolicy.discardOldest,
     super.enabled,
-  }) : super(delegate: _doNothing);
+  })  : assert(
+          dropPolicy != DropPolicy.block,
+          'DropPolicy.block is not supported in logd_network. '
+          'Use DropPolicy.discardOldest or DropPolicy.discardNewest.',
+        ),
+        super(delegate: _doNothing);
 
   static void _doNothing(final Uint8List _) {}
 
@@ -447,7 +455,7 @@ base class SocketSink extends NetworkSink {
           'SocketSink reconnection failed. Retrying in '
           '${delay.inSeconds}s (attempt ${_socketState.retryAttempts})',
         );
-        Future.delayed(delay, _connect);
+        _socketState.reconnectTimer = Timer(delay, _connect);
       }
     }
   }
@@ -464,6 +472,8 @@ base class SocketSink extends NetworkSink {
   @override
   @mustCallSuper
   Future<void> dispose() async {
+    _socketState.reconnectTimer?.cancel();
+    _socketState.reconnectTimer = null;
     if (_socketState.isConnected) {
       _drainBuffer();
     }
@@ -480,4 +490,5 @@ class _SocketState extends _NetworkState {
   bool isConnected = false;
   bool isConnecting = false;
   int retryAttempts = 0;
+  Timer? reconnectTimer;
 }
