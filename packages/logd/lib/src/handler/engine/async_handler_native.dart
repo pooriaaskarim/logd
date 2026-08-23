@@ -72,8 +72,21 @@ base class AsyncHandler extends Handler {
           ],
           debugName: 'AsyncHandler',
         ) {
+    _finalizer.attach(this, _worker, detach: this);
     _start();
   }
+
+  static final Finalizer<IsolateWorker> _finalizer =
+      Finalizer<IsolateWorker>((final worker) {
+    InternalLogger.log(
+      LogLevel.warning,
+      'AsyncHandler leak detected! '
+      'Handler garbage-collected without dispose(). '
+      'Background isolate terminated immediately. '
+      'Call dispose() explicitly to flush pending log entries and close resources gracefully.',
+    );
+    worker.kill();
+  });
 
   final IsolateWorker _worker;
 
@@ -142,6 +155,7 @@ base class AsyncHandler extends Handler {
   /// Disposes of the background isolate and releases any associated resources.
   @override
   Future<void> dispose() async {
+    _finalizer.detach(this);
     await _worker.dispose();
     await super.dispose();
   }

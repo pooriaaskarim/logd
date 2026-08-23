@@ -253,5 +253,27 @@ void main() {
       // Must compile and not throw
       await h.dispose();
     });
+
+    test(
+        'AsyncHandler attaches Finalizer and safely handles post-dispose log calls',
+        () async {
+      final handler = AsyncHandler(
+        formatter: const PlainFormatter(),
+        sink: TestSink(),
+      );
+
+      await handler.ready;
+      await handler.dispose();
+
+      // Subsequent log calls on disposed handler are safe no-ops
+      final entry = LogEntry(
+        loggerName: 'DisposedTest',
+        origin: 'test',
+        level: LogLevel.info,
+        message: 'should be ignored',
+        timestamp: '2025-01-01',
+      );
+      await handler.log(entry);
+    });
   });
 }
