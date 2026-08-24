@@ -245,7 +245,7 @@
 
 **Completed**:
 - [x] `MemorySink`: In-memory ring-buffer for testing and in-process log inspection (`@experimental`, v0.9.1)
-- [x] `SqliteHandler` / `logd_sqlite`: High-performance WAL-mode SQLite persistence satellite package ([`logd_sqlite`](file:///home/ono/Projects/logd/packages/logd_sqlite), v0.1.1)
+- [x] `SqliteHandler` / `logd_sqlite`: High-performance WAL-mode SQLite persistence satellite package ([`logd_sqlite`](file://packages/logd_sqlite), v0.1.1)
 
 **Planned Satellite Packages — each ships a `{Target}Handler extends Handler`**:
 - [ ] `logd_sentry`: `SentryHandler` — forwards structured log events and stack traces to Sentry.io

@@ -29,4 +29,4 @@ The current multi-isolate capabilities (`AsyncHandler`, `.async()` target handle
 ## Active Roadmap Position
 - **Status**: Research & Design Phase for **v0.10.x track** (formal multi-isolate architecture).
 - **Decision**: Reject point-patch synchronization bus (`LogdIsolateHub`) in v0.9.x to avoid layering patches on top of an unprincipled isolate model. Use `v0.10.x` series to iterate on the multi-isolate model before committing to `v1.0.0` API stability.
-- **Reference**: See [ARCHITECTURE.md](file:///home/ono/Projects/logd/.agents/knowledge/logd_isolate_model/ARCHITECTURE.md) and [OPEN_QUESTIONS.md](file:///home/ono/Projects/logd/.agents/knowledge/logd_isolate_model/OPEN_QUESTIONS.md).
+- **Reference**: See [ARCHITECTURE.md](file://.agents/knowledge/logd_isolate_model/ARCHITECTURE.md) and [OPEN_QUESTIONS.md](file://.agents/knowledge/logd_isolate_model/OPEN_QUESTIONS.md).

@@ -16,7 +16,7 @@ This release improves developer experience and resource safety when integrating 
   - **Finalizer Leak Safety**: Wired Dart's `Finalizer` API to `AsyncHandler` (`async_handler_native.dart`). If an `AsyncHandler` instance is garbage-collected without `dispose()` being called explicitly, the `Finalizer` callback logs an `InternalLogger.warning` and immediately terminates the underlying worker isolate via `IsolateWorker.kill()`, preventing abandoned background isolates from leaking CPU/RAM.
 
 - ### Robustness & Defensive Guards
-  - **Pattern RegExp Error Guard**: Wrapped `RegExp` construction in `Logger.configurePattern` ([logger.dart:1183-1194](file:///home/ono/Projects/logd/packages/logd/lib/src/logger/logger.dart#L1183-L1194)) in a `try/catch` block. If an invalid pattern string is supplied, it now catches `FormatException` and throws a descriptive `ArgumentError` citing the pattern string directly.
+  - **Pattern RegExp Error Guard**: Wrapped `RegExp` construction in `Logger.configurePattern` ([logger.dart:1183-1194](file://packages/logd/lib/src/logger/logger.dart#L1183-L1194)) in a `try/catch` block. If an invalid pattern string is supplied, it now catches `FormatException` and throws a descriptive `ArgumentError` citing the pattern string directly.
 
 - ### Testing
   - Added dedicated tests covering reactive error messages (serialization and deserialization of unregistered types), proactive `verify*` helpers (registered pass, unregistered `StateError`), `configurePattern` parameter validation, and `AsyncHandler` post-dispose safety.
