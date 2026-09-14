@@ -32,5 +32,24 @@ void main() {
         await expectLater(handler.dispose(), completes);
       },
     );
+
+    test('HttpDashboardHandler.async creates background isolate handler', () async {
+      registerLogdNetworkSerializers();
+
+      final handler = HttpDashboardHandler.async(
+        port: 0,
+        title: 'Async Test Dashboard',
+      );
+
+      expect(handler, isA<AsyncHandler>());
+
+      Logger.configure('test.dashboard_async', handlers: [handler]);
+      final logger = Logger.get('test.dashboard_async');
+
+      await handler.ready;
+      logger.info('Dashboard log on isolate');
+
+      await expectLater(handler.dispose(), completes);
+    });
   });
 }

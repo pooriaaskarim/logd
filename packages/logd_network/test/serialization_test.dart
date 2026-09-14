@@ -55,5 +55,26 @@ void main() {
       expect(restored.maxBufferSize, equals(800));
       expect(restored.dropPolicy, equals(DropPolicy.discardOldest));
     });
+
+    test('HttpServerSink round-trip serialization and deserialization', () {
+      final original = HttpServerSink(
+        address: '127.0.0.1',
+        port: 0,
+        bufferCapacity: 250,
+        lineLength: 140,
+      );
+
+      final json = LoggerSerializationRegistry.serializeSink(original);
+      expect(json['type'], equals('HttpServerSink'));
+
+      final restored =
+          LoggerSerializationRegistry.deserializeSink(json) as HttpServerSink;
+      expect(restored.address, equals('127.0.0.1'));
+      expect(restored.bufferCapacity, equals(250));
+      expect(restored.preferredWidth, equals(140));
+
+      original.dispose();
+      restored.dispose();
+    });
   });
 }

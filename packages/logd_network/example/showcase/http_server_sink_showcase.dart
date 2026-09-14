@@ -27,14 +27,14 @@ Future<void> main() async {
   final sink = HttpServerSink(
     address: 'localhost',
     port: port,
-    encoder: const HtmlEncoder(title: 'logd Real-Time Viewer'),
+    encoder: const AutoTextEncoder(),
     bufferCapacity: 200,
   );
 
   await sink.ready;
 
   final handler = Handler(
-    formatter: const ToonFormatter(
+    formatter: const StructuredFormatter(
       metadata: {LogMetadata.timestamp, LogMetadata.logger, LogMetadata.origin},
     ),
     sink: sink,

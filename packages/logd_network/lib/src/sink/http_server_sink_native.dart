@@ -8,7 +8,7 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
-import 'package:logd/logd.dart';
+import 'package:logd/logd.dart' hide HtmlEncoder;
 import 'package:logd/src/logger/internal_logger.dart';
 import 'dashboard_html.dart';
 
@@ -20,7 +20,7 @@ base class HttpServerSink extends EncodingSink {
   HttpServerSink({
     this.address = 'localhost',
     this.port = 8080,
-    super.encoder = const HtmlEncoder(),
+    super.encoder = const AutoTextEncoder(),
     final int? lineLength,
     super.enabled = true,
     this.bufferCapacity = 100,
@@ -67,9 +67,10 @@ base class HttpServerSink extends EncodingSink {
         if (request.uri.path == '/') {
           request.response.headers.contentType = io.ContentType.html;
           var html = dashboardHtml;
-          final currentEncoder = encoder;
-          if (currentEncoder is HtmlEncoder) {
-            final css = currentEncoder.stylesheet;
+          final Object currentEncoder = encoder;
+          if (currentEncoder.runtimeType.toString() == 'HtmlEncoder') {
+            final dynamic enc = currentEncoder;
+            final css = enc.stylesheet;
             html = html.replaceFirst('</head>', '<style>$css</style></head>');
           }
           request.response.write(html);

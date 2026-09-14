@@ -1,10 +1,13 @@
 import 'package:logd/logd.dart'
-    hide HttpDashboardHandler, HttpSink, SocketSink, DropPolicy;
+    hide DropPolicy, HttpDashboardHandler, HttpSink, SocketSink;
 import 'package:logd_network/logd_network.dart';
 
 void main() async {
-  // 1. Pre-wired HTTP & WebSocket browser dashboard
-  final dashboard = HttpDashboardHandler(
+  // Always register serializers when using isolates or async handlers
+  registerLogdNetworkSerializers();
+
+  // 1. Asynchronous real-time HTTP & WebSocket browser dashboard on background isolate
+  final dashboard = HttpDashboardHandler.async(
     port: 8080,
     title: 'Production Telemetry Stream',
     bufferCapacity: 200,
@@ -26,12 +29,13 @@ void main() async {
   Logger.configure('app', handlers: [dashboard, httpHandler]);
 
   // 4. Emit telemetry logs
-  final logger = Logger.get('app.service');
-  logger.info('Network observability pipeline initialized');
-  logger.warning('High memory pressure detected', context: {'usage': '87%'});
-  logger.error('Circuit breaker tripped for payment-service');
+  Logger.get('app.service')
+    ..info('Network observability pipeline initialized')
+    ..warning('High memory pressure detected', context: const {'usage': '87%'})
+    ..error('Circuit breaker tripped for payment-service');
 
   // 5. Clean teardown on exit
   await dashboard.dispose();
   await httpHandler.sink.dispose();
+  print('Network handlers disposed cleanly.');
 }

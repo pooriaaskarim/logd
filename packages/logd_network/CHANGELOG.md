@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- **Async Dashboard Isolate Execution (`HttpDashboardHandler.async`)**: Added `HttpDashboardHandler.async()` static factory method for running the real-time HTTP/WebSocket dashboard server on a background isolate.
+- **Serialization Safety**: Added `HttpServerSink` serialization support to `registerLogdNetworkSerializers()`.
+- **Documentation**: Added `doc/architecture.md`, `doc/benchmarks.md`, and `doc/migration_guide.md`.
+- **Updated Dependencies**: Updated `logd` dependency constraint to `^0.9.7`.
+
 ## 0.1.3
 
 - **`SocketSink` Reconnect Timer Fix**:

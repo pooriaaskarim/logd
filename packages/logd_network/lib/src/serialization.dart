@@ -1,12 +1,13 @@
 import 'package:logd/logd.dart'
     hide HttpSink, SocketSink, HttpServerSink, HttpDashboardHandler, DropPolicy;
+import 'sink/http_server_sink.dart';
 import 'sink/network_sink.dart';
 
 /// Registers serialization and deserialization handlers for [logd_network] components
 /// with [LoggerSerializationRegistry].
 ///
-/// If using background isolates with [HttpSink] or [SocketSink], call this function
-/// once in each isolate before calling `Logger.importConfig()`.
+/// If using background isolates with [HttpSink], [SocketSink], or [HttpServerSink],
+/// call this function once in each isolate before calling `Logger.importConfig()`.
 void registerLogdNetworkSerializers() {
   LoggerSerializationRegistry.registerSink<HttpSink>(
     type: 'HttpSink',
@@ -56,6 +57,24 @@ void registerLogdNetworkSerializers() {
       'reconnectIntervalMs': val.reconnectInterval.inMilliseconds,
       'maxBufferSize': val.maxBufferSize,
       'dropPolicy': val.dropPolicy.name,
+      'enabled': val.enabled,
+    },
+  );
+
+  LoggerSerializationRegistry.registerSink<HttpServerSink>(
+    type: 'HttpServerSink',
+    fromJson: (final json) => HttpServerSink(
+      address: json['address'] as String? ?? 'localhost',
+      port: json['port'] as int? ?? 8080,
+      bufferCapacity: json['bufferCapacity'] as int? ?? 100,
+      lineLength: json['lineLength'] as int?,
+      enabled: json['enabled'] as bool? ?? true,
+    ),
+    toJson: (final val) => <String, dynamic>{
+      'address': val.address,
+      'port': val.port,
+      'bufferCapacity': val.bufferCapacity,
+      'lineLength': val.preferredWidth,
       'enabled': val.enabled,
     },
   );
