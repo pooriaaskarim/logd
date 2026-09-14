@@ -1,11 +1,11 @@
 import 'package:logd/logd.dart' hide MarkdownEncoder, MarkdownFileHandler;
 import 'package:meta/meta.dart';
 
-import 'markdown_encoder.dart';
+import 'markdown_formatter.dart';
 
 /// A pre-wired [Handler] that outputs GitHub-Flavored Markdown (GFM) to a file.
 ///
-/// Uses [StructuredFormatter], [MarkdownEncoder], and [FileSink].
+/// Uses [MarkdownFormatter], [MarkdownEncoder], and [FileSink].
 ///
 /// To offload formatting, Markdown encoding, and file I/O to a background
 /// isolate, use the [MarkdownFileHandler.async] constructor.
@@ -22,10 +22,10 @@ class MarkdownFileHandler extends Handler {
     super.engine = const StandardEngine(),
     super.timeout,
   }) : super(
-          formatter: formatter ?? const StructuredFormatter(),
+          formatter: formatter ?? const MarkdownFormatter(),
           sink: FileSink(
             path,
-            encoder: const MarkdownEncoder(),
+            encoder: const AutoTextEncoder(),
             fileRotation: fileRotation,
             lineLength: lineLength,
           ),
@@ -45,10 +45,10 @@ class MarkdownFileHandler extends Handler {
     final Duration? timeout,
   }) =>
       AsyncHandler(
-        formatter: formatter ?? const StructuredFormatter(),
+        formatter: formatter ?? const MarkdownFormatter(),
         sink: FileSink(
           path,
-          encoder: const MarkdownEncoder(),
+          encoder: const AutoTextEncoder(),
           fileRotation: fileRotation,
           lineLength: lineLength,
         ),
