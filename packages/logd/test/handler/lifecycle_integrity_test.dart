@@ -255,8 +255,9 @@ void main() {
     });
 
     test(
-        'AsyncHandler attaches Finalizer and safely handles post-dispose log calls',
-        () async {
+      'AsyncHandler attaches Finalizer and safely handles '
+      'post-dispose log calls',
+      () async {
       final handler = AsyncHandler(
         formatter: const PlainFormatter(),
         sink: TestSink(),

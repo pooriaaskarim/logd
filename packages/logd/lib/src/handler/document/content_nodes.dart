@@ -296,7 +296,10 @@ final class MapNode extends LogNode {
       );
 
   @override
-  String toString() => convert.jsonEncode(map);
+  String toString() => convert.jsonEncode(
+        map,
+        toEncodable: (final object) => object.toString(),
+      );
 }
 
 /// A node that carries raw structured data as a list.
@@ -333,5 +336,8 @@ final class ListNode extends LogNode {
   int get hashCode => Object.hash(runtimeType, Object.hashAll(list), tags);
 
   @override
-  String toString() => convert.jsonEncode(list);
+  String toString() => convert.jsonEncode(
+        list,
+        toEncodable: (final object) => object.toString(),
+      );
 }

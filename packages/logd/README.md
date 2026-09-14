@@ -53,7 +53,7 @@ Most libraries give you console or file. logd gives you a clean pipeline: Format
 
 ## Pre-Wired Handlers
 
-Seven core ready-to-use handlers cover common destinations out of the box (with network telemetry provided by [`logd_network`](https://pub.dev/packages/logd_network)). No pipeline wiring required:
+Ready-to-use handlers cover common destinations out of the box (with specialized formats & telemetry provided by satellite packages like [`logd_toon`](https://pub.dev/packages/logd_toon), [`logd_html`](https://pub.dev/packages/logd_html), [`logd_markdown`](https://pub.dev/packages/logd_markdown), and [`logd_network`](https://pub.dev/packages/logd_network)). No pipeline wiring required:
 
 ```dart
 // Styled terminal output (dark or light theme)
@@ -62,16 +62,16 @@ ConsoleHandler(theme: const LogTheme.dark())
 // Structured JSON to file (pretty or compact)
 JsonFileHandler('logs/api.json', pretty: true)
 
-// Self-contained HTML report with search and level filters
+// Self-contained HTML report (from package:logd_html)
 HtmlFileHandler('logs/session.html')
 
-// Token-efficient format for LLM / AI agent consumption
+// Token-efficient format for LLM / AI agent consumption (from package:logd_toon)
 ToonFileHandler('logs/telemetry.toon')
 
 // Plain text to file
 PlainFileHandler('logs/app.log')
 
-// GitHub-Flavored Markdown for CI summaries
+// GitHub-Flavored Markdown for CI summaries (from package:logd_markdown)
 MarkdownFileHandler('logs/ci.md')
 
 // In-memory ring buffer for tests and debug panels
@@ -184,17 +184,21 @@ Future<void> chargePaymentGateway() async {
 |---|---|---|
 | Styled ANSI | `ConsoleHandler` | Development terminal |
 | Structured JSON | `JsonFileHandler` / `JsonFormatter` | Log aggregators (Loki, ELK) |
-| HTML report | `HtmlFileHandler` / `HtmlEncoder` | Shareable session logs |
-| Markdown | `MarkdownFileHandler` | CI/CD job summaries |
-| TOON | `ToonFileHandler` / `ToonFormatter` | LLM / AI agent consumption |
+| HTML report | [`HtmlFileHandler`](https://pub.dev/packages/logd_html) / [`HtmlEncoder`](https://pub.dev/packages/logd_html) (from [`logd_html`](https://pub.dev/packages/logd_html)) | Shareable session logs |
+| Markdown | [`MarkdownFileHandler`](https://pub.dev/packages/logd_markdown) (from [`logd_markdown`](https://pub.dev/packages/logd_markdown)) | CI/CD job summaries |
+| TOON | [`ToonFileHandler`](https://pub.dev/packages/logd_toon) / [`ToonFormatter`](https://pub.dev/packages/logd_toon) (from [`logd_toon`](https://pub.dev/packages/logd_toon)) | LLM / AI agent consumption |
 | Plain text | `PlainFileHandler` / `PlainFormatter` | Simple file logs |
 | SQLite | [`logd_sqlite`](https://pub.dev/packages/logd_sqlite) | Queryable persistent storage |
 
 ### TOON: Logs Optimized for LLMs
 
-Token-Oriented Object Notation emits the column schema once, then tab-delimited rows — **30–50% fewer tokens than JSON** for the same data:
+Token-Oriented Object Notation emits the column schema once, then tab-delimited rows — **30–50% fewer tokens than JSON** for the same data (provided by [`package:logd_toon`](https://pub.dev/packages/logd_toon)):
 
 ```dart
+import 'package:logd/logd.dart'
+    hide ToonEncoder, ToonFormatter, ToonFileHandler, ToonPrettyFormatter;
+import 'package:logd_toon/logd_toon.dart';
+
 Logger.configure('ai.agent', handlers: [
   ToonFileHandler('logs/agent.toon'),
 ]);
@@ -615,6 +619,9 @@ test('logs warning on failure', () async {
 
 | Package | Purpose |
 |---|---|
+| [`logd_toon`](https://pub.dev/packages/logd_toon) | Tab-Oriented Object Notation (TOON) formatter, encoder & file handler (30–50% LLM token reduction) |
+| [`logd_html`](https://pub.dev/packages/logd_html) | Self-contained HTML report encoder, stylesheets & file handler |
+| [`logd_markdown`](https://pub.dev/packages/logd_markdown) | GitHub-Flavored Markdown formatter & file handler for CI summaries |
 | [`logd_sqlite`](https://pub.dev/packages/logd_sqlite) | WAL-mode SQLite persistence, auto-pruning, rich query engine |
 | [`logd_network`](https://pub.dev/packages/logd_network) | HTTP batching, WebSocket streaming, embedded viewer dashboard |
 | [`logd_linters`](https://pub.dev/packages/logd_linters) | Custom lint rules for arena lifecycle and formatter purity |
@@ -628,7 +635,7 @@ test('logs warning on failure', () async {
 | [Logger Philosophy](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/philosophy.md) | 13 design principles with rationale |
 | [Handler Architecture](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/architecture.md) | Pipeline internals |
 | [Execution Engines Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/handler/engines.md) | Standard, Arena, Native |
-| [TOON Specification](https://github.com/pooriaaskarim/logd/blob/master/doc/toon_spec.md) | Format spec + DuckDB ingestion |
+| [TOON Specification](https://github.com/pooriaaskarim/logd/blob/master/packages/logd_toon/doc/toon_spec.md) | Format spec + DuckDB ingestion |
 | [Isolates Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/isolates.md) | Cross-isolate configuration |
 | [Migration Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/migration.md) | Upgrading from legacy components |
 | [Architecture Decisions](https://github.com/pooriaaskarim/logd/blob/master/doc/decisions/README.md) | ADR-001 through ADR-006 |

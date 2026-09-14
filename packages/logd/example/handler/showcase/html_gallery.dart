@@ -144,10 +144,10 @@ void main() async {
   ]);
 
   // ===========================================================================
-  // 5. TOON STREAM (ToonFormatter + Suffix + Hierarchy)
+  // 5. TOON STREAM (StructuredFormatter + Suffix + Hierarchy)
   // ===========================================================================
-  final toonHandler = Handler(
-    formatter: const ToonFormatter(),
+  final structuredHandler = Handler(
+    formatter: const StructuredFormatter(),
     decorators: [
       const StyleDecorator(),
       const SuffixDecorator(
@@ -157,15 +157,16 @@ void main() async {
       const HierarchyDepthPrefixDecorator(indent: '  │ '),
     ],
     sink: FileSink(
-      '${outputDir.path}/5_toon_stream.html',
-      encoder: const HtmlEncoder(title: 'Toon Stream Telemetry'),
+      '${outputDir.path}/5_structured_stream.html',
+      encoder: const HtmlEncoder(title: 'Structured Stream Telemetry'),
     ),
   );
 
-  Logger.configure('toon', logLevel: LogLevel.trace, handlers: [toonHandler]);
-  final toonLog = Logger.get('toon.telemetry');
-  _logAllLevels(toonLog, 'Toon Telemetry Data');
-  toonLog.warning('Voltage fluctuation',
+  Logger.configure('structured',
+      logLevel: LogLevel.trace, handlers: [structuredHandler]);
+  final structuredLog = Logger.get('structured.telemetry');
+  _logAllLevels(structuredLog, 'Structured Telemetry Data');
+  structuredLog.warning('Voltage fluctuation',
       error: ['sensor_01: low', 'sensor_02: critical']);
 
   // ===========================================================================
@@ -206,7 +207,7 @@ void main() async {
     ...darkLog.handlers,
     ...jsonLog.handlers,
     ...compactLog.handlers,
-    ...toonLog.handlers,
+    ...structuredLog.handlers,
     ...fullLog.handlers,
   ];
 

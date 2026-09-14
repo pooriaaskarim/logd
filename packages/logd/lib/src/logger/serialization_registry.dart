@@ -471,8 +471,9 @@ class LoggerSerializationRegistry {
     if (spec == null) {
       throw ArgumentError(
         'LogFormatter type "$type" is not registered in '
-        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerFormatter '
-        'is called before deserializing.',
+        'LoggerSerializationRegistry. Ensure '
+        'LoggerSerializationRegistry.registerFormatter is called before '
+        'deserializing.',
       );
     }
     return spec.fromJson(config);
@@ -502,8 +503,9 @@ class LoggerSerializationRegistry {
     if (spec == null) {
       throw ArgumentError(
         'LogSink type "$type" is not registered in '
-        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerSink '
-        'is called before deserializing.',
+        'LoggerSerializationRegistry. Ensure '
+        'LoggerSerializationRegistry.registerSink is called before '
+        'deserializing.',
       );
     }
     return spec.fromJson(config);
@@ -533,8 +535,9 @@ class LoggerSerializationRegistry {
     if (spec == null) {
       throw ArgumentError(
         'LogFilter type "$type" is not registered in '
-        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerFilter '
-        'is called before deserializing.',
+        'LoggerSerializationRegistry. Ensure '
+        'LoggerSerializationRegistry.registerFilter is called before '
+        'deserializing.',
       );
     }
     return spec.fromJson(config);
@@ -564,8 +567,9 @@ class LoggerSerializationRegistry {
     if (spec == null) {
       throw ArgumentError(
         'LogDecorator type "$type" is not registered in '
-        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerDecorator '
-        'is called before deserializing.',
+        'LoggerSerializationRegistry. Ensure '
+        'LoggerSerializationRegistry.registerDecorator is called before '
+        'deserializing.',
       );
     }
     return spec.fromJson(config);
@@ -595,8 +599,9 @@ class LoggerSerializationRegistry {
     if (spec == null) {
       throw ArgumentError(
         'LogEngine type "$type" is not registered in '
-        'LoggerSerializationRegistry. Ensure LoggerSerializationRegistry.registerEngine '
-        'is called before deserializing.',
+        'LoggerSerializationRegistry. Ensure '
+        'LoggerSerializationRegistry.registerEngine is called before '
+        'deserializing.',
       );
     }
     return spec.fromJson(config);
@@ -656,7 +661,9 @@ class LoggerSerializationRegistry {
     }
     throw ArgumentError(
       '$categoryName subtype "${val.runtimeType}" is not registered in '
-      'LoggerSerializationRegistry. Call LoggerSerializationRegistry.$registerMethodName<${val.runtimeType}>(...) '
+      'LoggerSerializationRegistry. Call '
+      'LoggerSerializationRegistry.'
+      '$registerMethodName<${val.runtimeType}>(...) '
       'before exporting or transferring configurations across isolates.',
     );
   }

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.7: Core Decoupling & Satellite Ecosystem Expansion
+
+This release completes core decoupling for specialized log formats and layout strategies, establishing first-class satellite packages and renaming internal wrapping contracts for enhanced clarity.
+
+- ### Contract Rename & Deprecation: `wrappingStrategy`
+  - **`requiredStrategy` → `wrappingStrategy`**: Renamed `LogEncoder.requiredStrategy` to `wrappingStrategy` for improved API readability. `requiredStrategy` is preserved as a `@Deprecated` getter shim pointing to `wrappingStrategy` and will be removed in `v0.10.0`.
+
+- ### Core Decoupling & Satellite Package Activation
+  - **`package:logd_toon`**: Activated Tab-Oriented Object Notation (TOON) as a standalone satellite package (`0.1.0`). Removed TOON-specific layout conditionals (`toon_columns`) from `TerminalLayout`, `AutoEncoder`, and `NativeEngine`. Soft-deprecated `ToonFormatter`, `ToonEncoder`, and `ToonFileHandler` in core `packages/logd`.
+  - **`package:logd_html`**: Created dedicated satellite package for HTML5 log rendering (`HtmlEncoder`, `HtmlStylesheet`, `HtmlFileHandler`). Soft-deprecated HTML classes in core `packages/logd`.
+  - **`package:logd_markdown`**: Created dedicated satellite package for GitHub-Flavored Markdown rendering (`MarkdownEncoder`, `MarkdownFileHandler`). Soft-deprecated Markdown classes in core `packages/logd`.
+
+- ### Structural Robustness & Architectural Integrity
+  - **`MapNode.toString()` & `ListNode.toString()` Unencodable Safety**: Added `toEncodable: (final object) => object.toString()` fallback to `jsonEncode` calls inside `MapNode` and `ListNode`, guaranteeing exception-free string conversion when documents carry non-JSON-encodable Dart objects (`StateError`, `StackTrace`, custom models).
+  - **Rejection of `Handler.theme` (ADR-008)**: Formally documented ADR-008 to solidify theme ownership in `StyleDecorator`, preserving Single Source of Truth and semantic/physical pipeline boundaries.
+
 ## 0.9.6: Serialization Registry Diagnostics & AsyncHandler Leak Safety
 
 This release improves developer experience and resource safety when integrating custom pipeline components (`LogFormatter`, `LogSink`, `LogFilter`, `LogDecorator`, `LogEngine`) and background isolate handlers (`AsyncHandler`).

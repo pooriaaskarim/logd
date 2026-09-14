@@ -20,7 +20,11 @@ abstract interface class LogEncoder {
   /// structures (such as [HtmlEncoder]) should override this to
   /// [WrappingStrategy.document] so that [EncodingSink] can manage the
   /// lifecycle automatically.
-  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
+  WrappingStrategy get wrappingStrategy => WrappingStrategy.none;
+
+  /// Deprecated alias for [wrappingStrategy].
+  @Deprecated('Use wrappingStrategy instead. Will be removed in v0.10.0.')
+  WrappingStrategy get requiredStrategy => wrappingStrategy;
 
   /// Returns the document start (e.g., HTML header or TOON header), if
   /// applicable.

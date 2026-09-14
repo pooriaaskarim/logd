@@ -1189,7 +1189,8 @@ class Logger {
       throw ArgumentError.value(
         pattern,
         'pattern',
-        'Pattern "$pattern" produced an invalid regular expression: ${e.message}',
+        'Pattern "$pattern" produced an invalid regular expression: '
+            '${e.message}',
       );
     }
   }

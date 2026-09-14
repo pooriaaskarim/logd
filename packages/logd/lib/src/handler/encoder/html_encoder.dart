@@ -4,6 +4,7 @@ part of 'encoder.dart';
 ///
 /// It traverses the semantic tree and renders nodes as HTML elements, applying
 /// CSS classes based on [LogTag]s.
+@Deprecated('Use package:logd_html instead. Will be removed in v0.10.0.')
 @immutable
 class HtmlEncoder implements LogEncoder {
   /// Creates an [HtmlEncoder].
@@ -16,7 +17,11 @@ class HtmlEncoder implements LogEncoder {
   });
 
   @override
-  WrappingStrategy get requiredStrategy => WrappingStrategy.document;
+  WrappingStrategy get wrappingStrategy => WrappingStrategy.document;
+
+  @Deprecated('Use wrappingStrategy instead. Will be removed in v0.10.0.')
+  @override
+  WrappingStrategy get requiredStrategy => wrappingStrategy;
 
   /// The title of the generated HTML document.
   final String title;

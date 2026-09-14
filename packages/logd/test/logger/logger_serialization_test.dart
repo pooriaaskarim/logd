@@ -172,8 +172,9 @@ void main() {
     });
 
     test(
-        'should throw descriptive ArgumentError when serializing unregistered component',
-        () {
+      'should throw descriptive ArgumentError when serializing '
+      'unregistered component',
+      () {
       expect(
         () => LoggerSerializationRegistry.serializeFormatter(
           const _UnregisteredFormatter(),
@@ -183,7 +184,8 @@ void main() {
             (final e) => e.message.toString(),
             'message',
             contains(
-              'LogFormatter subtype "_UnregisteredFormatter" is not registered in LoggerSerializationRegistry',
+              'LogFormatter subtype "_UnregisteredFormatter" is not '
+              'registered in LoggerSerializationRegistry',
             ),
           ),
         ),
@@ -191,8 +193,9 @@ void main() {
     });
 
     test(
-        'should throw descriptive ArgumentError when deserializing unregistered component type',
-        () {
+      'should throw descriptive ArgumentError when deserializing '
+      'unregistered component type',
+      () {
       expect(
         () => LoggerSerializationRegistry.deserializeFormatter({
           'type': 'UnknownFormatter',
@@ -203,7 +206,8 @@ void main() {
             (final e) => e.message.toString(),
             'message',
             contains(
-              'LogFormatter type "UnknownFormatter" is not registered in LoggerSerializationRegistry',
+              'LogFormatter type "UnknownFormatter" is not registered in '
+              'LoggerSerializationRegistry',
             ),
           ),
         ),

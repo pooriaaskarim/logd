@@ -3,10 +3,14 @@ import 'package:logd/src/logger/logger.dart';
 import 'package:test/test.dart';
 
 class CustomTestEncoder implements LogEncoder {
-  const CustomTestEncoder(this.requiredStrategy);
+  const CustomTestEncoder(this.wrappingStrategy);
 
   @override
-  final WrappingStrategy requiredStrategy;
+  final WrappingStrategy wrappingStrategy;
+
+  @Deprecated('Use wrappingStrategy instead. Will be removed in v0.10.0.')
+  @override
+  WrappingStrategy get requiredStrategy => wrappingStrategy;
 
   @override
   void preamble(
@@ -36,7 +40,7 @@ class CustomTestEncoder implements LogEncoder {
 
 void main() {
   group('EncodingSink strategy', () {
-    test('uses encoder.requiredStrategy when document', () {
+    test('uses encoder.wrappingStrategy when document', () {
       const encoder = CustomTestEncoder(WrappingStrategy.document);
       final sink = EncodingSink(
         encoder: encoder,
@@ -45,7 +49,7 @@ void main() {
       expect(sink.strategy, equals(WrappingStrategy.document));
     });
 
-    test('uses encoder.requiredStrategy when none', () {
+    test('uses encoder.wrappingStrategy when none', () {
       const encoder = CustomTestEncoder(WrappingStrategy.none);
       final sink = EncodingSink(
         encoder: encoder,
@@ -54,7 +58,7 @@ void main() {
       expect(sink.strategy, equals(WrappingStrategy.none));
     });
 
-    test('HtmlEncoder requiredStrategy is WrappingStrategy.document', () {
+    test('HtmlEncoder wrappingStrategy is WrappingStrategy.document', () {
       final sink = EncodingSink(
         encoder: const HtmlEncoder(),
         delegate: (final data) {},

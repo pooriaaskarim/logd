@@ -6,11 +6,16 @@ part of 'encoder.dart';
 /// It uses the configuration (delimiter, columns, sortKeys, etc.) stored in the
 /// document's metadata to produce headers and delimited rows. It handles
 /// recursive formatting for nested Maps and Lists within the TOON rows.
+@Deprecated('Use package:logd_toon instead. Will be removed in v0.10.0.')
 class ToonEncoder implements LogEncoder {
   /// Creates a [ToonEncoder].
   const ToonEncoder();
   @override
-  WrappingStrategy get requiredStrategy => WrappingStrategy.document;
+  WrappingStrategy get wrappingStrategy => WrappingStrategy.document;
+
+  @Deprecated('Use wrappingStrategy instead. Will be removed in v0.10.0.')
+  @override
+  WrappingStrategy get requiredStrategy => wrappingStrategy;
 
   @override
   void preamble(

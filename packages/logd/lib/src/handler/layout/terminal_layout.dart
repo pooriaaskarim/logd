@@ -61,23 +61,10 @@ class TerminalLayout {
       case final RowNode n:
         _renderRow(n, document, level, availableWidth, out);
       case final MapNode n:
-        final toonColumns = document.metadata['toon_columns'] as List<String>?;
-        if (toonColumns != null) {
-          final delimiter =
-              document.metadata['toon_delimiter'] as String? ?? '\t';
-          final row = toonColumns
-              .map((final col) => n.map[col]?.toString() ?? '')
-              .join(delimiter);
-
-          final rNode = factory.checkoutHeader()..segments.add(StyledText(row));
-          _renderContent(rNode, availableWidth, out);
-          rNode.releaseRecursive(factory);
-        } else {
-          final temp = factory.checkoutHeader()
-            ..segments.add(StyledText(n.toString()));
-          _renderContent(temp, availableWidth, out);
-          temp.releaseRecursive(factory);
-        }
+        final temp = factory.checkoutHeader()
+          ..segments.add(StyledText(n.toString()));
+        _renderContent(temp, availableWidth, out);
+        temp.releaseRecursive(factory);
       case final ListNode n:
         final temp = factory.checkoutHeader()
           ..segments.add(StyledText(n.toString()));

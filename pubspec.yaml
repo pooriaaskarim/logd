@@ -9,4 +9,7 @@ workspace:
   - packages/logd_linters
   - packages/logd_sqlite
   - packages/logd_network
+  - packages/logd_markdown
+  - packages/logd_html
+  - packages/logd_toon
 

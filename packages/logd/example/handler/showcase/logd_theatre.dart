@@ -56,11 +56,11 @@ void main() async {
     sink: FileSink('$basePath/telemetry.json'),
   );
 
-  final toonHandler = Handler(
-    formatter: const ToonFormatter(),
+  final structuredHandler = Handler(
+    formatter: const StructuredFormatter(),
     sink: FileSink(
-      '$basePath/llm_context.toon',
-      encoder: const ToonEncoder(),
+      '$basePath/llm_context.structured',
+      encoder: const JsonEncoder(),
     ),
   );
 
@@ -72,7 +72,7 @@ void main() async {
       htmlHandler,
       markdownHandler,
       semanticHandler,
-      toonHandler,
+      structuredHandler,
     ],
     logLevel: LogLevel.trace,
   );
@@ -138,7 +138,7 @@ void main() async {
   print('  🌐  HTML Dashboard: $basePath/dashboard.html');
   print('  📝  Markdown Report: $basePath/report.md');
   print('  🧬  JSON Telemetry: $basePath/telemetry.json');
-  print('  🤖  LLM Context:    $basePath/llm_context.toon');
+  print('  🤖  LLM Context:    $basePath/llm_context.structured');
   print('-----------------------------------------');
 }
 

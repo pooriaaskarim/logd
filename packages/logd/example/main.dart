@@ -223,19 +223,20 @@ void _showcaseTimeAndLocalization() {
   );
 }
 
-/// 7. Advanced Layouts: Toon & JSON
+/// 7. Advanced Layouts: Structured & JSON
 /// Specialized formatters provide unique visual styles for different use cases.
 void _showcaseAdvancedLayouts() {
   _section('7. Advanced Layouts');
 
   // Comic-style structured logs (with explicit schema for machine parsing)
-  Logger.configure('app.toon', handlers: [
+  Logger.configure('app.structured', handlers: [
     const Handler(
-      formatter: ToonFormatter(explicitSchema: true),
+      formatter: StructuredFormatter(),
       sink: ConsoleSink(),
     )
   ]);
-  Logger.get('app.toon').warning('Something unusual happened in the story!');
+  Logger.get('app.structured')
+      .warning('Something unusual happened in the story!');
 
   // Vibrant JSON for deep inspection
   Logger.configure('app.vibrant', handlers: [
