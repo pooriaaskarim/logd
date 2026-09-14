@@ -26,7 +26,6 @@ void main() async {
     sink: FileSink(logFile.path, encoder: const MarkdownEncoder()),
   );
 
-
   // 2. Logging via different formatters
   print('Logging via StructuredFormatter...');
   Logger.configure('showcase.structured', handlers: [structuredHandler]);

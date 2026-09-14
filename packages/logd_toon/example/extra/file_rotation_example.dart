@@ -36,7 +36,7 @@ Future<void> main() async {
   }
 
   await handler.dispose();
-  
+
   // Wait for FileSink async writes to fully flush
   await Future.delayed(const Duration(milliseconds: 500));
 

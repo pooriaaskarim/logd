@@ -10,8 +10,10 @@ import '../../test_helpers.dart';
 
 void main() {
   group('ToonEncoder', () {
+    const factory = StandardPipelineFactory();
+
     test('escaping rules', () {
-      final doc = createTestDocument(['msg']);
+      final doc = createTestDocument(['msg'], factory: factory);
       doc.metadata['toon_columns'] = ['test_col'];
       doc.metadata['toon_delimiter'] = '\t';
 
@@ -29,8 +31,7 @@ void main() {
 
         final context = HandlerContext();
         const encoder = ToonEncoder();
-        encoder.encode(entry, doc, LogLevel.info, context,
-            const StandardPipelineFactory());
+        encoder.encode(entry, doc, LogLevel.info, context, factory);
         return utf8.decode(context.takeBytes());
       }
 
@@ -54,12 +55,10 @@ void main() {
       expect(encodeValue('{a}'), equals('"{a}"'));
       expect(encodeValue('[a]'), equals('"[a]"'));
       expect(encodeValue('a,b'), equals('"a,b"'));
-
-      doc.releaseRecursive(Arena.instance);
     });
 
     test('list rendering', () {
-      final doc = createTestDocument(['msg']);
+      final doc = createTestDocument(['msg'], factory: factory);
       doc.metadata['toon_columns'] = ['test_col'];
       doc.metadata['toon_delimiter'] = '\t';
 
@@ -79,15 +78,12 @@ void main() {
         'test_col': ['a', 'b', 'c']
       }));
 
-      encoder.encode(
-          entry, doc, LogLevel.info, context, const StandardPipelineFactory());
+      encoder.encode(entry, doc, LogLevel.info, context, factory);
       expect(utf8.decode(context.takeBytes()), equals('[a,b,c]'));
-
-      doc.releaseRecursive(Arena.instance);
     });
 
     test('preamble with explicit schema and strict dialect', () {
-      final doc = createTestDocument(['msg']);
+      final doc = createTestDocument(['msg'], factory: factory);
       doc.metadata['toon_columns'] = ['col1', 'col2'];
       doc.metadata['toon_schema'] = {
         'col1': ToonType.string,
@@ -98,8 +94,7 @@ void main() {
       final context = HandlerContext();
       const encoder = ToonEncoder();
 
-      encoder.preamble(context, LogLevel.info, const StandardPipelineFactory(),
-          document: doc);
+      encoder.preamble(context, LogLevel.info, factory, document: doc);
       final output = utf8.decode(context.takeBytes());
 
       expect(output, contains('-- TOON/1.0 logs'));
@@ -112,21 +107,16 @@ void main() {
           ToonEncoder.extractPreamble(Uint8List.fromList(utf8.encode(output)));
       expect(preamble, isNotNull);
       expect(preamble, contains('}:\n'));
-
-      doc.releaseRecursive(Arena.instance);
     });
 
     test('preamble returns silently if columns are missing', () {
-      final doc = createTestDocument(['msg']);
+      final doc = createTestDocument(['msg'], factory: factory);
 
       final context = HandlerContext();
       const encoder = ToonEncoder();
 
-      encoder.preamble(context, LogLevel.info, const StandardPipelineFactory(),
-          document: doc);
+      encoder.preamble(context, LogLevel.info, factory, document: doc);
       expect(context.length, equals(0));
-
-      doc.releaseRecursive(Arena.instance);
     });
   });
 }

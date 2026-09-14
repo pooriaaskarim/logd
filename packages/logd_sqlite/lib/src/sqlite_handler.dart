@@ -6,6 +6,7 @@ import 'package:logd/logd.dart';
 import 'package:meta/meta.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'sqlite_isolate_handler.dart';
 import 'sqlite_sink.dart';
 
 /// A pre-wired [Handler] that persists logs to a SQLite database (ADR-006).
@@ -98,9 +99,13 @@ class SqliteHandler extends Handler {
   /// Creates an asynchronous [SqliteHandler] offloaded to a background
   /// isolate.
   ///
+  /// The [SqliteSink] is constructed entirely inside the background isolate
+  /// from the supplied config. This avoids isolate boundary transfer errors
+  /// that arise with native SQLite handles and [Timer] instances.
+  ///
   /// Make sure to call [registerLogdSqliteSerializers] in your application
   /// bootstrap phase before using async handlers.
-  static AsyncHandler async({
+  static Handler async({
     required final String path,
     final String tableName = 'logs',
     final int batchSize = 50,
@@ -111,23 +116,19 @@ class SqliteHandler extends Handler {
     final LogFormatter? formatter,
     final List<LogDecorator>? decorators,
     final List<LogFilter> filters = const [],
-    final LogEngine engine = const StandardEngine(),
     final Duration? timeout,
   }) =>
-      AsyncHandler(
+      SqliteIsolateHandler(
+        path: path,
+        tableName: tableName,
+        batchSize: batchSize,
+        flushInterval: flushInterval,
+        maxEntries: maxEntries ?? 10000,
+        maxAge: maxAge,
+        walMode: walMode,
         formatter: formatter ?? const StructuredFormatter(),
-        sink: SqliteSink(
-          dbPath: path,
-          tableName: tableName,
-          batchSize: batchSize,
-          flushInterval: flushInterval,
-          maxEntries: maxEntries ?? 10000,
-          maxAge: maxAge,
-          walMode: walMode,
-        ),
         decorators: decorators ?? const [],
         filters: filters,
-        engine: engine,
         timeout: timeout,
       );
 }

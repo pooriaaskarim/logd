@@ -21,7 +21,7 @@ void main() {
       );
 
       final json = LoggerSerializationRegistry.serializeFormatter(original);
-      
+
       final config = json['config'] as Map<String, dynamic>;
 
       expect(config['delimiter'], equals('|'));
@@ -32,7 +32,8 @@ void main() {
       expect(config['dialect'], equals('strict'));
       expect(config['metadata'], containsAll(['origin', 'logger']));
 
-      final recovered = LoggerSerializationRegistry.deserializeFormatter(json) as ToonFormatter;
+      final recovered = LoggerSerializationRegistry.deserializeFormatter(json)
+          as ToonFormatter;
 
       expect(recovered.delimiter, equals(original.delimiter));
       expect(recovered.arrayName, equals(original.arrayName));
@@ -48,7 +49,8 @@ void main() {
       const original = ToonFormatter();
 
       final json = LoggerSerializationRegistry.serializeFormatter(original);
-      final recovered = LoggerSerializationRegistry.deserializeFormatter(json) as ToonFormatter;
+      final recovered = LoggerSerializationRegistry.deserializeFormatter(json)
+          as ToonFormatter;
 
       expect(recovered.delimiter, equals('\t'));
       expect(recovered.arrayName, equals('logs'));

@@ -8,7 +8,7 @@ LogDocument formatDoc(
   final LogEntry entry, {
   final LogPipelineFactory? factory,
 }) {
-  final f = factory ?? Arena.instance;
+  final f = factory ?? const StandardPipelineFactory();
   final doc = f.checkoutDocument();
   formatter.format(entry, doc, f);
   return doc;
@@ -32,21 +32,16 @@ void main() {
       );
 
       final document = formatDoc(formatter, entry);
+      final context = HandlerContext();
+      encoder.encode(entry, document, LogLevel.info, context, factory);
+      final output = const Utf8Decoder().convert(context.takeBytes());
 
-      try {
-        final context = HandlerContext();
-        encoder.encode(entry, document, LogLevel.info, context, factory);
-        final output = const Utf8Decoder().convert(context.takeBytes());
-
-        expect(
-          output,
-          contains('### ℹ️ 2023-10-27T10:00:00.000Z [INFO] [test]'),
-        );
-        expect(output, contains('**Hello Markdown**'));
-        expect(output, contains('---'));
-      } finally {
-        document.releaseRecursive(Arena.instance);
-      }
+      expect(
+        output,
+        contains('### ℹ️ 2023-10-27T10:00:00.000Z [INFO] [test]'),
+      );
+      expect(output, contains('**Hello Markdown**'));
+      expect(output, contains('---'));
     });
 
     test('renders Error and StackTrace in GFM blocks', () {
@@ -62,18 +57,14 @@ void main() {
       );
 
       final document = formatDoc(formatter, entry);
-      try {
-        final context = HandlerContext();
-        encoder.encode(entry, document, LogLevel.error, context, factory);
-        final output = const Utf8Decoder().convert(context.takeBytes());
+      final context = HandlerContext();
+      encoder.encode(entry, document, LogLevel.error, context, factory);
+      final output = const Utf8Decoder().convert(context.takeBytes());
 
-        expect(output, contains('### ❌ [ERROR]'));
-        expect(output, contains('> [!ERROR]'));
-        expect(output, contains('**Fatal Error**'));
-        expect(output, contains('line 1'));
-      } finally {
-        document.releaseRecursive(Arena.instance);
-      }
+      expect(output, contains('### ❌ [ERROR]'));
+      expect(output, contains('> [!ERROR]'));
+      expect(output, contains('**Fatal Error**'));
+      expect(output, contains('line 1'));
     });
 
     test('renders JsonFormatter map as a code block', () {
@@ -87,18 +78,14 @@ void main() {
       );
 
       final document = formatDoc(formatter, entry);
-      try {
-        final context = HandlerContext();
-        encoder.encode(entry, document, LogLevel.info, context, factory);
-        final output = const Utf8Decoder().convert(context.takeBytes());
+      final context = HandlerContext();
+      encoder.encode(entry, document, LogLevel.info, context, factory);
+      final output = const Utf8Decoder().convert(context.takeBytes());
 
-        expect(output, contains('```json'));
-        expect(output, contains('"level":"info"'));
-        expect(output, contains('"message":"JSON Event"'));
-        expect(output, contains('```'));
-      } finally {
-        document.releaseRecursive(Arena.instance);
-      }
+      expect(output, contains('```json'));
+      expect(output, contains('"level":"info"'));
+      expect(output, contains('"message":"JSON Event"'));
+      expect(output, contains('```'));
     });
   });
 }

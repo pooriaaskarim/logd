@@ -172,9 +172,8 @@ void main() {
     });
 
     test(
-      'should throw descriptive ArgumentError when serializing '
-      'unregistered component',
-      () {
+        'should throw descriptive ArgumentError when serializing '
+        'unregistered component', () {
       expect(
         () => LoggerSerializationRegistry.serializeFormatter(
           const _UnregisteredFormatter(),
@@ -193,9 +192,8 @@ void main() {
     });
 
     test(
-      'should throw descriptive ArgumentError when deserializing '
-      'unregistered component type',
-      () {
+        'should throw descriptive ArgumentError when deserializing '
+        'unregistered component type', () {
       expect(
         () => LoggerSerializationRegistry.deserializeFormatter({
           'type': 'UnknownFormatter',
