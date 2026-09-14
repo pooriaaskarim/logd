@@ -1,57 +1,36 @@
-// Copyright (c) 2026, Pooria Askari Moqaddam. All rights reserved.
-// Use of this source code is governed by a BSD-3-Clause license that can be
-// found in the LICENSE file.
-
 import 'package:logd/logd.dart';
 import 'package:logd_sqlite/logd_sqlite.dart';
 
 void main() async {
-  // 1. Initialize SQLite persistence sink
-  final sqliteSink = SqliteSink(
-    dbPath: 'example_logs.db',
-    maxEntries: 1000,
-    maxAge: const Duration(days: 7),
-    batchSize: 20,
-    flushInterval: const Duration(seconds: 1),
+  // Always register serializers when using isolates or async handlers
+  registerLogdSqliteSerializers();
+
+  // Configure Logger with an async SQLite handler on a background isolate
+  final handler = SqliteHandler.async(
+    path: 'app_logs.db',
+    tableName: 'app_telemetry',
+    batchSize: 10,
     walMode: true,
   );
 
-  // 2. Configure logd pipeline with SqliteSink
-  Logger.configure(
-    'global',
-    handlers: [
-      Handler(
-        formatter: const PlainFormatter(),
-        sink: sqliteSink,
-      ),
-    ],
+  Logger.configure('main', handlers: [handler]);
+
+  Logger.get('main').info(
+    'Application started successfully',
+    context: const {'version': '1.0.0', 'environment': 'production'},
   );
 
-  // 3. Emit structured logs
-  Logger.get('app.payment')
-    ..info(
-      'Processing payment',
-      context: const {'transactionId': 'TX-9042', 'amount': 250.00},
-    )
-    ..warning(
-      'Payment latency spike',
-      context: const {'durationMs': 1250},
+  try {
+    throw StateError('Database connection attempt timed out');
+  } catch (e, stackTrace) {
+    Logger.get('main').error(
+      'Database connection failed',
+      error: e,
+      stackTrace: stackTrace,
     );
+  }
 
-  // Flush buffer to SQLite database
-  await sqliteSink.flush();
-
-  // 4. Query & Filter logs
-  final warningLogs = sqliteSink.queryLogs(
-    minLevel: LogLevel.warning,
-    search: 'Payment',
-    limit: 10,
-  );
-  print('Found ${warningLogs.length} warning logs.');
-
-  // 5. Inspect database stats & cleanup
-  final counts = sqliteSink.fetchLevelCounts();
-  print('Level breakdown: $counts');
-
-  await sqliteSink.dispose();
+  // Dispose logger pipeline and handler
+  await handler.dispose();
+  print('SQLite logs written asynchronously to app_logs.db');
 }

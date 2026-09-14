@@ -1,3 +1,10 @@
+## 0.1.4
+
+- **Async Isolate Support (`SqliteHandler.async`)**: Added `SqliteHandler.async()` static factory method allowing SQLite log persistence to run on background isolates without blocking main event loops.
+- **Serialization Safety**: Added `registerLogdSqliteSerializers()` to register `SqliteSink` with `LoggerSerializationRegistry`.
+- **Documentation**: Added `doc/architecture.md`, `doc/benchmarks.md`, and `doc/migration_guide.md`.
+- **Updated Dependencies**: Updated `logd` dependency constraint to `^0.9.7`.
+
 ## 0.1.3
 
 - **Pub.dev Score & Lower-Bound Analysis Fixes**:

@@ -94,4 +94,40 @@ class SqliteHandler extends Handler {
   /// Access to the underlying [SqliteSink] for query engine operations
   /// (`queryLogs`, `fetchLevelCounts`, `fetchDistinctLoggerNames`, `clear`).
   SqliteSink get sqliteSink => sink as SqliteSink;
+
+  /// Creates an asynchronous [SqliteHandler] offloaded to a background
+  /// isolate.
+  ///
+  /// Make sure to call [registerLogdSqliteSerializers] in your application
+  /// bootstrap phase before using async handlers.
+  static AsyncHandler async({
+    required final String path,
+    final String tableName = 'logs',
+    final int batchSize = 50,
+    final Duration flushInterval = const Duration(seconds: 2),
+    final int? maxEntries,
+    final Duration? maxAge,
+    final bool walMode = true,
+    final LogFormatter? formatter,
+    final List<LogDecorator>? decorators,
+    final List<LogFilter> filters = const [],
+    final LogEngine engine = const StandardEngine(),
+    final Duration? timeout,
+  }) =>
+      AsyncHandler(
+        formatter: formatter ?? const StructuredFormatter(),
+        sink: SqliteSink(
+          dbPath: path,
+          tableName: tableName,
+          batchSize: batchSize,
+          flushInterval: flushInterval,
+          maxEntries: maxEntries ?? 10000,
+          maxAge: maxAge,
+          walMode: walMode,
+        ),
+        decorators: decorators ?? const [],
+        filters: filters,
+        engine: engine,
+        timeout: timeout,
+      );
 }
