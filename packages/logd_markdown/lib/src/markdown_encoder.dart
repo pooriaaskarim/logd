@@ -1,3 +1,5 @@
+import 'dart:convert' as convert;
+
 import 'package:logd/logd.dart' hide MarkdownEncoder, MarkdownFileHandler;
 import 'package:meta/meta.dart';
 
@@ -141,87 +143,201 @@ class MarkdownEncoder implements LogEncoder {
       return;
     }
 
-    // In body pass, we suppress nodes that were completely moved to the header.
-    if (isBodyPass && node is HeaderNode) {
+    switch (node) {
+      case HeaderNode():
+        // In body pass, we suppress nodes that were completely moved to the header.
+        if (!isBodyPass) {
+          context.writeString('### ${_renderContent(node).trim()}\n');
+        }
+      case MessageNode():
+        context.writeString('**${_renderContent(node).trim()}**\n');
+      case ErrorNode():
+        context
+          ..writeString('\n> [!ERROR]\n')
+          ..writeString('> ${_renderContent(node)}\n');
+      case FooterNode():
+        _renderFooter(context, node);
+      case MetadataNode():
+        context.writeString('> [!NOTE]\n> ${_renderContent(node).trim()}\n');
+      case IndentationNode():
+        context.writeString('> ');
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+      case DecoratedNode():
+        // If the leading decoration was likely consumed by the header, we skip it
+        // in the body to avoid duplication.
+        final leadingText = (node.leading != null)
+            ? node.leading!.map((final s) => s.text).join().trim()
+            : '';
+
+        final skipLeading = isBodyPass &&
+            leadingText.isNotEmpty &&
+            (_getHeaderText(node) != null || _isPureFiller(leadingText));
+
+        if (!skipLeading && node.leading != null) {
+          context
+              .writeString('${node.leading!.map((final s) => s.text).join()} ');
+        }
+
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+
+        if (node.trailing != null) {
+          context.writeString(
+              ' ${node.trailing!.map((final s) => s.text).join()}');
+        }
+      case BoxNode():
+        context.writeString('\n> [!NOTE]\n');
+        if (node.title != null) {
+          context.writeString('> **${node.title!.text}**\n');
+        }
+        for (final child in node.children) {
+          context.writeString('> ');
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+        context.writeString('\n');
+      case SectionNode():
+        context.writeString('\n<details>\n<summary>');
+        _renderNode(context, node.summary, document, entry);
+        context.writeString('</summary>\n\n');
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+        context.writeString('\n</details>\n');
+      case ParagraphNode():
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+        context.writeString('\n');
+      case GroupNode():
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+      case RowNode():
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+      case AlignmentNode():
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+      case TableNode():
+        _renderTable(context, node, document, entry);
+      case TableRowNode():
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+      case TableCellNode():
+        for (final child in node.children) {
+          _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
+        }
+      case MapNode():
+        final toonColumns = document.metadata['toon_columns'] as List<String>?;
+        if (toonColumns != null) {
+          final delimiter =
+              document.metadata['toon_delimiter'] as String? ?? '\t';
+          final row = toonColumns
+              .map((final col) => node.map[col]?.toString() ?? '')
+              .join(delimiter);
+
+          context
+            ..writeString('\n```text\n')
+            ..writeString('$row\n')
+            ..writeString('```\n');
+        } else {
+          context.writeString('\n```json\n$node\n```\n');
+        }
+      case ListNode():
+        _renderList(context, node);
+      case FillerNode():
+        // Typically ignored in MD except within headers.
+        break;
+    }
+  }
+
+  void _renderList(final HandlerContext context, final ListNode node) {
+    if (node.list.isEmpty) {
+      return;
+    }
+    context.writeString('\n');
+    for (final item in node.list) {
+      context.writeString('- $item\n');
+    }
+    context.writeString('\n');
+  }
+
+  void _renderTable(
+    final HandlerContext context,
+    final TableNode node,
+    final LogDocument document,
+    final LogEntry entry,
+  ) {
+    if (node.children.isEmpty) {
       return;
     }
 
-    if (node is MessageNode) {
-      context.writeString('**${_renderContent(node).trim()}**\n');
-    } else if (node is ErrorNode) {
-      context
-        ..writeString('\n> [!ERROR]\n')
-        ..writeString('> ${_renderContent(node)}\n');
-    } else if (node is FooterNode) {
-      _renderFooter(context, node);
-    } else if (node is IndentationNode) {
-      context.writeString('> ');
-      for (final child in node.children) {
-        _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
-      }
-    } else if (node is DecoratedNode) {
-      // If the leading decoration was likely consumed by the header, we skip it
-      // in the body to avoid duplication.
-      final leadingText = (node.leading != null)
-          ? node.leading!.map((final s) => s.text).join().trim()
-          : '';
-
-      final skipLeading = isBodyPass &&
-          leadingText.isNotEmpty &&
-          (_getHeaderText(node) != null || _isPureFiller(leadingText));
-
-      if (!skipLeading && node.leading != null) {
-        context
-            .writeString('${node.leading!.map((final s) => s.text).join()} ');
-      }
-
-      for (final child in node.children) {
-        _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
-      }
-
-      if (node.trailing != null) {
-        context
-            .writeString(' ${node.trailing!.map((final s) => s.text).join()}');
-      }
-    } else if (node is BoxNode) {
-      context.writeString('\n> [!NOTE]\n');
-      for (final child in node.children) {
-        context.writeString('> ');
-        _renderNode(context, child, document, entry, isBodyPass: isBodyPass);
-      }
-      context.writeString('\n');
-    } else if (node is MapNode) {
-      final toonColumns = document.metadata['toon_columns'] as List<String>?;
-      if (toonColumns != null) {
-        final delimiter =
-            document.metadata['toon_delimiter'] as String? ?? '\t';
-        final row = toonColumns
-            .map((final col) => node.map[col]?.toString() ?? '')
-            .join(delimiter);
-
-        context
-          ..writeString('\n```text\n')
-          ..writeString('$row\n')
-          ..writeString('```\n');
-      } else {
-        context.writeString('\n```json\n$node\n```\n');
-      }
-    } else if (node is GroupNode) {
-      for (final child in node.children) {
-        _renderNode(context, child, document, entry);
-      }
-    } else if (node is ParagraphNode) {
-      for (final child in node.children) {
-        _renderNode(context, child, document, entry);
-      }
-      context.writeString('\n');
-    } else if (node is RowNode) {
-      for (final child in node.children) {
-        _renderNode(context, child, document, entry);
-      }
-    } else if (node is FillerNode) {
-      // Typically ignored in MD except within headers (which we skip here).
+    if (node.title != null) {
+      context.writeString('**${node.title!.text}**\n');
     }
+
+    final rows = <List<String>>[];
+    for (final child in node.children) {
+      if (child is TableRowNode) {
+        final rowCells = <String>[];
+        for (final cell in child.children) {
+          final cellCtx = HandlerContext();
+          if (cell is TableCellNode) {
+            for (final cellChild in cell.children) {
+              _renderNode(cellCtx, cellChild, document, entry);
+            }
+          } else {
+            _renderNode(cellCtx, cell, document, entry);
+          }
+          final text = convert.utf8
+              .decode(cellCtx.takeBytes(), allowMalformed: true)
+              .trim()
+              .replaceAll('\n', ' ')
+              .replaceAll('|', r'\|');
+          rowCells.add(text.isEmpty ? ' ' : text);
+        }
+        rows.add(rowCells);
+      }
+    }
+
+    if (rows.isEmpty) {
+      return;
+    }
+
+    int colCount = 0;
+    for (final r in rows) {
+      if (r.length > colCount) {
+        colCount = r.length;
+      }
+    }
+    if (colCount == 0) {
+      return;
+    }
+
+    context.writeString('\n');
+    final firstRow = rows.first;
+    final headerPadded = List<String>.generate(
+      colCount,
+      (final i) => i < firstRow.length ? firstRow[i] : ' ',
+    );
+    context.writeString('| ${headerPadded.join(' | ')} |\n');
+    context.writeString('| ${List.filled(colCount, '---').join(' | ')} |\n');
+
+    for (var i = 1; i < rows.length; i++) {
+      final r = rows[i];
+      final rowPadded = List<String>.generate(
+        colCount,
+        (final j) => j < r.length ? r[j] : ' ',
+      );
+      context.writeString('| ${rowPadded.join(' | ')} |\n');
+    }
+    context.writeString('\n');
   }
 
   void _renderCollapsible(
