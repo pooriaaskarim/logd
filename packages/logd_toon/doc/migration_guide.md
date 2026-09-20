@@ -10,8 +10,8 @@ Add `logd_toon` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  logd: ^0.9.7
-  logd_toon: ^0.1.0
+  logd: ^latest_version
+  logd_toon: ^latest_version
 ```
 
 Run `dart pub get` or `flutter pub get`.
@@ -27,25 +27,41 @@ You must `hide` the deprecated classes from the `logd` import:
 import 'package:logd/logd.dart';
 
 // After
-import 'package:logd/logd.dart' hide ToonEncoder, ToonDialect, ToonHandler;
+import 'package:logd/logd.dart'
+    hide ToonEncoder, ToonFormatter, ToonFileHandler, ToonPrettyFormatter;
 import 'package:logd_toon/logd_toon.dart';
 ```
 
 ## 3. Update Handler Usage
 
-If you were using `ToonHandler` directly, the API remains the same. Just ensure you are using the one from `logd_toon`.
+If you were using `ToonFileHandler` directly, the API remains the same. Just ensure you are importing it from `logd_toon`.
 
 ```dart
 // The syntax remains identical
-final handler = ToonHandler(
+final handler = ToonFileHandler(
+  'logs/app.toon',
   dialect: ToonDialect.strict,
 );
 
 Logger.configure(
+  'app',
   handlers: [handler],
 );
 ```
 
-## 4. Removal in v0.10.0
+## 4. Registering Serializers (For Full Isolate Config Sync)
+
+Because `ToonFormatter` is `@immutable`, using `ToonFileHandler.async()` automatically transfers the formatter across isolate boundaries without manual registration.
+
+However, if you export and import the full logger configuration registry across isolates using `Logger.exportConfig()` and `Logger.importConfig()`, you must register TOON serializers during your application bootstrap:
+
+```dart
+void main() {
+  // Required only when using Logger.exportConfig() / Logger.importConfig()
+  registerLogdToonSerializers();
+}
+```
+
+## 5. Removal in v0.10.0
 
 The deprecated shims in `package:logd` will be completely removed in `v0.10.0`. Once you upgrade to v0.10.0, you can remove the `hide` clauses from your imports.

@@ -14,8 +14,8 @@ Add `logd_markdown` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  logd: ^0.9.7
-  logd_markdown: ^0.1.0
+  logd: ^latest_version
+  logd_markdown: ^latest_version
 ```
 
 ## Quick Start

@@ -134,6 +134,34 @@ The sink handles the physical write operation to the medium (Console, File, Netw
 
 ## Class Diagram
 
+```mermaid
+classDiagram
+    class Handler {
+      +LogFormatter formatter
+      +List~LogDecorator~ decorators
+      +LogEngine engine
+      +LogSink sink
+      +List~LogFilter~ filters
+      +log(LogEntry entry)
+    }
+    class LogFormatter {
+      +format(entry, doc, factory)
+    }
+    class LogDecorator {
+      +apply(doc, entry, factory)
+    }
+    class LogEngine {
+      +execute(entry, formatter, decorators, sink, timeout)
+    }
+    class LogSink {
+      +output(doc, entry, level, factory)
+    }
+    Handler *-- LogFormatter
+    Handler *-- LogDecorator
+    Handler *-- LogEngine
+    Handler *-- LogSink
+```
+
 ## The Data Model: LogEntry
 
 The `LogEntry` is the immutable data snapshot passed through the pipeline.
@@ -163,22 +191,16 @@ This ensures that indentation always perfectly mirrors the actual logger hierarc
   - **Rotation**: Supports `SizeRotation` and `TimeRotation`. Handles file shifts, compression (GZip), and cleanup of old backups.
   - **Durability**: Employs `flush: true` on every write to minimize data loss during crashes.
   - **Auto-Provisioning**: Automatically creates parent directories if they don't exist.
-- **HTMLSink**: 
-  - Self-contained documents with embedded CSS for high-fidelity viewing in browsers.
+- **HtmlFileHandler** *(from `package:logd_html`)*: 
+  - Encapsulates `HtmlEncoder` + `FileSink` to produce self-contained documents with embedded CSS for high-fidelity browser viewing.
   - Session-managed: Safely coordinates multiple sink instances writing to the same file path.
-  - Dark mode support built-in.
+  - Built-in dynamic dark/light mode support.
 - **MultiSink**: 
   - **Broadcast Engine**: Dispatches logs to child sinks in parallel using `Future.wait`.
   - **Error Isolation**: Failure in one child sink (e.g., a network timeout) does not prevent other sinks from completing.
-- **HttpSink**:
-  - **Batching**: Buffers logs and ships them in configurable batch sizes to reduce network overhead.
-  - **Resilience**: Implements exponential backoff retries on failure (up to `maxRetries` attempts).
-  - **Memory Safety**: Uses `DropPolicy` (`discardOldest`, `discardNewest`) to manage buffer overflow.
-  - **Final Drain**: `dispose()` flushes all pending logs before cleanup.
-- **SocketSink**:
-  - **Real-Time Streaming**: Sends logs immediately over a WebSocket connection.
-  - **Connection Awareness**: Buffers logs during disconnection and automatically drains the buffer upon reconnection.
-  - **Auto-Reconnect**: Schedules reconnection attempts after configurable intervals.
+- **HttpSink & SocketSink** *(from `package:logd_network`)*:
+  - **HttpSink**: Buffers logs and ships them in configurable batch sizes with exponential backoff retries and memory drop policies (`DropPolicy`).
+  - **SocketSink**: Streams logs frame-by-frame over real-time WebSockets with automatic reconnection and offline buffering.
 
 ### Threading & Safety
 - **Isolate Awareness**: `logd` is designed to be safe across multiple isolates, though most sinks (like `FileSink`) perform their own synchronization to prevent file locking conflicts.

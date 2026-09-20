@@ -2,8 +2,10 @@
 
 ## 0.1.4
 
-- **Async Dashboard Isolate Execution (`HttpDashboardHandler.async`)**: Added `HttpDashboardHandler.async()` static factory method for running the real-time HTTP/WebSocket dashboard server on a background isolate.
-- **Serialization Safety**: Added `HttpServerSink` serialization support to `registerLogdNetworkSerializers()`.
+- **Async Dashboard Isolate Execution (`HttpDashboardHandler.async`)**: Added `HttpDashboardHandler.async()` static factory method for running the real-time HTTP/WebSocket dashboard server on a background isolate without blocking the main event loop.
+- **Direct Formatter & Decorator Transfer**: Passes `@immutable` `LogFormatter` and `LogDecorator` instances directly to the background dashboard worker isolate without JSON serialization overhead.
+- **Lifecycle Hardening & Race-Free `dispose()`**: Awaits isolate initialization before executing teardown, ensuring the embedded HTTP/WebSocket server unbinds cleanly and eliminating race conditions or orphaned ports on rapid shutdown.
+- **Serialization Support**: Added `HttpServerSink` serialization support to `registerLogdNetworkSerializers()` for `Logger.exportConfig()` and `Logger.importConfig()`.
 - **Documentation**: Added `doc/architecture.md`, `doc/benchmarks.md`, and `doc/migration_guide.md`.
 - **Updated Dependencies**: Updated `logd` dependency constraint to `^0.9.7`.
 

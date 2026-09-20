@@ -2,7 +2,10 @@
 
 ## 0.9.7: Core Decoupling & Satellite Ecosystem Expansion
 
-This release completes core decoupling for specialized log formats and layout strategies, establishing first-class satellite packages and renaming internal wrapping contracts for enhanced clarity.
+This release completes core decoupling for specialized log formats and layout strategies, establishing first-class satellite packages, modernizing isolate offloading with direct immutable transfer, and renaming internal wrapping contracts for enhanced clarity.
+
+- ### Direct Isolate Transfer (Dart 3.7+)
+  - **Zero-Serialization Worker Offloading**: Leveraged Dart 3.7+ immutable object sharing to pass `@immutable` `LogFormatter` and `LogDecorator` instances directly across `SendPort` boundaries to background worker isolates. This eliminates JSON serialization overhead and manual registry bootstrapping for pure pipeline components.
 
 - ### Contract Rename & Deprecation: `wrappingStrategy`
   - **`requiredStrategy` → `wrappingStrategy`**: Renamed `LogEncoder.requiredStrategy` to `wrappingStrategy` for improved API readability. `requiredStrategy` is preserved as a `@Deprecated` getter shim pointing to `wrappingStrategy` and will be removed in `v0.10.0`.
@@ -11,10 +14,18 @@ This release completes core decoupling for specialized log formats and layout st
   - **`package:logd_toon`**: Activated Tab-Oriented Object Notation (TOON) as a standalone satellite package (`0.1.0`). Removed TOON-specific layout conditionals (`toon_columns`) from `TerminalLayout`, `AutoEncoder`, and `NativeEngine`. Soft-deprecated `ToonFormatter`, `ToonEncoder`, and `ToonFileHandler` in core `packages/logd`.
   - **`package:logd_html`**: Created dedicated satellite package for HTML5 log rendering (`HtmlEncoder`, `HtmlStylesheet`, `HtmlFileHandler`). Soft-deprecated HTML classes in core `packages/logd`.
   - **`package:logd_markdown`**: Created dedicated satellite package for GitHub-Flavored Markdown rendering (`MarkdownEncoder`, `MarkdownFileHandler`). Soft-deprecated Markdown classes in core `packages/logd`.
+  - **Soft-Deprecated Core Shims (Targeted Removal in v0.10.0)**:
+    - `HtmlEncoder`, `HtmlStylesheet`, `HtmlFileHandler` → use `package:logd_html`
+    - `MarkdownEncoder`, `MarkdownFileHandler` → use `package:logd_markdown`
+    - `ToonEncoder`, `ToonFormatter`, `ToonFileHandler` → use `package:logd_toon`
 
 - ### Structural Robustness & Architectural Integrity
   - **`MapNode.toString()` & `ListNode.toString()` Unencodable Safety**: Added `toEncodable: (final object) => object.toString()` fallback to `jsonEncode` calls inside `MapNode` and `ListNode`, guaranteeing exception-free string conversion when documents carry non-JSON-encodable Dart objects (`StateError`, `StackTrace`, custom models).
   - **Rejection of `Handler.theme` (ADR-008)**: Formally documented ADR-008 to solidify theme ownership in `StyleDecorator`, preserving Single Source of Truth and semantic/physical pipeline boundaries.
+
+- ### Testing & Regression Safeguards
+  - **Golden Test Suites**: Added golden output baselines for HTML and Markdown formatting across standard and error log payloads.
+  - **Engine Parity**: Added differential validation verifying output equivalence between `StandardEngine` and `NativeEngine`.
 
 ## 0.9.6: Serialization Registry Diagnostics & AsyncHandler Leak Safety
 
@@ -32,7 +43,7 @@ This release improves developer experience and resource safety when integrating 
   - **Finalizer Leak Safety**: Wired Dart's `Finalizer` API to `AsyncHandler` (`async_handler_native.dart`). If an `AsyncHandler` instance is garbage-collected without `dispose()` being called explicitly, the `Finalizer` callback logs an `InternalLogger.warning` and immediately terminates the underlying worker isolate via `IsolateWorker.kill()`, preventing abandoned background isolates from leaking CPU/RAM.
 
 - ### Robustness & Defensive Guards
-  - **Pattern RegExp Error Guard**: Wrapped `RegExp` construction in `Logger.configurePattern` ([logger.dart:1183-1194](file://packages/logd/lib/src/logger/logger.dart#L1183-L1194)) in a `try/catch` block. If an invalid pattern string is supplied, it now catches `FormatException` and throws a descriptive `ArgumentError` citing the pattern string directly.
+  - **Pattern RegExp Error Guard**: Wrapped `RegExp` construction in `Logger.configurePattern` ([logger.dart:1183-1194](lib/src/logger/logger.dart)) in a `try/catch` block. If an invalid pattern string is supplied, it now catches `FormatException` and throws a descriptive `ArgumentError` citing the pattern string directly.
 
 - ### Testing
   - Added dedicated tests covering reactive error messages (serialization and deserialization of unregistered types), proactive `verify*` helpers (registered pass, unregistered `StateError`), `configurePattern` parameter validation, and `AsyncHandler` post-dispose safety.
@@ -83,7 +94,7 @@ This release advances logd's production architecture with hot-path stack trace c
 
 ## 0.9.3: Pre-Wired `{Target}Handler` Subclasses, Dual-Mode `.async()` Pipeline Offloading & Advanced Library Entry Point
 
-This release introduces the pre-wired `{Target}Handler` convenience subclass architecture ([ADR-006](doc/decisions/adr-006-handler-subclass-convention.md)) to eliminate beginner pipeline wiring friction, adds dual-mode `.async()` isolate offloading constructors for non-blocking I/O, prevents state-isolation bugs by design, and introduces a dedicated `package:logd/advanced.dart` entry point for power users and custom engine developers.
+This release introduces the pre-wired `{Target}Handler` convenience subclass architecture ([ADR-006](../../doc/decisions/adr-006-handler-subclass-convention.md)) to eliminate beginner pipeline wiring friction, adds dual-mode `.async()` isolate offloading constructors for non-blocking I/O, prevents state-isolation bugs by design, and introduces a dedicated `package:logd/advanced.dart` entry point for power users and custom engine developers.
 
 - ### Pre-Wired `{Target}Handler` Convenience Subclass Architecture (ADR-006)
   - **Zero-Config Target Handlers**: Replaced multi-stage manual pipeline construction (`Formatter` + `Decorator` + `Encoder` + `Sink` + `WrappingStrategy`) with 8 pre-wired, strongly-typed `Handler` subclasses:
@@ -574,10 +585,10 @@ This milestone represents a complete overhaul of the `logd` logging pipeline, tr
 
 ### Documentation Suite
 - **Technical Manuals**: Completely rebuilt the `doc/` module with high-precision architectural guides:
-  - **[Architecture](doc/handler/architecture.md)**: Details the 4-stage pipeline and operational context (`LogContext`).
-  - **[Migration Guide](doc/migration.md)**: Outlines the transition from monolithic "God Components" to decentralized behaviors.
-  - **[Philosophy](doc/logger/philosophy.md)**: Documents foundational principles like Hierarchical Inheritance and Lazy Resolution.
-  - **[Decorator Composition](doc/handler/decorator_compositions.md)**: Explains execution priority and data-model flow.
+  - **[Architecture](../../doc/handler/architecture.md)**: Details the 4-stage pipeline and operational context (`LogContext`).
+  - **[Migration Guide](../../doc/migration.md)**: Outlines the transition from monolithic "God Components" to decentralized behaviors.
+  - **[Philosophy](../../doc/logger/philosophy.md)**: Documents foundational principles like Hierarchical Inheritance and Lazy Resolution.
+  - **[Decorator Composition](../../doc/handler/decorator_compositions.md)**: Explains execution priority and data-model flow.
 - **Roadmap Pivot**: Updated future priorities to include **Structured Context Support** and a **Web-Based Logd Dashboard**.
 
  

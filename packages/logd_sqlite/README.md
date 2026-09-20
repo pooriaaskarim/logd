@@ -69,20 +69,27 @@ void main() async {
 
 ## Pre-Wired Handler Constructors
 
-`SqliteHandler` provides three constructors for different environments:
+`SqliteHandler` provides constructors for different application environments:
 
 ```dart
-// 1. File-backed database (default production setup)
+// 1. File-backed database (synchronous execution)
 final handler = SqliteHandler(
   path: 'logs/app.db',
   maxEntries: 50000,
   maxAge: const Duration(days: 14),
 );
 
-// 2. In-Memory database (ideal for tests and ephemeral runs)
+// 2. Asynchronous background isolate worker (non-blocking I/O)
+final asyncHandler = SqliteHandler.async(
+  path: 'logs/app.db',
+  batchSize: 50,
+  flushInterval: const Duration(seconds: 2),
+);
+
+// 3. In-Memory database (ideal for tests and ephemeral runs)
 final testHandler = SqliteHandler.inMemory();
 
-// 3. Existing database instance (share a connection pool)
+// 4. Existing database instance (share a connection pool)
 final sharedHandler = SqliteHandler.database(
   database: existingDb,
 );

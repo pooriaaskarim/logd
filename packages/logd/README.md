@@ -57,7 +57,7 @@ Ready-to-use handlers cover common destinations out of the box (with specialized
 
 ```dart
 // Styled terminal output (dark or light theme)
-ConsoleHandler(theme: const LogTheme.dark())
+ConsoleHandler(theme: const DarkTheme())
 
 // Structured JSON to file (pretty or compact)
 JsonFileHandler('logs/api.json', pretty: true)
@@ -92,7 +92,7 @@ Logger.configure('app', handlers: [
 ```
 
 > [!TIP]
-> `MemoryHandler` and `HttpDashboardHandler` intentionally stay synchronous — they need direct heap access and deterministic port binding respectively.
+> `MemoryHandler` intentionally stays synchronous to provide direct, non-blocking heap access to `.entries` on the caller thread. For web observability, `HttpDashboardHandler.async()` is available via `package:logd_network`.
 
 ---
 
@@ -638,7 +638,7 @@ test('logs warning on failure', () async {
 | [TOON Specification](https://github.com/pooriaaskarim/logd/blob/master/packages/logd_toon/doc/toon_spec.md) | Format spec + DuckDB ingestion |
 | [Isolates Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/isolates.md) | Cross-isolate configuration |
 | [Migration Guide](https://github.com/pooriaaskarim/logd/blob/master/doc/migration.md) | Upgrading from legacy components |
-| [Architecture Decisions](https://github.com/pooriaaskarim/logd/blob/master/doc/decisions/README.md) | ADR-001 through ADR-006 |
+| [Architecture Decisions](https://github.com/pooriaaskarim/logd/blob/master/doc/decisions/README.md) | ADR-001 through ADR-008 |
 | [Roadmap](https://github.com/pooriaaskarim/logd/blob/master/doc/logger/roadmap.md) | Planned features |
 
 ---

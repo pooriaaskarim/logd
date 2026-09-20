@@ -10,24 +10,22 @@ Add `logd_sqlite` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  logd: ^0.9.7
-  logd_sqlite: ^0.1.3
+  logd: ^latest_version
+  logd_sqlite: ^latest_version
 ```
 
 Run `dart pub get` or `flutter pub get`.
 
-## 2. Registering Serializers (For Isolates)
+## 2. Registering Serializers (For Full Isolate Config Sync)
 
-If you use `SqliteHandler.async()` or execute logging pipelines on background isolates, register the `logd_sqlite` serializers during your application's bootstrap phase:
+`SqliteHandler.async()` constructs its native `SqliteSink` directly inside the worker isolate from plain configuration parameters, avoiding isolate handle transfer issues and eliminating the need for serializer registration.
+
+However, if you export and import the full logger configuration registry across isolates using `Logger.exportConfig()` and `Logger.importConfig()`, you must register SQLite serializers during your application bootstrap:
 
 ```dart
 void main() {
-  // Required to prevent cross-isolate serialization crashes
+  // Required only when using Logger.exportConfig() / Logger.importConfig()
   registerLogdSqliteSerializers();
-  
-  Logger.configure('app', handlers: [
-    SqliteHandler.async(path: 'app_logs.db'),
-  ]);
 }
 ```
 

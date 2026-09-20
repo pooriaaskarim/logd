@@ -10,8 +10,8 @@ Add `logd_html` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  logd: ^0.9.7
-  logd_html: ^0.1.0
+  logd: ^latest_version
+  logd_html: ^latest_version
 ```
 
 Run `dart pub get` or `flutter pub get`.
@@ -31,20 +31,16 @@ import 'package:logd/logd.dart' hide HtmlEncoder, HtmlFileHandler, HtmlFormatter
 import 'package:logd_html/logd_html.dart';
 ```
 
-## 3. Registering Serializers (For Isolates)
+## 3. Registering Serializers (For Full Isolate Config Sync)
 
-If you use `HtmlFileHandler.async()` or execute logging pipelines on background isolates, you MUST register the `logd_html` serializers during your application's bootstrap phase:
+Because `HtmlFormatter` is `@immutable`, using `HtmlFileHandler.async()` automatically transfers the formatter across isolate boundaries without manual registration.
+
+However, if you export and import the full logger configuration registry across isolates using `Logger.exportConfig()` and `Logger.importConfig()`, you must register HTML serializers during your application bootstrap:
 
 ```dart
 void main() {
-  // Required to prevent cross-isolate serialization crashes
+  // Required only when using Logger.exportConfig() / Logger.importConfig()
   registerLogdHtmlSerializers();
-  
-  Logger.configure(
-    handlers: [
-      HtmlFileHandler.async(path: 'app_logs.html'),
-    ],
-  );
 }
 ```
 

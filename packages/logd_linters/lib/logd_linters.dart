@@ -9,8 +9,8 @@
 /// Add to your package's `pubspec.yaml`:
 /// ```yaml
 /// dev_dependencies:
-///   custom_lint: ^0.7.0
-///   logd_linters: ^0.1.0
+///   custom_lint: ^latest_version
+///   logd_linters: ^latest_version
 /// ```
 ///
 /// Enable in `analysis_options.yaml`:

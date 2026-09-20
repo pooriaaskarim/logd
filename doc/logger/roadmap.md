@@ -401,7 +401,11 @@ Resolved by switch to `parse()` — configured parser is always used.
 | LogBuffer maxEntries Safeguard | v0.9.1 | Bounded buffer capacity drop-with-warning safeguard |
 | Multi-Isolate Stress Testing | v0.9.1 | Concurrent multi-isolate configuration and logging stress tests |
 | Theme Isolate State Preservation | v0.9.2 | Preserved `LogBrightness` across multi-isolate transfers in serialization registry |
-| ADR-006: `{Target}Handler` Subclass Convention | v0.9.3 (planning) | Decided beginner DX pattern; replaces `LogOutput` facade concept |
+| ADR-006: `{Target}Handler` Subclass Convention | v0.9.3 | Pre-wired convenience subclasses replacing `LogOutput` facade concept |
+| Hot-Path Origin Bypass & MDC | v0.9.4 | `includeOrigin: false` (~5x speedup) and ambient `LogContext.run` |
+| Satellite Extraction (`logd_network`) | v0.9.5 | Extracted network sinks and dashboard; authored ADR-007 |
+| Serialization Diagnostics & Finalizer | v0.9.6 | Actionable registry errors, `verify*` helpers, and `AsyncHandler` leak safety |
+| Satellite Maturation & ADR-008 | v0.9.7 | Extracted TOON, HTML, Markdown; direct isolate transfer; ADR-008 |
 
 ---
 

@@ -11,7 +11,7 @@ The `NativeEngine` targets native platforms via `dart:ffi`. By linearizing the `
 ### Performance Profile
 - **Zero-Churn Streaming**: In "Streaming Mode" (no decorators), it bypasses the Dart object heap entirely, writing directly to contiguous native buffers.
 - **Extreme Throughput**: Achieves ~230k+ ops/sec, representing a 10x-13x improvement over standard heap allocation.
-- **Reference**: [M13: Pipeline Stability & Alignment](../../packages/benchmarks/records/M13_PipelineStability.md)
+- **Reference**: [M13: Pipeline Stability & Alignment](../../../packages/benchmarks/records/M13_PipelineStability.md)
 
 ## Strategy B: LIFO Pooling (`ArenaEngine`)
 *Status: Production Ready (Hybrid)*

@@ -3,8 +3,9 @@
 This directory contains detailed documentation regarding the design, architecture, and roadmap of the `logd` library.
 
 - [**Migration Guide**](migration.md): Upgrading from legacy versions, satellite migrations, and Flutter SDK decoupling details.
-- [**Architecture Decision Records (ADRs)**](decisions/README.md): Formal design decisions from ADR-001 to ADR-007.
+- [**Architecture Decision Records (ADRs)**](decisions/README.md): Formal design decisions from ADR-001 to ADR-008.
 - [**Cross-Isolate Coordination Guide**](logger/isolates.md): Configuration snapshots, serialization registry, and satellite package hooks.
+- [**Semantic Versioning Contract**](semver_contract.md): Public API guarantees, stability tiers, and deprecation policies.
 
 ## Logger Core
 The core module handles logger instantiation, the inheritance hierarchy, and configuration resolution.
@@ -22,8 +23,16 @@ Responsible for the processing pipeline of log entries.
 - [Design Philosophy](handler/philosophy.md)
 - [Architecture](handler/architecture.md)
 - [Execution Engines Guide](handler/engines.md) - Standard, Arena, and Native engines guide
+- [Async Handler & Isolate Offloading Guide](handler/async_handler_guide.md) - Background isolate execution and worker lifecycle
 - [Decorator Compositions](handler/decorator_compositions.md) - Execution priority and flow
 - [Roadmap](handler/roadmap.md)
+
+### Satellite Packages Documentation
+- [**logd_toon**](../packages/logd_toon/doc/toon_spec.md) - TOON specification, dialects, and architecture
+- [**logd_html**](../packages/logd_html/doc/architecture.md) - HTML architecture, custom stylesheets, and migration
+- [**logd_markdown**](../packages/logd_markdown/doc/architecture.md) - Markdown architecture, GFM tables, and migration
+- [**logd_sqlite**](../packages/logd_sqlite/doc/architecture.md) - SQLite WAL architecture, query engine, and benchmarks
+- [**logd_network**](../packages/logd_network/doc/architecture.md) - HTTP batching, WebSockets, dashboard, and roadmap
 
 ### Reports & Benchmarks
 Performance and quality analysis reports:

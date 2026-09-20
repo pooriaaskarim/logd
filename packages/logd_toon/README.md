@@ -28,8 +28,8 @@ Add `logd` and `logd_toon` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  logd: ^0.9.7
-  logd_toon: ^0.1.0
+  logd: ^latest_version
+  logd_toon: ^latest_version
 ```
 
 ---

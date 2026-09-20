@@ -8,24 +8,22 @@ Add `logd_network` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  logd: ^0.9.7
-  logd_network: ^0.1.4
+  logd: ^latest_version
+  logd_network: ^latest_version
 ```
 
 Run `dart pub get` or `flutter pub get`.
 
-## 2. Registering Serializers (For Isolates)
+## 2. Registering Serializers (For Full Isolate Config Sync)
 
-If using background isolates or `HttpDashboardHandler.async()`, register the network serializers during bootstrap:
+`HttpDashboardHandler.async()` constructs its underlying `HttpServerSink` directly inside the worker isolate from plain configuration parameters, avoiding isolate port binding conflicts and eliminating the need for serializer registration.
+
+However, if you export and import the full logger configuration registry across isolates using `Logger.exportConfig()` and `Logger.importConfig()`, you must register network serializers during your application bootstrap:
 
 ```dart
 void main() {
-  // Register network serializers for isolate support
+  // Required only when using Logger.exportConfig() / Logger.importConfig()
   registerLogdNetworkSerializers();
-
-  Logger.configure('app', handlers: [
-    HttpDashboardHandler.async(port: 8080),
-  ]);
 }
 ```
 

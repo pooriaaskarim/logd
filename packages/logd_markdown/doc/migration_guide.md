@@ -8,8 +8,8 @@ Add `logd_markdown` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  logd: ^0.9.7
-  logd_markdown: ^0.1.0
+  logd: ^latest_version
+  logd_markdown: ^latest_version
 ```
 
 Run `dart pub get` or `flutter pub get`.
@@ -29,17 +29,16 @@ import 'package:logd/logd.dart' hide MarkdownEncoder, MarkdownFileHandler;
 import 'package:logd_markdown/logd_markdown.dart';
 ```
 
-## 3. Registering Serializers (For Isolates)
+## 3. Registering Serializers (For Full Isolate Config Sync)
 
-If you use `MarkdownFileHandler.async()` or execute logging pipelines on background isolates, register the `logd_markdown` serializers during your application's bootstrap phase:
+Because `MarkdownFormatter` is `@immutable`, using `MarkdownFileHandler.async()` automatically transfers the formatter across isolate boundaries without manual registration.
+
+However, if you export and import the full logger configuration registry across isolates using `Logger.exportConfig()` and `Logger.importConfig()`, you must register Markdown serializers during your application bootstrap:
 
 ```dart
 void main() {
+  // Required only when using Logger.exportConfig() / Logger.importConfig()
   registerLogdMarkdownSerializers();
-  
-  Logger.configure('app', handlers: [
-    MarkdownFileHandler.async(path: 'app_logs.md'),
-  ]);
 }
 ```
 
