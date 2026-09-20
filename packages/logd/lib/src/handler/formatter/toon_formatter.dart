@@ -5,6 +5,7 @@ part of 'formatter.dart';
 /// TOON is a compact, token-efficient format designed for feeding logs into
 /// machine parsers or Large Language Models (LLMs). It uses a header definition
 /// followed by uniform rows of values separated by a delimiter (default: Tab).
+@Deprecated('Use package:logd_toon instead. Will be removed in v0.10.0.')
 @immutable
 final class ToonFormatter implements LogFormatter {
   /// Creates a [ToonFormatter].

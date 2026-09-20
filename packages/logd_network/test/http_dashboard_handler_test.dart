@@ -1,6 +1,7 @@
 import 'package:logd/logd.dart'
     hide HttpSink, SocketSink, HttpServerSink, HttpDashboardHandler, DropPolicy;
 import 'package:logd_network/logd_network.dart';
+import 'package:logd_network/src/target_handlers/http_dashboard_isolate_handler.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -32,5 +33,25 @@ void main() {
         await expectLater(handler.dispose(), completes);
       },
     );
+
+    test('HttpDashboardHandler.async creates background isolate handler',
+        () async {
+      registerLogdNetworkSerializers();
+
+      final handler = HttpDashboardHandler.async(
+        port: 0,
+        title: 'Async Test Dashboard',
+      );
+
+      expect(handler, isA<Handler>());
+
+      Logger.configure('test.dashboard_async', handlers: [handler]);
+      final logger = Logger.get('test.dashboard_async');
+
+      await (handler as HttpDashboardIsolateHandler).ready;
+      logger.info('Dashboard log on isolate');
+
+      await expectLater(handler.dispose(), completes);
+    });
   });
 }

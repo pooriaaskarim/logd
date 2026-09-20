@@ -105,5 +105,32 @@ void main() {
         doc.releaseRecursive(Arena.instance);
       }
     });
+
+    test('wrapping behavior at exact boundaries (width - 1, width, width + 1)',
+        () {
+      final doc1 = createTestDocument(['a' * 19]);
+      final doc2 = createTestDocument(['a' * 20]);
+      final doc3 = createTestDocument(['a' * 21]);
+      try {
+        final layout = TerminalLayout(width: 20, factory: Arena.instance);
+        final lines1 = layout.layout(doc1, LogLevel.info).lines;
+        final lines2 = layout.layout(doc2, LogLevel.info).lines;
+        final lines3 = layout.layout(doc3, LogLevel.info).lines;
+
+        expect(lines1.length, equals(1));
+        expect(lines1[0].visibleLength, equals(19));
+
+        expect(lines2.length, equals(1));
+        expect(lines2[0].visibleLength, equals(20));
+
+        expect(lines3.length, equals(2));
+        expect(lines3[0].visibleLength, equals(20));
+        expect(lines3[1].visibleLength, equals(1));
+      } finally {
+        doc1.releaseRecursive(Arena.instance);
+        doc2.releaseRecursive(Arena.instance);
+        doc3.releaseRecursive(Arena.instance);
+      }
+    });
   });
 }

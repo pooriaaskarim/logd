@@ -65,7 +65,7 @@ void main() async {
   // Ensuring tags from different phases (Formatter + Box + Suffix) all style
   // correctly.
   const mixHandler = Handler(
-    formatter: ToonFormatter(),
+    formatter: StructuredFormatter(),
     decorators: [
       StyleDecorator(DarkTheme()),
       BoxDecorator(borderStyle: BorderStyle.double),
@@ -78,9 +78,9 @@ void main() async {
   );
 
   Logger.configure('mixer', handlers: [mixHandler]);
-  print('\nSTRESS 5: Tag Intersection (Toon + Box + Suffix)');
+  print('\nSTRESS 5: Tag Intersection (Structured + Box + Suffix)');
   Logger.get('mixer')
-      .warning('Mixing Toon semantics with Box and Suffix decorators.');
+      .warning('Mixing Structured semantics with Box and Suffix decorators.');
 
   print('\n=== Stress Test Complete ===');
 }

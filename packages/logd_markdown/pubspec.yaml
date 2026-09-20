@@ -1,0 +1,34 @@
+name: logd_markdown
+description: Markdown (GFM) encoder and pre-wired file handler satellite package for logd.
+version: 0.1.0
+repository: https://github.com/pooriaaskarim/logd
+homepage: https://github.com/pooriaaskarim/logd
+documentation: https://github.com/pooriaaskarim/logd
+issue_tracker: https://github.com/pooriaaskarim/logd/issues
+
+topics:
+  - logging
+  - markdown
+  - gfm
+
+license: BSD-3-Clause
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+resolution: workspace
+
+dependencies:
+  logd: ^0.9.7
+  meta: ^1.18.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

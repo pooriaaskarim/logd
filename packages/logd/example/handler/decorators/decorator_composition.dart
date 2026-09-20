@@ -74,10 +74,10 @@ void main() async {
   // SCENARIO 3: The machine-readable Stream
   // Goal: High-density, grep-friendly output (TOON format).
   // Composition:
-  //   ToonFormatter -> Prefix (Machine ID)
+  //   StructuredFormatter -> Prefix (Machine ID)
   // ---------------------------------------------------------------------------
   const debugHandler = Handler(
-    formatter: ToonFormatter(),
+    formatter: StructuredFormatter(),
     decorators: [
       PrefixDecorator('worker-01|'),
     ],

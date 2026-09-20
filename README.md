@@ -14,8 +14,13 @@
 This project is organized as a **Native Dart Workspace** managed with [Melos](https://melos.invertase.dev/).
 
 - **[packages/logd](packages/logd)**: The core hierarchical logging engine.
-- **[packages/logd_sqlite](packages/logd_sqlite)**: SQLite WAL persistence handler and querying engine.
+- **[packages/logd_toon](packages/logd_toon)**: Tab-Oriented Object Notation (TOON) formatter, encoder & file handler (30–50% LLM token reduction).
+- **[packages/logd_html](packages/logd_html)**: Modern HTML5 log rendering, dynamic dark/light stylesheet & file handler.
+- **[packages/logd_markdown](packages/logd_markdown)**: GitHub-Flavored Markdown formatter & file handler for CI summaries.
+- **[packages/logd_sqlite](packages/logd_sqlite)**: SQLite WAL persistence handler and rich querying engine.
 - **[packages/logd_network](packages/logd_network)**: HTTP batch shipping, WebSockets streaming, and live browser dashboard.
+- **[packages/logd_linters](packages/logd_linters)**: Custom lint rules for arena lifecycle and formatter purity.
+- **[packages/benchmarks](packages/benchmarks)**: Performance, throughput, and memory churn benchmark suite.
 - **[doc/](doc)**: Deep-dive technical documentation (Philosophy, Architecture, Roadmaps).
 - **[scripts/](scripts)**: Infrastructure for testing and network logging simulations.
 

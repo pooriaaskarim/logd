@@ -2,15 +2,37 @@
 
 ## Next Milestones
 
-### 🔲 v0.10.0: Zero-Network Core Engine & Hard Deprecation Cleanup
-**Goal**: Permanently remove deprecated network classes and dependencies from `packages/logd`, achieving a pure, zero-network-dependency core logging engine.
-- [ ] Delete `network_sink.dart`, `http_server_sink_native.dart`, `http_server_sink_stub.dart`, `dashboard_html.dart`, and `http_dashboard_handler.dart` from `packages/logd`.
-- [ ] Remove `package:http` and `package:web_socket_channel` from `packages/logd/pubspec.yaml`.
-- [ ] Verify core `packages/logd` compiles with 0 external network dependencies.
+### 🔲 v0.10.0: Pure Semantic Engine & Hard Deprecation Removal
+**Goal**: Permanently remove all soft-deprecated satellite shims and external dependencies from `packages/logd`, achieving a zero-network-dependency core logging engine focused on semantic IR dispatch.
+- [ ] Delete deprecated network classes (`network_sink.dart`, `http_server_sink_native.dart`, `http_server_sink_stub.dart`, `dashboard_html.dart`, `http_dashboard_handler.dart`) and remove `package:http` and `package:web_socket_channel` from `pubspec.yaml`.
+- [ ] Delete deprecated HTML shims (`html_encoder.dart`, `html_stylesheet.dart`, `html_file_handler.dart`, `html_formatter.dart`).
+- [ ] Delete deprecated Markdown shims (`markdown_encoder.dart`, `markdown_file_handler.dart`).
+- [ ] Delete deprecated TOON shims (`toon_encoder.dart`, `toon_file_handler.dart`, `toon_formatter.dart`).
+- [ ] Remove deprecated `requiredStrategy` getter on `LogEncoder`.
 
 ---
 
 ## Completed
+
+### ✅ v0.9.7: Core Decoupling, Satellite Expansion & Direct Isolate Transfer (ADR-008)
+**Goal**: Complete extraction of specialized log formats into satellite packages, establish direct isolate transfer for `@immutable` formatters, and standardize `wrappingStrategy`.
+**Result**: Released standalone packages `logd_toon` (v0.1.0), `logd_html` (v0.1.0), `logd_markdown` (v0.1.0), and matured `logd_sqlite` (v0.1.4). Enabled direct transfer of immutable formatters across `SendPort` to `AsyncHandler` without JSON serialization. Authored ADR-008.
+- [x] Extract `logd_toon`, `logd_html`, and `logd_markdown` into standalone satellite packages.
+- [x] Soft-deprecate core TOON, HTML, and Markdown classes in `packages/logd`.
+- [x] Remove JSON serialization requirement for `AsyncHandler` by transferring `@immutable` formatters directly.
+- [x] Add `SqliteHandler.async()` and `HttpDashboardHandler.async()` with in-isolate sink instantiation.
+- [x] Authored ADR-008 in `doc/decisions/adr-008-rejection-of-handler-level-theme.md`.
+
+---
+
+### ✅ v0.9.6: Serialization Diagnostics & AsyncHandler Leak Safety
+**Goal**: Improve developer diagnostics for custom isolate serialization and prevent zombie isolate leaks.
+**Result**: Actionable `ArgumentError` messages for unregistered types, compile-time/bootstrap `verify*` assertion helpers, and Dart `Finalizer` kill-safeguards attached to `AsyncHandler`.
+- [x] Actionable serialization error messages citing missing type and registration method.
+- [x] Proactive startup validation helpers (`verifyFormatter`, `verifySink`, etc.).
+- [x] `Finalizer`-based isolate worker termination on un-disposed garbage-collected `AsyncHandler`.
+
+---
 
 ### ✅ v0.9.5: Satellite Package Extraction (`logd_network`) & Core Soft Deprecations (ADR-007)
 **Goal**: Decouple `HttpSink`, `SocketSink`, `HttpServerSink`, and `HttpDashboardHandler` into the `logd_network` satellite package, soft-deprecating them in `package:logd` targeting `v0.10.0`.
@@ -245,7 +267,7 @@
 
 **Completed**:
 - [x] `MemorySink`: In-memory ring-buffer for testing and in-process log inspection (`@experimental`, v0.9.1)
-- [x] `SqliteHandler` / `logd_sqlite`: High-performance WAL-mode SQLite persistence satellite package ([`logd_sqlite`](file:///home/ono/Projects/logd/packages/logd_sqlite), v0.1.1)
+- [x] `SqliteHandler` / `logd_sqlite`: High-performance WAL-mode SQLite persistence satellite package ([`logd_sqlite`](file://packages/logd_sqlite), v0.1.1)
 
 **Planned Satellite Packages — each ships a `{Target}Handler extends Handler`**:
 - [ ] `logd_sentry`: `SentryHandler` — forwards structured log events and stack traces to Sentry.io

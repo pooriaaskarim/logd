@@ -14,6 +14,7 @@ import '../sink/file_sink.dart';
 ///
 /// To offload formatting, Markdown encoding, and file I/O to a background
 /// isolate, use the [MarkdownFileHandler.async] constructor.
+@Deprecated('Use package:logd_markdown instead. Will be removed in v0.10.0.')
 @immutable
 class MarkdownFileHandler extends Handler {
   /// Creates a synchronous [MarkdownFileHandler].

@@ -83,7 +83,8 @@ base class AsyncHandler extends Handler {
       'AsyncHandler leak detected! '
       'Handler garbage-collected without dispose(). '
       'Background isolate terminated immediately. '
-      'Call dispose() explicitly to flush pending log entries and close resources gracefully.',
+      'Call dispose() explicitly to flush pending log entries and close '
+      'resources gracefully.',
     );
     worker.kill();
   });

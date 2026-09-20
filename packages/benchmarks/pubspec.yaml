@@ -10,6 +10,10 @@ dependencies:
   benchmark_harness: ^2.4.0
   logd:
     path: ../logd
+  logd_markdown:
+    path: ../logd_markdown
+  logd_toon:
+    path: ../logd_toon
   meta: ^1.11.0
   vm_service: ^14.0.0
 

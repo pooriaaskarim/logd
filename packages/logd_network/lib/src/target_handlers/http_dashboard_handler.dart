@@ -4,12 +4,13 @@ library;
 
 import 'package:meta/meta.dart';
 
-import 'package:logd/logd.dart' hide HttpServerSink;
+import 'package:logd/logd.dart' hide HtmlEncoder, HttpServerSink;
 import '../sink/http_server_sink.dart';
+import 'http_dashboard_isolate_handler.dart';
 
 /// A pre-wired [Handler] that hosts a real-time web dashboard over HTTP/WS.
 ///
-/// Pre-wires [StructuredFormatter], [HtmlEncoder], and an [HttpServerSink]
+/// Pre-wires [StructuredFormatter] and an [HttpServerSink]
 /// binding to [address] and [port].
 @immutable
 class HttpDashboardHandler extends Handler {
@@ -30,10 +31,41 @@ class HttpDashboardHandler extends Handler {
           sink: HttpServerSink(
             address: address,
             port: port,
-            encoder: HtmlEncoder(title: title ?? 'logd Real-Time Dashboard'),
+            encoder: const AutoTextEncoder(),
             bufferCapacity: bufferCapacity,
             lineLength: lineLength,
           ),
           decorators: decorators ?? const [],
         );
+
+  /// Creates an asynchronous [HttpDashboardHandler] offloaded to a background
+  /// isolate.
+  ///
+  /// The [HttpServerSink] is constructed entirely inside the background isolate
+  /// from the supplied config. This avoids isolate boundary transfer errors
+  /// that arise with active HTTP servers and [Completer] instances.
+  ///
+  /// Make sure to call [registerLogdNetworkSerializers] in your application
+  /// bootstrap phase before using async handlers.
+  static Handler async({
+    final String address = 'localhost',
+    final int port = 8080,
+    final String? title,
+    final int bufferCapacity = 100,
+    final int? lineLength,
+    final LogFormatter? formatter,
+    final List<LogDecorator>? decorators,
+    final List<LogFilter> filters = const [],
+    final Duration? timeout,
+  }) =>
+      HttpDashboardIsolateHandler(
+        address: address,
+        port: port,
+        bufferCapacity: bufferCapacity,
+        lineLength: lineLength,
+        formatter: formatter ?? const StructuredFormatter(),
+        decorators: decorators ?? const [],
+        filters: filters,
+        timeout: timeout,
+      );
 }

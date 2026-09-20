@@ -1,3 +1,14 @@
+## 0.1.4
+
+- **Async Isolate Support (`SqliteHandler.async`)**: Added `SqliteHandler.async()` static factory method allowing SQLite log persistence to run on background isolates without blocking main event loops.
+- **Direct Formatter & Decorator Transfer**: Supports direct transfer of `@immutable` `LogFormatter` and `LogDecorator` instances across isolates without JSON serialization overhead.
+- **Lifecycle Hardening & Race-Free `dispose()`**: Awaits isolate initialization before executing teardown, eliminating race conditions during immediate shutdown and preventing locked database file handles on Windows.
+- **Sequential Queue Processing**: Worker isolate processes incoming log entries sequentially via `await for`, guaranteeing all pending entries flush to SQLite before database connection closure.
+- **Serialization Support**: Added `registerLogdSqliteSerializers()` to register `SqliteSink` with `LoggerSerializationRegistry` for `Logger.exportConfig()` and `Logger.importConfig()`.
+- **Cross-Satellite Matrix Testing**: Added end-to-end integration tests validating concurrent `SqliteHandler.async` logging with `MarkdownFormatter`, `HtmlFormatter`, and `ToonFormatter`.
+- **Documentation**: Added `doc/architecture.md`, `doc/benchmarks.md`, and `doc/migration_guide.md`.
+- **Updated Dependencies**: Updated `logd` dependency constraint to `^0.9.7`.
+
 ## 0.1.3
 
 - **Pub.dev Score & Lower-Bound Analysis Fixes**:

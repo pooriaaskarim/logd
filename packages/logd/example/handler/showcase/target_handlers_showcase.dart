@@ -58,7 +58,7 @@ void main() async {
 
     final jsonFile = File('${tempDir.path}/app_logs.json');
     final htmlFile = File('${tempDir.path}/app_report.html');
-    final toonFile = File('${tempDir.path}/app_telemetry.toon');
+    final structuredFile = File('${tempDir.path}/app_telemetry.structured');
     final markdownFile = File('${tempDir.path}/app_summary.md');
     final plainFile = File('${tempDir.path}/app_raw.log');
 
@@ -71,9 +71,8 @@ void main() async {
       path: htmlFile.path,
       title: 'Target Handlers Showcase Session',
     );
-    final toonHandler = ToonFileHandler.async(
-      path: toonFile.path,
-      arrayName: 'showcase_telemetry',
+    final structuredHandler = PlainFileHandler.async(
+      path: structuredFile.path,
     );
     final markdownHandler = MarkdownFileHandler.async(
       path: markdownFile.path,
@@ -85,7 +84,7 @@ void main() async {
     Logger.configure('app.async_file', handlers: [
       jsonHandler,
       htmlHandler,
-      toonHandler,
+      structuredHandler,
       markdownHandler,
       plainHandler,
     ]);
@@ -110,7 +109,7 @@ void main() async {
     // Dispose handlers safely
     await jsonHandler.dispose();
     await htmlHandler.dispose();
-    await toonHandler.dispose();
+    await structuredHandler.dispose();
     await markdownHandler.dispose();
     await plainHandler.dispose();
 
@@ -139,8 +138,8 @@ void main() async {
     );
 
     _inspectFile(
-      '3. ToonFileHandler.async()',
-      toonFile,
+      '3. PlainFileHandler.async()',
+      structuredFile,
       preview: (final content) => content.split('\n').take(2).join(' | '),
     );
 

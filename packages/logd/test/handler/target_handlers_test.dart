@@ -14,9 +14,21 @@ void main() {
       );
     });
 
-    tearDown(() {
+    tearDown(() async {
       if (tempDir.existsSync()) {
-        tempDir.deleteSync(recursive: true);
+        try {
+          tempDir.deleteSync(recursive: true);
+        } on FileSystemException {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          if (tempDir.existsSync()) {
+            try {
+              tempDir.deleteSync(recursive: true);
+            } on FileSystemException {
+              // Best-effort cleanup on Windows if file handle is
+              // still releasing
+            }
+          }
+        }
       }
     });
 

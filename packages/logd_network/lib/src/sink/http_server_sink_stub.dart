@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart';
 
-import 'package:logd/logd.dart';
+import 'package:logd/logd.dart' hide HtmlEncoder;
 
 /// A [LogSink] that throws under browser/web environments as HTTP servers are
 /// unsupported.
@@ -10,7 +10,7 @@ base class HttpServerSink extends EncodingSink {
   HttpServerSink({
     this.address = 'localhost',
     this.port = 8080,
-    super.encoder = const HtmlEncoder(),
+    super.encoder = const AutoTextEncoder(),
     final int? lineLength,
     super.enabled = true,
     this.bufferCapacity = 100,

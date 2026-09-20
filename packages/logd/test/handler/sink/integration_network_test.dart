@@ -52,15 +52,19 @@ void main() {
     }
 
     setUpAll(() async {
-      const socketVenvDir = '../../scripts/servers/socket';
-      final socketPythonExe = Platform.isWindows
-          ? '$socketVenvDir/.venv/Scripts/python.exe'
-          : '$socketVenvDir/.venv/bin/python';
+      final serversDir = Directory('scripts/servers').existsSync()
+          ? Directory('scripts/servers').absolute.path
+          : Directory('../../scripts/servers').absolute.path;
+      final socketDir = '$serversDir/socket';
+      final httpDir = '$serversDir/http';
 
-      const httpVenvDir = '../../scripts/servers/http';
+      final socketPythonExe = Platform.isWindows
+          ? '$socketDir/.venv/Scripts/python.exe'
+          : '$socketDir/.venv/bin/python';
+
       final httpPythonExe = Platform.isWindows
-          ? '$httpVenvDir/.venv/Scripts/python.exe'
-          : '$httpVenvDir/.venv/bin/python';
+          ? '$httpDir/.venv/Scripts/python.exe'
+          : '$httpDir/.venv/bin/python';
 
       if (File(socketPythonExe).existsSync() &&
           File(httpPythonExe).existsSync()) {
@@ -68,9 +72,12 @@ void main() {
         socketPython = File(socketPythonExe).absolute.path;
         httpPython = File(httpPythonExe).absolute.path;
       } else {
-        // Fallback: check system python.
+        // Fallback: check system python has required packages
         try {
-          final res = await Process.run('python', ['--version']);
+          final res = await Process.run('python', [
+            '-c',
+            'import flask, websockets',
+          ]);
           if (res.exitCode == 0) {
             hasPython = true;
             socketPython = 'python';
@@ -91,7 +98,7 @@ void main() {
       socketProcess = await Process.start(
         socketPython!,
         ['main.py', '--port', socketPort.toString()],
-        workingDirectory: '../../scripts/servers/socket',
+        workingDirectory: socketDir,
         environment: {
           'HOST': '127.0.0.1',
           'PYTHONUNBUFFERED': '1',
@@ -110,7 +117,7 @@ void main() {
       httpProcess = await Process.start(
         httpPython!,
         ['main.py', '--port', httpPort.toString()],
-        workingDirectory: '../../scripts/servers/http',
+        workingDirectory: httpDir,
         environment: {
           'HOST': '127.0.0.1',
           'PYTHONUNBUFFERED': '1',

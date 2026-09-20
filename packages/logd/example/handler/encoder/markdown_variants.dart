@@ -26,11 +26,6 @@ void main() async {
     sink: FileSink(logFile.path, encoder: const MarkdownEncoder()),
   );
 
-  final toonHandler = Handler(
-    formatter: const ToonFormatter(),
-    sink: FileSink(logFile.path, encoder: const MarkdownEncoder()),
-  );
-
   // 2. Logging via different formatters
   print('Logging via StructuredFormatter...');
   Logger.configure('showcase.structured', handlers: [structuredHandler]);
@@ -45,9 +40,10 @@ void main() async {
   Logger.configure('showcase.plain', handlers: [plainHandler]);
   Logger.get('showcase.plain').info('Universal Markdown (Plain) test.');
 
-  print('Logging via ToonFormatter...');
-  Logger.configure('showcase.toon', handlers: [toonHandler]);
-  Logger.get('showcase.toon').info('Universal Markdown (Toon) test.');
+  print('Logging via StructuredFormatter...');
+  Logger.configure('showcase.structured', handlers: [structuredHandler]);
+  Logger.get('showcase.structured')
+      .info('Universal Markdown (Structured) test.');
 
   print('\n=== Professional Markdown Generation Complete ===');
   print('Results persisted in logs/markdown_variants.md');
@@ -55,5 +51,5 @@ void main() async {
   await structuredHandler.sink.dispose();
   await jsonHandler.sink.dispose();
   await plainHandler.sink.dispose();
-  await toonHandler.sink.dispose();
+  await structuredHandler.sink.dispose();
 }

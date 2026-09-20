@@ -17,6 +17,7 @@ import '../sink/file_sink.dart';
 ///
 /// To offload formatting, decoration, and file I/O to a background isolate,
 /// use the [HtmlFileHandler.async] constructor.
+@Deprecated('Use package:logd_html instead. Will be removed in v0.10.0.')
 @immutable
 class HtmlFileHandler extends Handler {
   /// Creates a synchronous [HtmlFileHandler].

@@ -152,6 +152,42 @@ void main() {
       expect(levelInIsolate, equals(LogLevel.error));
     });
 
+    test(
+        'should transfer full Handler pipeline across isolates and execute '
+        'logging', () async {
+      final receivePort = ReceivePort();
+      Logger.configure(
+        'isolate_pipeline_logger',
+        enabled: true,
+        logLevel: LogLevel.debug,
+        handlers: const [
+          Handler(
+            formatter: JsonFormatter(),
+            sink: ConsoleSink(),
+            filters: [LevelFilter(LogLevel.debug)],
+            decorators: [BoxDecorator()],
+          ),
+        ],
+      );
+
+      final config = Logger.exportConfig();
+
+      await Isolate.spawn(_isolatePipelineMain, {
+        'config': config,
+        'sendPort': receivePort.sendPort,
+      });
+
+      final result = await receivePort.first as Map<String, dynamic>;
+      expect(result['handlersCount'], equals(1));
+      expect(result['formatterType'], equals('JsonFormatter'));
+      expect(result['sinkType'], equals('ConsoleSink'));
+      expect(result['filtersCount'], equals(1));
+      expect(result['filterType'], equals('LevelFilter'));
+      expect(result['decoratorsCount'], equals(1));
+      expect(result['decoratorType'], equals('BoxDecorator'));
+      expect(result['logExecuted'], isTrue);
+    });
+
     test('should preserve LogBrightness across theme serialization', () {
       const config = LoggerConfig(
         handlers: [
@@ -172,8 +208,8 @@ void main() {
     });
 
     test(
-        'should throw descriptive ArgumentError when serializing unregistered component',
-        () {
+        'should throw descriptive ArgumentError when serializing '
+        'unregistered component', () {
       expect(
         () => LoggerSerializationRegistry.serializeFormatter(
           const _UnregisteredFormatter(),
@@ -183,7 +219,8 @@ void main() {
             (final e) => e.message.toString(),
             'message',
             contains(
-              'LogFormatter subtype "_UnregisteredFormatter" is not registered in LoggerSerializationRegistry',
+              'LogFormatter subtype "_UnregisteredFormatter" is not '
+              'registered in LoggerSerializationRegistry',
             ),
           ),
         ),
@@ -191,8 +228,8 @@ void main() {
     });
 
     test(
-        'should throw descriptive ArgumentError when deserializing unregistered component type',
-        () {
+        'should throw descriptive ArgumentError when deserializing '
+        'unregistered component type', () {
       expect(
         () => LoggerSerializationRegistry.deserializeFormatter({
           'type': 'UnknownFormatter',
@@ -203,7 +240,8 @@ void main() {
             (final e) => e.message.toString(),
             'message',
             contains(
-              'LogFormatter type "UnknownFormatter" is not registered in LoggerSerializationRegistry',
+              'LogFormatter type "UnknownFormatter" is not registered in '
+              'LoggerSerializationRegistry',
             ),
           ),
         ),
@@ -284,4 +322,27 @@ void _isolateMain(final Map<String, dynamic> message) {
   Logger.importConfig(config);
   final logger = Logger.get('isolate_logger');
   sendPort.send(logger.logLevel);
+}
+
+void _isolatePipelineMain(final Map<String, dynamic> message) {
+  final config = message['config'] as Map<String, dynamic>;
+  final sendPort = message['sendPort'] as SendPort;
+
+  Logger.importConfig(config);
+  final logger = Logger.get('isolate_pipeline_logger');
+  final handler = logger.handlers.first;
+
+  // Execute a log call to ensure pipeline executes cleanly without throwing
+  logger.debug('hello from isolate pipeline');
+
+  sendPort.send({
+    'handlersCount': logger.handlers.length,
+    'formatterType': handler.formatter.runtimeType.toString(),
+    'sinkType': handler.sink.runtimeType.toString(),
+    'filtersCount': handler.filters.length,
+    'filterType': handler.filters.first.runtimeType.toString(),
+    'decoratorsCount': handler.decorators.length,
+    'decoratorType': handler.decorators.first.runtimeType.toString(),
+    'logExecuted': true,
+  });
 }

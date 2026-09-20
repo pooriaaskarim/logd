@@ -12,7 +12,11 @@ class JsonEncoder implements LogEncoder {
   const JsonEncoder({this.indent});
 
   @override
-  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
+  WrappingStrategy get wrappingStrategy => WrappingStrategy.none;
+
+  @Deprecated('Use wrappingStrategy instead. Will be removed in v0.10.0.')
+  @override
+  WrappingStrategy get requiredStrategy => wrappingStrategy;
 
   /// Optional indentation for pretty printing.
   final String? indent;

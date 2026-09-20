@@ -37,9 +37,9 @@ To balance fast-paced innovation with library stability, all public exports are 
 ## 3. Extension Point API Freeze
 
 Starting with **v0.9.0**, the core extension interfaces and base orchestrators are frozen as **Implicitly Stable**:
-- [LogFormatter](file:///a:/Projects/logd/packages/logd/lib/src/handler/formatter/formatter.dart)
-- [LogDecorator](file:///a:/Projects/logd/packages/logd/lib/src/handler/decorator/decorator.dart)
-- [LogSink](file:///a:/Projects/logd/packages/logd/lib/src/handler/sink/sink.dart)
-- [Handler](file:///a:/Projects/logd/packages/logd/lib/src/handler/handler.dart)
+- [LogFormatter](file://packages/logd/lib/src/handler/formatter/formatter.dart)
+- [LogDecorator](file://packages/logd/lib/src/handler/decorator/decorator.dart)
+- [LogSink](file://packages/logd/lib/src/handler/sink/sink.dart)
+- [Handler](file://packages/logd/lib/src/handler/handler.dart)
 
 Custom plugins, formatters, decorators, and sinks compiled against v0.9.0 are guaranteed to compile and execute without modifications on all subsequent `v0.9.x` and `v1.x.x` releases.

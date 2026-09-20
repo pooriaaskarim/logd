@@ -42,10 +42,10 @@ void main() async {
   );
 
   // ===========================================================================
-  // 2. THE DATA SCIENTIST (Toon + Custom Prefix + Style)
+  // 2. THE DATA SCIENTIST (Structured + Custom Prefix + Style)
   // ===========================================================================
   const dataHandler = Handler(
-    formatter: ToonFormatter(
+    formatter: StructuredFormatter(
       metadata: {LogMetadata.timestamp},
     ),
     decorators: [
@@ -60,7 +60,7 @@ void main() async {
 
   Logger.configure('telemetry', handlers: [dataHandler]);
   print('\n--- GALLERY 2: THE DATA SCIENTIST ---');
-  print('(Toon + Custom Styled Prefix + Standard Styling)\n');
+  print('(Structured + Custom Styled Prefix + Standard Styling)\n');
 
   Logger.get('telemetry.sensor_a')
       .debug('Sensor A | value=0.452 | state=nominal');

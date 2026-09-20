@@ -45,7 +45,7 @@ base class EncodingSink extends LogSink<LogDocument> {
   final FutureOr<void> Function(Uint8List data) delegate;
 
   /// The wrapping strategy for this sink, as required by its encoder.
-  WrappingStrategy get strategy => encoder.requiredStrategy;
+  WrappingStrategy get strategy => encoder.wrappingStrategy;
 
   /// The maximum line length for the output.
   final int? preferredWidth;

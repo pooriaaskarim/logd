@@ -8,12 +8,18 @@ part of 'encoder.dart';
 /// - [ErrorNode]: Alert blocks (`> [!ERROR]`)
 /// - [LogTag.collapsible]: `<details>` blocks for collapsible content.
 /// - [LogTag.stackFrame]: Code blocks (```).
+@Deprecated('Use package:logd_markdown instead. Will be removed in v0.10.0.')
 @immutable
 class MarkdownEncoder implements LogEncoder {
   /// Creates a [MarkdownEncoder].
   const MarkdownEncoder();
+
   @override
-  WrappingStrategy get requiredStrategy => WrappingStrategy.none;
+  WrappingStrategy get wrappingStrategy => WrappingStrategy.none;
+
+  @Deprecated('Use wrappingStrategy instead. Will be removed in v0.10.0.')
+  @override
+  WrappingStrategy get requiredStrategy => wrappingStrategy;
 
   @override
   void preamble(

@@ -1,6 +1,49 @@
 # Migration Guide
 
-## v0.9.4 to v0.9.5 (Extraction of `logd_network` Satellite Package)
+## v0.9.6 to v0.9.7 (Satellite Package Decoupling & Direct Isolate Transfer)
+
+### 1. Satellite Extraction (`logd_toon`, `logd_html`, `logd_markdown`)
+**Change**: TOON, HTML, and Markdown formatters, encoders, and handlers are extracted into standalone satellite packages to keep the core `logd` engine focused on semantic IR dispatch.
+* **Impact**:
+  - `ToonFormatter`, `ToonEncoder`, `ToonFileHandler`, `HtmlFormatter`, `HtmlEncoder`, `HtmlFileHandler`, `HtmlStylesheet`, `MarkdownEncoder`, and `MarkdownFileHandler` in `package:logd` are marked with `@Deprecated` and will be permanently removed in `v0.10.0`.
+* **Migration**:
+  1. Add the respective satellite package (`logd_toon`, `logd_html`, `logd_markdown`) to `pubspec.yaml`:
+     ```yaml
+     dependencies:
+       logd: ^latest_version
+       logd_toon: ^latest_version
+       logd_html: ^latest_version
+       logd_markdown: ^latest_version
+     ```
+  2. While shims exist in `logd`, hide deprecated classes from `logd` imports:
+     ```dart
+     import 'package:logd/logd.dart'
+         hide ToonEncoder, ToonFormatter, ToonFileHandler, ToonPrettyFormatter;
+     import 'package:logd_toon/logd_toon.dart';
+     ```
+
+### 2. Direct Isolate Offloading for `@immutable` Formatters
+**Change**: Formatters and decorators are `@immutable` and transferred directly across `SendPort` message channels to `AsyncHandler` and isolate workers.
+* **Impact**:
+  - Using `.async()` constructors (`ConsoleHandler.async()`, `JsonFileHandler.async()`, `HtmlFileHandler.async()`, `ToonFileHandler.async()`, `MarkdownFileHandler.async()`, `SqliteHandler.async()`, `HttpDashboardHandler.async()`) no longer requires manual serializer registration.
+  - Calling `registerLogd<Satellite>Serializers()` is only required if exporting and importing full logger configurations across isolates via `Logger.exportConfig()` and `Logger.importConfig()`.
+
+### 3. Contract Rename: `wrappingStrategy`
+**Change**: `LogEncoder.requiredStrategy` is renamed to `LogEncoder.wrappingStrategy`.
+* **Impact**: `requiredStrategy` is preserved as a `@Deprecated` getter shim and will be removed in `v0.10.0`.
+
+---
+
+## v0.9.5 to v0.9.6 (Serialization Diagnostics & Finalizer Leak Protection)
+
+### 1. Actionable Serialization Error Diagnostics
+**Change**: Unregistered types encountered during `LoggerSerializationRegistry` serialization or deserialization now explicitly name the missing type and cite the exact registration method to call.
+* **New Helpers**: Proactive validation helpers (`verifyFormatter<T>()`, `verifySink<T>()`, `verifyFilter<T>()`, `verifyDecorator<T>()`, `verifyEngine<T>()`) assert that components are registered at startup before crossing isolate boundaries.
+
+### 2. `AsyncHandler` Resource Leak Protection
+**Change**: `AsyncHandler` is wired with a Dart `Finalizer`. If an instance is garbage-collected without `dispose()` being called explicitly, the `Finalizer` logs an `InternalLogger` warning and terminates the worker isolate immediately to prevent zombie threads.
+
+---
 
 ### 1. Network Sinks & Observability Handlers Extracted to Satellite Package
 **Change**: To keep the core `logd` engine lightweight and free of external HTTP/WebSocket network dependencies, all network-related components have been extracted into a dedicated satellite package: [`package:logd_network`](https://pub.dev/packages/logd_network).
@@ -10,8 +53,8 @@
   1. Add `logd_network` to your `pubspec.yaml`:
      ```yaml
      dependencies:
-       logd: ^0.9.5
-       logd_network: ^0.1.0
+       logd: ^latest_version
+       logd_network: ^latest_version
      ```
   2. Update your imports:
      ```dart

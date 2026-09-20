@@ -12,9 +12,8 @@ Add to your `pubspec.yaml`'s `dev_dependencies`:
 
 ```yaml
 dev_dependencies:
-  custom_lint: ^0.8.1
-  logd_linters:
-    path: path/to/logd_linters # or version constraint when published
+  custom_lint: ^latest_version
+  logd_linters: ^latest_version
 ```
 
 Enable the plugin in your `analysis_options.yaml`:

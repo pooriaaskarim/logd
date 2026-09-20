@@ -4,6 +4,7 @@ part of 'encoder.dart';
 ///
 /// Implement this interface to customize the visual appearance of generated
 /// HTML log files without touching [HtmlEncoder].
+@Deprecated('Use package:logd_html instead. Will be removed in v0.10.0.')
 abstract interface class HtmlStylesheet {
   /// Generates the CSS string injected into the `<style>` block.
   ///
@@ -15,6 +16,7 @@ abstract interface class HtmlStylesheet {
 }
 
 /// The default stylesheet shipped with logd.
+@Deprecated('Use package:logd_html instead. Will be removed in v0.10.0.')
 @immutable
 class DefaultHtmlStylesheet implements HtmlStylesheet {
   /// Creates a [DefaultHtmlStylesheet].

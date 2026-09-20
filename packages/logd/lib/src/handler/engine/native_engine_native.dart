@@ -79,8 +79,7 @@ class NativeEngine implements LogEngine {
         sink.dispatchPacket(packet);
         arena.resetNative(document); // Buffer already moved to in-flight
       } else if (sink is EncodingSink &&
-          (sink.encoder is AnsiEncoder || sink.encoder is AutoConsoleEncoder) &&
-          !document.metadata.containsKey('toon_columns')) {
+          (sink.encoder is AnsiEncoder || sink.encoder is AutoConsoleEncoder)) {
         // Standard Path: Render locally and delegate to sink
         const binaryEncoder = BinaryAnsiEncoder();
         final output = binaryEncoder.encode(
@@ -178,17 +177,11 @@ void spawnNativeWorker(final List<dynamic> args) {
   receivePort.listen((final message) async {
     if (message is NativePacket) {
       try {
-        final String output;
-        if (target.encoder is ToonEncoder) {
-          const encoder = BinaryToonEncoder();
-          output = encoder.encode(message.pointer);
-        } else {
-          const encoder = BinaryAnsiEncoder();
-          output = encoder.encode(
-            message.pointer,
-            terminalWidth: message.terminalWidth,
-          );
-        }
+        const encoder = BinaryAnsiEncoder();
+        final String output = encoder.encode(
+          message.pointer,
+          terminalWidth: message.terminalWidth,
+        );
 
         // 2. Encode to UTF-8 bytes
         final data = convert.utf8.encode(output);

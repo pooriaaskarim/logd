@@ -60,7 +60,7 @@ void main() {
   // Adding markers that are easy for regex or LLMs to pick up even in
   // unstructured text.
   const machineHandler = Handler(
-    formatter: ToonFormatter(metadata: {}),
+    formatter: StructuredFormatter(metadata: {}),
     decorators: [
       PrefixDecorator('TOON_START|'),
       SuffixDecorator('|TOON_END', aligned: false), // Attached

@@ -12,7 +12,11 @@ abstract base class AutoEncoder implements LogEncoder {
   static const String encoderKey = 'logd.encoder';
 
   @override
-  WrappingStrategy get requiredStrategy => WrappingStrategy.document;
+  WrappingStrategy get wrappingStrategy => WrappingStrategy.document;
+
+  @Deprecated('Use wrappingStrategy instead. Will be removed in v0.10.0.')
+  @override
+  WrappingStrategy get requiredStrategy => wrappingStrategy;
 
   /// Resolves the delegate encoder based on the standard `'logd.encoder'`
   /// metadata contract, or [defaultFallback].
@@ -22,10 +26,6 @@ abstract base class AutoEncoder implements LogEncoder {
       final encoder = document.metadata[encoderKey];
       if (encoder is LogEncoder) {
         return encoder;
-      }
-      // Backward compatibility check for TOON metadata signature
-      if (document.metadata.containsKey('toon_columns')) {
-        return const ToonEncoder();
       }
     }
     return defaultFallback;

@@ -16,6 +16,7 @@ import '../sink/file_sink.dart';
 ///
 /// To offload formatting, TOON encoding, and file I/O to a background
 /// isolate, use the [ToonFileHandler.async] constructor.
+@Deprecated('Use package:logd_toon instead. Will be removed in v0.10.0.')
 @immutable
 class ToonFileHandler extends Handler {
   /// Creates a synchronous [ToonFileHandler].

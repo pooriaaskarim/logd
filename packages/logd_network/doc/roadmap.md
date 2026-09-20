@@ -7,7 +7,7 @@ Package version at time of writing: **0.1.3**
 ## Versioning Strategy
 
 `logd_network` follows the semver contract defined in
-[`doc/semver_contract.md`](../../../../doc/semver_contract.md) and summarized
+[`doc/semver_contract.md`](../../../doc/semver_contract.md) and summarized
 here for satellite-specific context:
 
 | Increment | Triggers |

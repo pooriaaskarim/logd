@@ -15,7 +15,9 @@ class LogSnap {
     final bool useAnsi = true,
   }) {
     final LogEncoder encoder =
-        useAnsi ? const AnsiEncoder() : const PlainTextEncoder();
+        document.metadata.containsKey(AutoEncoder.encoderKey)
+            ? (document.metadata[AutoEncoder.encoderKey]! as LogEncoder)
+            : (useAnsi ? const AnsiEncoder() : const PlainTextEncoder());
 
     // Dummy entry for capture
     final entry = LogEntry(
@@ -57,8 +59,10 @@ class LogSnap {
       return '';
     }
 
-    final LogEncoder encoder =
-        useAnsi ? const AnsiEncoder() : const PlainTextEncoder();
+    final LogEncoder encoder = sink.lastDocument!.metadata
+            .containsKey(AutoEncoder.encoderKey)
+        ? (sink.lastDocument!.metadata[AutoEncoder.encoderKey]! as LogEncoder)
+        : (useAnsi ? const AnsiEncoder() : const PlainTextEncoder());
     final context = HandlerContext();
     const factory = StandardPipelineFactory();
     encoder.encode(

@@ -1,0 +1,12 @@
+## 0.1.0
+
+- **Initial Release:** Satellite package release of `logd_toon`.
+- **Core Components:** Introduced `ToonFormatter`, `ToonEncoder`, and `ToonFileHandler` for highly optimized tab-oriented logging.
+- **Controls & Dialects:** Added support for `explicitSchema`, dialect controls (`ToonDialect.strict` vs `ToonDialect.compact`), object depth limits, and map key sorting.
+- **Bug Fixes:**
+  - Fixed a critical isolate-boundary bug where `LoggerSerializationRegistry` would silently overwrite TOON serializers with deprecated core shims.
+  - Fixed preamble extraction bug in `ToonEncoder.extractPreamble` that truncated early on colons.
+  - Hardened context ingestion in `ToonFormatter` to safely handle raw strings or non-map objects.
+- **Testing & Stability:** Established a robust 27-test suite validating isolate-safe serialization, encoder escaping rules, file handlers, and null-emission behaviors (`\N`).
+- **Documentation:** Added comprehensive guides covering TOON architecture, dialect comparisons, throughput benchmarks, and a v0.9.6 migration guide.
+- **Examples:** Included standard examples (`example/main.dart`) alongside advanced patterns (`example/extra/`) for file rotation, depth clamping, and schema evolution.

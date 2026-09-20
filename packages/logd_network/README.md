@@ -52,7 +52,7 @@ void main() {
 
 | Component | Type | Description |
 |---|---|---|
-| [`HttpDashboardHandler`](#1-httpdashboardhandler-embedded-browser-viewer) | TargetHandler | Pre-wired convenience handler for local browser log monitoring via HTTP/WebSocket. |
+| [`HttpDashboardHandler`](#1-httpdashboardhandler-embedded-browser-viewer) | TargetHandler | Pre-wired convenience handler for local browser log monitoring via HTTP/WebSocket (supports sync and `.async()` isolate mode). |
 | [`HttpSink`](#2-httpsink-batch-shipping--exponential-retries) | Physical Sink | Accumulates logs in memory and ships in POST batches with exponential backoff retries. |
 | [`SocketSink`](#3-socketsink-real-time-websocket-streaming) | Physical Sink | Streams logs frame-by-frame over WebSockets with offline reconnect buffering. |
 | [`HttpServerSink`](#4-httpserversink-low-level-custom-dashboard-sink) | Physical Sink | Low-level server sink for hosting custom HTML/ANSI dashboards on custom ports. |
@@ -63,9 +63,16 @@ void main() {
 Pre-wired, zero-configuration handler that boots a lightweight local HTTP and WebSocket server hosting an interactive real-time log viewer.
 
 ```dart
+// Synchronous handler (runs server on main thread)
 final dashboard = HttpDashboardHandler(
   port: 8080,
   title: 'Real-Time Observability Dashboard',
+);
+
+// Or run offloaded to a background isolate (zero UI latency)
+final asyncDashboard = HttpDashboardHandler.async(
+  port: 8080,
+  title: 'Isolate Observability Stream',
 );
 
 Logger.configure('app', handlers: [dashboard]);
@@ -184,7 +191,7 @@ dart run example/showcase/http_dashboard_showcase.dart
 For deep-dive documentation on `logd` architecture, migration guides, and execution engines:
 
 - [**logd Monorepo Root**](https://github.com/pooriaaskarim/logd)
-- [**Migration Guide (v0.9.5 Satellite Extraction)**](https://github.com/pooriaaskarim/logd/blob/master/doc/migration.md)
+- [**Migration Guide**](https://github.com/pooriaaskarim/logd/blob/master/doc/migration.md)
 - [**ADR-007: Satellite Package Architecture**](https://github.com/pooriaaskarim/logd/blob/master/doc/decisions/adr-007-satellite-package-extraction.md)
 
 ---
