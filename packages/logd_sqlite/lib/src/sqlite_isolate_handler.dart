@@ -23,8 +23,8 @@ class _SqliteWorkerConfig {
     required this.batchSize,
     this.flushIntervalMs,
     required this.walMode,
-    required this.formatterJson,
-    required this.decoratorsJson,
+    required this.formatter,
+    required this.decorators,
     this.timeoutMs,
   });
 
@@ -35,8 +35,8 @@ class _SqliteWorkerConfig {
   final int batchSize;
   final int? flushIntervalMs;
   final bool walMode;
-  final Map<String, dynamic> formatterJson;
-  final List<Map<String, dynamic>> decoratorsJson;
+  final LogFormatter formatter;
+  final List<LogDecorator> decorators;
   final int? timeoutMs;
 }
 
@@ -87,11 +87,8 @@ base class SqliteIsolateHandler extends Handler {
           batchSize: batchSize,
           flushIntervalMs: flushInterval?.inMilliseconds,
           walMode: walMode,
-          formatterJson:
-              LoggerSerializationRegistry.serializeFormatter(formatter),
-          decoratorsJson: decorators
-              .map(LoggerSerializationRegistry.serializeDecorator)
-              .toList(),
+          formatter: formatter,
+          decorators: decorators,
           timeoutMs: timeout?.inMilliseconds,
         ),
         // Handler requires a sink at construction; we use a no-op placeholder.
@@ -138,13 +135,11 @@ base class SqliteIsolateHandler extends Handler {
         );
       });
 
-      _state.commandPort = await _receivePort.first as SendPort;
-
-      if (_state.isDisposed) {
-        // Disposed before ready — stop the worker immediately.
-        _state.commandPort?.send(_StopCommand(ReceivePort().sendPort));
-        _state.commandPort = null;
-      } else {
+      final firstMsg = await _receivePort.first;
+      if (firstMsg is SendPort) {
+        _state.commandPort = firstMsg;
+      }
+      if (!_ready.isCompleted) {
         _ready.complete();
       }
     } catch (e, s) {
@@ -167,6 +162,8 @@ base class SqliteIsolateHandler extends Handler {
       await _ready.future;
     }
 
+    if (_state.isDisposed) return;
+
     _state.commandPort?.send(entry);
   }
 
@@ -176,12 +173,18 @@ base class SqliteIsolateHandler extends Handler {
     _state.isDisposed = true;
     _finalizer.detach(this);
 
+    if (!_ready.isCompleted) {
+      try {
+        await _ready.future.timeout(const Duration(seconds: 3));
+      } catch (_) {}
+    }
+
     final port = _state.commandPort;
     if (port != null) {
       final reply = ReceivePort();
       try {
         port.send(_StopCommand(reply.sendPort));
-        await reply.first;
+        await reply.first.timeout(const Duration(seconds: 3));
       } catch (_) {
         _state.isolate?.kill(priority: Isolate.immediate);
       } finally {
@@ -200,16 +203,12 @@ base class SqliteIsolateHandler extends Handler {
 
   /// Worker isolate entry point. Receives only plain-data config.
   /// Constructs [SqliteSink] fresh here — no native handles cross the boundary.
-  static void _workerMain(final List<dynamic> args) {
+  static Future<void> _workerMain(final List<dynamic> args) async {
     final sendPort = args[0] as SendPort;
     final config = args[1] as _SqliteWorkerConfig;
 
-    // Reconstruct formatter and decorators from serialized JSON.
-    final formatter =
-        LoggerSerializationRegistry.deserializeFormatter(config.formatterJson);
-    final decorators = config.decoratorsJson
-        .map(LoggerSerializationRegistry.deserializeDecorator)
-        .toList();
+    final formatter = config.formatter;
+    final decorators = config.decorators;
     final timeout = config.timeoutMs != null
         ? Duration(milliseconds: config.timeoutMs!)
         : null;
@@ -232,7 +231,7 @@ base class SqliteIsolateHandler extends Handler {
     final receivePort = ReceivePort();
     sendPort.send(receivePort.sendPort);
 
-    receivePort.listen((final message) async {
+    await for (final message in receivePort) {
       if (message is LogEntry) {
         try {
           if (timeout != null) {
@@ -248,11 +247,19 @@ base class SqliteIsolateHandler extends Handler {
           );
         }
       } else if (message is _StopCommand) {
-        await sink.dispose();
-        message.replyPort.send(null);
-        receivePort.close();
+        try {
+          await sink.dispose();
+        } catch (e, s) {
+          io.stderr.writeln(
+            '[logd] SqliteIsolateHandler worker dispose failed: $e\n$s',
+          );
+        } finally {
+          message.replyPort.send(null);
+          receivePort.close();
+        }
+        break;
       }
-    });
+    }
   }
 }
 
