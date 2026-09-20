@@ -5,8 +5,6 @@ import 'package:logd_sqlite/logd_sqlite.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() async {
-  registerLogdSqliteSerializers();
-
   const dbPath = 'async_telemetry.db';
 
   final handler = SqliteHandler.async(

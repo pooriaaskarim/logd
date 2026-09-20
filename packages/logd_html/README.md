@@ -1,0 +1,78 @@
+# logd_html
+
+Modern HTML5 log rendering, dynamic dark/light stylesheet, and file handler satellite package for `logd`.
+
+## Features
+
+- **Modern HTML5 Output**: Renders structured, browser-ready log documents with level badges, metadata blocks, and collapsible stack traces.
+- **Dynamic Dark/Light Themes**: Built-in CSS system supporting automatic system preferences (`prefers-color-scheme`) and custom stylesheet injection via `HtmlStylesheet`.
+- **Asynchronous File Handling**: Background worker isolate offloading via `HtmlFileHandler.async()`.
+- **Isolate-Safe Components**: Compatible with standard isolate pipelines and cross-isolate handlers.
+
+## Installation
+
+Add `logd_html` to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  logd: ^latest_version
+  logd_html: ^latest_version
+```
+
+## Quick Start
+
+```dart
+import 'package:logd/logd.dart'
+    hide DefaultHtmlStylesheet, HtmlEncoder, HtmlFileHandler, HtmlStylesheet;
+import 'package:logd_html/logd_html.dart';
+
+void main() async {
+  // Configure a logger to write beautiful HTML logs in the background
+  final handler = HtmlFileHandler.async(
+    path: 'logs/app_logs.html',
+    title: 'My Application Logs',
+  );
+
+  Logger.configure(
+    'html_demo',
+    handlers: [handler],
+  );
+
+  final logger = Logger.get('html_demo');
+  logger.info(
+    'Application started successfully.',
+    context: {'version': '1.0.0', 'environment': 'production'},
+  );
+
+  try {
+    throw StateError('Simulated database connection failure');
+  } catch (e, stackTrace) {
+    logger.error(
+      'Failed to connect to database',
+      error: e,
+      stackTrace: stackTrace,
+    );
+  }
+
+  await handler.dispose();
+}
+```
+
+## Custom Stylesheets
+
+Customize typography, colors, padding, and layout by providing a custom `HtmlStylesheet`:
+
+```dart
+final customStylesheet = DefaultHtmlStylesheet().copyWith(
+  fontFamily: 'Fira Code, monospace',
+  fontSize: '13px',
+);
+
+final handler = HtmlFileHandler(
+  path: 'logs/custom.html',
+  formatter: HtmlFormatter(
+    title: 'Custom Styled Logs',
+    stylesheet: customStylesheet,
+  ),
+);
+```

@@ -5,7 +5,9 @@ description: >
   best-practices as static analysis warnings with IDE quick-fixes.
 version: 0.1.3
 repository: https://github.com/pooriaaskarim/logd
-homepage: https://github.com/pooriaaskarim/logd/tree/master/packages/logd_linters
+homepage: https://github.com/pooriaaskarim/logd
+documentation: https://github.com/pooriaaskarim/logd
+issue_tracker: https://github.com/pooriaaskarim/logd/issues
 topics:
   - logging
   - linting
@@ -15,6 +17,13 @@ topics:
 license: BSD-3-Clause
 environment:
   sdk: '>=3.6.0 <4.0.0'
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  windows:
 
 resolution: workspace
 

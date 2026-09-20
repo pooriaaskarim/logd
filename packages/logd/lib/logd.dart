@@ -1,3 +1,7 @@
+/// Modular hierarchical logging for Dart and Flutter.
+///
+/// Features modular pipeline processing, O(1) configuration resolution,
+/// and low-overhead performance.
 library;
 
 export 'src/core/log_level.dart';

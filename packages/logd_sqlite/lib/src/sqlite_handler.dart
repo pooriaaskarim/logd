@@ -102,9 +102,6 @@ class SqliteHandler extends Handler {
   /// The [SqliteSink] is constructed entirely inside the background isolate
   /// from the supplied config. This avoids isolate boundary transfer errors
   /// that arise with native SQLite handles and [Timer] instances.
-  ///
-  /// Make sure to call [registerLogdSqliteSerializers] in your application
-  /// bootstrap phase before using async handlers.
   static Handler async({
     required final String path,
     final String tableName = 'logs',
