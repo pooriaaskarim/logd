@@ -1,0 +1,7 @@
+### ℹ️ 2025-01-01 12:00:00 [INFO] [SnapTest] [snap.dart:10:5]
+
+**This is a standard log message for golden verification.**
+
+
+---
+
