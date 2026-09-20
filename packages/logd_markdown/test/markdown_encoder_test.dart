@@ -87,5 +87,33 @@ void main() {
       expect(output, contains('"message":"JSON Event"'));
       expect(output, contains('```'));
     });
+
+    test('preserves messages with Markdown special characters and pipes', () {
+      const formatter = StructuredFormatter(metadata: {});
+      final entry = LogEntry(
+        level: LogLevel.warning,
+        message:
+            '| col1 | col2 |\n# Heading\n```dart\nfinal x = 1;\n```\n**bold**',
+        loggerName: 'test.special',
+        timestamp: '2023-10-27T10:00:00.000Z',
+        origin: 'test.dart:42',
+      );
+
+      final document = formatDoc(formatter, entry);
+      final context = HandlerContext();
+      encoder.encode(entry, document, LogLevel.warning, context, factory);
+      final output = const Utf8Decoder().convert(context.takeBytes());
+
+      expect(output, contains('| col1 | col2 |'));
+      expect(output, contains('# Heading'));
+      expect(output, contains('```dart'));
+      expect(output, contains('**bold**'));
+    });
+
+    test('deprecated requiredStrategy returns wrappingStrategy', () {
+      // ignore: deprecated_member_use_from_same_package
+      expect(encoder.requiredStrategy, equals(encoder.wrappingStrategy));
+      expect(encoder.wrappingStrategy, equals(WrappingStrategy.none));
+    });
   });
 }

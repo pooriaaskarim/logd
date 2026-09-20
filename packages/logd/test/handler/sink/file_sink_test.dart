@@ -439,5 +439,53 @@ void main() {
 
       expect(fs.files.containsKey('random.txt'), isTrue);
     });
+
+    test('SizeRotation uses custom filenameFormatter when provided', () async {
+      final rotation = SizeRotation(
+        maxSize: '10 B',
+        filenameFormatter: (final base, final ext, final index) =>
+            '${base}_backup_${index ?? 0}$ext',
+      );
+      final sink = FileSink('custom.log', fileRotation: rotation);
+
+      await sink.output(
+        createTestDocument(['123456']),
+        testEntry,
+        LogLevel.info,
+        const StandardPipelineFactory(),
+      );
+
+      // Exceeds 10 B -> triggers rotation
+      await sink.output(
+        createTestDocument(['7890']),
+        testEntry,
+        LogLevel.info,
+        const StandardPipelineFactory(),
+      );
+
+      expect(fs.files.containsKey('custom_backup_1.log'), isTrue);
+      expect(
+        utf8.decode(fs.files['custom_backup_1.log']!.content),
+        equals('123456\n'),
+      );
+    });
+
+    test('SizeRotation throws FormatException on invalid maxSize literal', () {
+      expect(
+        () => SizeRotation(maxSize: 'invalid_size'),
+        throwsFormatException,
+      );
+    });
+
+    test('FileRotation throws ArgumentError on negative backupCount', () {
+      expect(
+        () => SizeRotation(backupCount: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => TimeRotation(backupCount: -1),
+        throwsArgumentError,
+      );
+    });
   });
 }
