@@ -33,4 +33,10 @@ dependencies:
 
 dev_dependencies:
   lints: ^5.0.0
+  logd_html:
+    path: ../logd_html
+  logd_markdown:
+    path: ../logd_markdown
+  logd_toon:
+    path: ../logd_toon
   test: ^1.24.0
