@@ -2,6 +2,8 @@ import 'package:logd/logd.dart'
     hide HttpSink, SocketSink, HttpServerSink, HttpDashboardHandler, DropPolicy;
 import 'package:logd_network/logd_network.dart';
 import 'package:logd_network/src/target_handlers/http_dashboard_isolate_handler.dart';
+import 'package:logd_network/src/target_handlers/http_dashboard_isolate_handler_stub.dart'
+    as stub;
 import 'package:test/test.dart';
 
 void main() {
@@ -53,5 +55,15 @@ void main() {
 
       await expectLater(handler.dispose(), completes);
     });
+
+    test(
+      'HttpDashboardIsolateHandler stub throws UnsupportedError on construction',
+      () {
+        expect(
+          () => stub.HttpDashboardIsolateHandler(),
+          throwsUnsupportedError,
+        );
+      },
+    );
   });
 }
