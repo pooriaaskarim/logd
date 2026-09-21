@@ -338,7 +338,11 @@ class _HttpState extends _NetworkState {
   Uri? uri;
 }
 
-/// A [NetworkSink] that transmits logs via a WebSocket.
+/// A [NetworkSink] that transmits logs via a client WebSocket connection.
+///
+/// Functions as an outgoing client to stream log frames to a remote WebSocket
+/// server. Compatible across all platforms including Web and WASM via
+/// `package:web_socket_channel`.
 base class SocketSink extends NetworkSink {
   /// Creates a [SocketSink].
   ///

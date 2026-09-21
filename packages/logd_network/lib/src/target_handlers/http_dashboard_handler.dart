@@ -4,17 +4,27 @@ library;
 
 import 'package:meta/meta.dart';
 
-import 'package:logd/logd.dart' hide HtmlEncoder, HttpServerSink;
+import 'package:logd/logd.dart'
+    hide HtmlEncoder, HttpServerSink, HttpSink, SocketSink;
 import '../sink/http_server_sink.dart';
+import '../sink/network_sink.dart';
 import 'http_dashboard_isolate_handler.dart';
 
 /// A pre-wired [Handler] that hosts a real-time web dashboard over HTTP/WS.
 ///
 /// Pre-wires [StructuredFormatter] and an [HttpServerSink]
 /// binding to [address] and [port].
+///
+/// ### Platform Support
+/// Supported on VM runtimes (Android, iOS, macOS, Windows, Linux).
+/// Throws [UnsupportedError] on Web platforms where binding local HTTP servers
+/// is not supported. For Web applications, use [HttpSink] or [SocketSink] to
+/// ship logs to a remote collector.
 @immutable
 class HttpDashboardHandler extends Handler {
   /// Creates an [HttpDashboardHandler].
+  ///
+  /// Throws [UnsupportedError] on Web platforms.
   HttpDashboardHandler({
     final String address = 'localhost',
     final int port = 8080,
@@ -47,6 +57,11 @@ class HttpDashboardHandler extends Handler {
   ///
   /// Make sure to call [registerLogdNetworkSerializers] in your application
   /// bootstrap phase before using async handlers.
+  ///
+  /// ### Platform Support
+  /// Supported on VM runtimes (Android, iOS, macOS, Windows, Linux).
+  /// Throws [UnsupportedError] on Web platforms where background isolates and
+  /// local HTTP servers are unsupported.
   static Handler async({
     final String address = 'localhost',
     final int port = 8080,
