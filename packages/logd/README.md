@@ -53,7 +53,7 @@ Most libraries give you console or file. logd gives you a clean pipeline: Format
 
 ## Pre-Wired Handlers
 
-Ready-to-use handlers cover common destinations out of the box (with specialized formats & telemetry provided by satellite packages like [`logd_toon`](https://pub.dev/packages/logd_toon), [`logd_html`](https://pub.dev/packages/logd_html), [`logd_markdown`](https://pub.dev/packages/logd_markdown), and [`logd_network`](https://pub.dev/packages/logd_network)). No pipeline wiring required:
+Ready-to-use handlers cover common destinations out of the box (with specialized formats, storage, & telemetry provided by satellite packages like [`logd_toon`](https://pub.dev/packages/logd_toon), [`logd_html`](https://pub.dev/packages/logd_html), [`logd_markdown`](https://pub.dev/packages/logd_markdown), [`logd_sqlite`](https://pub.dev/packages/logd_sqlite), and [`logd_network`](https://pub.dev/packages/logd_network)). No pipeline wiring required:
 
 ```dart
 // Styled terminal output (dark or light theme)
@@ -77,6 +77,9 @@ MarkdownFileHandler('logs/ci.md')
 // In-memory ring buffer for tests and debug panels
 MemoryHandler(capacity: 200)
 
+// Indexed SQLite database storage (from package:logd_sqlite)
+SqliteHandler('logs/app.db')
+
 // Live browser dashboard via HTTP + WebSocket server (from package:logd_network)
 HttpDashboardHandler(port: 8080)
 ```
@@ -88,6 +91,8 @@ Logger.configure('app', handlers: [
   ConsoleHandler.async(),
   JsonFileHandler.async('logs/production.json'),
   HtmlFileHandler.async('logs/report.html'),
+  SqliteHandler.async('logs/app.db'),
+  HttpDashboardHandler.async(port: 8080),
 ]);
 ```
 
