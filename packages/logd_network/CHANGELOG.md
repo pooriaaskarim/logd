@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- **Web & WASM Platform Support Fix**:
+  - Split `HttpDashboardIsolateHandler` into conditional native and web stub implementations (`http_dashboard_isolate_handler_native.dart` and `http_dashboard_isolate_handler_stub.dart`), eliminating unconditional `dart:isolate` and `dart:io` imports when compiled for Web or WASM runtimes.
+
 ## 0.1.4
 
 - **Async Dashboard Isolate Execution (`HttpDashboardHandler.async`)**: Added `HttpDashboardHandler.async()` static factory method for running the real-time HTTP/WebSocket dashboard server on a background isolate without blocking the main event loop.

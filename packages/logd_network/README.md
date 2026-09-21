@@ -59,8 +59,21 @@ void main() {
 
 ---
 
+## Platform Compatibility
+
+| Component | Role | Android / iOS | Windows / macOS / Linux | Web / WASM | Notes |
+|---|:---:|:---:|:---:|:---:|---|
+| **[`HttpSink`](#2-httpsink-batch-shipping--exponential-retries)** | HTTP Client |  |  |  | Batch-posts logs to remote HTTP collector endpoints via `package:http`. |
+| **[`SocketSink`](#3-socketsink-real-time-websocket-streaming)** | WebSocket Client |  |  |  | Streams logs to remote WebSocket servers (`ws://`, `wss://`) via native & browser WebSockets. |
+| **[`HttpDashboardHandler`](#1-httpdashboardhandler-embedded-browser-viewer)** | HTTP/WS Server |  |  | ❌ | Binds a local server port on `localhost`. Throws `UnsupportedError` on Web. |
+| **[`HttpServerSink`](#4-httpserversink-low-level-custom-dashboard-sink)** | HTTP/WS Server |  |  | ❌ | Embedded server for custom HTML/ANSI dashboards. Throws `UnsupportedError` on Web. |
+
+---
+
 ### 1. `HttpDashboardHandler` (Embedded Browser Viewer)
 Pre-wired, zero-configuration handler that boots a lightweight local HTTP and WebSocket server hosting an interactive real-time log viewer.
+
+> **Platform Note:** Designed for native/VM environments (server, desktop, CLI) where local TCP sockets can be bound. Throws `UnsupportedError` on Web platforms where hosting embedded servers is unsupported. For web apps, stream logs to an external collector with [`SocketSink`](#3-socketsink-real-time-websocket-streaming) or [`HttpSink`](#2-httpsink-batch-shipping--exponential-retries).
 
 ```dart
 // Synchronous handler (runs server on main thread)
@@ -108,6 +121,8 @@ Logger.configure('app', handlers: [httpHandler]);
 ### 3. `SocketSink` (Real-Time WebSocket Streaming)
 Streams logs frame-by-frame over WebSockets with automatic reconnection and offline buffering.
 
+> **Platform Note:** Fully compatible across all platforms including Web and WASM via `package:web_socket_channel`. In browser targets, it connects directly using native browser WebSockets (`window.WebSocket`).
+
 ```dart
 final wsHandler = Handler(
   formatter: const PlainFormatter(metadata: {LogMetadata.timestamp, LogMetadata.logger}),
@@ -125,6 +140,8 @@ Logger.configure('app.stream', handlers: [wsHandler]);
 
 ### 4. `HttpServerSink` (Low-Level Custom Dashboard Sink)
 If you want to use custom formatters (like `ToonFormatter`), custom decorators, or custom encoders while hosting a local browser server, use `HttpServerSink` directly:
+
+> **Platform Note:** Supported on VM platforms only (server, desktop, CLI). Throws `UnsupportedError` on Web runtimes.
 
 ```dart
 final serverSink = HttpServerSink(
